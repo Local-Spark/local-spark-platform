@@ -1,0 +1,83 @@
+name: Deploy ECS
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        options: [staging, production]
+        default: staging
+        required: true
+      database_ready:
+        description: Required migrations have been applied using the dedicated migration role
+        type: boolean
+        required: true
+        default: false
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    environment: ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+      ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+      ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
+      ECS_SERVICE: ${{ vars.ECS_SERVICE }}
+      ECS_TASK_FAMILY: ${{ vars.ECS_TASK_FAMILY }}
+      ECS_CONTAINER_NAME: ${{ vars.ECS_CONTAINER_NAME }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Require successful CI for this exact commit
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const result = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner, repo: context.repo.repo,
+              workflow_id: 'ci.yml', head_sha: context.sha, status: 'success'
+            });
+            if (!result.data.workflow_runs.length) core.setFailed('This commit needs a successful CI run.');
+      - name: Validate deployment configuration
+        env:
+          DATABASE_READY: ${{ inputs.database_ready }}
+        run: |
+          test "$DATABASE_READY" = true
+          for key in AWS_REGION AWS_ROLE_ARN ECR_REPOSITORY ECS_CLUSTER ECS_SERVICE ECS_TASK_FAMILY ECS_CONTAINER_NAME; do
+            test -n "${!key}" || { echo "Missing environment variable: $key"; exit 1; }
+          done
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Build and push immutable commit tag
+        id: image
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          image="$REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA"
+          docker build -t "$image" .
+          docker push "$image"
+          printf 'image=%s\n' "$image" >> "$GITHUB_OUTPUT"
+      - name: Fetch current infrastructure-managed task definition
+        run: aws ecs describe-task-definition --task-definition "$ECS_TASK_FAMILY" --query taskDefinition > task-definition.json
+      - id: task
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ vars.ECS_CONTAINER_NAME }}
+          image: ${{ steps.image.outputs.image }}
+      - uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.task.outputs.task-definition }}
+          cluster: ${{ vars.ECS_CLUSTER }}
+          service: ${{ vars.ECS_SERVICE }}
+          wait-for-service-stability: true

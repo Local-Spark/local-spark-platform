@@ -1,0 +1,64 @@
+name: local-spark-platform
+services:
+  postgres:
+    image: postgres:17.6-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: local-spark-admin-password
+      POSTGRES_DB: local_spark_platform
+    ports: ["127.0.0.1:55432:5432"]
+    volumes:
+      - local-spark-postgres:/var/lib/postgresql/data
+      - ./docker/postgres/001-local-users.sql:/docker-entrypoint-initdb.d/001-local-users.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d local_spark_platform"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+  temporal:
+    image: temporalio/temporal:1.4.1
+    command: ["server", "start-dev", "--ip", "0.0.0.0", "--db-filename", "/var/lib/temporal/temporal.db"]
+    volumes:
+      - local-spark-temporal:/var/lib/temporal
+    ports: ["127.0.0.1:7233:7233", "127.0.0.1:8233:8233"]
+  api:
+    build: .
+    environment:
+      LOCAL_SPARK_DATABASE_URL: postgresql+asyncpg://local_spark_runtime:local-spark-app-password@postgres:5432/local_spark_platform
+      LOCAL_SPARK_JWT_SECRET: development-local-spark-change-this-secret-before-deploying
+    ports: ["127.0.0.1:8000:8000"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+  worker:
+    build: .
+    command: ["python", "-m", "app.entrypoints.worker"]
+    environment:
+      LOCAL_SPARK_DATABASE_URL: postgresql+asyncpg://local_spark_runtime:local-spark-app-password@postgres:5432/local_spark_platform
+      LOCAL_SPARK_JWT_SECRET: development-local-spark-change-this-secret-before-deploying
+      LOCAL_SPARK_TEMPORAL_ADDRESS: temporal:7233
+    profiles: ["workers"]
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_started
+  relay:
+    build: .
+    command: ["python", "-m", "app.entrypoints.relay"]
+    environment:
+      LOCAL_SPARK_DATABASE_URL: postgresql+asyncpg://local_spark_runtime:local-spark-app-password@postgres:5432/local_spark_platform
+      LOCAL_SPARK_RELAY_DATABASE_URL: postgresql+asyncpg://local_spark_delivery:local-spark-relay-password@postgres:5432/local_spark_platform
+      LOCAL_SPARK_JWT_SECRET: development-local-spark-change-this-secret-before-deploying
+      LOCAL_SPARK_TEMPORAL_ADDRESS: temporal:7233
+    profiles: ["workers"]
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_started
+volumes:
+  local-spark-postgres:
+  local-spark-temporal:
