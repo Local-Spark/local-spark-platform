@@ -1,7 +1,7 @@
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Header, Request, Response
+from fastapi import APIRouter, Header, Query, Request, Response
 
 from app.adapters.stripe_billing import verify_webhook
 from app.api.deps import Actor, ActorSession, Principal
@@ -22,12 +22,26 @@ async def billing_status(tenant_id: UUID, request: Request, actor: Actor, sessio
 async def checkout(
     tenant_id: UUID, request: Request, identity: Principal, session: ActorSession, idempotency_key: Key
 ) -> dict[str, Any]:
-    return await billing.request_checkout(session, request.app.state.settings, tenant_id, identity, idempotency_key)
+    return await billing.request_checkout(
+        session, request.app.state.settings, tenant_id, identity, idempotency_key, request.headers.get("origin")
+    )
 
 
 @billing_router.get("/admin/billing")
 async def billing_overview(actor: Actor, session: ActorSession) -> dict[str, Any]:
     return await billing.overview(session, actor)
+
+
+@billing_router.get("/admin/billing/opportunities")
+async def billing_opportunities(
+    request: Request,
+    actor: Actor,
+    session: ActorSession,
+    state: Literal["open", "expired"] = "open",
+    limit: Annotated[int, Query(ge=1, le=50)] = 25,
+    after: UUID | None = None,
+) -> dict[str, Any]:
+    return await billing.opportunities(session, request.app.state.settings, actor, state, limit, after)
 
 
 @billing_router.get("/admin/organizations/{tenant_id}/billing")

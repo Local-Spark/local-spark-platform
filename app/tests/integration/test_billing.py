@@ -170,6 +170,13 @@ async def test_processor_checkout_and_payment_canonical_reconciliation(
     result = await processor.run(job["id"])
     assert result["status"] == "open" and (await processor.run(job["id"])) == result
     assert provider.checkout.await_count == 1
+    async with database.transaction(ZERO, staff.actor_id) as db:
+        page = await billing.opportunities(db, billing_settings, staff.actor_id, "open", 25, None)
+        assert [item["tenant_id"] for item in page["items"]] == [tenant]
+        assert page["items"][0]["contact_email"] == owner.email
+        assert page["items"][0]["contact_phone"] == "+5511999999999"
+        assert page["items"][0]["phone_verified"] is False
+        assert page["next_cursor"] is None
     provider.reference.return_value = Reference(order_id=job["id"], subscription_id="sub_local")
     event = {"event_id": "evt_invoice", "event_type": "invoice.paid", "object_id": "in_local"}
     await asyncio.gather(*(enqueue_webhook(billing_database, billing_settings, event) for _ in range(5)))
@@ -182,6 +189,7 @@ async def test_processor_checkout_and_payment_canonical_reconciliation(
     async with database.transaction(ZERO, staff.actor_id) as db:
         summary = await billing.overview(db, staff.actor_id)
         assert summary["paying"] == 0 and summary["testing"] == 1 and not summary["mrr_available"]
+        assert (await billing.opportunities(db, billing_settings, staff.actor_id, "open", 25, None))["items"] == []
     next_job = await request_job(database, billing_settings, commercial, "new-intent-key")
     assert (await processor.run(next_job["id"]))["status"] == "already_subscribed"
     provider.reference.return_value = Reference(customer_id="cus_local", hold=True)
@@ -199,6 +207,85 @@ async def test_processor_checkout_and_payment_canonical_reconciliation(
     await processor.run(later)
     async with database.transaction(tenant, owner.actor_id) as db:
         assert not (await billing.status(db, billing_settings, tenant, owner.actor_id))["access_active"]
+
+
+async def test_admin_checkout_opportunities_are_paginated_audited_and_expired(
+    database, billing_database, admin, billing_settings, commercial, provider
+):
+    tenant, owner, staff = commercial
+    processor = BillingProcessor(billing_settings, billing_database, provider)
+    first = await request_job(database, billing_settings, commercial)
+    await processor.run(first["id"])
+    other = Identity(uuid4(), "test", str(uuid4()), "Bia", "bia@example.com", True)
+    async with database.transaction(ZERO, other.actor_id) as db:
+        second_tenant = (
+            await provision_initial_business(
+                db,
+                other,
+                OnboardingCreate(
+                    name="Bia Studio",
+                    category="Beleza",
+                    city="São Paulo",
+                    description="Cabelos",
+                    phone="+5511988888888",
+                    accept_terms=True,
+                    accept_privacy=True,
+                ),
+            )
+        ).tenant_id
+    provider.checkout.return_value = {
+        "id": "cs_test_second",
+        "status": "open",
+        "url": "https://checkout.stripe.com/c/pay/second",
+    }
+    async with database.transaction(second_tenant, other.actor_id) as db:
+        second = await billing.request_checkout(db, billing_settings, second_tenant, other, "second-checkout")
+    await processor.run(second["id"])
+    async with database.transaction(ZERO, staff.actor_id) as db:
+        first_page = await billing.opportunities(db, billing_settings, staff.actor_id, "open", 1, None)
+        assert [item["tenant_id"] for item in first_page["items"]] == [second_tenant]
+        assert first_page["next_cursor"] == str(second["id"])
+        next_page = await billing.opportunities(db, billing_settings, staff.actor_id, "open", 1, second["id"])
+        assert [item["tenant_id"] for item in next_page["items"]] == [tenant]
+        assert next_page["next_cursor"] is None
+        assert (await billing.opportunities(db, billing_settings, staff.actor_id, "open", 1, uuid4()))["items"] == []
+        assert (await billing.opportunities(db, billing_settings, staff.actor_id, "expired", 25, None))["items"] == []
+        assert (
+            await db.scalar(text("SELECT count(*) FROM platform_audit WHERE action='admin.billing.opportunities.read'"))
+            == 4
+        )
+    with pytest.raises(AccessDenied):
+        async with database.transaction(tenant, owner.actor_id) as db:
+            await billing.opportunities(db, billing_settings, owner.actor_id, "open", 25, None)
+    async with admin.begin() as db:
+        await db.execute(
+            text(
+                "UPDATE billing_accounts SET subscription_id='sub_existing',status='active',blocked=true "
+                "WHERE tenant_id=:tenant"
+            ),
+            {"tenant": second_tenant},
+        )
+    async with database.transaction(ZERO, staff.actor_id) as db:
+        assert [
+            item["tenant_id"]
+            for item in (await billing.opportunities(db, billing_settings, staff.actor_id, "open", 25, None))["items"]
+        ] == [tenant]
+    async with admin.begin() as db:
+        await db.execute(
+            text(
+                "UPDATE billing_accounts SET subscription_id=NULL,status='inactive',blocked=false "
+                "WHERE tenant_id=:tenant"
+            ),
+            {"tenant": second_tenant},
+        )
+    provider.checkout.return_value = {"id": "cs_test_local", "status": "expired"}
+    assert (await processor.run(first["id"], expire=True))["status"] == "expired"
+    async with database.transaction(ZERO, staff.actor_id) as db:
+        expired = await billing.opportunities(db, billing_settings, staff.actor_id, "expired", 25, None)
+        assert [item["tenant_id"] for item in expired["items"]] == [tenant]
+        assert expired["items"][0]["checkout_status"] == "expired"
+        open_page = await billing.opportunities(db, billing_settings, staff.actor_id, "open", 25, None)
+        assert [item["tenant_id"] for item in open_page["items"]] == [second_tenant]
 
 
 async def test_billing_role_cannot_write_business_and_app_cannot_forge_paid_access(
@@ -235,7 +322,14 @@ async def test_billing_http_contracts_permissions_and_signed_inbox(
         assert (await api.get("/health/ready")).status_code == 200
         assert (await api.get(f"/api/v1/billing/{tenant}")).status_code == 200
         assert (await api.get("/api/v1/admin/billing")).status_code == 403
+        assert (await api.get("/api/v1/admin/billing/opportunities")).status_code == 403
         verifier.return_value = staff
+        assert (await api.get("/api/v1/admin/billing/opportunities")).json() == {
+            "items": [],
+            "next_cursor": None,
+        }
+        assert (await api.get("/api/v1/admin/billing/opportunities?state=unknown")).status_code == 422
+        assert (await api.get("/api/v1/admin/billing/opportunities?limit=51")).status_code == 422
         path = f"/api/v1/admin/organizations/{tenant}/sponsorship"
         headers = {"Idempotency-Key": "http-sponsorship"}
         assert (await api.post(path, headers=headers, json={"reason": "Vídeo no canal"})).status_code == 201
@@ -544,3 +638,64 @@ async def test_delayed_checkout_cannot_start_after_sponsorship_was_granted(
     with pytest.raises(billing.BillingError, match="SPONSORSHIP_ACTIVE"):
         await processor.run(job["id"])
     provider.checkout.assert_not_awaited()
+
+
+@pytest.mark.parametrize(
+    "environment,configured,origin,accepted",
+    [
+        ("development", "http://localhost:5173", "http://127.0.0.1:5173", True),
+        ("testing", "http://127.0.0.1:5173", "http://localhost:5173", True),
+        ("development", "http://localhost:5173", None, True),
+        ("development", "http://localhost:5173", "http://localhost:5174", False),
+        ("development", "http://localhost:5173", "https://localhost:5173", False),
+        ("development", "http://localhost:5173", "https://untrusted.example", False),
+        ("development", "http://localhost:5173", "null", False),
+        ("staging", "https://spark.example", "https://spark.example", True),
+        ("production", "http://localhost:5173", "http://127.0.0.1:5173", False),
+    ],
+)
+async def test_http_checkout_freezes_only_authorized_return_origin(
+    database, billing_database, billing_settings, commercial, provider, environment, configured, origin, accepted
+):
+    tenant, owner, _ = commercial
+    config = billing_settings.model_copy(update={"environment": environment, "public_web_url": configured})
+    app = create_app(config, database, billing_database=billing_database)
+    async with (
+        app.router.lifespan_context(app),
+        httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url="http://test") as api,
+    ):
+        app.state.identity_verifier.authenticate = AsyncMock(return_value=owner)
+        headers = {"Authorization": "Bearer test", "Idempotency-Key": "return-origin-test"}
+        if origin is not None:
+            headers["Origin"] = origin
+        response = await api.post(f"/api/v1/billing/{tenant}/checkout", headers=headers)
+        if not accepted:
+            assert response.status_code == 403 and response.json()["error_code"] == "ORIGIN_REJECTED"
+            async with billing_database.sessions() as db:
+                assert await db.scalar(text("SELECT count(*) FROM billing_jobs")) == 0
+            return
+        assert response.status_code == 202
+        job_id = UUID(response.json()["id"])
+        # Deployment settings can change between admission and asynchronous processing.
+        processor = BillingProcessor(
+            config.model_copy(update={"public_web_url": "https://changed.example"}), billing_database, provider
+        )
+        assert (await processor.job(job_id))["return_origin"] == (origin or configured)
+        await processor.run(job_id)
+        assert provider.checkout.call_args.args[0]["origin"] == (origin or configured)
+        # Replaying the operation from another allowed host preserves the original order.
+        headers["Origin"] = configured
+        replay = await api.post(f"/api/v1/billing/{tenant}/checkout", headers=headers)
+        assert replay.json()["id"] == str(job_id)
+        assert (await processor.job(job_id))["return_origin"] == (origin or configured)
+
+
+async def test_legacy_checkout_job_uses_configured_return_origin(
+    database, billing_database, billing_settings, commercial, provider, admin
+):
+    job = await request_job(database, billing_settings, commercial)
+    async with admin.begin() as db:
+        await db.execute(text("UPDATE billing_jobs SET return_origin=NULL WHERE id=:id"), {"id": job["id"]})
+    processor = BillingProcessor(billing_settings, billing_database, provider)
+    await processor.run(job["id"])
+    assert provider.checkout.call_args.args[0]["origin"] == billing_settings.public_web_url

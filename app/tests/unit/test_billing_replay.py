@@ -10,6 +10,19 @@ from app.schemas.billing import SponsorshipCreate
 from app.services import billing
 
 
+async def test_untrusted_checkout_origin_is_rejected_before_lock_or_durable_intent(settings):
+    db = AsyncMock()
+    db.scalar.side_effect = ["owner", "owner"]
+    actor = uuid4()
+    owner = Identity(actor, "test", str(actor), "Ana", "ana@example.com", True)
+    config = settings.model_copy(update={"billing_mode": "test"})
+    with pytest.raises(billing.BillingError, match="ORIGIN_REJECTED") as error:
+        await billing.request_checkout(db, config, uuid4(), owner, "unsafe-return", "https://untrusted.example")
+    assert error.value.status == 403
+    statements = [str(call.args[0]) for call in db.execute.call_args_list]
+    assert not any("pg_advisory_xact_lock" in sql or "INSERT INTO billing_jobs" in sql for sql in statements)
+
+
 async def test_replays_return_durable_result_without_new_checkout_or_grant(settings):
     tenant, actor, operation = uuid4(), uuid4(), uuid4()
     db = AsyncMock()

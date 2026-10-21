@@ -1,5 +1,44 @@
 # Registro de mudanças
 
+## 2026-10-21 — Oportunidades de checkout no admin
+
+- Endpoint administrativo paginado lista checkouts atuais abertos ou expirados sem
+  acesso ativo, com nome do negócio, e-mail de quem iniciou a contratação e telefone
+  informado (indicando se foi verificado). Não retorna link Stripe nem cartão.
+- Consulta exige staff/MFA, RLS e auditoria; assinatura/patrocínio ativos não viram
+  oportunidade. Índice 0007 para paginação recente, aplicado localmente e testado
+  com upgrade/downgrade/upgrade no banco `_test`.
+- 219 testes backend com 100% de linhas/branches; mypy aprovado. Sem cobrança nova.
+- Smoke somente de leitura na base local confirmou que o negócio informado aparece
+  entre as oportunidades abertas. Browser no banco `_test` validou a lista do admin.
+
+## 2026-10-21 — Contrato para novos operadores
+
+- F01.6 explicita convites/revogação auditados de staff, e-mail verificado,
+  MFA individual e bootstrap administrativo controlado. Ainda planejado;
+  o operador demo permanece restrito ao desenvolvimento local.
+- Corrigido no frontend o reuso do campo de senha no passo de MFA, sem mudança
+  no backend. Sem alteração de credenciais, cobrança ou dados de clientes.
+
+## 2026-10-21 — Sessão no retorno do checkout
+
+- Reproduzido em Chromium: login em 127.0.0.1 e retorno para localhost geram
+  INVALID_SESSION, pois o cookie de refresh é host-only. Pagamento sandbox do
+  titular já estava confirmado; nenhuma nova cobrança foi necessária.
+- API valida Origin pela allowlist e congela na intenção antes do processamento.
+  Migration 0006 adiciona return_origin nullable; legados usam configuração vigente,
+  checkouts criados e sua idempotência preservam parâmetros. Produção exige origem
+  exata; sem URLs arbitrárias, cookies compartilhados ou token no navegador.
+- Testes de origem, replay, worker com configuração alterada, legado e URLs Stripe;
+  jornadas browser para restauração após saída/retorno nos dois aliases locais.
+- README usa --all-snapshot para a CLI atual. Sem commit/push/deploy.
+- Validação: make ci com 218 testes/100% linhas e branches; web com 84 testes/100%,
+  tipos/build e sete jornadas Playwright aprovadas. Retorno externo simulado sem
+  pagamento; API/SMTP/DB _test reais. Downgrade/reaplicação da 0006 no banco de teste.
+- Migration local aplicada preservando contagens de cadastros, sessões e cobrança,
+  incluindo a assinatura de teste ativa. Worker billing reconstruído/atualizado;
+  API do usuário em F5 precisa reiniciar. Sem nova assinatura ou cobrança.
+
 ## 2026-10-20 — F01.5: contratação e acesso
 
 - Stripe escolhido como primeiro adapter para teste/produção, sem alegação de

@@ -2,6 +2,13 @@
 
 Status: Em implementação. Atualizado em 20/10/2026. Dependência: F00.
 
+21/10/2026: pagamento de sandbox confirmado no banco; retorno externo entre aliases
+locais reproduziu INVALID_SESSION. Migration 0006 e validação de Origin preservam
+o host autorizado da sessão nos retornos success/cancel. Cookies continuam host-only;
+staging/produção não aceitam aliases. Demais cenários externos e staging pendentes.
+Validação da correção: 218 testes backend/100%, 84 testes web/100%, sete jornadas
+Playwright, migration 0006 reversível no _test e aplicada localmente sem perda.
+
 ## Objetivo e jornada aceita
 
 O cliente conhece a Local Spark na landing page, contrata um plano e tem sua
@@ -24,11 +31,24 @@ uma categoria explícita de concessão, sem aparecer como clientes pagantes.
 | F01.5 | Checkout, webhook e ativação automática; concessão patrocinada | Código local validado; fase aberta até sandbox/staging |
 | F01.6 | Convites, revogação, telefone verificado e validação em staging | Planejada |
 
+F01.6 incluirá convite de operadores da plataforma, separado dos convites para
+equipe de cada negócio. Somente staff ativo com MFA poderá convidar outro operador.
+Convite terá e-mail verificado, token de uso único e expiração; concessão e revogação
+de staff serão auditadas. Cada operador usará credenciais e TOTP próprios; revogar
+staff deverá invalidar acesso administrativo/sessões. Conta demo local é bootstrap
+de desenvolvimento, não processo de cadastro para produção. O cadastro público
+continua sem capacidade de conceder staff; a primeira conta administrativa de
+cada ambiente requer bootstrap operacional controlado.
+
 As primeiras quatro fatias criam uma organização em setup, sem ativar geração paga.
 F01.5 antecipa a parte mínima de cobrança da F07. Nunca marcar pagamento por redirect,
 parâmetro do navegador ou simples conclusão de checkout ainda não liquidado. Evento
 assinado/reconciliado é deduplicado e provisiona/ativa uma única vez. O usuário pode
 criar identidade e rascunho de organização antes de pagar; não recebe franquia paga.
+O admin distingue acesso de intenção de compra: checkout aberto sem pagamento
+confirmado aparece como oportunidade, com contato cadastrado e prazo; expirado
+fica em filtro separado. Fechar o navegador não prova abandono. A lista é paginada,
+auditada e restrita a staff/MFA, sem expor URL do Stripe ou cartão.
 
 ## Identidade e autorização
 
@@ -73,6 +93,8 @@ contados separadamente; nenhum MRR inventado. Sandbox/staging ainda não validad
   cadastro retorna os mesmos recursos; payload diferente gera 409.
 - GET /api/v1/admin/overview: contagens reais e série de cadastros, sem receita estimada.
 - GET /api/v1/admin/organizations: lista paginada e busca limitada, acesso de staff.
+- GET /api/v1/admin/billing/opportunities: checkouts abertos/expirados sem acesso
+  ativo, com paginação e modo test/live do ambiente.
 - Telefone informado é não verificado até a integração de verificação; consentimento
   de termos não autoriza voz/avatar nem publicação.
 

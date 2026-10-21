@@ -1,6 +1,6 @@
 """Commercial access is explicit, tenant-scoped and independent from registration."""
 
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID, uuid4, uuid5
 
 from sqlalchemy import text
@@ -136,7 +136,7 @@ async def status(
 
 
 async def request_checkout(
-    session: AsyncSession, settings: Settings, tenant: UUID, identity: Identity, key: str
+    session: AsyncSession, settings: Settings, tenant: UUID, identity: Identity, key: str, origin: str | None = None
 ) -> dict[str, Any]:
     await context(session, tenant)
     await require_member(session, tenant, identity.actor_id)
@@ -148,6 +148,9 @@ async def request_checkout(
         raise AccessDenied
     if settings.billing_mode == "disabled":
         raise BillingError("BILLING_UNAVAILABLE", 503)
+    return_origin = settings.public_web_url if origin is None else origin
+    if return_origin not in settings.auth_origins:
+        raise BillingError("ORIGIN_REJECTED", 403)
     await lock_commercial_change(session, tenant)
     previous = (
         (
@@ -170,8 +173,9 @@ async def request_checkout(
         raise BillingError("SPONSORSHIP_ACTIVE")
     job_id = uuid4()
     await session.execute(
-        text("""INSERT INTO billing_jobs(id,tenant_id,actor_id,livemode,kind,dedupe_key,price_id,amount_minor)
-      VALUES(:id,:tenant,:actor,:live,'checkout',:key,:price,:amount)"""),
+        text("""INSERT INTO billing_jobs
+      (id,tenant_id,actor_id,livemode,kind,dedupe_key,price_id,amount_minor,return_origin)
+      VALUES(:id,:tenant,:actor,:live,'checkout',:key,:price,:amount,:return_origin)"""),
         {
             "id": job_id,
             "tenant": tenant,
@@ -180,6 +184,7 @@ async def request_checkout(
             "key": f"checkout:{tenant}:{identity.actor_id}:{key}",
             "price": settings.stripe_price_id,
             "amount": settings.billing_monthly_amount_minor,
+            "return_origin": return_origin,
         },
     )
     return {"id": job_id, "state": "pending", "result": None}
@@ -258,3 +263,61 @@ async def overview(session: AsyncSession, actor: UUID) -> dict[str, Any]:
         .one()
     )
     return {**dict(row), "mrr_available": False}
+
+
+async def opportunities(
+    session: AsyncSession,
+    settings: Settings,
+    actor: UUID,
+    state: Literal["open", "expired"],
+    limit: int,
+    after: UUID | None,
+) -> dict[str, Any]:
+    await require_staff(session, actor, "admin.billing.opportunities.read")
+    before_at = None
+    if after is not None:
+        before_at = await session.scalar(
+            text("SELECT created_at FROM billing_jobs WHERE id=:id AND kind='checkout'"), {"id": after}
+        )
+        if before_at is None:
+            return {"items": [], "next_cursor": None}
+    rows = (
+        (
+            await session.execute(
+                text("""SELECT j.id,j.created_at,t.id AS tenant_id,t.name AS business_name,
+          u.email AS contact_email,p.phone AS contact_phone,p.phone_verified,
+          c.status AS checkout_status,c.expires_at,a.livemode
+          FROM billing_jobs j
+          JOIN billing_checkouts c ON c.id=j.id
+          JOIN billing_accounts a ON a.checkout_id=c.id AND a.tenant_id=c.tenant_id
+          JOIN tenants t ON t.id=c.tenant_id
+          JOIN user_accounts u ON u.id=j.actor_id
+          LEFT JOIN LATERAL (
+            SELECT phone,phone_verified FROM business_profiles
+            WHERE tenant_id=t.id ORDER BY business_id LIMIT 1
+          ) p ON true
+          WHERE j.kind='checkout' AND a.livemode=:live AND c.status=:state
+            AND (CAST(:before_at AS timestamptz) IS NULL OR
+              (j.created_at,j.id)<(:before_at,:after))
+            AND (:state<>'open' OR c.expires_at>now())
+            AND NOT (a.status='active' AND NOT a.blocked AND a.paid_until>now())
+            AND (a.subscription_id IS NULL OR a.status IN ('canceled','incomplete_expired'))
+            AND NOT EXISTS (
+              SELECT 1 FROM billing_sponsorships s WHERE s.tenant_id=t.id
+                AND s.revoked_at IS NULL AND s.starts_at<=now() AND s.ends_at>now()
+            )
+          ORDER BY j.created_at DESC,j.id DESC LIMIT :limit"""),
+                {
+                    "live": settings.environment == "production",
+                    "state": state,
+                    "before_at": before_at,
+                    "after": after,
+                    "limit": limit + 1,
+                },
+            )
+        )
+        .mappings()
+        .all()
+    )
+    items = [dict(row) for row in rows[:limit]]
+    return {"items": items, "next_cursor": str(items[-1]["id"]) if len(rows) > limit else None}

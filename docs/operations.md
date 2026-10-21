@@ -9,6 +9,19 @@ F01.5 acrescenta o processo `billing` em Compose/debug. Por padrão ele registra
 billing.disabled e não consome jobs no Temporal nem chama Stripe. Login restrito
 local_spark_payments/local_spark_billing, separado de auth/app/relay. Setup de
 sandbox, flags live e contratos em [SDD billing](design/billing.md) e README.
+Durante compras na sandbox local, mantenha o listener em execução:
+
+```bash
+stripe listen --all-snapshot --forward-to http://localhost:8000/api/v1/webhooks/stripe
+```
+
+A Stripe pode concluir o pagamento mesmo que esse listener esteja fechado; nesse
+caso, a volta ao site
+não ativa o plano, pois o webhook não foi entregue à API. Não repetir a compra:
+consultar a sessão e a assinatura canônicas na Stripe e reconciliar o checkout
+existente. O workflow também consulta a Stripe quando a sessão expira, o que pode
+levar cerca de uma hora. Reiniciar o listener não retransmite automaticamente os
+eventos perdidos durante a parada.
 Nunca reprocessar um checkout ambíguo com uma nova chave: consultar estado canônico
 da sessão/assinatura antes de alterar intent, lease ou estado de falha. Billing jobs
 failed e billing_outbox pending são duráveis; reprocesso e consumo de notificações

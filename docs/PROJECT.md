@@ -2,6 +2,23 @@
 
 Atualizado: 20/10/2026. Nome adotado: Local Spark. Repositório principal: `local-spark-platform`.
 
+Atualização 21/10/2026: sandbox do titular recebeu pagamento de teste, com assinatura
+ativa e eventos checkout/subscription/invoice processados. Isso não encerra os
+demais critérios de sandbox/staging. Retorno localhost após login em 127.0.0.1
+reproduziu INVALID_SESSION por ausência do cookie host-only. Checkout passa a
+congelar Origin autorizado na intenção (migration 0006); produção continua exata,
+sem redirect arbitrário. Sessões/assinaturas existentes preservadas na migração local.
+Validação: 218 testes backend/100%, 84 testes web/100% e sete jornadas browser;
+rollback/reaplicação da 0006 no _test, build e atualização do worker billing.
+API F5 precisa reiniciar; nenhum pagamento adicional realizado.
+
+F01.5 agora inclui `GET /admin/billing/opportunities` e uma visão no admin para
+checkouts abertos/expirados sem acesso ativo. A lista é paginada pelo job mais
+recente, separa teste/produção pelo ambiente, mostra contato já cadastrado sem
+distribuir a URL Stripe e exige staff/MFA/RLS/auditoria. Fechar a aba não marca
+abandono; a expiração vem da reconciliação. Migration 0007 adiciona índice de
+ordenação; aplicada localmente e validada com upgrade/downgrade no banco `_test`.
+
 ## Negócio
 
 Pequenos empresários enviam fotos, vídeos, áudio ou ideias pelo WhatsApp. A plataforma
@@ -98,6 +115,11 @@ backups, caches e artefatos gerados. Código, testes, migrations SQL, SDDs, lock
 workflows CI e os quatro arquivos compartilhados de debug VS Code permanecem versionáveis.
 
 ## Interfaces e jornada aprovadas
+
+Operadores da plataforma e membros de negócios são permissões distintas. F01.6
+implementará convite/revogação de staff por outro staff autenticado com MFA, com
+e-mail verificado, trilha auditada e TOTP individual. O seed de operador existente
+serve somente para desenvolvimento local; cadastro público não cria staff.
 
 `local-spark-web` é repositório separado inspirado na organização de rogue-skydogg-ui.
 F01: backend de identidade, base React, admin de cadastros/onboarding e configuração

@@ -1,6 +1,6 @@
 # SDD geral — Plataforma de conteúdo
 
-Versão 0.8, 20/10/2026. Resumo implementável e índice das especificações detalhadas.
+Versão 0.9, 21/10/2026. Resumo implementável e índice das especificações detalhadas.
 
 Nome adotado: Local Spark; repositórios `local-spark-platform`, `local-spark-web`
 e `local-spark-infra`. Configuração Python utiliza `LOCAL_SPARK_`; PostgreSQL usa
@@ -20,6 +20,9 @@ segredos, dados locais e artefatos de execução por `.gitignore`.
 Auth local aceita localhost/127.0.0.1 na mesma porta/protocolo da origem web
 configurada, somente em development/testing. Staging/production mantêm origem
 exata; links de e-mail continuam canônicos e cookies host-only.
+Checkout congela o Origin do pedido somente se estiver nessa allowlist; sem header,
+usa PUBLIC_WEB_URL. Migration 0006 persiste a origem antes do worker, preservando o
+host da sessão no retorno externo. Checkouts existentes conservam parâmetros originais.
 
 ## Objetivo e arquitetura
 
@@ -68,8 +71,12 @@ Cobrança inicial implementada com Stripe, mesmo adapter em teste/live e credenc
 isoladas; disabled por padrão. [SDD de cobrança](design/billing.md): checkout
 idempotente, webhook assinado/inbox, Temporal, lease/fencing, consulta canônica,
 concessão/revogação patrocinada e interfaces. Login DB billing próprio, sem escrita
-em identidade/memberships; app comum não confirma pagamento. Sandbox do titular e
-staging continuam pendentes. Cadastro/redirect não ativam acesso nem franquia.
+em identidade/memberships; app comum não confirma pagamento. Um pagamento sandbox
+foi confirmado; demais cenários e staging continuam pendentes. Cadastro/redirect
+não ativam acesso nem franquia.
+F01.5 inclui projeção administrativa paginada de checkouts abertos ou expirados sem
+acesso ativo, com contato cadastrado e auditoria. Sessão aberta não é assinatura;
+fechar a aba não equivale a abandono confirmado. A lista não distribui links Stripe.
 
 Meta WhatsApp/Instagram; OpenAI texto/imagem/transcrição; HeyGen avatar/voz; Runway
 cenas; Tavily pesquisa; Google Places descoberta conforme política; Jev opcional após
@@ -134,6 +141,9 @@ admin com contagens reais e base React com áreas distintas. O onboarding inicia
 é transacional e idempotente por ator, sem ativação de plano. Backend: 103 testes,
 100% de linhas/branches, lint/tipos, migration rollback/reaplicação e build Docker.
 Web: 59 testes, 100% de cobertura e quatro jornadas Playwright com identidade/API reais.
-F01.5/F01.6, checkout/webhook, patrocínio, convites, telefone e staging pendentes.
+F01.5 tem checkout/webhook e patrocínio implementados. Em 21/10, pagamento real de
+sandbox do titular confirmou assinatura de teste; retorno entre aliases locais
+expôs perda de cookie, corrigida pelo congelamento de origem autorizada. Demais
+cenários de sandbox, F01.6, convites, telefone e staging permanecem pendentes.
 F02–F08 permanecem planejadas; diagrama completo acima descreve o destino do produto.
 Não houve execução remota de CI, push ou deploy nesta entrega.

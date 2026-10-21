@@ -90,7 +90,7 @@ class BillingProcessor:
             await db.execute(
                 text("""INSERT INTO billing_checkouts(id,tenant_id,livemode,price_id,amount_minor,origin)
               VALUES(:id,:tenant_id,:livemode,:price_id,:amount_minor,:origin) ON CONFLICT DO NOTHING"""),
-                {**job, "origin": self.settings.public_web_url},
+                {**job, "origin": job["return_origin"] or self.settings.public_web_url},
             )
             updated = await db.scalar(
                 text("""UPDATE billing_accounts SET checkout_id=:id

@@ -167,7 +167,11 @@ async def adapter(config, order, monkeypatch):
         await provider.close()
 
 
-async def test_checkout_idempotency_uses_frozen_parameters_and_recovers_existing_session(adapter, order, settings):
+@pytest.mark.parametrize("return_origin", ["http://localhost:5173", "http://127.0.0.1:5173"])
+async def test_checkout_idempotency_uses_frozen_parameters_and_recovers_existing_session(
+    adapter, order, settings, return_origin
+):
+    order["origin"] = return_origin
     await adapter.checkout(order)
     await adapter.checkout(order)
     calls = adapter.client.v1.checkout.sessions.create_async.call_args_list
@@ -175,6 +179,8 @@ async def test_checkout_idempotency_uses_frozen_parameters_and_recovers_existing
     assert calls[0].kwargs["options"]["idempotency_key"].endswith(str(order["id"]))
     assert calls[0].args[0]["mode"] == "subscription" and calls[0].args[0]["payment_method_types"] == ["card"]
     assert str(order["tenant_id"]) in calls[0].args[0]["success_url"]
+    assert calls[0].args[0]["success_url"].startswith(f"{return_origin}/app/billing?")
+    assert calls[0].args[0]["cancel_url"].startswith(f"{return_origin}/app/billing?")
     await adapter.checkout({**order, "session_id": "cs_test_local"})
     adapter.client.v1.checkout.sessions.retrieve_async.assert_awaited_once()
     disabled = StripeBilling(settings)

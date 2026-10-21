@@ -1,6 +1,6 @@
 # SDD — F01.5: contratação e concessão de acesso
 
-Versão 0.2, 20/10/2026. Código local validado; F01.5 aberta até sandbox/staging.
+Versão 0.3, 21/10/2026. Código local validado; F01.5 aberta até sandbox/staging.
 
 ## Decisões
 
@@ -85,13 +85,27 @@ Prefixo /api/v1:
 | POST /billing/{tenant_id}/checkout | Owner verificado + Idempotency-Key; intenção persistida, 202 |
 | POST /webhooks/stripe | Corpo bruto + Stripe-Signature; deduplica/grava antes do ACK |
 | GET /admin/billing | Staff/MFA: pagantes live, testes, patrocinados, operações pendentes/falhas |
+| GET /admin/billing/opportunities | Staff/MFA: checkouts abertos ou expirados sem acesso ativo, paginação recente e contato cadastrado |
 | GET /admin/organizations/{tenant_id}/billing | Consulta de suporte auditada |
 | POST /admin/organizations/{tenant_id}/sponsorship | Staff/MFA, motivo e Idempotency-Key; 201/200 replay |
 | DELETE /admin/organizations/{tenant_id}/sponsorship | Revogação idempotente; 204 |
 
 Plano único mensal BRL configurado no servidor. Não aceitar valor, Price, metadata
-ou retorno URL do navegador. Membership e RLS autorizam a organização, nunca o
+ou retorno URL arbitrário do navegador. O header Origin pode selecionar somente uma
+origem já autorizada em settings.auth_origins; sem header, usar PUBLIC_WEB_URL.
+Development/testing aceitam localhost e 127.0.0.1 com protocolo/porta idênticos;
+staging/produção mantêm origem exata. Membership e RLS autorizam a organização, nunca o
 e-mail do pagador. Ledger/franquias/upgrades/portal/receita/MRR continuam na F07.
+
+Oportunidades de checkout: `state=open|expired`, `limit` de 1 a 50 e cursor por
+UUID de job, ordenado por criação decrescente. A consulta usa somente o checkout
+atual da conta no modo test/live do ambiente, exclui obrigação de assinatura vigente e
+patrocínio vigente. "Aberto" exige prazo ainda válido; "expirado" exige estado
+confirmado no banco pela reconciliação. Fechar a aba não é evento de abandono.
+A projeção retorna nome do negócio, e-mail de quem iniciou a contratação e telefone
+informado no perfil, com indicador de verificação; não retorna URL da sessão, cartão
+ou dados do provedor. Leitura exige staff/MFA, RLS e auditoria. Contato comercial
+é manual nesta fatia; automação/regras de abordagem ficam fora.
 
 ## Persistência e execução
 
@@ -105,6 +119,14 @@ Job funciona como intenção de checkout ou inbox de webhook. Checkout congela
 origem, preço, expiração e chave de idempotência antes da chamada externa. Retry
 reutiliza intenção/sessão; outra compra só após expiração confirmada. Resultado
 ambíguo não recebe chave nova automaticamente.
+
+Migration 0006 adiciona billing_jobs.return_origin, nullable para jobs legados.
+A origem validada é congelada ao aceitar a intenção HTTP; o worker a copia para
+billing_checkouts.origin, usado nos retornos success/cancel. Isso preserva cookies
+host-only no retorno do Stripe quando o usuário entrou pelo alias local. Não usar
+Host/X-Forwarded-Host nem aceitar parâmetros de redirect. Replay conserva a origem
+original; jobs legados sem origem usam a configuração do worker e checkouts já
+criados conservam seus parâmetros. Não criar outra assinatura para corrigir retorno.
 
 `python -m app.entrypoints.billing` executa relay + worker Temporal na task queue
 `${temporal_task_queue}-billing`. Entrega usa SKIP LOCKED, lease/fencing de 90s,

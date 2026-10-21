@@ -82,6 +82,9 @@ Cliente: http://localhost:5173/app/billing; equipe: http://localhost:5173/admin/
 Pagantes live, testes e patrocinados aparecem separados. Stripe é o primeiro
 adapter para teste/produção. Padrão `LOCAL_SPARK_BILLING_MODE=disabled`: sem cobrança
 e sem consumir tarefas do provedor. Contratos em [SDD billing](docs/design/billing.md).
+O admin mostra também checkouts abertos ou expirados sem acesso ativo, com negócio,
+prazo e contatos cadastrados. O endpoint paginado é
+`GET /api/v1/admin/billing/opportunities?state=open&limit=10` (staff/MFA).
 
 Para sandbox real, crie sua conta/sandbox Stripe e Price mensal BRL. Acrescente as
 variáveis abaixo ao `.env` existente; preserve chaves de auth/criptografia:
@@ -101,14 +104,21 @@ Login DB billing em `.env.example`. Nunca envie chaves no chat ou versione `.env
 Com a [Stripe CLI](https://docs.stripe.com/webhooks#local-listener), encaminhe eventos:
 
 ```bash
-stripe listen --forward-to http://localhost:8000/api/v1/webhooks/stripe
+stripe listen --all-snapshot --forward-to http://localhost:8000/api/v1/webhooks/stripe
 docker compose --profile workers up -d --build billing
 ```
 
 Use o signing secret da CLI em WEBHOOK_SECRET e reinicie API F5/serviço billing.
 Webhook snapshot/API 2026-02-25.clover, eventos listados no SDD. API e worker precisam
 do mesmo PUBLIC_WEB_URL. Checkout retorna ao site, mas só confirmação canônica ativa
-acesso. Credenciais do titular e sandbox real ainda não foram fornecidos/validados.
+acesso. Pagamento sandbox foi confirmado em 21/10; demais cenários e staging pendentes.
+
+Retorno do checkout preserva a origem autorizada do navegador que iniciou o pedido.
+Em desenvolvimento, localhost/127.0.0.1 funcionam com a mesma porta/protocolo;
+produção usa somente PUBLIC_WEB_URL. Migration 0006 é necessária antes de reiniciar
+API e billing. Links já criados conservam a origem antiga: se ocorrer logout ao
+voltar, entre novamente nesse endereço e consulte o plano, sem pagar outra vez.
+Em 21/10, pagamento de sandbox foi confirmado; demais cenários continuam pendentes.
 
 Produção: mesmo adapter, BILLING_MODE=live, sk_live_/secret/Price próprios,
 BILLING_LIVE_ENABLED=true, HTTPS e roles/segredos na AWS. Antes, validar
