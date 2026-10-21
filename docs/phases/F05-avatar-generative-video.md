@@ -13,12 +13,20 @@ Permitir vídeos do próprio dono e composições híbridas sem nova gravação 
 - owner_avatar_reel, hybrid_reel e generated_scene_reel com limites de duração/franquia.
 - Submit/status/callback/polling, UNKNOWN e controles de custo antes de chamada paga.
 - Revogação impede novas gerações e cancela pendentes; exclusão é operação rastreável.
+- Adapters separados por capacidade de avatar, voz e cena; avaliar HeyGen, Runway,
+  Kling e Veo como candidatos conforme API comercial, PT-BR, consentimento, direitos,
+  custo, latência e exclusão. Nenhum primário novo é escolhido sem spike e benchmark.
+  Decisão de provedor/receita é registrada antes do submit; fallback que mude
+  identidade, formato ou custo exige nova aprovação.
 
 ## Critérios de aceite e testes
 
 - Qualidade PT-BR, sotaques, preço/nome e latência/custo medidos.
 - Callback duplicado/perdido e submit ambíguo não disparam gasto cego.
 - Revogação concorrente e falha de compensação com suporte auditado.
+- Corpus consentido avalia sotaque, sincronização, consistência de face, texto/preço
+  e custo por peça; shadow eval limitado por coorte e orçamento, não contínuo para
+  toda a base.
 
 ## Limites e decisões pendentes
 

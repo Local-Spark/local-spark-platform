@@ -14,6 +14,7 @@ implementação; não representam serviços desenvolvidos ou capacidade comprova
 6. [Garantias: idempotência, concorrência, transações, locks e logs](v0-consistency-observability.md).
 7. [Multi-tenancy: tabelas compartilhadas, RLS e evolução de capacidade](v0-tenancy.md).
 8. [Cobrança, checkout, confirmação e patrocínio — F01.5](billing.md).
+9. [Contexto do negócio, geração e custo por peça — F02–F07](business-context-and-generation.md).
 
 ## Decisão atual
 
@@ -21,8 +22,10 @@ FastAPI + PostgreSQL + Temporal com SDK Python + Redis + S3. Temporal substitui
 Celery, RabbitMQ e o runner de workflows próprio da proposta anterior. Aplicação
 modular, com API e pools de workers escalando separadamente. PostgreSQL guarda o
 domínio; Temporal guarda o controle de execução; Redis guarda coordenação temporária.
-FFmpeg compõe mídia em processos isolados. OpenAI, HeyGen, Runway e Meta entram
-por adapters com controle de custo, idempotência e proteção de fornecedores.
+FFmpeg compõe mídia em processos isolados. OpenAI, HeyGen e Runway têm contratos
+pesquisados como candidatos; os provedores de mídia serão escolhidos por capacidade
+e benchmark conforme a [decisão mais recente](business-context-and-generation.md).
+Meta permanece o caminho oficial planejado para mensagens/publicação.
 
 Repositórios propostos: `local-spark-platform`, `local-spark-web` e `local-spark-infra`.
 Instagram é o destino da v0, com múltiplos formatos, avatar do dono e sugestões

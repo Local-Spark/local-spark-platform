@@ -2,6 +2,10 @@
 
 Data: 20/10/2026. Status: especificação para implementação, sem serviços provisionados.
 
+Atualização de 21/10: fornecedores de avatar/cena listados abaixo são candidatos,
+não escolhas aprovadas. Portas por capacidade, contexto versionado e ledger antes
+do primeiro gasto seguem a [decisão atual](business-context-and-generation.md).
+
 Este documento e os documentos `v0-*` vinculados abaixo substituem as decisões
 de stack e sequência dos documentos v0.1. Nova decisão: **Temporal com SDK Python
 substitui Celery, RabbitMQ e o runner de workflows próprio**. Não operar dois

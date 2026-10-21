@@ -1,5 +1,19 @@
 # Registro de mudanças
 
+## 2026-10-21 — Revisão da análise externa de IA e conhecimento do negócio
+
+- SDD geral, fases F02–F08, PROJECT e interfaces incorporam contexto do negócio
+  versionado, separado em fatos confirmados, preferências e hipóteses. Aprovação
+  de conteúdo não autentica preço/horário/promoção; dono pode revisar e corrigir.
+- Ledger mínimo com reserva atômica é pré-requisito de qualquer operação paga em
+  F03/F04, e F07 fica responsável pela evolução comercial/relatórios.
+- Geração passa a ter contratos por capacidade, FFmpeg para receitas compatíveis e
+  benchmark limitado/consentido. HeyGen, Runway, Kling e Veo são candidatos sujeitos
+  a spike, contrato, custo e qualidade; nenhum foi ativado por esta decisão.
+- Revisão documental apenas: sem código, migration, teste de execução, acesso a
+  credenciais ou mudança de status das fases. ADR em
+  `docs/design/business-context-and-generation.md` registra critérios e rejeições.
+
 ## 2026-10-21 — Correção do telefone do negócio
 
 - `/app/phone` mostra o destino E.164 do SMS; DDD e número brasileiros recebem

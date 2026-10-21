@@ -14,6 +14,15 @@ Pesquisar referências permitidas e produzir ideias/roteiros úteis mesmo sem ma
 - Google Places/Tavily respeitam permissões e retenção; dados privados não viram cache compartilhado.
 - Roteiro e plano de cenas estruturados; preferências de frequência, gasto e mensagens.
 - DecisionProvider com baseline; Jev em shadow/eval PT-BR antes de ativar.
+- `BusinessContext` compacto e versionado por tenant/negócio: fatos confirmados
+  com origem/validade, preferências explícitas e padrões hipotéticos separados.
+  Snapshot fixado em cada proposta/roteiro; dono pode inspecionar, corrigir e
+  restaurar versões. Atualizações concorrentes usam CAS, evento único e auditoria.
+- Montar apenas contexto necessário e fontes autorizadas; registrar tokens/custo
+  reais e comparar qualidade/custo com baseline antes de alegar economia. Entrada
+  externa não é instrução confiável para o agente.
+- Implantar reserva atômica de quota/COGS antes de qualquer pesquisa ou chamada de
+  modelo paga nesta fase, inclusive propostas proativas sem material do dia.
 
 ## Critérios de aceite e testes
 
@@ -21,6 +30,8 @@ Pesquisar referências permitidas e produzir ideias/roteiros úteis mesmo sem ma
 - Sem dados novos, sugestão contextual; silêncio nunca autoriza publicação.
 - Teste de orçamento de pesquisa e admissão por coorte, sem cron simultâneo de 200 mil.
 - Medição de custo, acerto, abstention e fallback de modelos.
+- Aprovação posterior de uma peça não confirma fatos comerciais usados nela;
+  preço/promoção/horário vencidos ou não confirmados bloqueiam a sugestão factual.
 
 ## Limites e decisões pendentes
 

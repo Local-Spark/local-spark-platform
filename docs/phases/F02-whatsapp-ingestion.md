@@ -13,11 +13,17 @@ Receber texto, áudio, fotos e vídeo no número oficial da plataforma e montar 
 - Download autorizado, inspeção de mídia, biblioteca S3 privada e agrupamento de mensagens.
 - Extrair áudio, transcrever e identificar ambiguidades de preço/data; perguntar o necessário.
 - Anexos são dados não confiáveis; limites, SSRF e sandbox de mídia implementados.
+- Capturar de modo opcional tom, produtos/serviços, ofertas, restrições e frequência
+  informados pelo dono, com ator, mensagem-fonte, data e consentimento. Guardar como
+  propostas de contexto; transcrição ou inferência ambígua pede confirmação e não
+  valida preço, horário ou promoção. Não aumentar o formulário obrigatório da F01.
 
 ## Critérios de aceite e testes
 
 - Webhook duplicado/parcial/reordenado, callback antes da correlação, arquivo inválido e expiração de URL.
 - Agrupamento concorrente e contexto de duas empresas sem mistura.
+- Mensagem bruta e instrução embutida não alteram preferências/fatos confirmados sem
+  identidade, confirmação e operação idempotente.
 - Smoke com WhatsApp oficial e material consentido.
 
 ## Limites e decisões pendentes

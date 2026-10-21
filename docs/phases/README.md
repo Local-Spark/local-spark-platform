@@ -18,3 +18,6 @@ A v0 completa reúne F00–F08; concluir F00 não conclui o produto.
 F01 é integrada com a base web e o admin mínimo; telas essenciais do cliente entram
 junto. Área completa acompanha F02–F07. Contratação/ativação mínima antecipa F07
 na fatia F01.5; métricas reais entram quando existirem suas fontes.
+
+Decisão transversal de F02–F07: [contexto versionado do negócio, adapters por
+capacidade e ledger anterior ao primeiro gasto pago](../design/business-context-and-generation.md).

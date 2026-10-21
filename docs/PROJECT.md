@@ -49,6 +49,12 @@ R$ 99/mês é hipótese de plano de entrada, sem franquias comerciais fechadas.
 - Pesquisa local com raio configurável e fontes permitidas; nenhuma promessa de
   conhecer faturamento/alcance privado de concorrentes.
 - Jev/TypeSafe é candidato a decisão semântica após eval PT-BR; não escreve roteiros.
+- F02 coleta preferências opcionais sem aumentar o cadastro obrigatório. F03 entrega
+  contexto versionado do negócio, com fatos confirmados separados de hipóteses e
+  edição pelo dono; aprovar conteúdo não confirma fatos comerciais automaticamente.
+- Antes da primeira operação paga, reservar quota/custo de forma atômica (F03 se
+  pesquisa paga; F04/F05 para mídia). Adapters de IA por capacidade e fornecedores
+  são escolhidos por benchmark, contrato e direitos, sem primário fixado nesta etapa.
 - Aprovação por versão/destino; silêncio não autoriza publicação. Consentimento,
   autorização de gasto e aprovação de postagem são permissões distintas.
 - Padrão de organização baseado no `spotlight-api`, sem copiar domínio/dependências.

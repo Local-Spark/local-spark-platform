@@ -10,9 +10,15 @@ Controlar direito de uso, custo real e continuidade comercial com resultados obs
 ## Features e contratos
 
 - Ledger separado de quota comercial e COGS; reserva atômica, consumo e compensação.
+- O ledger mínimo é pré-requisito de F03/F04 para primeira operação paga, não
+  entrega aguardada até F07. Esta fase amplia planos, franquias, reconciliação,
+  custo faturado e margem por tipo de peça/tenant sem confundir preço do plano
+  com custo do fornecedor.
 - Concessão de seis meses com início/fim e sem renovação paga implícita.
 - Assinatura, cobrança, cancelamento, webhook e conciliação do processador escolhido.
 - Relatório semanal com dados disponíveis, origem e lacunas; não inventar atribuição de vendas.
+- Aprender padrões editoriais apenas com métricas próprias comparáveis e amostra
+  suficiente; registrar hipótese, fonte, período e incerteza no contexto versionado.
 
 ## Critérios de aceite e testes
 

@@ -13,6 +13,9 @@ Publicar versões efetivamente aprovadas em contas profissionais elegíveis, com
 - Aprovação vincula ator, versão, hashes, legenda, conta, janela e consentimento.
 - Imagem/carrossel/Reel/Story elegível, processamento de container e confirmação.
 - Agendamento, cancelamento concorrente, reauth e reconciliação de publicação UNKNOWN.
+- Aprovação/rejeição e correções explícitas podem propor nova versão do contexto do
+  negócio. Preferência explícita pode ser aplicada após confirmação; aprovação da
+  peça sozinha vira sinal de estilo/hipótese, não prova de preço, horário ou venda.
 
 ## Critérios de aceite e testes
 

@@ -4,6 +4,11 @@ Data de consulta: 20/10/2026. Decisões concretas de implementação, ainda suje
 teste de acesso/contrato, orçamento e benchmark. “Selecionado” não significa serviço
 contratado, modelo habilitado na nossa conta ou integração já testada.
 
+Atualização de 21/10: [decisão de contexto/geração](business-context-and-generation.md)
+prevalece sobre a escolha antecipada de HeyGen/Runway e sobre versões de modelo
+desta tabela. São candidatos para spike; manter aqui os contratos pesquisados como
+referência, sem tratá-los como fornecedor aprovado. Portas são por capacidade.
+
 ## 1. Mapa de responsabilidades
 
 Complemento vigente: [pesquisa local e Jev](v0-intelligence.md), com APIs, política

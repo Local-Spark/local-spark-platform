@@ -13,11 +13,15 @@ Comprovar capacidade e recuperação dentro dos limites reais de infraestrutura 
 - Circuit breakers, rate limiting, bulkheads e fairness medidos por tarefa/provedor.
 - AWS/IaC, OIDC no CI/CD, secret refs e deploy versionado com workers compatíveis.
 - Restore coordenado, retenção, exportação/exclusão e perfis de carga por coorte.
+- Testar montagem do contexto versionado e fairness dos pools de mídia por coorte,
+  incluindo custo por peça/tenant e limites contratados dos fornecedores.
 
 ## Critérios de aceite e testes
 
 - Carga, crash tests, replay com histórico representativo e migração de workflows ativos.
 - SLO por etapa, quota externa, custo e limite comprovados em relatório.
+- Meta de 200 mil clientes só orienta cenários de carga; demonstrar capacidade,
+  margem e recuperação por etapas antes de afirmá-la comercialmente.
 - Restore não repete publicação/gasto e não reintroduz dados excluídos.
 
 ## Limites e decisões pendentes

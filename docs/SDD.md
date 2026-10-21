@@ -123,6 +123,17 @@ Perfis antigos mantêm cidade livre e códigos nulos, sem inferência por nome. 
 campos opcionais na API preservam clientes antigos e o hash de replay legado.
 UF/município não comprovam endereço ou coordenadas; geocodificação/raio ficam na F03.
 
+**Decisão para F02–F07 (21/10):** preservar o onboarding curto. Preferências e
+produtos opcionais entram progressivamente pela conversa; F03 cria um
+`BusinessContext` versionado por negócio, com fatos confirmados, preferências
+explícitas e hipóteses observadas em grupos distintos. Aprovação de publicação
+não transforma preço/horário/promoção em fato confirmado. O proprietário vê e
+corrige o contexto; geração fixa a versão utilizada. Custo/franquia com reserva
+atômica entram antes de qualquer pesquisa ou geração paga, sem aguardar F07.
+F04/F05 usam adapters por capacidade e avaliação controlada de fornecedores;
+nenhum modelo listado está aprovado para produção por constar na especificação.
+Contrato e gates: [contexto, geração e custo](design/business-context-and-generation.md).
+
 ## Jornada comercial e interfaces (decisão F01)
 
 Landing → contratação → webhook confirmado → provisionamento/ativação idempotentes
