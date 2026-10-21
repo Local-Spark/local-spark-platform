@@ -109,11 +109,17 @@ async def test_billing_runtime_closes_resources_on_shutdown(settings, fake_datab
     monkeypatch.setattr(entrypoint, "Worker", lambda *args, **kwargs: runtime)
     dispatch = AsyncMock()
     monkeypatch.setattr(entrypoint, "dispatch_billing", dispatch)
-    monkeypatch.setattr(entrypoint.asyncio, "sleep", AsyncMock(side_effect=asyncio.CancelledError()))
+    reconcile = AsyncMock(return_value=0)
+    monkeypatch.setattr(entrypoint, "enqueue_open_checkout_reconciliation", reconcile)
+    monkeypatch.setattr(entrypoint, "monotonic", MagicMock(side_effect=[0, 0, 1]))
+    monkeypatch.setattr(entrypoint.asyncio, "sleep", AsyncMock(side_effect=[None, asyncio.CancelledError()]))
     with pytest.raises(RuntimeError if connection_failure else asyncio.CancelledError):
         await entrypoint.main()
     provider.close.assert_awaited_once()
     fake_database.close.assert_awaited_once()
+    if not connection_failure:
+        reconcile.assert_awaited_once()
+        assert dispatch.await_count == 2
 
 
 def test_api_owns_and_closes_optional_billing_pool(settings, fake_database, monkeypatch):

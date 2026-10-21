@@ -62,6 +62,85 @@ def test_smtp_security_and_headers(settings, monkeypatch, tls):
     assert connection.starttls.called == tls and connection.login.called == tls
     message = connection.send_message.call_args.args[0]
     assert message["To"] == "test@example.com"
+    assert message.get_content_type() == "text/plain"
+
+
+@pytest.mark.parametrize("template", ["verify", "reset", "staff_invite"])
+def test_transactional_email_has_safe_html_and_text_fallback(settings, monkeypatch, template):
+    from unittest.mock import MagicMock
+
+    from app.services.auth_mail import send_mail
+
+    smtp = MagicMock()
+    monkeypatch.setattr("app.services.auth_mail.smtplib.SMTP", smtp)
+    send_mail(
+        settings,
+        {
+            "to": "reader@example.com",
+            "subject": "Local Spark",
+            "template": template,
+            "link": 'https://example.com/next?value=1&name="quoted"#token=secret',
+            "body": "Acesse https://example.com/next#token=secret",
+        },
+    )
+    message = smtp.return_value.__enter__.return_value.send_message.call_args.args[0]
+    assert message.get_content_type() == "multipart/alternative"
+    plain, html = message.get_payload()
+    assert plain.get_content_type() == "text/plain"
+    assert html.get_content_type() == "text/html"
+    assert "#token=secret" in plain.get_content()
+    assert "&amp;name=&quot;quoted&quot;" in html.get_content()
+    assert "Local Spark" in html.get_content()
+
+
+def test_legacy_or_unsafe_email_has_only_plain_text(settings, monkeypatch):
+    from unittest.mock import MagicMock
+
+    from app.services.auth_mail import send_mail
+
+    smtp = MagicMock()
+    monkeypatch.setattr("app.services.auth_mail.smtplib.SMTP", smtp)
+    for payload in (
+        {"to": "reader@example.com", "subject": "Legacy", "body": "Older queued email"},
+        {
+            "to": "reader@example.com",
+            "subject": "Bad URL",
+            "body": "Text",
+            "template": "verify",
+            "link": "javascript:alert(1)",
+        },
+        {
+            "to": "reader@example.com",
+            "subject": "Bad URL",
+            "body": "Text",
+            "template": "verify",
+            "link": "https:///missing-host",
+        },
+    ):
+        send_mail(settings, payload)
+        message = smtp.return_value.__enter__.return_value.send_message.call_args.args[0]
+        assert message.get_content_type() == "text/plain"
+
+
+@pytest.mark.parametrize(
+    ("subject", "url"),
+    [
+        ("Confirme seu e-mail na Local Spark", "http://localhost:5173/verify-email#token=old"),
+        ("Defina sua senha na Local Spark", "http://localhost:5173/reset-password#token=old"),
+        ("Convite para operar a Local Spark", "http://localhost:5173/staff-invite#token=old"),
+    ],
+)
+def test_legacy_transactional_email_renders_html(settings, monkeypatch, subject, url):
+    from unittest.mock import MagicMock
+
+    from app.services.auth_mail import send_mail
+
+    smtp = MagicMock()
+    monkeypatch.setattr("app.services.auth_mail.smtplib.SMTP", smtp)
+    send_mail(settings, {"to": "reader@example.com", "subject": subject, "body": f"Abra {url}\nIgnore se não pediu."})
+    message = smtp.return_value.__enter__.return_value.send_message.call_args.args[0]
+    assert message.get_content_type() == "multipart/alternative"
+    assert url in message.get_payload()[1].get_content()
 
 
 async def test_mfa_challenge_consumed_during_credential_lock(settings, fake_database):

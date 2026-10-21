@@ -15,18 +15,47 @@ Durante compras na sandbox local, mantenha o listener em execução:
 stripe listen --all-snapshot --forward-to http://localhost:8000/api/v1/webhooks/stripe
 ```
 
-A Stripe pode concluir o pagamento mesmo que esse listener esteja fechado; nesse
-caso, a volta ao site
-não ativa o plano, pois o webhook não foi entregue à API. Não repetir a compra:
-consultar a sessão e a assinatura canônicas na Stripe e reconciliar o checkout
-existente. O workflow também consulta a Stripe quando a sessão expira, o que pode
-levar cerca de uma hora. Reiniciar o listener não retransmite automaticamente os
-eventos perdidos durante a parada.
+A Stripe pode concluir o pagamento mesmo que esse listener esteja fechado. A volta
+ao site não ativa o plano por si só. O processo billing agenda reconciliação
+canônica de checkouts abertos a cada 30 segundos (até 25 por ciclo, com dedupe por
+janela de cinco minutos), além do timer de expiração. Depois que o worker consulta
+a sessão/assinatura/fatura na Stripe, o acesso pode ser ativado sem o webhook
+perdido. Não repetir a compra; confirmar o estado pelo endpoint de assinatura.
+Reiniciar o listener não retransmite automaticamente eventos perdidos.
 Nunca reprocessar um checkout ambíguo com uma nova chave: consultar estado canônico
 da sessão/assinatura antes de alterar intent, lease ou estado de falha. Billing jobs
 failed e billing_outbox pending são duráveis; reprocesso e consumo de notificações
 dependem das próximas fatias. Não escrever mensagens incompatíveis no outbox
 business.created. Nenhuma integração comercial está ativa apenas por subir o worker.
+
+F01.6: convites de staff saem pelo worker `auth-mail` para o e-mail convidado e
+expiram em 48 horas. O operador acessa `/staff-invite`, usa conta com e-mail
+verificado e faz novo login para configurar TOTP. O painel `/admin/staff` exige
+staff/MFA. Revogação encerra sessões. Inspecionar `auth_mail.state=failed` se o
+convite não chegar; não copiar token/ciphertext para logs ou tickets.
+O aceite exige login com o mesmo e-mail que recebeu o convite. A API distingue
+`INVITATION_EMAIL_MISMATCH` de convite inválido/expirado, e a interface orienta
+trocar de conta e reabrir o link original. E-mails de confirmação, recuperação e
+convite usam HTML padronizado com alternativa em texto. O worker reconhece também
+payloads antigos desses três assuntos, desde que tenham link HTTP(S) no corpo.
+Atualizar o worker `auth-mail` para aplicar o template. A migration 0011 é
+necessária para a distinção de e-mail sob RLS; reiniciar a API depois da migration.
+`GET /staff/invitations/pending` só consulta convite da identidade autenticada;
+conta convidada sem negócio vai à orientação de aceite, nunca ao onboarding comercial.
+Esse endpoint também retorna `revoked` para uma conta que já foi operadora. Se o
+acesso foi revogado e não há convite novo, a web mostra `/staff-access-revoked`.
+Um novo convite pendente prevalece sobre a revogação anterior; o aceite reativa
+staff somente após login com o mesmo e-mail e novo login/MFA.
+
+Verificação de telefone usa Twilio Verify e fica desativada por padrão. Após criar
+conta, Verify Service e API key, configurar no backend `LOCAL_SPARK_PHONE_VERIFY_MODE=twilio`,
+`LOCAL_SPARK_TWILIO_VERIFY_SERVICE_SID`, `LOCAL_SPARK_TWILIO_API_KEY` e
+`LOCAL_SPARK_TWILIO_API_SECRET`. O canal padrão é SMS; `LOCAL_SPARK_PHONE_VERIFY_CHANNEL`
+pode ser `whatsapp` se o serviço estiver habilitado para isso. Reiniciar API após
+configurar. O número do perfil deve ser brasileiro válido ou E.164; código vence
+em 10 minutos, espera mínima entre envios de 60 segundos e máximo de cinco
+tentativas. Nenhum dado de teste local substitui entrega real. No staging, validar
+envio/recebimento, número trocado, rate limit e falhas do provedor antes do piloto.
 
 `docker compose up -d postgres temporal mailpit`; migração separada com conexão administrativa.
 O SQL de inicialização cria logins locais sem bypass e banco `local_spark_platform_test`. As roles
@@ -38,7 +67,9 @@ Temporal start-dev é exclusivamente desenvolvimento/CI, não topologia de produ
 Seu SQLite fica no volume nomeado `local-spark-platform_local-spark-temporal`,
 preservando o histórico ao recriar o container de desenvolvimento.
 Isso não representa persistência/HA de produção nem substitui Temporal Cloud.
-API só sobe após migration; health live não acessa DB, ready valida DB migrado.
+API só sobe após migration; health live não acessa DB, ready exige exatamente o
+head Alembic do código em execução. Durante deploy, migração deve preceder a
+versão nova da API.
 
 ## Runtime
 
@@ -68,7 +99,8 @@ Fernet privada. Staging/PRD exigem `PUBLIC_WEB_URL` HTTPS, SMTP com STARTTLS/aut
 e TLS Temporal. Prefixar as variáveis de aplicação com `LOCAL_SPARK_`.
 O worker `python -m app.entrypoints.auth_mail` usa apenas o login de auth, sem
 privilégio sobre empresas. Mailpit e exemplos de chave/senha são exclusivamente locais.
-Secrets Manager guarda assinatura, chave Fernet e senha SMTP; não versionar valores reais.
+Secrets Manager guarda assinatura, chave Fernet, senha SMTP e credenciais Twilio;
+não versionar valores reais.
 
 Cookies têm prefixo __Host- em HTTPS, path /, Secure e SameSite=Lax; refresh é
 HttpOnly, CSRF é legível pelo browser e vinculado ao registro da sessão. `/api` e

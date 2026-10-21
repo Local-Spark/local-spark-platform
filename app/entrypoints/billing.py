@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from time import monotonic
 
 from temporalio.worker import Worker
 
@@ -8,7 +9,7 @@ from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.db.session import Database
 from app.entrypoints.worker import connect_temporal
-from app.services.billing_delivery import dispatch_billing
+from app.services.billing_delivery import dispatch_billing, enqueue_open_checkout_reconciliation
 from app.services.billing_processor import BillingProcessor
 from app.workflows.billing import BillingWorkflow
 from app.workflows.billing_activities import BillingActivities
@@ -38,7 +39,11 @@ async def main() -> None:
             max_concurrent_activities=5,
             max_task_queue_activities_per_second=5,
         ):
+            next_reconciliation = 0.0
             while True:
+                if monotonic() >= next_reconciliation:
+                    await enqueue_open_checkout_reconciliation(database, settings)
+                    next_reconciliation = monotonic() + 30
                 await dispatch_billing(database, client, settings)
                 await asyncio.sleep(2)
     finally:

@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     stripe_webhook_secret: SecretStr | None = None
     stripe_price_id: str | None = None
     billing_monthly_amount_minor: int | None = Field(default=None, gt=0)
+    phone_verify_mode: Literal["disabled", "twilio"] = "disabled"
+    phone_verify_channel: Literal["sms", "whatsapp"] = "sms"
+    twilio_verify_service_sid: str | None = None
+    twilio_api_key: str | None = None
+    twilio_api_secret: SecretStr | None = None
     jwt_secret: SecretStr = Field(min_length=32)
     jwt_issuer: str = "local-spark-local"
     jwt_audience: str = "local-spark-api"
@@ -92,6 +97,15 @@ class Settings(BaseSettings):
                 raise ValueError("Live billing requires explicit production activation")
             if self.billing_mode == "test" and self.environment == "production":
                 raise ValueError("Test billing is not allowed in production")
+        return self
+
+    @model_validator(mode="after")
+    def phone_verify_safety(self) -> "Settings":
+        if self.phone_verify_mode == "twilio":
+            if not self.twilio_verify_service_sid or not self.twilio_api_key or not self.twilio_api_secret:
+                raise ValueError("Twilio Verify requires service SID and API key credentials")
+            if not self.twilio_verify_service_sid.startswith("VA"):
+                raise ValueError("Invalid Twilio Verify service SID")
         return self
 
 

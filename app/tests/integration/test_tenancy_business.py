@@ -136,6 +136,14 @@ async def test_service_replay_conflict_and_pagination(database, seeded):
 async def test_readiness_requires_applied_migration(database, admin):
     assert await database.ready()
     async with admin.begin() as connection:
+        current = await connection.scalar(text("SELECT version_num FROM alembic_version"))
+        await connection.execute(text("UPDATE alembic_version SET version_num='0009_staff_invitations'"))
+    try:
+        assert not await database.ready()
+    finally:
+        async with admin.begin() as connection:
+            await connection.execute(text("UPDATE alembic_version SET version_num=:version"), {"version": current})
+    async with admin.begin() as connection:
         versions = (await connection.execute(text("DELETE FROM alembic_version RETURNING version_num"))).scalars().all()
     try:
         assert not await database.ready()

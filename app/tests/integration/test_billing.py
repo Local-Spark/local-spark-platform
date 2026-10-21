@@ -15,7 +15,7 @@ from app.core.identity import Identity
 from app.main import create_app
 from app.schemas.onboarding import OnboardingCreate
 from app.services import billing
-from app.services.billing_delivery import dispatch_billing
+from app.services.billing_delivery import dispatch_billing, enqueue_open_checkout_reconciliation
 from app.services.billing_processor import BillingProcessor, enqueue_webhook
 from app.services.business import AccessDenied, IdempotencyConflict
 from app.services.onboarding import provision_initial_business
@@ -90,6 +90,53 @@ async def request_job(database, settings, commercial, key="checkout-test"):
     tenant, owner, _ = commercial
     async with database.transaction(tenant, owner.actor_id) as db:
         return await billing.request_checkout(db, settings, tenant, owner, key)
+
+
+async def test_unreceived_webhook_is_reconciled_from_canonical_stripe_state(
+    database, billing_database, admin, billing_settings, commercial, provider
+):
+    tenant, owner, _ = commercial
+    processor = BillingProcessor(billing_settings, billing_database, provider)
+    job = await request_job(database, billing_settings, commercial)
+    assert (await processor.run(job["id"]))["status"] == "open"
+    async with admin.begin() as db:
+        await db.execute(
+            text("UPDATE billing_jobs SET created_at=now()-interval '40 seconds' WHERE id=:id"),
+            {"id": job["id"]},
+        )
+        await db.execute(
+            text("""UPDATE billing_accounts SET status='active',subscription_id='sub_previous',
+              paid_until=now()-interval '1 day' WHERE tenant_id=:tenant AND livemode=false"""),
+            {"tenant": tenant},
+        )
+    assert (
+        await enqueue_open_checkout_reconciliation(
+            billing_database, billing_settings.model_copy(update={"billing_mode": "disabled"})
+        )
+        == 0
+    )
+    scheduled = await asyncio.gather(
+        *(enqueue_open_checkout_reconciliation(billing_database, billing_settings) for _ in range(4))
+    )
+    assert sum(scheduled) == 1
+    assert await enqueue_open_checkout_reconciliation(billing_database, billing_settings) == 0
+    async with admin.connect() as db:
+        poll = (
+            (
+                await db.execute(
+                    text("SELECT id,object_id FROM billing_jobs WHERE kind='reconcile' AND dedupe_key LIKE 'poll:%'")
+                )
+            )
+            .mappings()
+            .one()
+        )
+    assert poll["object_id"] == "cs_test_local"
+    provider.reference.return_value = Reference(order_id=job["id"], subscription_id="sub_local")
+    assert (await processor.run(poll["id"]))["status"] == "reconciled"
+    async with database.transaction(tenant, owner.actor_id) as db:
+        view = await billing.status(db, billing_settings, tenant, owner.actor_id)
+        assert view["access_source"] == "test" and view["access_active"]
+    assert await enqueue_open_checkout_reconciliation(billing_database, billing_settings) == 0
 
 
 async def test_sponsorship_concurrent_replay_expiration_revoke_and_isolation(database, admin, commercial, settings):

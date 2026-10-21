@@ -12,6 +12,45 @@ from app.db.session import Database
 logger = logging.getLogger("local_spark.billing")
 
 
+async def enqueue_open_checkout_reconciliation(database: Database, settings: Settings) -> int:
+    """Schedule bounded canonical reads for unresolved current checkouts.
+
+    The time bucket deduplicates concurrent workers. A completed payment is still
+    activated only by the processor's read from Stripe, never by this scheduler.
+    """
+    if settings.billing_mode == "disabled":
+        return 0
+    async with database.sessions() as db, db.begin():
+        result = await db.execute(
+            text("""WITH current_bucket AS (
+              SELECT floor(extract(epoch FROM clock_timestamp()) / 300)::bigint AS value
+            ), candidates AS (
+              SELECT c.id,c.tenant_id,c.session_id,c.livemode,b.value,
+                concat('poll:',c.id,':',b.value) AS dedupe_key
+              FROM billing_checkouts c
+              JOIN billing_accounts a ON a.checkout_id=c.id AND a.tenant_id=c.tenant_id
+                AND a.livemode=c.livemode
+              JOIN billing_jobs original ON original.id=c.id
+              CROSS JOIN current_bucket b
+              WHERE c.livemode=:live AND c.status='open' AND c.session_id IS NOT NULL
+                AND c.expires_at>clock_timestamp()
+                AND original.created_at<=clock_timestamp()-interval '30 seconds'
+                AND NOT (a.status='active' AND NOT a.blocked AND a.paid_until>clock_timestamp())
+                AND NOT EXISTS (
+                  SELECT 1 FROM billing_jobs prior WHERE prior.livemode=c.livemode
+                    AND prior.dedupe_key=concat('poll:',c.id,':',b.value)
+                )
+              ORDER BY original.created_at,c.id LIMIT 25 FOR UPDATE OF c SKIP LOCKED
+            )
+            INSERT INTO billing_jobs(id,tenant_id,livemode,kind,dedupe_key,event_type,object_id)
+            SELECT gen_random_uuid(),tenant_id,livemode,'reconcile',dedupe_key,
+              'checkout.session.completed',session_id FROM candidates
+            ON CONFLICT(livemode,dedupe_key) DO NOTHING RETURNING id"""),
+            {"live": settings.billing_mode == "live"},
+        )
+        return len(result.all())
+
+
 async def dispatch_billing(database: Database, client: Client, settings: Settings) -> int:
     if settings.billing_mode == "disabled":
         return 0

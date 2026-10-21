@@ -102,6 +102,37 @@ def test_safe_production_configuration(settings):
 
 
 @pytest.mark.parametrize(
+    "changes",
+    [
+        {"phone_verify_mode": "twilio"},
+        {
+            "phone_verify_mode": "twilio",
+            "twilio_verify_service_sid": "invalid",
+            "twilio_api_key": "SKtest",
+            "twilio_api_secret": "private",
+        },
+    ],
+)
+def test_phone_provider_rejects_incomplete_configuration(settings, changes):
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, **{**settings.model_dump(), **changes})
+
+
+def test_phone_provider_accepts_complete_configuration(settings):
+    configured = Settings(
+        _env_file=None,
+        **{
+            **settings.model_dump(),
+            "phone_verify_mode": "twilio",
+            "twilio_verify_service_sid": "VA" + "a" * 32,
+            "twilio_api_key": "SK" + "b" * 32,
+            "twilio_api_secret": "private",
+        },
+    )
+    assert configured.phone_verify_mode == "twilio"
+
+
+@pytest.mark.parametrize(
     "environment,url,expected",
     [
         ("development", "http://localhost:5173", {"http://localhost:5173", "http://127.0.0.1:5173"}),
@@ -187,3 +218,15 @@ def test_relay_requires_separate_connection(settings):
     value = settings.model_copy(update={"relay_database_url": None})
     with pytest.raises(ValueError, match="Database URL"):
         Database(value, relay=True)
+
+
+def test_missing_migration_head_fails_readiness_configuration(monkeypatch):
+    from unittest.mock import MagicMock
+
+    from app.db import session as db_session
+
+    db_session.current_schema_head.cache_clear()
+    monkeypatch.setattr(db_session.ScriptDirectory, "from_config", lambda _: MagicMock(get_current_head=lambda: None))
+    with pytest.raises(RuntimeError, match="No database migration head"):
+        db_session.current_schema_head()
+    db_session.current_schema_head.cache_clear()

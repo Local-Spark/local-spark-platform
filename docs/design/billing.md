@@ -162,10 +162,20 @@ Admin /admin/billing: busca limitada de organizações, contagens reais e patroc
 com motivo/revogação. Uma concessão inicial por organização; replay não estende
 seis meses, mesmo após expirar/revogar. Nova campanha exige contrato explícito.
 
-Pendentes: credenciais do titular e validação de checkout/renovação/falha em
-sandbox real; plano/franquias/termos definitivos; reconciliação periódica e
-reprocesso operacional; resolução de holds; portal/upgrades/cancelamento
+Pendentes: validação dos demais cenários de checkout/renovação/falha em sandbox
+real; plano/franquias/termos definitivos; reprocesso operacional de falhas;
+resolução de holds; portal/upgrades/cancelamento
 self-service; staging/AWS e carga. Mocks não comprovam operação do provedor.
+
+Reconciliação periódica implementada: a cada 30 segundos o processo billing busca
+até 25 checkouts atuais com sessão aberta, sem acesso pago e criados há pelo menos
+30 segundos. Enfileira job durável `reconcile` com dedupe por janela de cinco
+minutos; o processor consulta sessão/assinatura/fatura canônicas na Stripe. Vários
+workers dividem candidatos com `SKIP LOCKED` e não duplicam o mesmo job. Conta com
+assinatura anterior vencida também entra na reconciliação. Retorno do navegador
+continua sem
+conceder acesso. Migration 0008 indexa a consulta. Sem worker ativo, a reconciliação
+aguarda sua volta; a expiração durável permanece como segunda oportunidade.
 
 Validação local: 206 testes backend/100% linhas e branches; 84 testes web/100%
 em quatro critérios; cinco jornadas browser com API/SMTP reais. Builds locais

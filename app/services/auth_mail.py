@@ -14,12 +14,16 @@ from sqlalchemy import text
 from app.core.config import Settings
 from app.db.session import Database
 from app.services.auth import ZERO
+from app.services.mail_templates import render_html
 
 
 def send_mail(settings: Settings, payload: dict[str, str]) -> None:
     message = EmailMessage()
     message["From"], message["To"], message["Subject"] = settings.mail_from, payload["to"], payload["subject"]
     message.set_content(payload["body"])
+    html = render_html(payload)
+    if html:
+        message.add_alternative(html, subtype="html")
     with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=10) as smtp:
         if settings.smtp_starttls:
             smtp.starttls(context=ssl.create_default_context())

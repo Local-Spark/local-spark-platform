@@ -29,9 +29,9 @@ uma categoria explícita de concessão, sem aparecer como clientes pagantes.
 | F01.3 | Admin mínimo com organizações, usuários e onboarding reais | Implementada localmente |
 | F01.4 | Onboarding inicial do cliente e consentimento de termos/privacidade | Implementada localmente |
 | F01.5 | Checkout, webhook e ativação automática; concessão patrocinada | Código local validado; fase aberta até sandbox/staging |
-| F01.6 | Convites, revogação, telefone verificado e validação em staging | Planejada |
+| F01.6 | Convites, revogação, telefone verificado e validação em staging | Código local validado; provedor de envio/staging pendentes |
 
-F01.6 incluirá convite de operadores da plataforma, separado dos convites para
+F01.6 inclui convite de operadores da plataforma, separado dos convites para
 equipe de cada negócio. Somente staff ativo com MFA poderá convidar outro operador.
 Convite terá e-mail verificado, token de uso único e expiração; concessão e revogação
 de staff serão auditadas. Cada operador usará credenciais e TOTP próprios; revogar
@@ -39,6 +39,35 @@ staff deverá invalidar acesso administrativo/sessões. Conta demo local é boot
 de desenvolvimento, não processo de cadastro para produção. O cadastro público
 continua sem capacidade de conceder staff; a primeira conta administrativa de
 cada ambiente requer bootstrap operacional controlado.
+
+Convite: `POST /admin/staff/invitations` com Idempotency-Key, listagem em
+`GET /admin/staff`, aceite autenticado em `/staff/invitations/accept` e DELETE
+para convite/acesso. E-mail usa outbox criptografada e entrega SMTP; aceite exige
+conta com e-mail verificado e força novo login/MFA. RLS só permite criar convite
+a staff ativo e impede um cliente de fabricar o próprio. Revogação é auditada e
+encerra sessões. Web em `/admin/staff` e `/staff-invite`. O aceite distingue
+convite inválido de conta autenticada com e-mail diferente do destinatário;
+nesse caso, orienta troca de conta e reabertura do link original. Convites,
+verificação de e-mail e recuperação de senha usam template HTML único com
+alternativa em texto simples; o worker também reconhece payloads antigos desses
+três tipos. O endpoint `GET /staff/invitations/pending` permite que a conta
+convidada sem negócio veja instruções de aceite, sem ser enviada ao onboarding
+comercial. Após aceite e novo login com MFA, a entrada vai ao admin.
+Depois da revogação, a identidade permanece válida, mas perde sessões e acesso
+administrativo. O estado `revoked` da consulta de convite leva a conta sem negócio
+para `/staff-access-revoked`, em vez do onboarding comercial. Um novo convite
+pendente tem prioridade e permite recuperar o acesso pelo aceite e novo login/MFA.
+
+Telefone: `GET/POST /organizations/{tenant}/businesses/{business}/phone-verification`
+e `POST .../confirm`, somente proprietário. Número brasileiro é normalizado para
+E.164; envio via Twilio Verify SMS por padrão, canal WhatsApp configurável. Pedido
+persistido antes da chamada externa, cooldown de 60 s, expiração de 10 min e no
+máximo cinco tentativas. Só a resposta `approved` do provedor permite alterar
+`business_profiles.phone_verified`; troca de número/solicitação concorrente não
+confirma um desafio antigo. `PHONE_VERIFY_MODE=disabled` é o padrão e mostra
+indisponibilidade em `/app/phone`. Sem conta Twilio, não há entrega real de código;
+sem ambiente AWS, não há homologação em staging. Verificar número não vincula a
+conta WhatsApp: essa conexão/autorização continua na F02.
 
 As primeiras quatro fatias criam uma organização em setup, sem ativar geração paga.
 F01.5 antecipa a parte mínima de cobrança da F07. Nunca marcar pagamento por redirect,
@@ -125,8 +154,8 @@ Ver SDDs em local-spark-web/docs/{SDD,admin-SDD,client-SDD}.md.
 - Owner não vira admin; staff revogado negado; consultas administrativas auditadas.
 - Fonte de cada indicador explícita; dados ausentes não viram zero ou sucesso inventado.
 - Backend mantém 100% linhas/branches; frontend com testes de jornadas/estados e build.
-- Validação local não fecha F01 inteira: checkout real, convites, telefone e staging
-  precisam das integrações e validações pendentes.
+- Validação local não fecha F01 inteira: entrega real do código, cenários restantes
+  da Stripe e staging precisam das integrações e validações externas pendentes.
 
 ## Continuidade
 
@@ -139,6 +168,7 @@ Depois de autenticar, POST /session retorna contexto; POST /onboarding confirma
 identidade/e-mail/consentimento e cria tenant, owner, negócio, perfil, auditoria e
 outbox na mesma transação. O relay entrega o evento ao Temporal sem efeito pago.
 
-Validação backend: 206 testes, 100% linhas/branches. Frontend e browser no changelog
-web; migration e imagem Docker no changelog backend. Staging e demais fatias da F01
-continuam pendentes. A autenticação implementada não comprova capacidade para 200 mil.
+Validação atual: 244 testes backend, 100% linhas/branches; 107 testes web, 100%
+nos quatro critérios; oito jornadas Chromium com banco `_test`. Migrations 0008–0010
+reversíveis no teste e aplicadas localmente. Staging e envio real de telefone seguem
+pendentes. A autenticação implementada não comprova capacidade para 200 mil.

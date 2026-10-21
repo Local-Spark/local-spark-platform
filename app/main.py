@@ -10,11 +10,14 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse
 
 from app import __version__
+from app.adapters.twilio_verify import TwilioVerify
 from app.api.v1.api import api_router
 from app.api.v1.auth import auth_router
 from app.api.v1.billing import billing_router
 from app.api.v1.onboarding import onboarding_router
+from app.api.v1.phone_verification import phone_router
 from app.api.v1.reference import reference_router
+from app.api.v1.staff import staff_router
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging, request_id, request_id_context
 from app.db.session import Database
@@ -39,6 +42,7 @@ def create_app(
         application.state.database = database or Database(settings)
         application.state.auth_database = auth_database or Database(settings, auth=True)
         application.state.identity_verifier = AuthService(settings, application.state.auth_database)
+        application.state.phone_provider = TwilioVerify(settings)
         application.state.billing_database = billing_database or (
             Database(settings, billing=True) if settings.billing_database_url else None
         )
@@ -51,6 +55,7 @@ def create_app(
                 await application.state.auth_database.close()
             if billing_database is None and application.state.billing_database is not None:
                 await application.state.billing_database.close()
+            await application.state.phone_provider.close()
 
     application = FastAPI(
         title=settings.project_name,
@@ -66,6 +71,8 @@ def create_app(
     application.include_router(auth_router)
     application.include_router(reference_router)
     application.include_router(billing_router)
+    application.include_router(staff_router)
+    application.include_router(phone_router)
 
     @application.middleware("http")
     async def diagnostics(request: Request, call_next):  # type: ignore[no-untyped-def]

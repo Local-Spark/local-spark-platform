@@ -1,8 +1,10 @@
 # Local Spark Platform
 
 FastAPI/Python da Local Spark, plataforma de conteúdo para pequenos negócios.
-F00 e primeiras fatias da F01 funcionam localmente. Geração, redes e cobrança
-continuam nas fases seguintes. Autenticação própria substitui o Keycloak.
+F00 e as fatias locais da F01 funcionam. Checkout de teste e reconciliação estão
+implementados; geração/publicação continuam nas fases seguintes. A verificação
+de telefone precisa de conta Twilio e staging para homologação. Autenticação
+própria substitui o Keycloak.
 
 ## Preparar o ambiente
 
@@ -71,9 +73,11 @@ DBeaver: banco `local_spark_platform`, schema `public`, usuário administrativo
 
 O operador configura um autenticador TOTP no primeiro login e guarda os códigos
 de recuperação. Depois usa o código do aplicativo ou um código de recuperação.
-Cadastro público nunca concede staff. Contas antigas sem senha definem uma por
+Cadastro público nunca concede staff. Operadores adicionais são convidados em
+`/admin/staff` por outro operador com MFA. Contas antigas sem senha definem uma por
 recuperação de e-mail, preservando UUID e negócios. E-mails locais chegam só ao
-Mailpit, sem envio para destinatários externos. Telefone informado não é verificado.
+Mailpit, sem envio para destinatários externos. Telefone informado só se torna
+verificado após confirmação pelo provedor configurado.
 
 ## Cobrança e patrocínio — F01.5
 
@@ -112,6 +116,27 @@ Use o signing secret da CLI em WEBHOOK_SECRET e reinicie API F5/serviço billing
 Webhook snapshot/API 2026-02-25.clover, eventos listados no SDD. API e worker precisam
 do mesmo PUBLIC_WEB_URL. Checkout retorna ao site, mas só confirmação canônica ativa
 acesso. Pagamento sandbox foi confirmado em 21/10; demais cenários e staging pendentes.
+
+Se o listener parar durante um pagamento, não refaça a compra. O billing worker
+agora agenda reconciliação canônica de checkouts abertos a cada 30 segundos; a
+assinatura muda apenas após consulta confiável à Stripe. Reinicie o worker após
+atualizar o código: `docker compose --profile workers up -d --build billing`.
+
+## Telefone e operadores — F01.6
+
+Cliente: `/app/phone`; equipe: `/admin/staff`. O telefone é confirmado via Twilio
+Verify; o modo padrão `LOCAL_SPARK_PHONE_VERIFY_MODE=disabled` não envia código nem
+marca número como verificado. Para habilitar, crie um Verify Service/API key e
+configure as variáveis comentadas em `.env.example`, preservando seus segredos no
+`.env` local. SMS é o canal padrão; WhatsApp exige habilitação no provedor. A
+confirmação do telefone não vincula o WhatsApp da F02. Convites de operadores são
+entregues pelo worker `auth-mail`, com e-mail verificado, token único e MFA próprio.
+O operador convidado não precisa cadastrar negócio: enquanto o convite estiver
+pendente, `GET /api/v1/staff/invitations/pending` leva à orientação de aceite.
+E-mails transacionais usam HTML com alternativa em texto; o worker também renderiza
+payloads antigos da API por assunto/link. Reinicie a API no debug após atualizar
+o código e reconstrua `auth-mail` para carregar o template.
+Entrega real do código e validação AWS/staging ainda dependem de contas externas.
 
 Retorno do checkout preserva a origem autorizada do navegador que iniciou o pedido.
 Em desenvolvimento, localhost/127.0.0.1 funcionam com a mesma porta/protocolo;

@@ -98,6 +98,8 @@ INSERT INTO auth_actions(digest,user_id,purpose,expires_at) VALUES
         payload = {
             "to": email,
             "subject": subject,
+            "template": purpose,
+            "link": f"{self.settings.public_web_url}/{path}#token={token}",
             "body": (
                 f"Abra o link para continuar: {self.settings.public_web_url}/{path}#token={token}\n"
                 "Se você não fez este pedido, ignore esta mensagem."

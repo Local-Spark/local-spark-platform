@@ -1,6 +1,15 @@
 # SDD geral — Plataforma de conteúdo
 
-Versão 0.9, 21/10/2026. Resumo implementável e índice das especificações detalhadas.
+Versão 1.0, 21/10/2026. Resumo implementável e índice das especificações detalhadas.
+
+F01.6: o billing worker agenda reconciliação canônica periódica de checkouts abertos
+sem acesso pago, com jobs duráveis e dedupe por janela de cinco minutos; o webhook
+continua sendo o caminho imediato. Convites de operadores têm token de uso único,
+expiração de 48 horas, e-mail criptografado na outbox, MFA próprio e revogação de
+sessões. Verificação do telefone do negócio usa Twilio Verify configurável, limite
+de solicitações/tentativas e só grava `phone_verified=true` após aprovação do
+provedor. O envio está desativado localmente até haver conta; staging AWS ainda
+não foi criado.
 
 Nome adotado: Local Spark; repositórios `local-spark-platform`, `local-spark-web`
 e `local-spark-infra`. Configuração Python utiliza `LOCAL_SPARK_`; PostgreSQL usa
@@ -77,6 +86,8 @@ não ativam acesso nem franquia.
 F01.5 inclui projeção administrativa paginada de checkouts abertos ou expirados sem
 acesso ativo, com contato cadastrado e auditoria. Sessão aberta não é assinatura;
 fechar a aba não equivale a abandono confirmado. A lista não distribui links Stripe.
+A reconciliação periódica busca a sessão/assinatura na Stripe mesmo sem webhook
+entregue, com lease/fencing do processamento existente.
 
 Meta WhatsApp/Instagram; OpenAI texto/imagem/transcrição; HeyGen avatar/voz; Runway
 cenas; Tavily pesquisa; Google Places descoberta conforme política; Jev opcional após
@@ -144,6 +155,7 @@ Web: 59 testes, 100% de cobertura e quatro jornadas Playwright com identidade/AP
 F01.5 tem checkout/webhook e patrocínio implementados. Em 21/10, pagamento real de
 sandbox do titular confirmou assinatura de teste; retorno entre aliases locais
 expôs perda de cookie, corrigida pelo congelamento de origem autorizada. Demais
-cenários de sandbox, F01.6, convites, telefone e staging permanecem pendentes.
+cenários restantes de sandbox e staging permanecem pendentes. F01.6 tem código local
+para convites e telefone; envio real do código e homologação AWS ainda faltam.
 F02–F08 permanecem planejadas; diagrama completo acima descreve o destino do produto.
 Não houve execução remota de CI, push ou deploy nesta entrega.

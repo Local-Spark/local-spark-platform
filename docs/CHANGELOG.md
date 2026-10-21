@@ -1,5 +1,52 @@
 # Registro de mudanças
 
+## 2026-10-21 — Conta de operador após revogação
+
+- A consulta de convite agora informa também quando a identidade já foi operadora
+  e teve o acesso revogado. A conta sem negócio vê `/staff-access-revoked` após
+  login, em vez de entrar automaticamente no onboarding comercial.
+- Um novo convite pendente continua sendo apresentado primeiro para permitir a
+  reativação por aceite, novo login e MFA. Testes de API e interface cobrem a
+  perda do acesso administrativo e o destino após revogação.
+
+## 2026-10-21 — Aceite de convite e e-mails
+
+- Convite válido acessado por outra conta responde
+  `INVITATION_EMAIL_MISMATCH`; token expirado, revogado ou já usado mantém
+  `INVALID_INVITATION`. A migration 0011 permite consultar apenas o convite
+  correspondente ao token apresentado, preservando o isolamento entre contas.
+- E-mails transacionais novos usam HTML padronizado e alternativa em texto.
+  O worker também reconhece mensagens anteriores pelo assunto e extrai o link
+  do corpo, inclusive quando a API em debug ainda está com código antigo.
+- `GET /staff/invitations/pending` identifica o convite válido da própria conta
+  para separar a entrada de operador do onboarding de negócios.
+
+## 2026-10-21 — Reconciliação e F01.6 local
+
+- Billing agenda consultas canônicas à Stripe para checkouts abertos sem assinatura
+  ativa, mesmo se o webhook não chegar. Jobs duráveis têm dedupe por janela de cinco
+  minutos, batch limitado e reaproveitam Temporal/lease/fencing. Migration 0008.
+- Operadores com MFA convidam por e-mail criptografado, com expiração de 48 horas,
+  idempotência, aceite por e-mail verificado e TOTP individual. Revogação cancela
+  convite ou encerra sessões de staff; ações são auditadas e RLS impede concessão
+  direta por clientes. Migration 0009 e telas `/admin/staff`/`/staff-invite`.
+- Verificação de telefone do negócio preparada com Twilio Verify, cooldown, cinco
+  tentativas, expiração e checagem `approved` antes de marcar o perfil. A UI
+  `/app/phone` mostra indisponibilidade quando não há provedor. Migration 0010.
+  Nenhuma entrega real de SMS/WhatsApp ocorreu: conta/credenciais não existem.
+  Compose repassa somente as variáveis do provedor à API; o cliente web não recebe
+  segredos. Adapter compartilha pool HTTP por processo e o fecha no shutdown.
+- Migrações 0009/0010 testadas com downgrade/upgrade em `_test` e aplicadas ao banco
+  local após backup; contagens de contas, tenants, negócios, perfis e jobs preservadas.
+  Workers billing/auth-mail reconstruídos. API do usuário em F5 requer reinício.
+- Readiness compara a revisão do banco com o head Alembic do código, recusando API
+  nova sobre schema antigo; scheduler divide candidatos entre workers com
+  `SKIP LOCKED` e cobre assinatura anterior vencida.
+- Backend: 244 testes/100% linhas/branches, lint/tipos e integração PostgreSQL/Temporal;
+  web: 107 testes/100% nos quatro critérios, tipos/build e oito jornadas Chromium,
+  inclusive envio/cancelamento de convite ao Mailpit em banco `_test`. Staging AWS
+  e envio real de código ficam pendentes; sem deploy, commit ou push.
+
 ## 2026-10-21 — Oportunidades de checkout no admin
 
 - Endpoint administrativo paginado lista checkouts atuais abertos ou expirados sem

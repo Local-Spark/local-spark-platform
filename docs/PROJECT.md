@@ -1,6 +1,17 @@
 # Contexto vivo do projeto
 
-Atualizado: 20/10/2026. Nome adotado: Local Spark. Repositório principal: `local-spark-platform`.
+Atualizado: 21/10/2026. Nome adotado: Local Spark. Repositório principal: `local-spark-platform`.
+
+F01.6 está implementada e validada localmente: reconciliação periódica de checkout
+aberto sem depender do listener Stripe, convite/revogação auditados de operadores
+com MFA e confirmação de telefone pela API Twilio Verify. A web tem telas de equipe
+e telefone. O envio de código fica desativado até configurar conta e credenciais
+Twilio; nenhum telefone foi marcado como verificado por teste local. O staging AWS
+ainda não existe, portanto a fase não está homologada externamente. Migrations
+0008–0010 aplicadas no banco local após backup e teste de rollback/upgrade no `_test`.
+Validação: 244 testes backend/100% linhas e branches, 107 web/100% em quatro
+critérios, tipos e lint, oito jornadas Chromium com banco `_test`. API em F5 deve
+reiniciar para carregar as novas rotas.
 
 Atualização 21/10/2026: sandbox do titular recebeu pagamento de teste, com assinatura
 ativa e eventos checkout/subscription/invoice processados. Isso não encerra os
@@ -78,7 +89,8 @@ F01.5 em implementação. Entregas locais: Stripe Checkout, inbox/webhook autent
 Temporal com lease/fencing, confirmação canônica e acesso pago/teste separados de
 patrocínio de seis meses. Cliente /app/billing e admin /admin/billing. Cobrança
 desabilitada por padrão; credenciais, Price/valor, sandbox real e staging pendentes.
-F01.6 segue pendente (convites, telefone e staging). Sem cobrança real/deploy.
+F01.6 tem convites e verificação de telefone implementados localmente; entrega
+real de código e homologação AWS/staging dependem das contas externas. Sem deploy.
 Contrato e continuidade em docs/design/billing.md; migration 0005 aditiva aplicada
 localmente, preservando contas, negócios, organizações e memberships.
 Validação da entrega: 206 testes backend/100% linhas e branches; 84 testes web/
@@ -117,7 +129,7 @@ workflows CI e os quatro arquivos compartilhados de debug VS Code permanecem ver
 ## Interfaces e jornada aprovadas
 
 Operadores da plataforma e membros de negócios são permissões distintas. F01.6
-implementará convite/revogação de staff por outro staff autenticado com MFA, com
+implementou convite/revogação de staff por outro staff autenticado com MFA, com
 e-mail verificado, trilha auditada e TOTP individual. O seed de operador existente
 serve somente para desenvolvimento local; cadastro público não cria staff.
 
