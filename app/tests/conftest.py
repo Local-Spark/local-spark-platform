@@ -21,6 +21,8 @@ class IntegrationSettings(BaseSettings):
 
     admin_database_url: SecretStr
     database_url: SecretStr
+    auth_database_url: SecretStr
+    billing_database_url: SecretStr
     relay_database_url: SecretStr
     temporal_address: str
 
@@ -41,6 +43,7 @@ def settings():
         environment="testing",
         database_url=os.getenv("TEST_DATABASE_URL", "postgresql+asyncpg://unused:unused@localhost/unused"),
         relay_database_url=os.getenv("TEST_RELAY_DATABASE_URL"),
+        auth_database_url=os.getenv("TEST_AUTH_DATABASE_URL"),
         jwt_secret="unit-test-secret-with-at-least-32-characters",
     )
 
@@ -60,5 +63,13 @@ def fake_database():
 
 @pytest.fixture
 def client(settings, fake_database):
-    with TestClient(create_app(settings, fake_database), raise_server_exceptions=False) as result:
+    with TestClient(create_app(settings, fake_database, fake_database), raise_server_exceptions=False) as result:
+        from app.core.identity import Identity
+        from app.core.security import decode_actor
+
+        async def authenticate(token):
+            actor = decode_actor(token, settings)
+            return Identity(actor, settings.jwt_issuer, str(actor), "Conta de desenvolvimento")
+
+        result.app.state.identity_verifier.authenticate = authenticate
         yield result

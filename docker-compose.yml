@@ -26,7 +26,15 @@ services:
     environment:
       LOCAL_SPARK_DATABASE_URL: postgresql+asyncpg://local_spark_runtime:local-spark-app-password@postgres:5432/local_spark_platform
       LOCAL_SPARK_JWT_SECRET: development-local-spark-change-this-secret-before-deploying
-    ports: ["127.0.0.1:8000:8000"]
+      LOCAL_SPARK_AUTH_DATABASE_URL: postgresql+asyncpg://local_spark_identity:local-spark-auth-password@postgres:5432/local_spark_platform
+      LOCAL_SPARK_BILLING_DATABASE_URL: postgresql+asyncpg://local_spark_payments:local-spark-billing-password@postgres:5432/local_spark_platform
+      LOCAL_SPARK_BILLING_MODE: ${LOCAL_SPARK_BILLING_MODE:-disabled}
+      LOCAL_SPARK_PUBLIC_WEB_URL: ${LOCAL_SPARK_PUBLIC_WEB_URL:-http://localhost:5173}
+      LOCAL_SPARK_STRIPE_SECRET_KEY: ${LOCAL_SPARK_STRIPE_SECRET_KEY:-}
+      LOCAL_SPARK_STRIPE_WEBHOOK_SECRET: ${LOCAL_SPARK_STRIPE_WEBHOOK_SECRET:-}
+      LOCAL_SPARK_STRIPE_PRICE_ID: ${LOCAL_SPARK_STRIPE_PRICE_ID:-}
+      LOCAL_SPARK_BILLING_MONTHLY_AMOUNT_MINOR: ${LOCAL_SPARK_BILLING_MONTHLY_AMOUNT_MINOR:-}
+    ports: ["127.0.0.1:${LOCAL_SPARK_API_PORT:-8000}:8000"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -59,6 +67,41 @@ services:
         condition: service_healthy
       temporal:
         condition: service_started
+  billing:
+    build: .
+    command: ["python", "-m", "app.entrypoints.billing"]
+    environment:
+      LOCAL_SPARK_DATABASE_URL: postgresql+asyncpg://local_spark_payments:local-spark-billing-password@postgres:5432/local_spark_platform
+      LOCAL_SPARK_BILLING_DATABASE_URL: postgresql+asyncpg://local_spark_payments:local-spark-billing-password@postgres:5432/local_spark_platform
+      LOCAL_SPARK_JWT_SECRET: development-local-spark-change-this-secret-before-deploying
+      LOCAL_SPARK_TEMPORAL_ADDRESS: temporal:7233
+      LOCAL_SPARK_BILLING_MODE: ${LOCAL_SPARK_BILLING_MODE:-disabled}
+      LOCAL_SPARK_PUBLIC_WEB_URL: ${LOCAL_SPARK_PUBLIC_WEB_URL:-http://localhost:5173}
+      LOCAL_SPARK_STRIPE_SECRET_KEY: ${LOCAL_SPARK_STRIPE_SECRET_KEY:-}
+      LOCAL_SPARK_STRIPE_WEBHOOK_SECRET: ${LOCAL_SPARK_STRIPE_WEBHOOK_SECRET:-}
+      LOCAL_SPARK_STRIPE_PRICE_ID: ${LOCAL_SPARK_STRIPE_PRICE_ID:-}
+      LOCAL_SPARK_BILLING_MONTHLY_AMOUNT_MINOR: ${LOCAL_SPARK_BILLING_MONTHLY_AMOUNT_MINOR:-}
+    profiles: ["workers"]
+    restart: on-failure
+    depends_on: [postgres, temporal]
+  mailpit:
+    image: axllent/mailpit:v1.31.6
+    ports: ["127.0.0.1:8025:8025", "127.0.0.1:11025:1025"]
+  auth-mail:
+    build: .
+    command: ["python", "-m", "app.entrypoints.auth_mail"]
+    environment:
+      LOCAL_SPARK_DATABASE_URL: postgresql+asyncpg://local_spark_identity:local-spark-auth-password@postgres:5432/local_spark_platform
+      LOCAL_SPARK_AUTH_DATABASE_URL: postgresql+asyncpg://local_spark_identity:local-spark-auth-password@postgres:5432/local_spark_platform
+      LOCAL_SPARK_JWT_SECRET: development-local-spark-change-this-secret-before-deploying
+      LOCAL_SPARK_SMTP_HOST: mailpit
+      LOCAL_SPARK_SMTP_PORT: 1025
+    profiles: ["workers"]
+    restart: on-failure
+    depends_on: [postgres, mailpit]
+
 volumes:
   local-spark-postgres:
   local-spark-temporal:
+  # Legacy identity volume retained without a service; never delete user data during migration.
+  local-spark-keycloak:

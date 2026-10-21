@@ -31,3 +31,9 @@ Dividir as features acima em mudanças revisáveis. Cada mudança atualiza este 
 `docs/PROJECT.md` e `docs/CHANGELOG.md`, incluindo evidências de testes e pendências.
 Contratos que afetam outras fases devem ser refletidos no SDD geral e nos consumidores.
 Não marcar como concluído por possuir mocks ou documentação de uma API ainda não validada.
+
+## Integração com a área do cliente
+
+Prévia, versão e materiais usados compõem revisão posterior da área web e do
+WhatsApp. UI só apresenta formatos efetivamente implementados; erro, refação e
+consumo têm status rastreável. Admin acompanha falhas e custos reais.

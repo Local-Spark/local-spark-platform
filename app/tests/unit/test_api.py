@@ -66,10 +66,10 @@ def test_production_docs_disabled(settings, fake_database):
 def test_owned_database_lifecycle(settings, fake_database, monkeypatch):
     from fastapi.testclient import TestClient
 
-    monkeypatch.setattr("app.main.Database", lambda _: fake_database)
+    monkeypatch.setattr("app.main.Database", lambda *args, **kwargs: fake_database)
     with TestClient(create_app(settings)) as client:
         assert client.get("/health/ready").status_code == 200
-    fake_database.close.assert_awaited_once()
+    assert fake_database.close.await_count == 2
 
 
 @pytest.mark.parametrize("replayed,status", [(False, 201), (True, 200)])
@@ -99,3 +99,40 @@ def test_business_creation_response_contract(client, settings, monkeypatch, repl
     args = service.call_args.args
     assert args[1:4] == (tenant, actor, "business-response-001")
     assert args[4].name == "Dog"
+
+
+@pytest.mark.parametrize("replayed,status", [(False, 201), (True, 200)])
+def test_onboarding_response_contract(client, settings, monkeypatch, replayed, status):
+    from app.schemas.onboarding import OnboardingResult
+
+    result = OnboardingResult(tenant_id=uuid4(), business_id=uuid4(), replayed=replayed)
+    provision = AsyncMock(return_value=result)
+    monkeypatch.setattr("app.api.v1.onboarding.provision_initial_business", provision)
+    response = client.post(
+        "/api/v1/onboarding",
+        headers={"Authorization": f"Bearer {access_token(settings)}"},
+        json={
+            "name": "Ana",
+            "category": "Beleza",
+            "city": "São Paulo",
+            "description": "Unhas",
+            "phone": "11999999999",
+            "accept_terms": True,
+            "accept_privacy": True,
+        },
+    )
+    assert response.status_code == status
+    assert response.json() == result.model_dump(mode="json")
+    provision.assert_awaited_once()
+
+
+def test_readiness_checks_the_authentication_database(settings, fake_database):
+    from unittest.mock import AsyncMock
+
+    from fastapi.testclient import TestClient
+
+    auth_database = AsyncMock()
+    auth_database.ready.return_value = False
+    with TestClient(create_app(settings, fake_database, auth_database)) as client:
+        assert client.get("/health/ready").status_code == 503
+    auth_database.ready.assert_awaited_once()

@@ -2,7 +2,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main, develop]
+    branches: [main, develop, dev]
   workflow_dispatch:
 permissions:
   contents: read
@@ -27,6 +27,8 @@ jobs:
       LOCAL_SPARK_MIGRATION_DATABASE_URL: postgresql+asyncpg://postgres:local-spark-test-admin-password@127.0.0.1:5432/local_spark_platform_test
       TEST_ADMIN_DATABASE_URL: postgresql+asyncpg://postgres:local-spark-test-admin-password@127.0.0.1:5432/local_spark_platform_test
       TEST_DATABASE_URL: postgresql+asyncpg://local_spark_runtime:local-spark-app-password@127.0.0.1:5432/local_spark_platform_test
+      TEST_AUTH_DATABASE_URL: postgresql+asyncpg://local_spark_identity:local-spark-auth-password@127.0.0.1:5432/local_spark_platform_test
+      TEST_BILLING_DATABASE_URL: postgresql+asyncpg://local_spark_payments:local-spark-billing-password@127.0.0.1:5432/local_spark_platform_test
       TEST_RELAY_DATABASE_URL: postgresql+asyncpg://local_spark_delivery:local-spark-relay-password@127.0.0.1:5432/local_spark_platform_test
       TEST_TEMPORAL_ADDRESS: 127.0.0.1:7233
     steps:

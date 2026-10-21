@@ -16,6 +16,6 @@ test:
 	uv run pytest --cov=app --cov-report=term-missing --cov-report=xml -q
 ci: lint types test
 up:
-	docker compose up -d postgres temporal
+	docker compose up -d postgres temporal mailpit
 migrate:
 	uv run alembic upgrade head

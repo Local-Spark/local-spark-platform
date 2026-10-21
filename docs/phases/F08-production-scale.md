@@ -31,3 +31,11 @@ Dividir as features acima em mudanças revisáveis. Cada mudança atualiza este 
 `docs/PROJECT.md` e `docs/CHANGELOG.md`, incluindo evidências de testes e pendências.
 Contratos que afetam outras fases devem ser refletidos no SDD geral e nos consumidores.
 Não marcar como concluído por possuir mocks ou documentação de uma API ainda não validada.
+
+## Operação das interfaces
+
+local-spark-web serve entrada pública, admin e cliente com permissões distintas.
+Validar isolamento no backend, revogação, cookies HttpOnly/CSRF e tokens em memória conforme
+contrato de autenticação própria, headers, origem compartilhada, acessibilidade e testes de jornada
+em staging. Métricas agregadas/caches/replicas evoluem por medição; não fazer
+consultas pesadas em cada abertura de painel nem atribuir capacidade sem carga real.

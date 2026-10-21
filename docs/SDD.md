@@ -1,6 +1,6 @@
 # SDD geral — Plataforma de conteúdo
 
-Versão 0.4, 20/10/2026. Resumo implementável e índice das especificações detalhadas.
+Versão 0.8, 20/10/2026. Resumo implementável e índice das especificações detalhadas.
 
 Nome adotado: Local Spark; repositórios `local-spark-platform`, `local-spark-web`
 e `local-spark-infra`. Configuração Python utiliza `LOCAL_SPARK_`; PostgreSQL usa
@@ -17,6 +17,9 @@ diretório no PATH para plugins/helpers, independentemente do PATH herdado pelo 
 Contrato de versionamento: incluir código/testes, migrations, `uv.lock`, exemplos
 sem credenciais de produção, CI, documentação e debug compartilhado; excluir
 segredos, dados locais e artefatos de execução por `.gitignore`.
+Auth local aceita localhost/127.0.0.1 na mesma porta/protocolo da origem web
+configurada, somente em development/testing. Staging/production mantêm origem
+exata; links de e-mail continuam canônicos e cookies host-only.
 
 ## Objetivo e arquitetura
 
@@ -26,8 +29,8 @@ OAuth, consentimento e operação. Interface diária não exige editor ou conhec
 
 Backend modular: `app/core`, `api/v1`, `schemas`, `services`, `db`, `workflows` e
 adapters por integração quando implementados. Um repositório, múltiplos processos:
-API, relay, workflow/IO/media workers e manutenção. Web e infraestrutura terão
-repositórios próprios quando começarem. Dados, arquivos, cache e permissões são tenant-scoped.
+API, relay, workflow/IO/media workers e manutenção. Web tem repositório próprio `local-spark-web`; infraestrutura terá
+repositório próprio quando começar. Dados, arquivos, cache e permissões são tenant-scoped.
 
 ```mermaid
 flowchart LR
@@ -61,6 +64,13 @@ flowchart LR
 
 ## Integrações planejadas
 
+Cobrança inicial implementada com Stripe, mesmo adapter em teste/live e credenciais
+isoladas; disabled por padrão. [SDD de cobrança](design/billing.md): checkout
+idempotente, webhook assinado/inbox, Temporal, lease/fencing, consulta canônica,
+concessão/revogação patrocinada e interfaces. Login DB billing próprio, sem escrita
+em identidade/memberships; app comum não confirma pagamento. Sandbox do titular e
+staging continuam pendentes. Cadastro/redirect não ativam acesso nem franquia.
+
 Meta WhatsApp/Instagram; OpenAI texto/imagem/transcrição; HeyGen avatar/voz; Runway
 cenas; Tavily pesquisa; Google Places descoberta conforme política; Jev opcional após
 eval. FFmpeg/ffprobe e compositor próprio para mídia determinística. Seleção inicial
@@ -84,3 +94,46 @@ Para cada feature: atualizar SDD da fase, `PROJECT.md` e `CHANGELOG.md`; registr
 decisão arquitetural relevante antes de mudar fronteira/contrato; indicar testes
 executados e pendências. Novo modelo, fornecedor ou permissão requer atualização de
 perfil e gate de qualidade, não troca silenciosa. Status significa evidência, não intenção.
+
+## Contexto inicial do negócio
+
+Atividade sugerida ou livre (até 60 caracteres), descrição e cor principal HEX
+personalizada. A web exige município do catálogo oficial com UF/código IBGE/nome;
+API valida a combinação. GET /reference/states e /reference/cities/{UF} servem
+snapshot IBGE versionado, carregado/cacheado por processo, sem rede ou DB na requisição.
+Perfis antigos mantêm cidade livre e códigos nulos, sem inferência por nome. Novos
+campos opcionais na API preservam clientes antigos e o hash de replay legado.
+UF/município não comprovam endereço ou coordenadas; geocodificação/raio ficam na F03.
+
+## Jornada comercial e interfaces (decisão F01)
+
+Landing → contratação → webhook confirmado → provisionamento/ativação idempotentes
+→ identidade/canal verificados → onboarding pelo WhatsApp. Identidade e organização
+em setup podem existir antes do pagamento; geração paga exige concessão ativa e
+franquia. Patrocínio de seis meses é concessão explícita, separado de receita.
+
+F01 inicia React com admin mínimo e telas essenciais do cliente. Admin acompanha
+organizações, usuários e onboarding. Pagantes/custos/resultados aparecem após
+suas integrações, nunca como dados fictícios. Cliente usa web para identidade,
+OAuth, consentimentos e revisão; rotina e relatório semanal continuam no WhatsApp.
+Métricas próprias e snapshots externos alimentam a base e os painéis; não atribuir
+faturamento à plataforma sem dados e método de mensuração.
+
+SDDs de interface em `local-spark-web/docs`: geral, admin e cliente. F01.5 antecipa
+cobrança mínima da F07. Autenticação própria aceita em 20/10/2026 substitui a
+escolha inicial de Keycloak. Contrato em [auth nativa](design/native-auth.md).
+Senhas, sessões, tokens de ação e MFA são responsabilidade do módulo auth da API;
+permissões e memberships permanecem no domínio/RLS. OIDC do GitHub Actions para
+AWS é independente da autenticação dos usuários e continua válido.
+
+## Estado de implementação
+
+F00 concluída localmente. F01.1–F01.4 entregues e validadas localmente nos dois
+repositórios: identidade nativa, contexto, primeiro negócio com consentimentos,
+admin com contagens reais e base React com áreas distintas. O onboarding inicial
+é transacional e idempotente por ator, sem ativação de plano. Backend: 103 testes,
+100% de linhas/branches, lint/tipos, migration rollback/reaplicação e build Docker.
+Web: 59 testes, 100% de cobertura e quatro jornadas Playwright com identidade/API reais.
+F01.5/F01.6, checkout/webhook, patrocínio, convites, telefone e staging pendentes.
+F02–F08 permanecem planejadas; diagrama completo acima descreve o destino do produto.
+Não houve execução remota de CI, push ou deploy nesta entrega.

@@ -31,3 +31,9 @@ Dividir as features acima em mudanças revisáveis. Cada mudança atualiza este 
 `docs/PROJECT.md` e `docs/CHANGELOG.md`, incluindo evidências de testes e pendências.
 Contratos que afetam outras fases devem ser refletidos no SDD geral e nos consumidores.
 Não marcar como concluído por possuir mocks ou documentação de uma API ainda não validada.
+
+## Consentimento e interfaces
+
+Autorização de voz/avatar usa página curta complementar e registro específico;
+termos do onboarding não autorizam identidade sintética. Cliente vê estado da
+geração; admin acompanha custo e falha, com acesso mínimo e auditado.

@@ -25,7 +25,8 @@ def fingerprint(payload: BusinessCreate) -> str:
 
 async def require_member(session: AsyncSession, tenant_id: UUID, actor_id: UUID, *, write: bool = False) -> None:
     role = await session.scalar(
-        text("SELECT role FROM memberships WHERE tenant_id = :tenant AND actor_id = :actor AND active"),
+        text("""SELECT role FROM memberships WHERE tenant_id = :tenant AND actor_id = :actor AND active
+          AND NOT EXISTS(SELECT 1 FROM user_accounts WHERE id=:actor AND NOT active)"""),
         {"tenant": tenant_id, "actor": actor_id},
     )
     if role is None or (write and role not in {"owner", "editor"}):

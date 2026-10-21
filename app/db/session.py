@@ -11,16 +11,35 @@ from app.core.config import Settings
 
 
 class Database:
-    def __init__(self, settings: Settings, *, relay: bool = False) -> None:
-        url = settings.relay_database_url if relay else settings.database_url
+    def __init__(self, settings: Settings, *, relay: bool = False, auth: bool = False, billing: bool = False) -> None:
+        url = (
+            settings.billing_database_url
+            if billing
+            else settings.auth_database_url
+            if auth
+            else settings.relay_database_url
+            if relay
+            else settings.database_url
+        )
         if url is None:
-            raise ValueError("Relay database URL must be configured explicitly")
+            raise ValueError("Database URL must be configured explicitly for the restricted role")
         self.engine: AsyncEngine = create_async_engine(
             url.get_secret_value(),
             pool_pre_ping=True,
+            hide_parameters=True,
             pool_size=settings.pool_size,
             max_overflow=settings.max_overflow,
-            connect_args={"server_settings": {"application_name": "local-spark-relay" if relay else "local-spark-api"}},
+            connect_args={
+                "server_settings": {
+                    "application_name": "local-spark-billing"
+                    if billing
+                    else "local-spark-auth"
+                    if auth
+                    else "local-spark-relay"
+                    if relay
+                    else "local-spark-api"
+                }
+            },
         )
         self.sessions = async_sessionmaker(self.engine, expire_on_commit=False)
 

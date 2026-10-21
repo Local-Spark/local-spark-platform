@@ -1,5 +1,90 @@
 # Registro de mudanças
 
+## 2026-10-20 — F01.5: contratação e acesso
+
+- Stripe escolhido como primeiro adapter para teste/produção, sem alegação de
+  liderança de mercado nem cobrança comercial habilitada. ADR/SDD em design/billing.md.
+- API de status, intenção de checkout idempotente, webhook assinado com inbox de
+  referências, consulta canônica e jobs Temporal. Timers duráveis para expiração,
+  lease/fencing, retry limitado e falha rastreável. URLs de pagamento fora do
+  histórico Temporal; mensagens sensíveis do SDK não entram em falhas do workflow.
+- Migration 0005 com role billing isolada e FORCE RLS. Runtime não confirma
+  pagamento; billing não escreve identidade/membership/patrocínio ou auditoria antiga.
+- Patrocínio de seis meses com motivo, replay sem extensão e revogação auditada;
+  estado pago/teste/patrocinado separado. Auditoria/outbox atômicas, MRR indisponível.
+- Cliente /app/billing, admin /admin/billing, busca limitada e contagens reais.
+  Checkout indisponível sem keys/Price/valor; callback de sucesso não ativa acesso.
+- CI inclui login restrito billing. Compose/debug incluem processo billing,
+  inativo para provedores no modo disabled. R$99 continua exemplo de sandbox.
+- Downgrade/upgrade da 0005 validado no banco _test; upgrade main preservou
+  contagens de contas, organizações, negócios/perfis e memberships. Sem deploy/push.
+- Pendentes: conta e credenciais do titular, sandbox real, plano/franquias/termos,
+  conciliação periódica/reprocesso, portal/cancelamento, staging/AWS e carga.
+- Validação final local: make ci com 206 testes, 100% linhas/branches, lint/tipos;
+  frontend 84 testes/100% em quatro critérios, tipos/build/formatação. Cinco
+  jornadas Playwright com API/SMTP reais passaram, incluindo uso/revogação de
+  patrocínio. Adapter Stripe validado por contratos, não por cobrança em sandbox.
+- Imagens API/billing construídas; role billing pronta no Docker e processo
+  disabled verificado. Migração local preservou dados existentes. F01.5 permanece
+  aberta até validação do provedor e staging; sem commit/push/deploy/cobrança real.
+- Rollback completo até base e upgrade head passaram no banco _test, com logins
+  restritos reaplicados. Preparo de browser recusou billing apontando para main
+  antes de semear/resetar fixtures. Servidores temporários de QA encerrados;
+  processos do usuário e o serviço billing local/disabled foram preservados.
+
+## 2026-10-20 — Contexto do negócio e cidade estruturada
+
+- Web amplia atividades com opção livre e permite qualquer cor HEX, além de sugestões.
+- API oferece catálogo público IBGE versionado (27 UFs/5.571 municípios), cacheado
+  em memória, sem chamadas externas ou acesso a dados de tenant no cadastro.
+- Validação conjunta de município/UF/código; migration 0004 aditiva e reversível.
+  Perfis legados e hashes de replay mantidos. Código IBGE não equivale a coordenadas.
+- Testes de catálogo, incompatibilidade de UF/cidade/código, persistência atômica,
+  replay e cores/atividades livres. `make ci`: 131 testes, 100% linhas/branches.
+- Downgrade/upgrade da 0004 validado no banco _test. Upgrade local preservou
+  contagens de contas, organizações e perfis. API em F5 requer reinício.
+- Frontend: 62 testes com cobertura 100% em quatro critérios, formato e build
+  aprovados. Quatro jornadas Playwright com API/SMTP reais passaram, incluindo
+  novo onboarding desktop/mobile. Build Docker confirmou snapshot de 5.571 cidades
+  presente na imagem. Relatórios/sessões de QA locais, sem dados da base principal.
+- F01.5/F01.6 e staging continuam pendentes; sem commit, push ou deploy.
+
+## 2026-10-20 — Cadastro local: ORIGIN_REJECTED
+
+- Reproduzido 403 com Origin http://127.0.0.1:5173, endereço anunciado pelo Vite,
+  enquanto a API estava configurada com http://localhost:5173.
+- Guard de auth aceita ambos os nomes de loopback em development/testing,
+  preservando porta/protocolo. Staging/production continuam com origem exata;
+  nenhum wildcard/CORS permissivo. Links canônicos e cookies host-only preservados.
+- Regressão cobre cadastro/verificação/login/refresh pelo alias, rejeição de
+  origem ausente/null, outros hosts, portas e protocolos e isolamento por ambiente.
+- Validação: `make ci` aprovado, 117 testes e 100% de linhas/branches; lint e tipos
+  aprovados. Reprodução HTTP também confirmou que o proxy Vite preserva Origin.
+- Não exige migration. Debug F5 sem reload precisa reiniciar para carregar a correção.
+
+## 2026-10-20 — F01.1–F01.4 implementadas localmente
+
+- Atualizados SDD geral e fases com contratação automática, provisionamento,
+  onboarding WhatsApp, admin interno e área do cliente. F01.5 antecipa cobrança mínima.
+- Criados SDDs geral/admin/cliente no novo repositório local-spark-web.
+- Entregues OIDC/RS256/JWKS com cache/timeout/rotação, identidade por issuer+subject,
+  sessão e contexto; HS256 legado limitado a desenvolvimento/testes sem OIDC.
+- Migration 0002 adiciona identidade, staff, perfil, consentimentos e registro de
+  onboarding; RLS e permissões limitam bootstrap ao primeiro owner e negam hijack.
+- Onboarding usa lock transacional por ator, deduplicação, replay e conflito de payload;
+  negócio, perfil, consentimentos, auditoria e outbox compartilham transação.
+- Admin readonly auditado com métricas reais, busca limitada e paginação; cliente
+  não recebe privilégio global. Contas/memberships/staff revogados têm acesso negado.
+- Keycloak/Mailpit locais, realm público PKCE e audience da API; seed do operador
+  local sem impressão de tokens. Debug passa a iniciar também identidade e e-mail.
+- Web independente com SDDs geral/admin/cliente, login, onboarding, áreas distintas e
+  estados reais. Documentação de execução atualizada; referência React preservada.
+- Evidência: `make ci` passou com **85 testes, 573 statements e 62 branches, 100%**;
+  lint/tipos, rollback/reaplicação no banco `_test` e build Docker aprovados.
+- Frontend: 31 testes com 100% de cobertura, build e quatro jornadas reais Playwright
+  em desktop/mobile. F01 inteira permanece aberta; sem CI remoto/deploy nesta entrega.
+- Checkout, verificação WhatsApp, convites e staging permanecem pendentes.
+
 ## 2026-10-20 — Cobertura 100% e configuração da suíte completa
 
 - Gate de cobertura elevado de 81% para 100%, incluindo branches e todos os
@@ -81,3 +166,36 @@
   actionlint, build Docker e smoke HTTP/outbox/Temporal confirmados.
 - Próximo: F01. Pendências comerciais não bloqueiam a fundação, mas devem ser
   resolvidas antes de cobrar, gerar identidades ou publicar para clientes reais.
+
+## 2026-10-20 — Auth própria substitui Keycloak
+
+- Decisão do usuário registrada em `docs/design/native-auth.md` e refletida nos
+  SDDs geral/F01/F08, PROJECT, operação e READMEs. OIDC do GitHub/AWS permanece.
+- FastAPI implementa cadastro, login, sessão JWT curta/revogável, refresh aleatório
+  com hash, cookie HttpOnly, CSRF/Origin, rotação atômica e revogação por reutilização.
+- Argon2id com concorrência limitada fora do event loop; verificações de sessão,
+  conta ativa e MFA administrativo em cada pedido/renovação. Falhas sanitizadas.
+- Staff exige TOTP, segredo criptografado, proteção de replay e recuperação de uso
+  único. Reset de senha revoga sessões e preserva MFA; mudança de papel exige prova.
+- Verificação/reset com ações de uso único e TTL, outbox criptografada e worker SMTP
+  separado com lease/fencing, retry limitado e recuperação de leases expirados.
+- Migration 0003 mantém usuários/empresas/vínculos e prepara credenciais sem senha
+  para e-mails antigos não ambíguos. Login DB de auth isolado, sem acesso a negócio
+  ou concessão de staff; readiness verifica também o banco de autenticação.
+- Tokens/credenciais excluídos de parâmetros SQL de diagnóstico e respostas 422.
+- Keycloak removido do Compose/debug, container encerrado/removido sem apagar seu
+  volume legado. Mailpit permanece local, com SMTP 11025 no host e 1025 no Docker.
+- Seed local preserva IDs/senhas/MFA; seed que imprimia JWT sem sessão foi aposentado.
+- Frontend usa telas e AuthProvider próprios; bibliotecas OIDC removidas. Cookies
+  restauram a sessão após recarga; cache/logout entre abas e tratamento de links
+  sucessivos na mesma aba validados por testes.
+- Evidência: `make ci` aprovado com 103 testes, **100% linhas/branches** em todos os
+  módulos app, sem novas exclusões. Frontend com 59 testes e 100% em quatro critérios.
+- Migration downgrade/base/upgrade validado no banco exclusivo _test. O preparo de
+  browser recusa main/remoto e não toca dados da aplicação. Build Docker e browser
+  registrados após a validação completa. AWS/staging e demais fatias continuam pendentes.
+- Validação final: quatro jornadas Playwright reais passaram (staff com MFA/logout,
+  cliente/onboarding/recarga/403, registro/verificação/reset/replay e navegação pública).
+  Builds web/API/SMTP aprovados. Smoke na imagem Docker confirmou readiness dos
+  dois logins DB, login nativo, vínculo antigo preservado, revogação imediata por
+  logout e entrega SMTP real no Mailpit. Nenhum provedor de identidade externo usado.

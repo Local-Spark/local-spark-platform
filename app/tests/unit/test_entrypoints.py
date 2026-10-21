@@ -47,3 +47,18 @@ async def test_relay_releases_database_on_shutdown(settings, fake_database, monk
         await relay.run_relay()
     dispatch.assert_awaited_once()
     fake_database.close.assert_awaited_once()
+
+
+async def test_auth_mail_worker_closes_pool_and_waits_when_empty(settings, fake_database, monkeypatch):
+    from app.entrypoints import auth_mail
+
+    monkeypatch.setattr(auth_mail, "get_settings", lambda: settings)
+    monkeypatch.setattr(auth_mail, "Database", lambda *args, **kwargs: fake_database)
+    delivery = AsyncMock(side_effect=[False, True, asyncio.CancelledError()])
+    sleep = AsyncMock()
+    monkeypatch.setattr(auth_mail, "deliver_once", delivery)
+    monkeypatch.setattr(auth_mail.asyncio, "sleep", sleep)
+    with pytest.raises(asyncio.CancelledError):
+        await auth_mail.main()
+    sleep.assert_awaited_once_with(1)
+    fake_database.close.assert_awaited_once()

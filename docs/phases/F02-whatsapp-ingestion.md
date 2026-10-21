@@ -31,3 +31,10 @@ Dividir as features acima em mudanças revisáveis. Cada mudança atualiza este 
 `docs/PROJECT.md` e `docs/CHANGELOG.md`, incluindo evidências de testes e pendências.
 Contratos que afetam outras fases devem ser refletidos no SDD geral e nos consumidores.
 Não marcar como concluído por possuir mocks ou documentação de uma API ainda não validada.
+
+## Integração com onboarding e interfaces
+
+A identidade é iniciada na web; a posse do WhatsApp é verificada nesta fase, antes
+de associar mensagens à contratação/organização. Telefone digitado no checkout ou
+perfil não é verificação. Onboarding conversacional complementa o perfil inicial,
+sem exigir uso diário do painel. Consentimentos são específicos por finalidade.

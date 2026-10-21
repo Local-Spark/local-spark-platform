@@ -13,6 +13,7 @@ implementação; não representam serviços desenvolvidos ou capacidade comprova
 5. [Inteligência editorial, referências locais, Jev e escala de pesquisa](v0-intelligence.md).
 6. [Garantias: idempotência, concorrência, transações, locks e logs](v0-consistency-observability.md).
 7. [Multi-tenancy: tabelas compartilhadas, RLS e evolução de capacidade](v0-tenancy.md).
+8. [Cobrança, checkout, confirmação e patrocínio — F01.5](billing.md).
 
 ## Decisão atual
 
@@ -59,3 +60,6 @@ substitui o desenho de um SaaS com isolamento de clientes, faturamento e recuper
 de falhas. O conteúdo privado do curso não foi acessado.
 
 Fonte: [página pública da formação de conteúdo](https://conteudo.maestrosdaia.com/).
+
+Decisão vigente de identidade: [Autenticação própria](native-auth.md), que substitui
+a opção inicial de provedor OIDC da F01. OAuth das redes e OIDC do CI/AWS são independentes.

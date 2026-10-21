@@ -26,6 +26,8 @@ R$ 99/mês é hipótese de plano de entrada, sem franquias comerciais fechadas.
 - Padrão de organização baseado no `spotlight-api`, sem copiar domínio/dependências.
 - Testes unitários, integração real, coverage de linhas/branches de 100% e GitHub Actions.
 - Implementação em fases pequenas com SDD geral, SDD por fase e atualização contínua.
+- Autenticação própria na FastAPI: Argon2id, sessões revogáveis, cookies/CSRF,
+  recuperação por e-mail e MFA de staff. Sem dependência de Keycloak/Cognito.
 
 ## Estado atual
 
@@ -42,13 +44,36 @@ Suíte ampliada: contratos HTTP de criação/replay, serviço de paginação/ide
 readiness sem migration, lease expirado durante RPC e retorno inválido da activity.
 Pytest usa `.env.test.example`/`.env.test`, com ambiente do processo prevalecendo;
 PostgreSQL/Temporal indisponíveis causam falha, sem pular integração silenciosamente.
-F01 é a próxima fase: onboarding público, provedor de identidade e contexto do negócio.
+F01.1–F01.4 implementadas localmente: autenticação nativa, onboarding concorrente
+idempotente, contexto do negócio, consentimentos e administração com acesso auditado.
+React independente em `../local-spark-web`, com entrada/login, cadastro, espaço do
+cliente, overview e busca/paginação de organizações. Worker SMTP e Mailpit em Docker.
+Suíte atual antes da cobrança: **131 testes backend, 100% linhas/branches**, lint/tipos aprovados;
+rollback/reaplicação da nova migration validado no banco exclusivo de teste.
+Onboarding ampliado: atividade sugerida ou livre, cor HEX personalizada e UF/código
+IBGE/cidade consistentes. Catálogo versionado de 27 UFs e 5.571 municípios, sem
+consulta externa no cadastro. Migration 0004 aditiva preserva perfis e hashes de replay
+legados; aplicada localmente sem remover usuários, negócios ou organizações.
+Frontend: 62 testes/100%, build e quatro jornadas Playwright com API/SMTP reais
+aprovados; onboarding desktop/mobile revisado. Build Docker e catálogo na imagem
+validados. F5 deve reiniciar para carregar as novas rotas de referência.
+F01.5 em implementação. Entregas locais: Stripe Checkout, inbox/webhook autenticado, jobs
+Temporal com lease/fencing, confirmação canônica e acesso pago/teste separados de
+patrocínio de seis meses. Cliente /app/billing e admin /admin/billing. Cobrança
+desabilitada por padrão; credenciais, Price/valor, sandbox real e staging pendentes.
+F01.6 segue pendente (convites, telefone e staging). Sem cobrança real/deploy.
+Contrato e continuidade em docs/design/billing.md; migration 0005 aditiva aplicada
+localmente, preservando contas, negócios, organizações e memberships.
+Validação da entrega: 206 testes backend/100% linhas e branches; 84 testes web/
+100% em quatro critérios; cinco jornadas Playwright com API/SMTP reais, incluindo
+concessão/uso/revogação do patrocínio. Stripe foi exercitado por contratos locais,
+sem pagamento no provedor. Builds e serviço Docker billing em modo disabled.
 Detalhes em `docs/phases/F00-foundation.md`; v0 comercial continua em implementação.
 
 ## Decisões não bloqueantes para F00
 
 Validação comercial da marca; segmento/coorte inicial; limites de cada plano e política de refações;
-orçamento de geração proativa; emissor OIDC e onboarding público; cobrança local;
+orçamento de geração proativa; operação SMTP e política de autenticação em PRD; cobrança local;
 contratos/capacidade dos fornecedores; scopes/app review Meta; retenção final e termos.
 Esses itens bloqueiam partes do piloto comercial, não a fundação local.
 
@@ -71,3 +96,21 @@ para funcionar quando o VS Code é aberto pela interface gráfica.
 Versionamento: `.gitignore` exclui credenciais locais, estado de runtime, bancos,
 backups, caches e artefatos gerados. Código, testes, migrations SQL, SDDs, lockfile,
 workflows CI e os quatro arquivos compartilhados de debug VS Code permanecem versionáveis.
+
+## Interfaces e jornada aprovadas
+
+`local-spark-web` é repositório separado inspirado na organização de rogue-skydogg-ui.
+F01: backend de identidade, base React, admin de cadastros/onboarding e configuração
+essencial do cliente. Área completa cresce junto das integrações. Contratação
+automática e concessão patrocinada entram em F01.5; não marcar como implementadas
+antes do webhook/provedor real. Perfil em setup não concede plano pago.
+
+Admin usará nossa base de cadastros/assinaturas/consumo e métricas sociais importadas
+com autorização. Diferenciar usuários, organizações, negócios, pagantes e patrocinados.
+Sem fonte não há métrica; redes não comprovam faturamento. Autenticação própria,
+sem dependência de provedor de identidade externo ou deploy nesta entrega.
+Cadastro local: localhost e 127.0.0.1 são aliases aceitos apenas em development/
+testing, com porta/protocolo idênticos à origem web configurada. Produção/staging
+continuam exigindo a origem exata. Debug precisa reiniciar F5 após alterações.
+Contrato vigente em `docs/design/native-auth.md`: IDs antigos preservados, credenciais
+sem senha recuperadas por e-mail, role auth isolada e MFA obrigatório para staff.

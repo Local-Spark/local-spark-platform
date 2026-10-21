@@ -16,7 +16,7 @@ async def admin():
     url = os.environ["TEST_ADMIN_DATABASE_URL"]
     if not (make_url(url).database or "").endswith("_test"):
         pytest.fail("Integration cleanup requires a dedicated database ending in _test")
-    for key in ("TEST_DATABASE_URL", "TEST_RELAY_DATABASE_URL"):
+    for key in ("TEST_DATABASE_URL", "TEST_RELAY_DATABASE_URL", "TEST_AUTH_DATABASE_URL", "TEST_BILLING_DATABASE_URL"):
         if not os.getenv(key):
             pytest.fail(f"{key} must use a restricted runtime login")
         other = make_url(os.environ[key])
@@ -30,8 +30,8 @@ async def admin():
     async with engine.begin() as connection:
         await connection.execute(
             text(
-                "TRUNCATE tenants, memberships, businesses, idempotency_records, "
-                "outbox_events, audit_events, processed_events CASCADE"
+                "TRUNCATE user_accounts, tenants, memberships, businesses, idempotency_records, "
+                "outbox_events, audit_events, processed_events, auth_limits, billing_jobs CASCADE"
             )
         )
     try:
@@ -68,6 +68,29 @@ async def seeded(admin):
                 text("INSERT INTO memberships(tenant_id,actor_id,role) VALUES (:tenant,:actor,'owner')"),
                 {"tenant": tenant, "actor": actor},
             )
+        from uuid import uuid5
+
+        from app.services.auth import digest
+
+        for actor in (a1, a2, viewer):
+            await connection.execute(
+                text(
+                    """
+INSERT INTO user_accounts(id,issuer,subject,display_name,email_verified) VALUES
+(:id,'test',:sub,'Test',true)
+"""
+                ),
+                {"id": actor, "sub": str(actor)},
+            )
+            await connection.execute(
+                text(
+                    """
+INSERT INTO auth_sessions(id,user_id,csrf_hash,expires_at) VALUES
+(:id,:user,:csrf,now()+interval '1 day')
+"""
+                ),
+                {"id": uuid5(actor, "test-session"), "user": actor, "csrf": digest("test-csrf")},
+            )
         await connection.execute(
             text("INSERT INTO memberships(tenant_id,actor_id,role) VALUES (:tenant,:actor,'viewer')"),
             {"tenant": t1, "actor": viewer},
@@ -92,3 +115,46 @@ def headers(settings, seeded):
         "X-Tenant-ID": str(seeded["t1"]),
         "Idempotency-Key": "business-request-001",
     }
+
+
+@pytest.fixture
+async def auth_database(admin, settings):
+    db = Database(settings, auth=True)
+    try:
+        yield db
+    finally:
+        await db.close()
+
+
+@pytest.fixture
+async def billing_database(admin, settings):
+    config = settings.model_copy(update={"billing_database_url": os.environ["TEST_BILLING_DATABASE_URL"]})
+    from pydantic import SecretStr
+
+    config.billing_database_url = SecretStr(os.environ["TEST_BILLING_DATABASE_URL"])
+    db = Database(config, billing=True)
+    try:
+        yield db
+    finally:
+        await db.close()
+
+
+@pytest.fixture
+async def auth_service(auth_database, settings):
+    from app.services.auth import AuthService
+
+    return AuthService(settings, auth_database)
+
+
+@pytest.fixture
+async def native_api(database, auth_database, settings):
+    app = create_app(settings, database, auth_database)
+    async with (
+        app.router.lifespan_context(app),
+        httpx.AsyncClient(
+            transport=httpx.ASGITransport(app),
+            base_url=settings.public_web_url,
+            headers={"Origin": settings.public_web_url},
+        ) as client,
+    ):
+        yield client

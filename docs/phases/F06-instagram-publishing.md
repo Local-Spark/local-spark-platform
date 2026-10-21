@@ -31,3 +31,10 @@ Dividir as features acima em mudanças revisáveis. Cada mudança atualiza este 
 `docs/PROJECT.md` e `docs/CHANGELOG.md`, incluindo evidências de testes e pendências.
 Contratos que afetam outras fases devem ser refletidos no SDD geral e nos consumidores.
 Não marcar como concluído por possuir mocks ou documentação de uma API ainda não validada.
+
+## Painéis e base de métricas
+
+Conexão OAuth e revisão da versão/destino usam páginas do cliente. Publicações
+registram IDs externos e origem; iniciar coleta periódica de insights autorizados
+com snapshots, período e última sincronização conforme políticas da plataforma.
+Admin acompanha operação. F07 agrega e apresenta evolução; indisponível não vira zero.

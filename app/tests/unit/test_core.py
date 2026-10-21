@@ -1,7 +1,7 @@
 import json
 import logging
 from datetime import UTC, datetime, timedelta
-from uuid import UUID, uuid4
+from uuid import UUID, uuid4, uuid5
 
 import jwt
 import pytest
@@ -17,9 +17,12 @@ from app.services.business import fingerprint
 
 def access_token(settings, actor=None, **overrides):
     now = datetime.now(UTC)
+    actor = actor or uuid4()
     return jwt.encode(
         {
-            "sub": str(actor or uuid4()),
+            "sub": str(actor),
+            "sid": str(uuid5(actor, "test-session")),
+            "type": "access",
             "iat": now,
             "exp": now + timedelta(minutes=5),
             "iss": settings.jwt_issuer,
@@ -64,6 +67,15 @@ def test_unsigned_token_rejected(settings):
         {"pool_size": 0},
         {"environment": "production", "jwt_secret": "development-secret-long-enough-for-testing", "temporal_tls": True},
         {"environment": "production", "temporal_tls": False},
+        {"environment": "production", "temporal_tls": True},
+        {"environment": "production", "temporal_tls": True, "public_web_url": "https://spark.example"},
+        {
+            "environment": "production",
+            "temporal_tls": True,
+            "public_web_url": "https://spark.example",
+            "auth_encryption_key": "c2VjdXJlLXRlc3Qta2V5LTAwMDAwMDAwMDAwMDAwMDA=",
+            "smtp_starttls": False,
+        },
     ],
 )
 def test_invalid_configuration(settings, changes):
@@ -72,9 +84,37 @@ def test_invalid_configuration(settings, changes):
 
 
 def test_safe_production_configuration(settings):
-    value = Settings(_env_file=None, **{**settings.model_dump(), "environment": "production", "temporal_tls": True})
+    value = Settings(
+        _env_file=None,
+        **{
+            **settings.model_dump(),
+            "environment": "production",
+            "temporal_tls": True,
+            "public_web_url": "https://spark.example",
+            "auth_encryption_key": "c2VjdXJlLXRlc3Qta2V5LTAwMDAwMDAwMDAwMDAwMDA=",
+            "smtp_starttls": True,
+            "smtp_username": "test",
+            "smtp_password": "unit-test-password",
+        },
+    )
     assert value.environment == "production"
     assert settings.jwt_secret.get_secret_value() not in repr(value)
+
+
+@pytest.mark.parametrize(
+    "environment,url,expected",
+    [
+        ("development", "http://localhost:5173", {"http://localhost:5173", "http://127.0.0.1:5173"}),
+        ("testing", "http://127.0.0.1:5174", {"http://localhost:5174", "http://127.0.0.1:5174"}),
+        ("development", "http://localhost", {"http://localhost", "http://127.0.0.1"}),
+        ("development", "https://spark.example", {"https://spark.example"}),
+        ("staging", "https://localhost:5173", {"https://localhost:5173"}),
+        ("production", "https://127.0.0.1:5173", {"https://127.0.0.1:5173"}),
+    ],
+)
+def test_auth_origins_only_expand_loopback_in_local_environments(settings, environment, url, expected):
+    config = settings.model_copy(update={"environment": environment, "public_web_url": url})
+    assert config.auth_origins == expected
 
 
 def test_settings_cache(monkeypatch, settings):
@@ -145,5 +185,5 @@ def test_request_ids():
 
 def test_relay_requires_separate_connection(settings):
     value = settings.model_copy(update={"relay_database_url": None})
-    with pytest.raises(ValueError, match="Relay database URL"):
+    with pytest.raises(ValueError, match="Database URL"):
         Database(value, relay=True)
