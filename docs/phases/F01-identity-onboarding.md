@@ -59,7 +59,8 @@ para `/staff-access-revoked`, em vez do onboarding comercial. Um novo convite
 pendente tem prioridade e permite recuperar o acesso pelo aceite e novo login/MFA.
 
 Telefone: `GET/POST /organizations/{tenant}/businesses/{business}/phone-verification`
-e `POST .../confirm`, somente proprietário. Número brasileiro é normalizado para
+`PATCH` no mesmo recurso para corrigir o número e `POST .../confirm`, somente
+proprietário. Número brasileiro é normalizado para
 E.164; envio via Twilio Verify SMS por padrão, canal WhatsApp configurável. Pedido
 persistido antes da chamada externa, cooldown de 60 s, expiração de 10 min e no
 máximo cinco tentativas. Só a resposta `approved` do provedor permite alterar
@@ -68,6 +69,10 @@ confirma um desafio antigo. `PHONE_VERIFY_MODE=disabled` é o padrão e mostra
 indisponibilidade em `/app/phone`. Sem conta Twilio, não há entrega real de código;
 sem ambiente AWS, não há homologação em staging. Verificar número não vincula a
 conta WhatsApp: essa conexão/autorização continua na F02.
+O `GET` mostra o destino E.164 do SMS, incluindo `+55` adicionado a números
+brasileiros digitados com DDD. Corrigir o número exige dono ativo, grava o formato
+canônico, limpa a verificação existente e invalida desafios anteriores. Migration
+0012 libera apenas a coluna `phone` para atualização sob a política RLS de dono.
 
 As primeiras quatro fatias criam uma organização em setup, sem ativar geração paga.
 F01.5 antecipa a parte mínima de cobrança da F07. Nunca marcar pagamento por redirect,

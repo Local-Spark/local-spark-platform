@@ -19,6 +19,10 @@ class PhoneCode(BaseModel):
     code: str = Field(pattern=r"^\d{4,10}$")
 
 
+class PhoneUpdate(BaseModel):
+    phone: str = Field(min_length=10, max_length=30, pattern=r"^\+?[\d\s()\-]+$")
+
+
 def service(request: Request) -> PhoneVerificationService:
     return PhoneVerificationService(
         request.app.state.settings, request.app.state.database, request.app.state.phone_provider
@@ -33,6 +37,13 @@ async def phone_status(tenant_id: UUID, business_id: UUID, request: Request, act
 @phone_router.post("", status_code=202)
 async def phone_start(tenant_id: UUID, business_id: UUID, request: Request, actor: Actor) -> dict[str, str]:
     return await service(request).start(tenant_id, business_id, actor)
+
+
+@phone_router.patch("")
+async def phone_update(
+    tenant_id: UUID, business_id: UUID, payload: PhoneUpdate, request: Request, actor: Actor
+) -> dict[str, Any]:
+    return await service(request).update_phone(tenant_id, business_id, actor, payload.phone)
 
 
 @phone_router.post("/confirm")

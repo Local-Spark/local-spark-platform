@@ -1,5 +1,14 @@
 # Registro de mudanças
 
+## 2026-10-21 — Correção do telefone do negócio
+
+- `/app/phone` mostra o destino E.164 do SMS; DDD e número brasileiros recebem
+  `+55` automaticamente. Proprietários podem corrigir o telefone depois do
+  onboarding. A alteração invalida códigos pendentes e exige nova verificação.
+- `PATCH` protegido por owner/RLS e migration 0012 aditiva. Validado com 254
+  testes backend, 100% de cobertura e downgrade/upgrade da migration no banco
+  `_test`; aplicada também ao banco local sem alterar perfis existentes.
+
 ## 2026-10-21 — Conta de operador após revogação
 
 - A consulta de convite agora informa também quando a identidade já foi operadora

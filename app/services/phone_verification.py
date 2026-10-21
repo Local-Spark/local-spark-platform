@@ -14,12 +14,10 @@ from app.services.auth import AuthError
 
 def e164(phone: str) -> str:
     digits = re.sub(r"\D", "", phone)
-    if phone.strip().startswith("+") and 10 <= len(digits) <= 15:
-        return f"+{digits}"
-    if len(digits) in {10, 11}:
-        return f"+55{digits}"
     if digits.startswith("55") and len(digits) in {12, 13}:
         return f"+{digits}"
+    if not phone.strip().startswith("+") and len(digits) in {10, 11}:
+        return f"+55{digits}"
     raise AuthError("PHONE_FORMAT_UNSUPPORTED", 422)
 
 
@@ -50,15 +48,36 @@ class PhoneVerificationService:
             profile = await self.profile(db, tenant, business, actor)
             state = await db.scalar(
                 text("""SELECT state FROM phone_verification_requests
-                  WHERE tenant_id=:tenant AND business_id=:business"""),
-                {"tenant": tenant, "business": business},
+                  WHERE tenant_id=:tenant AND business_id=:business AND phone=:phone"""),
+                {"tenant": tenant, "business": business, "phone": profile["phone"]},
             )
+            try:
+                destination = e164(profile["phone"])
+            except AuthError:
+                destination = None
             return {
                 "enabled": self.settings.phone_verify_mode == "twilio",
                 "phone": profile["phone"],
+                "destination": destination,
                 "verified": profile["phone_verified"],
                 "state": state,
             }
+
+    async def update_phone(self, tenant: UUID, business: UUID, actor: UUID, phone: str) -> dict[str, Any]:
+        destination = e164(phone)
+        async with self.database.transaction(tenant, actor) as db:
+            await self.profile(db, tenant, business, actor)
+            await db.execute(
+                text("""UPDATE business_profiles SET phone=:phone,phone_verified=false
+                  WHERE tenant_id=:tenant AND business_id=:business"""),
+                {"tenant": tenant, "business": business, "phone": destination},
+            )
+            await db.execute(
+                text("""UPDATE phone_verification_requests SET state='failed',provider_sid=NULL
+                  WHERE tenant_id=:tenant AND business_id=:business"""),
+                {"tenant": tenant, "business": business},
+            )
+        return {"phone": destination, "destination": destination, "verified": False}
 
     async def start(self, tenant: UUID, business: UUID, actor: UUID) -> dict[str, str]:
         if self.settings.phone_verify_mode != "twilio":

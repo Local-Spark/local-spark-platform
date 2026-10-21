@@ -56,6 +56,10 @@ configurar. O número do perfil deve ser brasileiro válido ou E.164; código ve
 em 10 minutos, espera mínima entre envios de 60 segundos e máximo de cinco
 tentativas. Nenhum dado de teste local substitui entrega real. No staging, validar
 envio/recebimento, número trocado, rate limit e falhas do provedor antes do piloto.
+Na tela `/app/phone`, o destino mostra o número com `+55` normalizado antes do
+envio. O proprietário pode corrigir o número pelo `PATCH` no recurso de verificação;
+isso remove a condição de verificado e invalida o código anterior. A migration
+0012 é necessária para a atualização de `business_profiles.phone` pela role runtime.
 
 `docker compose up -d postgres temporal mailpit`; migração separada com conexão administrativa.
 O SQL de inicialização cria logins locais sem bypass e banco `local_spark_platform_test`. As roles

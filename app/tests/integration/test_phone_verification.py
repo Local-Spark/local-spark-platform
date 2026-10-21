@@ -68,7 +68,13 @@ async def test_owner_verifies_only_after_provider_approval(phone_api, phone_busi
     other = {"Authorization": f"Bearer {access_token(config, seeded['a2'])}"}
     assert (await client.get(url, headers=other)).status_code == 403
     status = (await client.get(url, headers=headers)).json()
-    assert status == {"enabled": True, "phone": "11999999999", "verified": False, "state": None}
+    assert status == {
+        "enabled": True,
+        "phone": "11999999999",
+        "destination": "+5511999999999",
+        "verified": False,
+        "state": None,
+    }
     assert (await client.post(url, headers=headers)).json() == {"status": "pending"}
     start.assert_awaited_once_with("+5511999999999")
     assert (await client.post(url, headers=headers)).status_code == 429
@@ -197,6 +203,53 @@ def test_brazilian_phone_normalization_and_rejection():
     assert e164("11999999999") == "+5511999999999"
     with pytest.raises(AuthError, match="PHONE_FORMAT_UNSUPPORTED"):
         e164("12345")
+    with pytest.raises(AuthError, match="PHONE_FORMAT_UNSUPPORTED"):
+        e164("+441234567890")
+
+
+async def test_owner_can_correct_phone_and_old_code_cannot_verify_new_number(phone_api, phone_business, seeded, admin):
+    client, config, start, check = phone_api
+    url = route(seeded["t1"], phone_business)
+    owner = {"Authorization": f"Bearer {access_token(config, seeded['a1'])}"}
+    other = {"Authorization": f"Bearer {access_token(config, seeded['a2'])}"}
+    assert (await client.patch(url, headers=other, json={"phone": "48984359057"})).status_code == 403
+    assert (await client.patch(url, headers=owner, json={"phone": "123"})).status_code == 422
+    assert (await client.post(url, headers=owner)).status_code == 202
+    assert (await client.patch(url, headers=owner, json={"phone": "(48) 98435-9057"})).json() == {
+        "phone": "+5548984359057",
+        "destination": "+5548984359057",
+        "verified": False,
+    }
+    assert (await client.get(url, headers=owner)).json() == {
+        "enabled": True,
+        "phone": "+5548984359057",
+        "destination": "+5548984359057",
+        "verified": False,
+        "state": None,
+    }
+    check.return_value = True
+    assert (await client.post(url + "/confirm", headers=owner, json={"code": "1234"})).status_code == 409
+    assert (await client.post(url, headers=owner)).status_code == 202
+    assert start.await_args_list[-1].args == ("+5548984359057",)
+    assert (await client.post(url + "/confirm", headers=owner, json={"code": "1234"})).json() == {"status": "verified"}
+    async with admin.connect() as db:
+        assert await db.scalar(
+            text("SELECT phone_verified FROM business_profiles WHERE tenant_id=:tenant"), {"tenant": seeded["t1"]}
+        )
+    assert (await client.patch(url, headers=owner, json={"phone": "48984359057"})).json()["verified"] is False
+    async with admin.connect() as db:
+        assert not await db.scalar(
+            text("SELECT phone_verified FROM business_profiles WHERE tenant_id=:tenant"), {"tenant": seeded["t1"]}
+        )
+
+
+async def test_status_can_display_invalid_legacy_number(database, admin, phone_business, seeded, settings):
+    async with admin.begin() as db:
+        await db.execute(
+            text("UPDATE business_profiles SET phone='12345' WHERE tenant_id=:tenant"), {"tenant": seeded["t1"]}
+        )
+    service = PhoneVerificationService(settings, database, AsyncMock())
+    assert (await service.status(seeded["t1"], phone_business, seeded["a1"]))["destination"] is None
 
 
 async def test_non_owner_cannot_set_verified_flag_through_runtime_role(database, phone_business, seeded):
