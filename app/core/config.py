@@ -41,7 +41,16 @@ class Settings(BaseSettings):
     meta_app_secret: SecretStr | None = None
     meta_waba_id: str | None = None
     meta_phone_number_id: str | None = None
+    meta_public_phone: str | None = None
     meta_encryption_key: SecretStr | None = None
+    meta_access_token: SecretStr | None = None
+    meta_graph_version: str | None = Field(default=None, pattern=r"^v\d+\.\d+$")
+    material_storage_bucket: str | None = None
+    material_storage_region: str = "us-east-1"
+    material_storage_endpoint: str | None = None
+    material_storage_public_endpoint: str | None = None
+    material_storage_access_key: SecretStr | None = None
+    material_storage_secret_key: SecretStr | None = None
     jwt_secret: SecretStr = Field(min_length=32)
     jwt_issuer: str = "meu-braco-direito-local"
     jwt_audience: str = "meu-braco-direito-api"
@@ -140,6 +149,21 @@ class Settings(BaseSettings):
                 Fernet(self.meta_encryption_key.get_secret_value().encode())  # type: ignore[union-attr]
             except (ValueError, TypeError) as exc:
                 raise ValueError("Invalid Meta inbox encryption key") from exc
+        return self
+
+    @model_validator(mode="after")
+    def material_safety(self) -> "Settings":
+        if bool(self.meta_access_token) != bool(self.meta_graph_version):
+            raise ValueError("Meta media access token and Graph version must be configured together")
+        if bool(self.material_storage_access_key) != bool(self.material_storage_secret_key):
+            raise ValueError("Object storage access key and secret must be configured together")
+        if self.environment in {"staging", "production"}:
+            if self.material_storage_endpoint and not self.material_storage_endpoint.startswith("https://"):
+                raise ValueError("Object storage endpoint must use HTTPS outside development")
+            if self.material_storage_public_endpoint and not self.material_storage_public_endpoint.startswith(
+                "https://"
+            ):
+                raise ValueError("Public object storage endpoint must use HTTPS outside development")
         return self
 
 

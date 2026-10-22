@@ -66,16 +66,30 @@ class WhatsAppLinkService:
                   WHERE tenant_id=:tenant AND business_id=:business AND state='pending' AND expires_at>now())"""),
                 {"tenant": tenant, "business": business},
             )
-        return {"enabled": self.settings.meta_webhook_mode == "cloud", "linked": bool(linked), "pending": pending}
+        return {
+            "enabled": self.settings.meta_webhook_mode == "cloud",
+            "linked": bool(linked),
+            "pending": pending,
+            "destination": self.settings.meta_public_phone,
+        }
 
     async def start(self, tenant: UUID, business: UUID, actor: UUID) -> dict[str, str]:
         if self.settings.meta_webhook_mode != "cloud" or self.meta_database is None:
             raise AuthError("WHATSAPP_UNAVAILABLE", 503)
+        if not self.settings.meta_public_phone:
+            raise AuthError("WHATSAPP_DESTINATION_NOT_CONFIGURED", 503)
         token = secrets.token_urlsafe(24)
         digest = hashlib.sha256(token.encode()).hexdigest()
         request = uuid4()
         async with self.database.transaction(tenant, actor) as session:
             phone = await self._owner_phone(session, tenant, business, actor)
+            consented = await session.scalar(
+                text("""SELECT 1 FROM whatsapp_processing_consents
+                  WHERE tenant_id=:tenant AND business_id=:business AND revoked_at IS NULL"""),
+                {"tenant": tenant, "business": business},
+            )
+            if consented is None:
+                raise AuthError("WHATSAPP_CONSENT_REQUIRED", 409)
             linked = await session.scalar(
                 text("""SELECT active FROM whatsapp_channel_links
                   WHERE tenant_id=:tenant AND business_id=:business"""),

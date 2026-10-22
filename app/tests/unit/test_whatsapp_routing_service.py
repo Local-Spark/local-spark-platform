@@ -69,6 +69,7 @@ async def test_route_once_writes_only_supported_messages(settings):
             "tenant_id": tenant,
             "business_id": business,
             "actor_id": actor,
+            "sender_hash": "0" * 64,
         },
         {
             "id": uuid4(),
@@ -77,6 +78,7 @@ async def test_route_once_writes_only_supported_messages(settings):
             "tenant_id": tenant,
             "business_id": business,
             "actor_id": actor,
+            "sender_hash": "0" * 64,
         },
     ]
     session = Mock()

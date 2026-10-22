@@ -21,6 +21,15 @@ services:
     volumes:
       - meu-braco-direito-temporal:/var/lib/temporal
     ports: ["127.0.0.1:7233:7233", "127.0.0.1:8233:8233"]
+  object-storage:
+    image: chrislusf/seaweedfs:4.39
+    environment:
+      AWS_ACCESS_KEY_ID: meu-braco-direito-local
+      AWS_SECRET_ACCESS_KEY: meu-braco-direito-local-secret
+      S3_BUCKET: meu-braco-direito-materials
+    ports: ["127.0.0.1:9000:8333"]
+    volumes: ["meu-braco-direito-materials:/data"]
+    profiles: ["workers"]
   api:
     build: .
     environment:
@@ -45,24 +54,43 @@ services:
       MEU_BRACO_DIREITO_META_APP_SECRET: ${MEU_BRACO_DIREITO_META_APP_SECRET:-}
       MEU_BRACO_DIREITO_META_WABA_ID: ${MEU_BRACO_DIREITO_META_WABA_ID:-}
       MEU_BRACO_DIREITO_META_PHONE_NUMBER_ID: ${MEU_BRACO_DIREITO_META_PHONE_NUMBER_ID:-}
+      MEU_BRACO_DIREITO_META_PUBLIC_PHONE: ${MEU_BRACO_DIREITO_META_PUBLIC_PHONE:-}
       MEU_BRACO_DIREITO_META_ENCRYPTION_KEY: ${MEU_BRACO_DIREITO_META_ENCRYPTION_KEY:-}
+      MEU_BRACO_DIREITO_MATERIAL_STORAGE_BUCKET: meu-braco-direito-materials
+      MEU_BRACO_DIREITO_MATERIAL_STORAGE_ENDPOINT: http://object-storage:8333
+      MEU_BRACO_DIREITO_MATERIAL_STORAGE_PUBLIC_ENDPOINT: http://localhost:9000
+      MEU_BRACO_DIREITO_MATERIAL_STORAGE_ACCESS_KEY: meu-braco-direito-local
+      MEU_BRACO_DIREITO_MATERIAL_STORAGE_SECRET_KEY: meu-braco-direito-local-secret
     ports: ["127.0.0.1:${MEU_BRACO_DIREITO_API_PORT:-8000}:8000"]
     depends_on:
       postgres:
         condition: service_healthy
   worker:
-    build: .
+    build:
+      context: .
+      target: media-worker
     command: ["python", "-m", "app.entrypoints.worker"]
     environment:
       MEU_BRACO_DIREITO_DATABASE_URL: postgresql+asyncpg://meu_braco_direito_runtime:meu-braco-direito-app-password@postgres:5432/meu_braco_direito_platform
       MEU_BRACO_DIREITO_JWT_SECRET: development-meu-braco-direito-change-this-secret-before-deploying
       MEU_BRACO_DIREITO_TEMPORAL_ADDRESS: temporal:7233
+      MEU_BRACO_DIREITO_CORRELATOR_DATABASE_URL: postgresql+asyncpg://meu_braco_direito_router:meu-braco-direito-router-password@postgres:5432/meu_braco_direito_platform
+      MEU_BRACO_DIREITO_META_ENCRYPTION_KEY: ${MEU_BRACO_DIREITO_META_ENCRYPTION_KEY:-}
+      MEU_BRACO_DIREITO_META_PHONE_NUMBER_ID: ${MEU_BRACO_DIREITO_META_PHONE_NUMBER_ID:-}
+      MEU_BRACO_DIREITO_META_ACCESS_TOKEN: ${MEU_BRACO_DIREITO_META_ACCESS_TOKEN:-}
+      MEU_BRACO_DIREITO_META_GRAPH_VERSION: ${MEU_BRACO_DIREITO_META_GRAPH_VERSION:-}
+      MEU_BRACO_DIREITO_MATERIAL_STORAGE_BUCKET: meu-braco-direito-materials
+      MEU_BRACO_DIREITO_MATERIAL_STORAGE_ENDPOINT: http://object-storage:8333
+      MEU_BRACO_DIREITO_MATERIAL_STORAGE_ACCESS_KEY: meu-braco-direito-local
+      MEU_BRACO_DIREITO_MATERIAL_STORAGE_SECRET_KEY: meu-braco-direito-local-secret
     profiles: ["workers"]
     restart: on-failure
     depends_on:
       postgres:
         condition: service_healthy
       temporal:
+        condition: service_started
+      object-storage:
         condition: service_started
   whatsapp-correlator:
     build: .
@@ -77,6 +105,22 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+  whatsapp-dispatcher:
+    build: .
+    command: ["python", "-m", "app.entrypoints.whatsapp_dispatcher"]
+    environment:
+      MEU_BRACO_DIREITO_DATABASE_URL: postgresql+asyncpg://meu_braco_direito_router:meu-braco-direito-router-password@postgres:5432/meu_braco_direito_platform
+      MEU_BRACO_DIREITO_CORRELATOR_DATABASE_URL: postgresql+asyncpg://meu_braco_direito_router:meu-braco-direito-router-password@postgres:5432/meu_braco_direito_platform
+      MEU_BRACO_DIREITO_JWT_SECRET: development-meu-braco-direito-change-this-secret-before-deploying
+      MEU_BRACO_DIREITO_META_ENCRYPTION_KEY: ${MEU_BRACO_DIREITO_META_ENCRYPTION_KEY:-}
+      MEU_BRACO_DIREITO_TEMPORAL_ADDRESS: temporal:7233
+    profiles: ["workers"]
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_started
   relay:
     build: .
     command: ["python", "-m", "app.entrypoints.relay"]
@@ -128,5 +172,6 @@ services:
 volumes:
   meu-braco-direito-postgres:
   meu-braco-direito-temporal:
+  meu-braco-direito-materials:
   # Legacy identity volume retained without a service; never delete user data during migration.
   meu-braco-direito-keycloak:

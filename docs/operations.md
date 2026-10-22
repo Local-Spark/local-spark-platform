@@ -76,11 +76,12 @@ initializer não roda novamente. Não apagar o volume. O banco de testes também
 `TEST_META_DATABASE_URL` na base `_test`.
 
 Cada callback autenticado é gravado na `whatsapp_inbox` cifrada e deduplicada;
-eventos ainda não são atribuídos a negócio nem enviados ao Temporal. Reentrega
+a correlação e o workflow posteriores só operam após vínculo/consentimento.
+Reentrega
 da Meta recebe 200 após commit sem criar duplicata. Falha de banco retorna erro,
 permitindo retry do provedor. Nunca consultar/copiar ciphertext ou payload bruto
 para logs/tickets. Ingressão remove linhas expiradas quando chega novo evento;
-F02.2 acrescentará limpeza periódica e processamento. A
+F02.2b acrescenta correlação e processamento. A
 [coleção oficial da Meta](https://www.postman.com/meta/whatsapp-business-platform/overview)
 documenta a configuração do webhook e os formatos de mensagens/status.
 
@@ -102,8 +103,38 @@ scripts/ensure_local_correlator_login.sql`. O processo usa
 `MEU_BRACO_DIREITO_META_ENCRYPTION_KEY` da API. O processo não precisa das
 credenciais de assinatura do app Meta; ele permanece desativado sem URL do login
 restrito ou chave de criptografia. A API de webhook exige modo Meta `cloud`.
-Sua fila cifrada mantém materiais por até sete dias; ela ainda não aciona Temporal
-nem download. Não ligar o processo com conteúdo de clientes antes de F02.2b2.
+Sua fila cifrada mantém materiais por até sete dias. Com F02.2b2 ela aciona o
+dispatcher/Temporal apenas quando há consentimento e vínculo válido. Não ligar
+o processo com conteúdo real antes da política de retenção dos assets e do smoke Meta.
+
+F02.2b2 adiciona migration 0016 e a tela `/app/whatsapp`. Após backup e migração,
+subir `docker compose --profile workers up -d --build` para iniciar
+`object-storage`, `whatsapp-correlator`, `whatsapp-dispatcher` e o worker Temporal.
+O build `media-worker` inclui ffprobe; a imagem padrão da API não inclui esse
+binário. Na publicação, criar/deployar as duas imagens separadamente.
+O storage local é SeaweedFS/S3 em `localhost:9000`, bucket
+`meu-braco-direito-materials`, com credenciais locais do Compose. API em F5 usa
+`MATERIAL_STORAGE_ENDPOINT=http://localhost:9000`; containers usam
+`http://object-storage:8333`. O endpoint público para URLs assinadas deve ser
+alcançável pelo navegador. Staging/produção exigem bucket privado, endpoints
+HTTPS e credenciais restritas. Nunca usar as credenciais locais fora do Compose.
+
+Além das chaves F02.1, configurar `META_PUBLIC_PHONE` com o número oficial em E.164,
+`META_ACCESS_TOKEN` de usuário de sistema com permissão de mídia,
+`META_GRAPH_VERSION`, `MATERIAL_STORAGE_BUCKET`,
+`MATERIAL_STORAGE_ACCESS_KEY` e `MATERIAL_STORAGE_SECRET_KEY`. Reiniciar API e
+workers após mudar `.env`; as variáveis com prefixo completo estão em
+`.env.example`. Confirmar no app Meta que callbacks de mensagens chegam pelo
+endpoint público HTTPS. Na web, dono com plano e SMS válido autoriza materiais,
+gera código, envia pelo WhatsApp cadastrado e confirma; então envia ideia, foto,
+áudio e vídeo. O recibo deve aparecer em `/app/whatsapp`; a URL assinada vence
+em dois minutos. Sem App/WABA/HTTPS públicos ainda não é possível homologar a
+integração. O teste local usa somente mensagens e arquivos sintéticos.
+
+Não há transcrição, resposta automática, geração, publicação nem exclusão de
+assets nesta fatia. Antes de dados reais, definir retenção/apagamento, monitorar
+falhas dos workflows e revisar permissões do bucket. O revogamento impede novos
+downloads pela API, mas uma URL assinada previamente pode durar até dois minutos.
 
 `docker compose up -d postgres temporal mailpit`; migração separada com conexão administrativa.
 O SQL de inicialização cria logins locais sem bypass e banco `meu_braco_direito_platform_test`. As roles

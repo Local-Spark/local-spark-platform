@@ -77,6 +77,7 @@ async def test_owner_proves_sender_and_phone_change_revokes_link(admin, database
             "meta_app_secret": SecretStr("app-link"),
             "meta_waba_id": "waba-link",
             "meta_phone_number_id": "phone-link",
+            "meta_public_phone": "+5511988887777",
             "meta_encryption_key": SecretStr(Fernet.generate_key().decode()),
         }
     )
@@ -100,10 +101,18 @@ async def test_owner_proves_sender_and_phone_change_revokes_link(admin, database
                 "enabled": True,
                 "linked": False,
                 "pending": False,
+                "destination": "+5511988887777",
             }
             assert (await client.post(route + "/confirm", headers=own)).json()["error_code"] == (
                 "WHATSAPP_LINK_NOT_PENDING"
             )
+            assert (await client.post(route, headers=own)).json()["error_code"] == "WHATSAPP_CONSENT_REQUIRED"
+            consent = route.replace("/whatsapp-link", "/whatsapp-materials/consent")
+            assert (await client.post(consent, headers=own, json={"accepted": True})).status_code == 200
+            other_consent = (
+                f"/api/v1/organizations/{seeded['t2']}/businesses/{other_business}/whatsapp-materials/consent"
+            )
+            assert (await client.post(other_consent, headers=foreign, json={"accepted": True})).status_code == 200
             started = await client.post(route, headers=own)
             assert started.status_code == 201, started.text
             message = started.json()["message"]
@@ -190,6 +199,7 @@ async def test_link_requires_verified_phone_and_plan(admin, database, seeded, se
     config = settings.model_copy(
         update={
             "meta_webhook_mode": "cloud",
+            "meta_public_phone": "+5511988887777",
             "meta_encryption_key": SecretStr(Fernet.generate_key().decode()),
         }
     )

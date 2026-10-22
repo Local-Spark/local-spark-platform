@@ -39,7 +39,7 @@ async def route_once(database: Database, settings: Settings, limit: int = 25) ->
         rows = (
             (
                 await session.execute(
-                    text("""SELECT i.id,i.ciphertext,i.expires_at,l.tenant_id,l.business_id,l.actor_id
+                    text("""SELECT i.id,i.ciphertext,i.expires_at,i.sender_hash,l.tenant_id,l.business_id,l.actor_id
                       FROM whatsapp_inbox i JOIN whatsapp_channel_links l
                         ON l.sender_hash=i.sender_hash AND l.active
                       WHERE i.state='quarantined' AND i.event_kind='message'
@@ -58,8 +58,8 @@ async def route_once(database: Database, settings: Settings, limit: int = 25) ->
             if kind:
                 await session.execute(
                     text("""INSERT INTO whatsapp_material_events
-                      (id,tenant_id,business_id,kind,ciphertext,expires_at)
-                      VALUES(:id,:tenant,:business,:kind,:ciphertext,:expires)
+                      (id,tenant_id,business_id,kind,ciphertext,expires_at,sender_hash)
+                      VALUES(:id,:tenant,:business,:kind,:ciphertext,:expires,:sender)
                       ON CONFLICT(id) DO NOTHING"""),
                     {
                         "id": row["id"],
@@ -68,6 +68,7 @@ async def route_once(database: Database, settings: Settings, limit: int = 25) ->
                         "kind": kind,
                         "ciphertext": row["ciphertext"],
                         "expires": row["expires_at"],
+                        "sender": row["sender_hash"],
                     },
                 )
                 routed += 1

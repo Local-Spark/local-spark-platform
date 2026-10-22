@@ -38,7 +38,11 @@ def result(row):
 
 def config(settings):
     return settings.model_copy(
-        update={"meta_webhook_mode": "cloud", "meta_encryption_key": SecretStr(Fernet.generate_key().decode())}
+        update={
+            "meta_webhook_mode": "cloud",
+            "meta_public_phone": "+5511988887777",
+            "meta_encryption_key": SecretStr(Fernet.generate_key().decode()),
+        }
     )
 
 
@@ -71,7 +75,7 @@ async def test_status_owner_and_disabled_link(settings):
     with pytest.raises(AuthError, match="BUSINESS_OWNER_REQUIRED"):
         await service.status(*ids)
     session.scalar = AsyncMock(side_effect=[1, False, False])
-    assert await service.status(*ids) == {"enabled": False, "linked": False, "pending": False}
+    assert await service.status(*ids) == {"enabled": False, "linked": False, "pending": False, "destination": None}
 
 
 @pytest.mark.asyncio
@@ -87,15 +91,23 @@ async def test_start_guards(settings, monkeypatch):
     session.scalar = AsyncMock(side_effect=[True])
     service.database = fake_database(session)
     service.meta_database = fake_database(session)
+    service.settings = service.settings.model_copy(update={"meta_public_phone": None})
+    with pytest.raises(AuthError, match="WHATSAPP_DESTINATION_NOT_CONFIGURED"):
+        await service.start(*ids)
+    service.settings = config(settings)
 
     async def phone(*_args):
         return "+5511999999999"
 
     monkeypatch.setattr(service, "_owner_phone", phone)
+    session.scalar = AsyncMock(side_effect=[None])
+    with pytest.raises(AuthError, match="WHATSAPP_CONSENT_REQUIRED"):
+        await service.start(*ids)
+    session.scalar = AsyncMock(side_effect=[1, True])
     assert await service.start(*ids) == {"status": "linked"}
-    session.scalar = AsyncMock(side_effect=[False, uuid4()])
+    session.scalar = AsyncMock(side_effect=[1, False, uuid4()])
     assert (await service.start(*ids))["status"] == "pending"
-    session.scalar = AsyncMock(side_effect=[False, None])
+    session.scalar = AsyncMock(side_effect=[1, False, None])
     with pytest.raises(AuthError, match="WHATSAPP_LINK_WAIT"):
         await service.start(*ids)
 

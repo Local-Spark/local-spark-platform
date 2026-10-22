@@ -1,5 +1,38 @@
 # Registro de mudanças
 
+## 2026-10-22 — Diagnóstico do sandbox Meta
+
+- App/WABA e número de teste configurados somente no `.env` local; sem segredos
+  ou IDs transitórios versionados. Callback HTTPS temporário limitado à rota
+  WhatsApp respondeu ao desafio e aceitou POST vazio sintético com HMAC válido;
+  requisição sem assinatura recebeu 403 e outras rotas receberam 404.
+- Primeiro envio de teste recebeu status `failed` com erro Meta `131031`
+  (`Business Account locked`). Inbox local não recebeu subevento real. A Meta
+  mostra a WABA de teste como restrita permanentemente e exige verificação da
+  empresa antes de iniciar/responder conversas ou adicionar números. Verificação,
+  remoção da restrição e confirmação de `subscribed_apps` da WABA estão pendentes;
+  mídia e conteúdo de clientes permanecem fora do teste.
+
+## 2026-10-22 — F02.2b2: consumo e biblioteca de materiais
+
+- Migration 0016 adiciona consentimento por negócio, leases/fencing/tentativas
+  na fila e recibos privados com RLS. Dispatcher inicia workflow Temporal por
+  evento; activity revalida vínculo, proprietário, telefone, consentimento e
+  acesso comercial antes e depois de buscar mídia.
+- Texto cifrado e originais de foto/áudio/vídeo vão para biblioteca S3 privada;
+  Meta download impõe hosts permitidos, limites de tamanho, MIME, checksum e
+  inspeção local. API lista recibos e cria URL assinada de dois minutos só para
+  proprietário. Revogar consentimento desconecta o canal.
+- Compose local usa SeaweedFS 4.39 como storage S3. Migração 0016 validada com
+  downgrade/reaplicação no banco `_test`; escrita/leitura/remoção de objeto
+  sintético e URL assinada passaram no storage local. Backup da base de
+  desenvolvimento salvo antes de aplicar a migration 0016.
+- Validação final: 361 testes backend, 100% de linhas/ramos, Ruff, formatação,
+  mypy, Compose e build das imagens API/worker passaram. API nova respondeu
+  `/health/ready` e expôs três rotas de materiais em contêiner temporário.
+- Sem App/WABA e staging, não houve smoke Meta real. Transcrição, resposta,
+  geração, retenção/exclusão de assets e produção permanecem pendentes.
+
 ## 2026-10-22 — Marca Meu Braço Direito
 
 - Produto renomeado na interface, metadados, logotipo, favicon, e-mails e
@@ -17,7 +50,15 @@
 - Testes de navegador ajustados aos seletores e títulos atuais e ao HTML UTF-8
   no retorno externo simulado. Documentação operacional em
   [renomeação do produto](product-rename.md).
-- Validação final em andamento; resultados serão registrados antes da entrega.
+- Validação: 126 testes web com 100% de linhas/statements/funções/branches;
+  289 testes backend em modo CI com 100% de linhas/branches; tipos, formatação,
+  lint, build web e imagens Docker aprovados. Nove jornadas Chromium passaram
+  com API/SMTP reais em banco exclusivo `_test`; checkout externo simulado,
+  sem pagamento adicional. Screenshots desktop/mobile revisados.
+- Migração de uma cópia do banco anterior validou conflito de roles com rollback
+  atômico, upgrade, downgrade/reaplicação e preservação de IDs/chaves Stripe.
+  Instalação local passou em readiness e título OpenAPI. Nenhuma pendência de
+  implementação da marca; reinício do processo F5 continua necessário.
 - Reiniciar a API em F5 para reler `.env` e autenticar novamente. Sem publicação,
   commit ou push; configurações de marca em contas externas não foram alteradas.
 

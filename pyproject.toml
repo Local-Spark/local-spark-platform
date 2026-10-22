@@ -18,6 +18,8 @@ dependencies = [
   "pyotp>=2.9,<3",
   "stripe>=14,<15",
   "httpx>=0.28,<1",
+  "boto3>=1.40,<2",
+  "pillow>=12,<13",
 ]
 
 [dependency-groups]

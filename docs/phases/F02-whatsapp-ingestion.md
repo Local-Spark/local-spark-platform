@@ -1,6 +1,6 @@
 # F02 — WhatsApp e biblioteca de materiais
 
-Status: Em implementação; F02.1, F02.2a e F02.2b1 entregues localmente; F02.2b2 pendente.
+Status: Em implementação; F02.1, F02.2a e F02.2b1 entregues localmente; F02.2b2 em validação local.
 Dependências: F00, F01.
 
 ## Objetivo
@@ -12,7 +12,8 @@ Receber texto, áudio, fotos e vídeo no número oficial da plataforma e montar 
 - Handshake/assinatura Meta, inbox, subeventos, recibos e deduplicação por adapter.
 - Download autorizado, inspeção de mídia, biblioteca S3 privada e agrupamento de mensagens.
 - Extrair áudio, transcrever e identificar ambiguidades de preço/data; perguntar o necessário.
-- Anexos são dados não confiáveis; limites, SSRF e sandbox de mídia implementados.
+- Anexos são dados não confiáveis; impor limites, proteção SSRF e inspeção em
+  worker de mídia. Endurecer o sandbox do contêiner antes de conteúdo real.
 - Capturar de modo opcional tom, produtos/serviços, ofertas, restrições e frequência
   informados pelo dono, com ator, mensagem-fonte, data e consentimento. Guardar como
   propostas de contexto; transcrição ou inferência ambígua pede confirmação e não
@@ -117,6 +118,54 @@ O CI declara URL Meta no PostgreSQL de teste na porta 5432 e cria o login
 `meu_braco_direito_ingest` com o papel restrito `meu_braco_direito_meta`. O exemplo local usa
 55432. Todos os endpoints de teste devem apontar para o mesmo banco `_test`;
 sob `CI`, pytest falha cedo se faltar uma URL explícita.
+
+### F02.2b2 — Consumo e biblioteca privada (em validação local)
+
+O proprietário autoriza separadamente o recebimento de materiais na nova tela
+`/app/whatsapp`; revogar o consentimento desativa o vínculo imediatamente. A
+conexão exige telefone confirmado, acesso comercial ativo e envio da mensagem
+`VINCULAR <código>` pelo mesmo número para o WhatsApp oficial. A tela mostra o
+estado verdadeiro da conexão e uma biblioteca de ideias e arquivos recebidos.
+
+O dispatcher reivindica itens da fila cifrada com `SKIP LOCKED`, lease de 60 s,
+contador de tentativas e fencing token. Inicia um workflow Temporal com ID
+determinístico por mensagem; duplicação de start é aceita como replay. Uma
+activity revalida proprietário, vínculo, remetente, telefone confirmado,
+consentimento prévio e assinatura/patrocínio ativo antes do download e antes do
+commit. Falhas transitórias recebem retry do Temporal; as definitivas deixam
+recibo de erro e auditoria. Reentregas não duplicam o asset.
+
+Texto é cifrado na biblioteca. Foto, áudio e vídeo são buscados na Graph API com
+Bearer token da plataforma, sem redirects, URL Meta permitida, limite de bytes,
+MIME/sha256 e inspeção por Pillow ou ffprobe. O original vai para bucket S3
+privado por tenant/negócio/evento, com checksum; o dono acessa somente via URL
+assinada de dois minutos, após autorização RLS. O ambiente local usa SeaweedFS
+4.39, compatível com S3; staging/produção deverão usar bucket e credenciais
+dedicadas, com endpoint HTTPS. Respostas Meta reais podem exigir ajuste da lista
+de hosts permitidos após o smoke oficial.
+
+O webhook/vínculo ficam inativos sem modo Meta `cloud`; dispatcher e activity de
+mídia ficam inativos sem login de correlação ou chave de criptografia. Sem token
+Graph, o download de mídia falha com recibo explícito. Ainda **não** há resposta
+automática no WhatsApp, transcrição,
+extração de fala, agrupamento de mensagens, confirmação de fatos ambíguos,
+geração nem publicação. Essas partes formam F02.2c/F03 e dependem de orçamento,
+política de retenção da biblioteca e consentimentos separados. A fila cifrada
+vence em sete dias; os assets da biblioteca ainda exigem política de retenção e
+exclusão antes de operar com conteúdo real. URLs já assinadas podem continuar
+válidas por até dois minutos após a revogação.
+
+Aceite local: migração 0016 com rollback/reaplicação no banco `_test`, testes de
+consentimento, isolamento, rechecagem de plano, retries, URLs e mídia malformada,
+S3 local com arquivo sintético. Smoke Meta e staging seguem pendentes: o
+App/WABA sandbox foi provisionado em 22/10, mas o primeiro envio retornou
+`failed`/`131031` (`Business Account locked`). O callback público temporário
+passou no desafio e em POST sintético assinado; nenhum evento Meta real foi
+gravado na inbox. A Qualidade da Conta da Meta mostra restrição permanente da
+WABA de teste e solicita verificação da empresa antes de iniciar/responder
+conversas ou adicionar números. Concluir a verificação e confirmar a remoção da
+restrição; então checar a inscrição do app na WABA, além do campo `messages`,
+antes de repetir o teste. O staging não foi criado.
 
 ## Integração e manutenção
 

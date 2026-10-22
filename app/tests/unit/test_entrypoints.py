@@ -2,6 +2,8 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from cryptography.fernet import Fernet
+from pydantic import SecretStr
 
 from app.entrypoints import relay, worker
 
@@ -22,7 +24,7 @@ async def test_temporal_connection_configuration(settings, monkeypatch):
 
 @pytest.mark.parametrize("failure", [False, True])
 async def test_worker_closes_database_on_exit(settings, fake_database, monkeypatch, failure):
-    monkeypatch.setattr(worker, "get_settings", lambda: settings)
+    monkeypatch.setattr(worker, "get_settings", lambda: settings.model_copy(update={"correlator_database_url": None}))
     monkeypatch.setattr(worker, "Database", lambda _: fake_database)
     monkeypatch.setattr(worker, "connect_temporal", AsyncMock())
     execution = MagicMock()
@@ -34,6 +36,64 @@ async def test_worker_closes_database_on_exit(settings, fake_database, monkeypat
     else:
         await worker.run_worker()
     fake_database.close.assert_awaited_once()
+
+
+async def test_material_worker_registers_activities_and_closes_both_pools(settings, monkeypatch):
+    database = AsyncMock()
+    configured = settings.model_copy(update={"meta_encryption_key": SecretStr(Fernet.generate_key().decode())})
+    monkeypatch.setattr(worker, "get_settings", lambda: configured)
+    monkeypatch.setattr(worker, "Database", lambda *args, **kwargs: database)
+    monkeypatch.setattr(worker, "connect_temporal", AsyncMock())
+    execution = MagicMock()
+    execution.run = AsyncMock()
+    constructor = MagicMock(return_value=execution)
+    monkeypatch.setattr(worker, "Worker", constructor)
+    await worker.run_worker()
+    assert len(constructor.call_args.kwargs["workflows"]) == 2
+    assert len(constructor.call_args.kwargs["activities"]) == 3
+    assert database.close.await_count == 2
+
+
+async def test_worker_does_not_register_material_activity_without_cipher_key(settings, monkeypatch):
+    database = AsyncMock()
+    configured = settings.model_copy(
+        update={"correlator_database_url": settings.database_url, "meta_encryption_key": None}
+    )
+    monkeypatch.setattr(worker, "get_settings", lambda: configured)
+    monkeypatch.setattr(worker, "Database", lambda *args, **kwargs: database)
+    monkeypatch.setattr(worker, "connect_temporal", AsyncMock())
+    execution = MagicMock()
+    execution.run = AsyncMock()
+    constructor = MagicMock(return_value=execution)
+    monkeypatch.setattr(worker, "Worker", constructor)
+    await worker.run_worker()
+    assert len(constructor.call_args.kwargs["workflows"]) == 1
+    assert database.close.await_count == 1
+
+
+async def test_whatsapp_dispatcher_disabled_and_loop_shutdown(settings, monkeypatch):
+    from app.entrypoints import whatsapp_dispatcher as dispatcher
+
+    disabled = settings.model_copy(update={"correlator_database_url": None})
+    monkeypatch.setattr(dispatcher, "get_settings", lambda: disabled)
+    database = AsyncMock()
+    monkeypatch.setattr(dispatcher, "Database", lambda *args, **kwargs: database)
+    await dispatcher.run_dispatcher()
+    database.close.assert_not_awaited()
+
+    from cryptography.fernet import Fernet
+    from pydantic import SecretStr
+
+    configured = settings.model_copy(update={"meta_encryption_key": SecretStr(Fernet.generate_key().decode())})
+    monkeypatch.setattr(dispatcher, "get_settings", lambda: configured)
+    monkeypatch.setattr(dispatcher, "connect_temporal", AsyncMock())
+    dispatch = AsyncMock(side_effect=[1, 0, asyncio.CancelledError()])
+    monkeypatch.setattr(dispatcher, "dispatch_materials", dispatch)
+    monkeypatch.setattr(dispatcher.asyncio, "sleep", AsyncMock())
+    with pytest.raises(asyncio.CancelledError):
+        await dispatcher.run_dispatcher()
+    assert dispatch.await_count == 3
+    assert database.close.await_count == 1
 
 
 async def test_relay_releases_database_on_shutdown(settings, fake_database, monkeypatch):

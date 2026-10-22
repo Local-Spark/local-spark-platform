@@ -12,10 +12,22 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Atualizado: 22/10/2026. Nome adotado: Meu Braço Direito. Repositório principal: `local-spark-platform`.
 
+Smoke Meta de 22/10: o app e a WABA de teste foram criados, e o callback HTTPS
+temporário respondeu ao desafio e aceitou um POST sintético assinado. O primeiro
+envio pelo número de teste falhou na Meta com `131031` (`Business Account locked`);
+nenhum subevento real entrou na inbox local. A Qualidade da Conta da Meta mostra
+restrição permanente da WABA de teste e exige verificar a empresa antes de iniciar
+ou responder conversas; após a análise, confirmar a remoção da restrição e a
+assinatura do app na WABA. Não operar conteúdo real.
+
 F02.2b1 foi implementada e validada localmente: um processo restrito correlaciona mensagens
 cifradas ao negócio após a prova do canal e grava fila durável, privada e auditada.
-Não há IA, download, resposta ou publicação. F02.2b2 fará consumo da fila,
-validação de plano/consentimento, mídia e workflow. A migração 0015 foi testada
+F02.2b2 agora consome essa fila pelo Temporal, revalida autorização/consentimento,
+guarda texto e mídia em biblioteca privada e oferece conexão/recibos na área do
+cliente. O storage local usa SeaweedFS/S3; migration 0016 adiciona consentimento,
+leases, fencing e assets. Transcrição, resposta, agrupamento, retenção/exclusão de
+assets e smoke com a Meta continuam pendentes, logo não operar conteúdo real ainda.
+A migração 0015 foi testada
 com rollback/reaplicação num PostgreSQL temporário `_test`; a base local renomeada
 está no head 0015. 289 testes passaram com 100% de linhas/ramos; lint, tipos e
 Compose passaram. Smoke real Meta e staging ainda pendentes.

@@ -12,10 +12,23 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Versão 1.1, 22/10/2026. Resumo implementável e índice das especificações detalhadas.
 
+O app/WABA sandbox Meta agora existe, mas o smoke ponta a ponta continua pendente:
+handshake HTTPS e POST sintético assinado passaram; envio de teste retornou status
+`failed`/`131031` (`Business Account locked`) e a inbox local ainda não recebeu
+eventos reais. O painel de Qualidade da Conta exige verificação da empresa para
+essa WABA e informa restrição permanente a início/resposta de conversas e adição
+de números. Após o processo Meta, confirmar a remoção da restrição e a inscrição
+do app na WABA.
+Não interpretar o check de configuração do webhook como entrega homologada.
+
 F02.2b1 entregue localmente: processo de correlação com login exclusivo associa
 mensagens posteriores ao vínculo ao tenant/negócio, grava ciphertext numa fila
-durável com retenção de sete dias e audita em transação. Esta fila ainda não é
-consumida por Temporal; mídia, transcrição e ações externas seguem em F02.2b2.
+durável com retenção de sete dias e audita em transação. F02.2b2 está em
+validação local: dispatcher e Temporal consomem a fila com identidade durável,
+retry e fencing, revalidam consentimento/vínculo/plano, guardam texto e mídia em
+biblioteca S3 privada e expõem conexão/recibos ao proprietário na web. Meta real,
+transcrição, respostas, geração e política de exclusão dos assets seguem pendentes.
+Ver [F02](phases/F02-whatsapp-ingestion.md).
 
 CI da F02 usa login Meta restrito e URL explícita para o mesmo banco `_test` dos
 demais papéis. No Actions a porta é 5432; o exemplo local usa 55432. Pytest em

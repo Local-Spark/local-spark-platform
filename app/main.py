@@ -10,6 +10,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse
 
 from app import __version__
+from app.adapters.material_media import MaterialError
 from app.adapters.meta_whatsapp import MetaWebhookError
 from app.adapters.twilio_verify import TwilioVerify
 from app.api.v1.api import api_router
@@ -21,6 +22,7 @@ from app.api.v1.reference import reference_router
 from app.api.v1.staff import staff_router
 from app.api.v1.whatsapp import whatsapp_router
 from app.api.v1.whatsapp_link import whatsapp_link_router
+from app.api.v1.whatsapp_materials import materials_router
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging, request_id, request_id_context
 from app.db.session import Database
@@ -84,6 +86,7 @@ def create_app(
     application.include_router(phone_router)
     application.include_router(whatsapp_router)
     application.include_router(whatsapp_link_router)
+    application.include_router(materials_router)
 
     @application.middleware("http")
     async def diagnostics(request: Request, call_next):  # type: ignore[no-untyped-def]
@@ -129,6 +132,10 @@ def create_app(
     @application.exception_handler(MetaWebhookError)
     async def meta_error(request: Request, exc: MetaWebhookError) -> JSONResponse:
         return JSONResponse(status_code=exc.status, content={"error_code": exc.code})
+
+    @application.exception_handler(MaterialError)
+    async def material_error(request: Request, exc: MaterialError) -> JSONResponse:
+        return JSONResponse(status_code=503, content={"error_code": exc.code})
 
     @application.exception_handler(RequestValidationError)
     async def validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:

@@ -133,6 +133,38 @@ def test_phone_provider_accepts_complete_configuration(settings):
 
 
 @pytest.mark.parametrize(
+    "changes",
+    [
+        {"meta_access_token": "token"},
+        {"meta_graph_version": "v25.0"},
+        {"material_storage_access_key": "key"},
+        {"material_storage_secret_key": "secret"},
+    ],
+)
+def test_material_provider_requires_paired_credentials(settings, changes):
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, **{**settings.model_dump(), **changes})
+
+
+@pytest.mark.parametrize("field", ["material_storage_endpoint", "material_storage_public_endpoint"])
+def test_material_endpoints_use_tls_outside_development(settings, field):
+    base = {
+        **settings.model_dump(),
+        "environment": "staging",
+        "temporal_tls": True,
+        "public_web_url": "https://meu-braco-direito.example",
+        "auth_database_url": settings.database_url,
+        "auth_encryption_key": "c2VjdXJlLXRlc3Qta2V5LTAwMDAwMDAwMDAwMDAwMDA=",
+        "smtp_starttls": True,
+        "smtp_username": "test",
+        "smtp_password": "unit-test-password",
+    }
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, **{**base, field: "http://storage.example"})
+    assert Settings(_env_file=None, **{**base, field: "https://storage.example"}).environment == "staging"
+
+
+@pytest.mark.parametrize(
     "environment,url,expected",
     [
         ("development", "http://localhost:5173", {"http://localhost:5173", "http://127.0.0.1:5173"}),
