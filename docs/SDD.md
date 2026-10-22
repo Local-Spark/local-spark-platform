@@ -12,10 +12,18 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Versão 1.1, 22/10/2026. Resumo implementável e índice das especificações detalhadas.
 
+F02.2c2 registra a tentativa de mídia antes do upload S3. Uma chave exclusiva
+por tentativa e uma intenção transacional permitem reconciliar arquivos quando o
+commit do material falha; limpeza com lease/fencing e retry roda no dispatcher.
+Não há exposição de tentativas incompletas ao cliente. Agrupamento/transcrição
+ficam em F02.2c3; operação real aguarda WABA liberada e smoke em staging.
+Ver [F02](phases/F02-whatsapp-ingestion.md).
+
 F02.2c1 adiciona prazo inicial de 30 dias e pedido de exclusão por proprietário,
 com limpeza periódica de inbox/fila vencidas e remoção S3 por lease/fencing. Links
 novos são bloqueados após o pedido; os já assinados vencem em até dois minutos.
-Objetos órfãos após upload sem commit, agrupamento e transcrição continuam pendentes.
+F02.2c2 cobre objetos órfãos após upload sem commit; agrupamento e transcrição
+continuam pendentes.
 Ver [F02](phases/F02-whatsapp-ingestion.md).
 
 O app/WABA sandbox Meta agora existe, mas o smoke ponta a ponta continua pendente:
@@ -33,7 +41,8 @@ durável com retenção de sete dias e audita em transação. F02.2b2 foi
 validada localmente: dispatcher e Temporal consomem a fila com identidade durável,
 retry e fencing, revalidam consentimento/vínculo/plano, guardam texto e mídia em
 biblioteca S3 privada e expõem conexão/recibos ao proprietário na web. Meta real,
-transcrição, respostas, geração e reconciliação de uploads órfãos seguem pendentes.
+transcrição, respostas e geração seguem pendentes; a reconciliação de uploads
+órfãos entrou em F02.2c2.
 Ver [F02](phases/F02-whatsapp-ingestion.md).
 
 CI da F02 usa login Meta restrito e URL explícita para o mesmo banco `_test` dos

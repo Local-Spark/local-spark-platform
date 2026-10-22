@@ -1,6 +1,6 @@
 # F02 — WhatsApp e biblioteca de materiais
 
-Status: Em implementação; F02.1–F02.2c1 entregues localmente.
+Status: Em implementação; F02.1–F02.2c2 entregues localmente.
 Dependências: F00, F01.
 
 ## Objetivo
@@ -184,11 +184,11 @@ para retry. Link assinado antes da exclusão pode funcionar até seu vencimento 
 dois minutos; isso deve ser explicado ao usuário. A web apresenta prazo e ação de
 exclusão com confirmação. Migração 0017 aplica RLS e privilégios restritos.
 
-Este recorte cobre assets finalizados. Ainda falta tratar objetos órfãos caso o
-upload termine, mas o commit de processamento não ocorra; por isso não usar mídia
-real até existir reconciliação de staging/órfãos e smoke Meta. Agrupamento de
+Este recorte cobre assets finalizados. A F02.2c2 abaixo trata objetos órfãos caso
+o upload termine, mas o commit de processamento não ocorra. Ainda não usar mídia
+real antes do smoke Meta e staging. Agrupamento de
 mensagens, transcrição, resposta, confirmação de fatos e preferência contextual
-permanecem F02.2c2+. O prazo de 30 dias é decisão inicial de produto e deve ser
+permanecem F02.2c3+. O prazo de 30 dias é decisão inicial de produto e deve ser
 reavaliado antes do piloto com clientes reais.
 
 Validação local: migração 0017 revertida e reaplicada no banco `_test` e aplicada
@@ -196,6 +196,39 @@ na base local após backup; 367 testes backend com 100% de linhas/ramos, Ruff e
 mypy aprovados. A web passou 149 testes/100% e uma jornada Chromium de exclusão.
 Um objeto sintético foi gravado e removido no SeaweedFS; o dispatcher atualizado
 subiu no Compose. Nenhum conteúdo real ou evento Meta foi usado.
+
+### F02.2c2 — Reconciliação de uploads interrompidos (entregue localmente)
+
+Cada tentativa de mídia usa uma chave S3 exclusiva e grava antes do `put` uma
+intenção durável `whatsapp_upload_intents`, com tenant, negócio, evento e auditoria.
+O download da Meta e a inspeção ocorrem antes da intenção; falha nessa etapa não
+cria objeto. O commit que finaliza o asset remove a intenção na mesma transação.
+Se o upload falhar, a autorização mudar, o processo cair ou o commit falhar, a
+intenção permanece para reconciliação, sem expor o arquivo ao cliente.
+
+O dispatcher reivindica intenções com mais de 20 minutos em lotes limitados,
+lease de 60 segundos e fencing; apaga o objeto fora da transação, confirma a
+remoção da intenção e audita. Falhas de storage preservam a intenção para retry.
+Uma chave já referenciada por asset finalizado não é reivindicada. O prazo de
+20 minutos excede o limite de 12 minutos do workflow e os timeouts/retries
+limitados do cliente S3. A finalização trava a intenção e recusa anexar uma
+tentativa já reivindicada pela limpeza, evitando referência para objeto apagado.
+Chaves por tentativa evitam que retries concorrentes sobrescrevam o asset vencedor.
+O papel da API não lê a tabela de intenções.
+
+Esta fatia fecha o caminho normal de objetos órfãos causados por upload sem commit.
+Homologação de mídia real ainda depende de smoke Meta após remover a restrição da
+WABA e de staging. Antes da operação em escala, adicionar inventário periódico do
+bucket como defesa contra anomalias externas ao banco e revisar limites por
+fornecedor. Agrupamento de mensagens, transcrição de áudio com orçamento/consentimento,
+resposta e confirmação de fatos formam F02.2c3. Não tratar o recibo como conteúdo
+pronto para publicar.
+
+Validação local: 372 testes backend/100% de linhas e ramos, Ruff e mypy; falha
+após upload, corrida entre finalização e limpeza, retries, fencing, privacidade
+do papel da API e rollback/reaplicação
+da migration 0018 no `_test`. Base local migrada após backup verificado; worker e
+dispatcher atualizados no Docker. Nenhum evento Meta real foi usado.
 
 
 Dividir as features acima em mudanças revisáveis. Cada mudança atualiza este SDD,

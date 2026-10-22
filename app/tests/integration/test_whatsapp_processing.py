@@ -10,11 +10,12 @@ from pydantic import SecretStr
 from sqlalchemy import text
 from sqlalchemy.exc import ProgrammingError
 
-from app.adapters.material_media import FetchedMedia, MaterialStore
+from app.adapters.material_media import FetchedMedia, MaterialError, MaterialStore
 from app.db.session import Database
 from app.main import create_app
 from app.services.whatsapp_ingest import save_events, sender_hash
 from app.services.whatsapp_processing import MaterialClaim, MaterialProcessor, dispatch_materials, finish_dispatch
+from app.services.whatsapp_retention import claim_upload_intents, reconcile_uploads
 from app.services.whatsapp_routing import route_once
 from app.tests.unit.test_core import access_token
 
@@ -176,6 +177,8 @@ async def test_image_dispatch_receipt_and_access_recheck(admin, database, auth_d
         assert await processor.process(event) == "processed"
         media.fetch.assert_awaited_once_with("123", "image")
         store.put.assert_awaited_once()
+        async with admin.connect() as connection:
+            assert await connection.scalar(text("SELECT count(*) FROM whatsapp_upload_intents")) == 0
         app = create_app(cfg, database, auth_database)
         base = f"/api/v1/organizations/{tenant}/businesses/{business}/whatsapp-materials"
         owner = {"Authorization": f"Bearer {access_token(cfg, actor)}"}
@@ -240,6 +243,101 @@ async def test_image_dispatch_receipt_and_access_recheck(admin, database, auth_d
                     {"id": terminal.id},
                 )
                 == 1
+            )
+        # A change after S3 upload leaves a durable deletion intent, not an invisible object.
+        async with admin.begin() as connection:
+            await connection.execute(
+                text("UPDATE billing_sponsorships SET revoked_at=NULL WHERE tenant_id=:tenant"), {"tenant": tenant}
+            )
+        await save_events(
+            meta, cfg, [("image-3", "message", {"from": number, "type": "image", "image": {"id": "125"}})]
+        )
+        assert await route_once(router, cfg) == 1
+        async with admin.connect() as connection:
+            third = await connection.scalar(
+                text("SELECT id FROM whatsapp_material_events WHERE kind='image' AND id NOT IN (:first,:second)"),
+                {"first": event, "second": second},
+            )
+
+        async def revoke_after_upload(_key, _media):
+            async with admin.begin() as connection:
+                await connection.execute(
+                    text("UPDATE billing_sponsorships SET revoked_at=now() WHERE tenant_id=:tenant"),
+                    {"tenant": tenant},
+                )
+
+        store.put.side_effect = revoke_after_upload
+        assert await processor.process(third) == "failed"
+        async with admin.begin() as connection:
+            intent = (
+                await connection.execute(
+                    text("SELECT id,object_key FROM whatsapp_upload_intents WHERE event_id=:event"),
+                    {"event": third},
+                )
+            ).one()
+            assert (
+                await connection.scalar(
+                    text("SELECT count(*) FROM whatsapp_material_assets WHERE id=:event"), {"event": third}
+                )
+                == 0
+            )
+            await connection.execute(
+                text("UPDATE whatsapp_upload_intents SET reconcile_after=now()-interval '1 second' WHERE id=:id"),
+                {"id": intent.id},
+            )
+
+        store.delete.side_effect = MaterialError("MATERIAL_STORAGE_UNAVAILABLE", retryable=True)
+        assert await reconcile_uploads(router, store, uuid4()) == 0
+        async with admin.begin() as connection:
+            await connection.execute(
+                text("UPDATE whatsapp_upload_intents SET delete_lease_until=now()-interval '1 second' WHERE id=:id"),
+                {"id": intent.id},
+            )
+        store.delete.side_effect = None
+        assert await reconcile_uploads(router, store, uuid4()) == 1
+        store.delete.assert_awaited_with(intent.object_key)
+        async with admin.connect() as connection:
+            assert await connection.scalar(text("SELECT count(*) FROM whatsapp_upload_intents")) == 0
+        # A sweeper claim made while an upload is in flight blocks its final commit.
+        async with admin.begin() as connection:
+            await connection.execute(
+                text("UPDATE billing_sponsorships SET revoked_at=NULL WHERE tenant_id=:tenant"), {"tenant": tenant}
+            )
+        await save_events(
+            meta, cfg, [("image-4", "message", {"from": number, "type": "image", "image": {"id": "126"}})]
+        )
+        assert await route_once(router, cfg) == 1
+        async with admin.connect() as connection:
+            fourth = await connection.scalar(
+                text(
+                    "SELECT id FROM whatsapp_material_events WHERE kind='image' AND id NOT IN (:first,:second,:third)"
+                ),
+                {"first": event, "second": second, "third": third},
+            )
+
+        async def claim_during_upload(_key, _media):
+            async with admin.begin() as connection:
+                await connection.execute(
+                    text("""UPDATE whatsapp_upload_intents SET reconcile_after=now()-interval '1 second'
+                      WHERE event_id=:event"""),
+                    {"event": fourth},
+                )
+            assert len(await claim_upload_intents(router, uuid4())) == 1
+
+        store.put.side_effect = claim_during_upload
+        assert await processor.process(fourth) == "failed"
+        async with admin.connect() as connection:
+            assert (
+                await connection.scalar(
+                    text("SELECT error_code FROM whatsapp_material_events WHERE id=:id"), {"id": fourth}
+                )
+                == "UPLOAD_RECONCILING"
+            )
+            assert (
+                await connection.scalar(
+                    text("SELECT count(*) FROM whatsapp_material_assets WHERE id=:id"), {"id": fourth}
+                )
+                == 0
             )
     finally:
         await meta.close()

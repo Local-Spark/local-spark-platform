@@ -25,7 +25,9 @@ def fake_database(rows, eligible=(True, True)):
     async def execute(statement, _params=None):
         statements.append(str(statement))
         result = Mock()
-        if str(statement).lstrip().startswith("SELECT"):
+        if "SELECT delete_owner FROM whatsapp_upload_intents" in str(statement):
+            result.mappings.return_value.one_or_none.return_value = {"delete_owner": None}
+        elif str(statement).lstrip().startswith("SELECT"):
             result.mappings.return_value.one_or_none.return_value = next(selected)
         return result
 
@@ -131,6 +133,37 @@ async def test_provider_error_is_terminal_or_retryable(settings, problem, retrya
             await processor.process(row["id"])
     else:
         assert await processor.process(row["id"]) == "failed"
+
+
+async def test_failed_upload_keeps_a_reconcilable_intent(settings):
+    row = event_row(kind="image")
+    processor, statements, _ = processor_with_rows(settings, {"type": "image", "image": {"id": "123"}}, [row])
+    processor.store.put.side_effect = MaterialError("MATERIAL_STORAGE_UNAVAILABLE", retryable=True)
+    with pytest.raises(ApplicationError, match="MATERIAL_STORAGE_UNAVAILABLE"):
+        await processor.process(row["id"])
+    assert any("INSERT INTO whatsapp_upload_intents" in statement for statement in statements)
+    assert not any("DELETE FROM whatsapp_upload_intents" in statement for statement in statements)
+
+
+@pytest.mark.parametrize("stage", [None, {"delete_owner": uuid4()}])
+async def test_finalizer_cannot_attach_an_upload_claimed_by_reconciler(settings, stage):
+    row = event_row(kind="image")
+    processor, statements, session = processor_with_rows(
+        settings, {"type": "image", "image": {"id": "123"}}, [row, row]
+    )
+    original_execute = session.execute.side_effect
+
+    async def execute(statement, params=None):
+        if "SELECT delete_owner FROM whatsapp_upload_intents" in str(statement):
+            result = Mock()
+            result.mappings.return_value.one_or_none.return_value = stage
+            return result
+        return await original_execute(statement, params)
+
+    session.execute.side_effect = execute
+    assert await processor.process(row["id"]) == "failed"
+    assert not any("INSERT INTO whatsapp_material_assets" in statement for statement in statements)
+    assert any("UPLOAD_RECONCILING" in str(call) for call in session.execute.call_args_list)
 
 
 async def test_invalid_media_identifier_and_failure_activity(settings):

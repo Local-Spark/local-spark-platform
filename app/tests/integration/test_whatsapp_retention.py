@@ -5,11 +5,19 @@ from uuid import uuid4
 
 import httpx
 from sqlalchemy import text
+from sqlalchemy.exc import ProgrammingError
 
 from app.adapters.material_media import MaterialError
 from app.db.session import Database
 from app.main import create_app
-from app.services.whatsapp_retention import claim_expired_assets, finish_purge, purge_expired_raw, purge_once
+from app.services.whatsapp_retention import (
+    claim_expired_assets,
+    claim_upload_intents,
+    finish_purge,
+    finish_upload_reconcile,
+    purge_expired_raw,
+    purge_once,
+)
 from app.tests.unit.test_core import access_token
 
 
@@ -129,6 +137,61 @@ async def test_expiry_claim_fencing_and_raw_cleanup(admin, seeded, settings):
                     text("SELECT count(*) FROM whatsapp_material_assets WHERE id=:id"), {"id": event}
                 )
                 == 0
+            )
+    finally:
+        await router.close()
+
+
+async def test_upload_intent_reconciliation_is_fenced_and_never_claims_final_asset(admin, database, seeded, settings):
+    business, orphan, attached = uuid4(), uuid4(), uuid4()
+    async with admin.begin() as connection:
+        await connection.execute(
+            text("INSERT INTO businesses(id,tenant_id,name,timezone) VALUES(:id,:tenant,'Test','UTC')"),
+            {"id": business, "tenant": seeded["t1"]},
+        )
+        for intent, key in ((orphan, "private/orphan"), (attached, "private/attached")):
+            await connection.execute(
+                text("""INSERT INTO whatsapp_upload_intents
+                  (id,event_id,tenant_id,business_id,object_key,reconcile_after)
+                  VALUES(:id,:event,:tenant,:business,:key,now()-interval '1 minute')"""),
+                {"id": intent, "event": uuid4(), "tenant": seeded["t1"], "business": business, "key": key},
+            )
+        await connection.execute(
+            text("""INSERT INTO whatsapp_material_assets
+              (id,tenant_id,business_id,kind,ciphertext,object_key)
+              VALUES(:id,:tenant,:business,'image','encrypted','private/attached')"""),
+            {"id": uuid4(), "tenant": seeded["t1"], "business": business},
+        )
+    router = Database(settings, correlator=True)
+    first, second = uuid4(), uuid4()
+    try:
+        async with database.transaction(seeded["t1"], seeded["a1"]) as session:
+            try:
+                await session.execute(text("SELECT object_key FROM whatsapp_upload_intents"))
+                raise AssertionError("app role could read upload intents")
+            except ProgrammingError:
+                pass
+        claims = await claim_upload_intents(router, first)
+        assert len(claims) == 1 and claims[0].id == orphan
+        assert await claim_upload_intents(router, second) == []
+        async with admin.begin() as connection:
+            await connection.execute(
+                text("UPDATE whatsapp_upload_intents SET delete_lease_until=now()-interval '1 second' WHERE id=:id"),
+                {"id": orphan},
+            )
+        newer = (await claim_upload_intents(router, second))[0]
+        assert newer.fencing_token > claims[0].fencing_token
+        assert not await finish_upload_reconcile(router, first, claims[0])
+        assert await finish_upload_reconcile(router, second, newer)
+        async with admin.connect() as connection:
+            assert await connection.scalar(text("SELECT count(*) FROM whatsapp_upload_intents")) == 1
+            assert (
+                await connection.scalar(
+                    text("""SELECT count(*) FROM audit_events
+                  WHERE operation_id=:id AND action='whatsapp.upload_reconciled'"""),
+                    {"id": orphan},
+                )
+                == 1
             )
     finally:
         await router.close()

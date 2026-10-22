@@ -1,5 +1,23 @@
 # Registro de mudanças
 
+## 2026-10-22 — F02.2c2: reconciliação de uploads interrompidos
+
+- Cada upload ganha intenção durável, chave S3 única por tentativa e auditoria antes
+  de chamar o storage. A finalização do asset remove a intenção no mesmo commit.
+- Dispatcher reconcilia intenções vencidas em lotes com lease/fencing, retry e
+  auditoria; nunca reivindica uma chave ligada a asset finalizado. A finalização
+  trava a intenção e rejeita uma tentativa já reivindicada pela limpeza. Cliente
+  S3 agora tem timeouts explícitos. Migration 0018 aditiva com papel restrito.
+- Validação: 372 testes backend com 100% de linhas/ramos, Ruff, formatação e mypy;
+  sucesso, revogação após upload, corrida com limpeza, falha/retry do storage,
+  fencing e isolamento do
+  login da API. Migration 0018 revertida/reaplicada no `_test`, aplicada no banco
+  local após backup verificado. Worker e dispatcher reconstruídos e em execução.
+  Readiness da API local retornou 200. Nenhum evento Meta real ou conteúdo de
+  cliente foi usado.
+- Pendente: agrupamento/transcrição (F02.2c3), smoke Meta após desbloqueio da
+  WABA, staging e inventário periódico do bucket para operação em escala.
+
 ## 2026-10-22 — F02.2c1: retenção e exclusão de materiais
 
 - Migração 0017 adiciona prazo de 30 dias aos assets e estado de exclusão com

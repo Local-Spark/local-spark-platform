@@ -4,7 +4,7 @@ import json
 import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from cryptography.fernet import Fernet, InvalidToken
 from sqlalchemy import text
@@ -168,6 +168,22 @@ class MaterialProcessor:
                 return "already_finished"
             return await self._mark_failed(session, row, event, code)
 
+    async def _stage_upload(self, row, event: UUID) -> tuple[UUID, str]:  # type: ignore[no-untyped-def]
+        intent = uuid4()
+        key = f"tenants/{row['tenant_id']}/businesses/{row['business_id']}/whatsapp/{event}/attempts/{intent}"
+        async with self.database.sessions() as session, session.begin():
+            await session.execute(
+                text("""INSERT INTO whatsapp_upload_intents(id,event_id,tenant_id,business_id,object_key)
+                  VALUES(:id,:event,:tenant,:business,:key)"""),
+                {"id": intent, "event": event, "tenant": row["tenant_id"], "business": row["business_id"], "key": key},
+            )
+            await session.execute(
+                text("""INSERT INTO audit_events(tenant_id,actor_id,operation_id,action,resource_id)
+                  VALUES(:tenant,:actor,:id,'whatsapp.upload_staged',:business)"""),
+                {"tenant": row["tenant_id"], "actor": UUID(int=0), "id": intent, "business": row["business_id"]},
+            )
+        return intent, key
+
     async def process(self, event: UUID) -> str:
         async with self.database.sessions() as session, session.begin():
             row = (
@@ -198,13 +214,14 @@ class MaterialProcessor:
             if not isinstance(text_body, str) or len(text_body) > 4096:
                 raise MaterialError("MATERIAL_INVALID")
             object_key = mime_type = checksum = None
+            upload_intent = None
             size_bytes = None
             if row["kind"] != "text":
                 media_id = content.get("id")
                 if not isinstance(media_id, str):
                     raise MaterialError("MEDIA_ID_INVALID")
                 media = await self.media.fetch(media_id, row["kind"])
-                object_key = f"tenants/{row['tenant_id']}/businesses/{row['business_id']}/whatsapp/{event}/original"
+                upload_intent, object_key = await self._stage_upload(row, event)
                 await self.store.put(object_key, media)
                 mime_type, checksum, size_bytes = media.mime_type, media.sha256, len(media.data)
         except (InvalidToken, ValueError, UnicodeDecodeError) as exc:
@@ -228,8 +245,22 @@ class MaterialProcessor:
             if current is None or current["state"] in {"processed", "failed"}:
                 return "already_finished"
             if not await self._eligible(session, current):
-                # Provider IO has completed; its deterministic object key is safe to garbage-collect.
+                # The staged attempt remains durable for the reconciler to delete.
                 return await self._mark_failed(session, current, event, "ACCESS_OR_CONSENT_INACTIVE")
+            if upload_intent is not None:
+                stage = (
+                    (
+                        await session.execute(
+                            text("""SELECT delete_owner FROM whatsapp_upload_intents
+                              WHERE id=:id FOR UPDATE"""),
+                            {"id": upload_intent},
+                        )
+                    )
+                    .mappings()
+                    .one_or_none()
+                )
+                if stage is None or stage["delete_owner"] is not None:
+                    return await self._mark_failed(session, current, event, "UPLOAD_RECONCILING")
             await session.execute(
                 text("""INSERT INTO whatsapp_material_assets
                   (id,tenant_id,business_id,kind,ciphertext,object_key,mime_type,size_bytes,sha256)
@@ -257,6 +288,8 @@ class MaterialProcessor:
                   VALUES(:tenant,:actor,:id,'whatsapp.material_processed',:business)"""),
                 {"tenant": current["tenant_id"], "actor": UUID(int=0), "id": event, "business": current["business_id"]},
             )
+            if upload_intent is not None:
+                await session.execute(text("DELETE FROM whatsapp_upload_intents WHERE id=:id"), {"id": upload_intent})
         return "processed"
 
     async def fail(self, event: UUID) -> str:

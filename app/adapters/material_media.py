@@ -187,7 +187,12 @@ class MaterialStore:
             aws_secret_access_key=self.settings.material_storage_secret_key.get_secret_value()
             if self.settings.material_storage_secret_key
             else None,
-            config=Config(signature_version="s3v4", retries={"max_attempts": 2}),
+            config=Config(
+                signature_version="s3v4",
+                connect_timeout=10,
+                read_timeout=60,
+                retries={"max_attempts": 2},
+            ),
         )
 
     async def put(self, key: str, media: FetchedMedia) -> None:
