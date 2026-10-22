@@ -16,7 +16,13 @@ async def admin():
     url = os.environ["TEST_ADMIN_DATABASE_URL"]
     if not (make_url(url).database or "").endswith("_test"):
         pytest.fail("Integration cleanup requires a dedicated database ending in _test")
-    for key in ("TEST_DATABASE_URL", "TEST_RELAY_DATABASE_URL", "TEST_AUTH_DATABASE_URL", "TEST_BILLING_DATABASE_URL"):
+    for key in (
+        "TEST_DATABASE_URL",
+        "TEST_RELAY_DATABASE_URL",
+        "TEST_AUTH_DATABASE_URL",
+        "TEST_BILLING_DATABASE_URL",
+        "TEST_META_DATABASE_URL",
+    ):
         if not os.getenv(key):
             pytest.fail(f"{key} must use a restricted runtime login")
         other = make_url(os.environ[key])
@@ -31,7 +37,7 @@ async def admin():
         await connection.execute(
             text(
                 "TRUNCATE user_accounts, tenants, memberships, businesses, idempotency_records, "
-                "outbox_events, audit_events, processed_events, auth_limits, billing_jobs CASCADE"
+                "outbox_events, audit_events, processed_events, auth_limits, billing_jobs, whatsapp_inbox CASCADE"
             )
         )
     try:

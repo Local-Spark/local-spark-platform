@@ -7,4 +7,7 @@ GRANT local_spark_app TO local_spark_runtime;
 GRANT local_spark_relay TO local_spark_delivery;
 CREATE ROLE local_spark_identity LOGIN PASSWORD 'local-spark-auth-password' NOSUPERUSER NOBYPASSRLS;
 CREATE ROLE local_spark_payments LOGIN PASSWORD 'local-spark-billing-password' NOSUPERUSER NOBYPASSRLS;
+CREATE ROLE local_spark_meta NOLOGIN NOSUPERUSER NOBYPASSRLS;
+CREATE ROLE local_spark_ingest LOGIN PASSWORD 'local-spark-meta-password' NOSUPERUSER NOBYPASSRLS;
+GRANT local_spark_meta TO local_spark_ingest;
 CREATE DATABASE local_spark_platform_test;

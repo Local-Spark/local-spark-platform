@@ -5,6 +5,8 @@ F00 e as fatias locais da F01 funcionam. Checkout de teste e reconciliação est
 implementados; geração/publicação continuam nas fases seguintes. A verificação
 de telefone precisa de conta Twilio e staging para homologação. Autenticação
 própria substitui o Keycloak.
+F02.1 já recebe callbacks WhatsApp assinados em uma inbox criptografada, desativada
+por padrão. O vínculo do canal e o processamento do material ainda são F02.2.
 
 ## Preparar o ambiente
 
@@ -78,6 +80,16 @@ Cadastro público nunca concede staff. Operadores adicionais são convidados em
 recuperação de e-mail, preservando UUID e negócios. E-mails locais chegam só ao
 Mailpit, sem envio para destinatários externos. Telefone informado só se torna
 verificado após confirmação pelo provedor configurado.
+
+## WhatsApp — F02.1
+
+`GET/POST /api/v1/webhooks/whatsapp` implementam desafio e recebimento da Meta
+Cloud API. Sem configuração real, respondem 503. Mensagens e status autenticados
+entram numa inbox isolada e criptografada; ainda não aparecem na área do cliente
+nem iniciam geração. O SMS confirmado na F01 não vincula automaticamente uma
+conversa do WhatsApp ao negócio. Consulte [F02](docs/phases/F02-whatsapp-ingestion.md)
+e [operação](docs/operations.md) antes de configurar App/WABA, número, secrets,
+login PostgreSQL dedicado e callback HTTPS. A migration 0013 deve preceder a API.
 
 ## Cobrança e patrocínio — F01.5
 

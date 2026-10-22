@@ -30,6 +30,13 @@ class Settings(BaseSettings):
     twilio_verify_service_sid: str | None = None
     twilio_api_key: str | None = None
     twilio_api_secret: SecretStr | None = None
+    meta_webhook_mode: Literal["disabled", "cloud"] = "disabled"
+    meta_database_url: SecretStr | None = None
+    meta_verify_token: SecretStr | None = None
+    meta_app_secret: SecretStr | None = None
+    meta_waba_id: str | None = None
+    meta_phone_number_id: str | None = None
+    meta_encryption_key: SecretStr | None = None
     jwt_secret: SecretStr = Field(min_length=32)
     jwt_issuer: str = "local-spark-local"
     jwt_audience: str = "local-spark-api"
@@ -106,6 +113,28 @@ class Settings(BaseSettings):
                 raise ValueError("Twilio Verify requires service SID and API key credentials")
             if not self.twilio_verify_service_sid.startswith("VA"):
                 raise ValueError("Invalid Twilio Verify service SID")
+        return self
+
+    @model_validator(mode="after")
+    def meta_webhook_safety(self) -> "Settings":
+        if self.meta_webhook_mode == "cloud":
+            if not all(
+                (
+                    self.meta_database_url,
+                    self.meta_verify_token,
+                    self.meta_app_secret,
+                    self.meta_waba_id,
+                    self.meta_phone_number_id,
+                    self.meta_encryption_key,
+                )
+            ):
+                raise ValueError("Meta webhook requires isolated storage and provider credentials")
+            from cryptography.fernet import Fernet
+
+            try:
+                Fernet(self.meta_encryption_key.get_secret_value().encode())  # type: ignore[union-attr]
+            except (ValueError, TypeError) as exc:
+                raise ValueError("Invalid Meta inbox encryption key") from exc
         return self
 
 

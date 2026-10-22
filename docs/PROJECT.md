@@ -2,6 +2,15 @@
 
 Atualizado: 21/10/2026. Nome adotado: Local Spark. Repositório principal: `local-spark-platform`.
 
+F02 começou pela ingressão segura de WhatsApp (F02.1): desafio e assinatura Meta,
+limite de corpo, inbox cifrada/deduplicada com papel PostgreSQL isolado e migração
+0013. Sem App/WABA configurados, a rota fica desabilitada. Sem vínculo específico
+entre remetente e negócio, eventos ficam em quarentena; ainda não há processamento
+de fotos/áudio/texto nem resposta via WhatsApp. F02.2 fará vínculo do canal,
+biblioteca privada e workflow. Validado com 270 testes/100% linhas e ramos, lint,
+tipos, migração de teste revertida/reaplicada e migração local após backup. Nenhum
+smoke real com a Meta ocorreu.
+
 F01.6 está implementada e validada localmente: reconciliação periódica de checkout
 aberto sem depender do listener Stripe, convite/revogação auditados de operadores
 com MFA e confirmação de telefone pela API Twilio Verify. A web tem telas de equipe

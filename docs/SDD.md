@@ -2,6 +2,13 @@
 
 Versão 1.0, 21/10/2026. Resumo implementável e índice das especificações detalhadas.
 
+F02.1 entregue localmente: webhook WhatsApp Cloud API com handshake, HMAC do corpo
+bruto, limite de 256 KiB e inbox criptografada/deduplicada em login próprio com RLS.
+Mensagens ainda ficam em quarentena sem vínculo verificado ao negócio; não há
+download, transcrição, resposta ou workflow de conteúdo. Ver
+[F02](phases/F02-whatsapp-ingestion.md). Configuração Meta permanece desabilitada
+até existirem App/WABA/número/chaves; teste real e F02.2 pendentes.
+
 F01.6: o billing worker agenda reconciliação canônica periódica de checkouts abertos
 sem acesso pago, com jobs duráveis e dedupe por janela de cinco minutos; o webhook
 continua sendo o caminho imediato. Convites de operadores têm token de uso único,

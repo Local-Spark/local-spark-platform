@@ -10,6 +10,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse
 
 from app import __version__
+from app.adapters.meta_whatsapp import MetaWebhookError
 from app.adapters.twilio_verify import TwilioVerify
 from app.api.v1.api import api_router
 from app.api.v1.auth import auth_router
@@ -18,6 +19,7 @@ from app.api.v1.onboarding import onboarding_router
 from app.api.v1.phone_verification import phone_router
 from app.api.v1.reference import reference_router
 from app.api.v1.staff import staff_router
+from app.api.v1.whatsapp import whatsapp_router
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging, request_id, request_id_context
 from app.db.session import Database
@@ -33,6 +35,7 @@ def create_app(
     database: Database | None = None,
     auth_database: Database | None = None,
     billing_database: Database | None = None,
+    meta_database: Database | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
     configure_logging()
@@ -46,6 +49,9 @@ def create_app(
         application.state.billing_database = billing_database or (
             Database(settings, billing=True) if settings.billing_database_url else None
         )
+        application.state.meta_database = meta_database or (
+            Database(settings, meta=True) if settings.meta_webhook_mode == "cloud" else None
+        )
         try:
             yield
         finally:
@@ -55,6 +61,8 @@ def create_app(
                 await application.state.auth_database.close()
             if billing_database is None and application.state.billing_database is not None:
                 await application.state.billing_database.close()
+            if meta_database is None and application.state.meta_database is not None:
+                await application.state.meta_database.close()
             await application.state.phone_provider.close()
 
     application = FastAPI(
@@ -73,6 +81,7 @@ def create_app(
     application.include_router(billing_router)
     application.include_router(staff_router)
     application.include_router(phone_router)
+    application.include_router(whatsapp_router)
 
     @application.middleware("http")
     async def diagnostics(request: Request, call_next):  # type: ignore[no-untyped-def]
@@ -115,6 +124,10 @@ def create_app(
     async def billing_error(request: Request, exc: BillingError) -> JSONResponse:
         return JSONResponse(status_code=exc.status, content={"error_code": exc.code})
 
+    @application.exception_handler(MetaWebhookError)
+    async def meta_error(request: Request, exc: MetaWebhookError) -> JSONResponse:
+        return JSONResponse(status_code=exc.status, content={"error_code": exc.code})
+
     @application.exception_handler(RequestValidationError)
     async def validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
         return JSONResponse(
@@ -145,6 +158,8 @@ def create_app(
             healthy = await request.app.state.database.ready() and await request.app.state.auth_database.ready()
             if healthy and settings.billing_mode != "disabled":
                 healthy = await request.app.state.billing_database.ready()
+            if healthy and settings.meta_webhook_mode != "disabled":
+                healthy = await request.app.state.meta_database.ready()
         except Exception:
             healthy = False
         return JSONResponse(

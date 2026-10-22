@@ -1,5 +1,20 @@
 # Registro de mudanças
 
+## 2026-10-21 — F02.1: entrada segura do WhatsApp
+
+- Handshake e callback WhatsApp Cloud API com HMAC do corpo bruto, limite de 256 KiB,
+  filtro do número/WABA configurados e separação de mensagens/status. Configuração
+  ausente desabilita o webhook; nenhum segredo entra em logs/resposta.
+- Migration 0013 cria inbox cifrada com dedupe por subevento, RLS e papel isolado.
+  Reentregas concorrentes não duplicam registros; login normal não lê a inbox.
+  Eventos ficam em quarentena até vínculo comprovado na F02.2.
+- Role local criada no cluster existente; banco `_test` validou downgrade/upgrade.
+  Backup local `.local/backups/local-spark-before-0013-2026-10-21.dump` antecedeu
+  upgrade aditivo do banco de desenvolvimento. Dados existentes preservados.
+- 271 testes backend/100% linhas e ramos; Ruff e mypy passaram. `make ci` não
+  executou porque `uv` não está no PATH deste shell; comandos equivalentes da
+  `.venv` passaram. Sem teste real Meta, envio, transcrição ou publicação.
+
 ## 2026-10-21 — Revisão da análise externa de IA e conhecimento do negócio
 
 - SDD geral, fases F02–F08, PROJECT e interfaces incorporam contexto do negócio

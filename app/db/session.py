@@ -26,9 +26,13 @@ def current_schema_head() -> str:
 
 
 class Database:
-    def __init__(self, settings: Settings, *, relay: bool = False, auth: bool = False, billing: bool = False) -> None:
+    def __init__(
+        self, settings: Settings, *, relay: bool = False, auth: bool = False, billing: bool = False, meta: bool = False
+    ) -> None:
         url = (
-            settings.billing_database_url
+            settings.meta_database_url
+            if meta
+            else settings.billing_database_url
             if billing
             else settings.auth_database_url
             if auth
@@ -46,7 +50,9 @@ class Database:
             max_overflow=settings.max_overflow,
             connect_args={
                 "server_settings": {
-                    "application_name": "local-spark-billing"
+                    "application_name": "local-spark-meta"
+                    if meta
+                    else "local-spark-billing"
                     if billing
                     else "local-spark-auth"
                     if auth

@@ -23,6 +23,7 @@ class IntegrationSettings(BaseSettings):
     database_url: SecretStr
     auth_database_url: SecretStr
     billing_database_url: SecretStr
+    meta_database_url: SecretStr
     relay_database_url: SecretStr
     temporal_address: str
 
@@ -44,6 +45,7 @@ def settings():
         database_url=os.getenv("TEST_DATABASE_URL", "postgresql+asyncpg://unused:unused@localhost/unused"),
         relay_database_url=os.getenv("TEST_RELAY_DATABASE_URL"),
         auth_database_url=os.getenv("TEST_AUTH_DATABASE_URL"),
+        meta_database_url=os.getenv("TEST_META_DATABASE_URL"),
         jwt_secret="unit-test-secret-with-at-least-32-characters",
     )
 

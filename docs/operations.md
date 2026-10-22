@@ -61,6 +61,29 @@ envio. O proprietário pode corrigir o número pelo `PATCH` no recurso de verifi
 isso remove a condição de verificado e invalida o código anterior. A migration
 0012 é necessária para a atualização de `business_profiles.phone` pela role runtime.
 
+F02.1 usa `GET/POST /api/v1/webhooks/whatsapp` para desafio e eventos da Meta.
+Por padrão `LOCAL_SPARK_META_WEBHOOK_MODE=disabled`; a rota responde 503. Para
+habilitar em ambiente de teste com App/WABA e número próprios, configurar no
+backend o modo `cloud`, `META_DATABASE_URL` com login exclusivo `local_spark_ingest`,
+`META_VERIFY_TOKEN`, `META_APP_SECRET`, `META_WABA_ID`, `META_PHONE_NUMBER_ID` e
+`META_ENCRYPTION_KEY` Fernet privada, todos sob prefixo `LOCAL_SPARK_`. Reiniciar
+API; `/health/ready` exige migration 0013 e acesso ao banco restrito. A URL de
+callback precisa de HTTPS público controlado; não expor um túnel sem assinatura.
+O login recebe `local_spark_meta`, não `local_spark_app`/auth/billing. No volume
+local já existente, criar o login e conceder a role uma vez com
+`docker compose exec -T postgres psql -U postgres -d postgres < scripts/ensure_local_meta_login.sql`;
+initializer não roda novamente. Não apagar o volume. O banco de testes também precisa do login
+`TEST_META_DATABASE_URL` na base `_test`.
+
+Cada callback autenticado é gravado na `whatsapp_inbox` cifrada e deduplicada;
+eventos ainda não são atribuídos a negócio nem enviados ao Temporal. Reentrega
+da Meta recebe 200 após commit sem criar duplicata. Falha de banco retorna erro,
+permitindo retry do provedor. Nunca consultar/copiar ciphertext ou payload bruto
+para logs/tickets. Ingressão remove linhas expiradas quando chega novo evento;
+F02.2 acrescentará limpeza periódica, vínculo de canal e processamento. A
+[coleção oficial da Meta](https://www.postman.com/meta/whatsapp-business-platform/overview)
+documenta a configuração do webhook e os formatos de mensagens/status.
+
 `docker compose up -d postgres temporal mailpit`; migração separada com conexão administrativa.
 O SQL de inicialização cria logins locais sem bypass e banco `local_spark_platform_test`. As roles
 de acesso são concedidas sem propriedade das tabelas. Se volume já existe, initializer
