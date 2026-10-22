@@ -84,11 +84,11 @@ class StaffService:
             )
             payload = {
                 "to": email,
-                "subject": "Convite para operar a Local Spark",
+                "subject": "Convite para operar o Meu Braço Direito",
                 "template": "staff_invite",
                 "link": f"{self.settings.public_web_url}/staff-invite#token={token}",
                 "body": (
-                    f"Você recebeu um convite para a equipe Local Spark. Abra "
+                    f"Você recebeu um convite para a equipe Meu Braço Direito. Abra "
                     f"{self.settings.public_web_url}/staff-invite#token={token}\n"
                     "Entre com este e-mail e confirme sua conta antes de aceitar. "
                     "O link vale por 48 horas. Se não esperava o convite, ignore-o."

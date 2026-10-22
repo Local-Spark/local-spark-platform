@@ -111,7 +111,7 @@ ou dados do provedor. Leitura exige staff/MFA, RLS e auditoria. Contato comercia
 
 Migration 0005: billing_jobs, billing_accounts, billing_checkouts,
 billing_sponsorships, billing_audit, billing_outbox; todas com FORCE RLS. Login
-local_spark_payments herda local_spark_billing, sem escrita em memberships,
+meu_braco_direito_payments herda meu_braco_direito_billing, sem escrita em memberships,
 usuários/perfis/staff, patrocínios ou alteração de auditoria. Runtime comum não
 escreve estados de pagamento confirmados.
 

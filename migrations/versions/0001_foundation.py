@@ -10,15 +10,15 @@ depends_on = None
 
 def upgrade():
     op.execute("""DO $$ BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='local_spark_app') THEN
-            CREATE ROLE local_spark_app NOLOGIN NOSUPERUSER NOBYPASSRLS;
+        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='meu_braco_direito_app') THEN
+            CREATE ROLE meu_braco_direito_app NOLOGIN NOSUPERUSER NOBYPASSRLS;
         END IF;
-        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='local_spark_relay') THEN
-            CREATE ROLE local_spark_relay NOLOGIN NOSUPERUSER NOBYPASSRLS;
+        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='meu_braco_direito_relay') THEN
+            CREATE ROLE meu_braco_direito_relay NOLOGIN NOSUPERUSER NOBYPASSRLS;
         END IF;
     END $$""")
     op.execute("REVOKE CREATE ON SCHEMA public FROM PUBLIC")
-    op.execute("GRANT USAGE ON SCHEMA public TO local_spark_app, local_spark_relay")
+    op.execute("GRANT USAGE ON SCHEMA public TO meu_braco_direito_app, meu_braco_direito_relay")
     statements = [
         """CREATE TABLE tenants (
             id uuid PRIMARY KEY, name varchar(120) NOT NULL,
@@ -73,13 +73,16 @@ def upgrade():
         op.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY")
         op.execute(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY")
         op.execute(
-            f"CREATE POLICY tenant_isolation ON {table} TO local_spark_app USING ({predicate}) WITH CHECK ({predicate})"
+            f"CREATE POLICY tenant_isolation ON {table} TO meu_braco_direito_app "
+            f"USING ({predicate}) WITH CHECK ({predicate})"
         )
-    op.execute("GRANT SELECT ON tenants, memberships, alembic_version TO local_spark_app")
-    op.execute("GRANT SELECT, INSERT ON businesses, audit_events, processed_events TO local_spark_app")
-    op.execute("GRANT SELECT, INSERT, UPDATE ON idempotency_records, outbox_events TO local_spark_app")
-    op.execute("GRANT SELECT, UPDATE ON outbox_events TO local_spark_relay")
-    op.execute("CREATE POLICY relay_delivery ON outbox_events TO local_spark_relay USING (true) WITH CHECK (true)")
+    op.execute("GRANT SELECT ON tenants, memberships, alembic_version TO meu_braco_direito_app")
+    op.execute("GRANT SELECT, INSERT ON businesses, audit_events, processed_events TO meu_braco_direito_app")
+    op.execute("GRANT SELECT, INSERT, UPDATE ON idempotency_records, outbox_events TO meu_braco_direito_app")
+    op.execute("GRANT SELECT, UPDATE ON outbox_events TO meu_braco_direito_relay")
+    op.execute(
+        "CREATE POLICY relay_delivery ON outbox_events TO meu_braco_direito_relay USING (true) WITH CHECK (true)"
+    )
 
 
 def downgrade():

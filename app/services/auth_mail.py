@@ -18,6 +18,18 @@ from app.services.mail_templates import render_html
 
 
 def send_mail(settings: Settings, payload: dict[str, str]) -> None:
+    # Pending encrypted outbox messages may predate the rename. Keep their links
+    # and action tokens intact while rendering the current product name.
+    payload = {
+        **payload,
+        **{
+            field: payload[field]
+            .replace("na Local Spark", "no Meu Braço Direito")
+            .replace("a Local Spark", "o Meu Braço Direito")
+            .replace("Local Spark", "Meu Braço Direito")
+            for field in ("subject", "body")
+        },
+    }
     message = EmailMessage()
     message["From"], message["To"], message["Subject"] = settings.mail_from, payload["to"], payload["subject"]
     message.set_content(payload["body"])

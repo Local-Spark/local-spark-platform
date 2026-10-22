@@ -11,7 +11,7 @@ Playwright, migration 0006 reversível no _test e aplicada localmente sem perda.
 
 ## Objetivo e jornada aceita
 
-O cliente conhece a Local Spark na landing page, contrata um plano e tem sua
+O cliente conhece a Meu Braço Direito na landing page, contrata um plano e tem sua
 organização provisionada automaticamente após confirmação confiável. Identidade
 e posse do canal precisam ser verificadas; informar e-mail/telefone no checkout
 não concede propriedade. A configuração diária migra para o WhatsApp na F02.

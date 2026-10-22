@@ -23,7 +23,7 @@ async def main() -> None:
     activities = BillingActivities(BillingProcessor(settings, database, provider))
     try:
         if settings.billing_mode == "disabled":
-            logging.getLogger("local_spark.billing").info("billing.disabled")
+            logging.getLogger("meu_braco_direito.billing").info("billing.disabled")
             while True:
                 await asyncio.sleep(30)
         client = await connect_temporal(settings)

@@ -15,7 +15,7 @@ def run_migrations(connection):
 
 
 async def online():
-    engine = create_async_engine(os.environ["LOCAL_SPARK_MIGRATION_DATABASE_URL"], poolclass=pool.NullPool)
+    engine = create_async_engine(os.environ["MEU_BRACO_DIREITO_MIGRATION_DATABASE_URL"], poolclass=pool.NullPool)
     async with engine.connect() as connection:
         await connection.run_sync(run_migrations)
     await engine.dispose()

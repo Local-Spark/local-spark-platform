@@ -9,7 +9,7 @@ class EmailInput(BaseModel):
     @classmethod
     def normalized_email(cls, value: str) -> str:
         # Preserve the reserved domain of existing local demo identities. No DNS lookup on login.
-        local = value.lower().endswith("@local-spark.local")
+        local = value.lower().endswith("@meu-braco-direito.local")
         candidate = value[: -len("local")] + "test" if local else value
         normalized = validate_email(candidate, check_deliverability=False, test_environment=True).normalized
         return (normalized[: -len("test")] + "local" if local else normalized).lower()

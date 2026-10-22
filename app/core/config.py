@@ -10,11 +10,15 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="LOCAL_SPARK_", env_file=".env", extra="ignore", env_ignore_empty=True, hide_input_in_errors=True
+        env_prefix="MEU_BRACO_DIREITO_",
+        env_file=".env",
+        extra="ignore",
+        env_ignore_empty=True,
+        hide_input_in_errors=True,
     )
 
     environment: Literal["development", "testing", "staging", "production"] = "development"
-    project_name: str = "Local Spark API"
+    project_name: str = "Meu Braço Direito API"
     database_url: SecretStr
     relay_database_url: SecretStr | None = None
     auth_database_url: SecretStr | None = None
@@ -32,14 +36,15 @@ class Settings(BaseSettings):
     twilio_api_secret: SecretStr | None = None
     meta_webhook_mode: Literal["disabled", "cloud"] = "disabled"
     meta_database_url: SecretStr | None = None
+    correlator_database_url: SecretStr | None = None
     meta_verify_token: SecretStr | None = None
     meta_app_secret: SecretStr | None = None
     meta_waba_id: str | None = None
     meta_phone_number_id: str | None = None
     meta_encryption_key: SecretStr | None = None
     jwt_secret: SecretStr = Field(min_length=32)
-    jwt_issuer: str = "local-spark-local"
-    jwt_audience: str = "local-spark-api"
+    jwt_issuer: str = "meu-braco-direito-local"
+    jwt_audience: str = "meu-braco-direito-api"
     public_web_url: str = "http://localhost:5173"
     auth_encryption_key: SecretStr = SecretStr("MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=")
     password_concurrency: int = Field(default=4, ge=1, le=32)
@@ -48,10 +53,10 @@ class Settings(BaseSettings):
     smtp_starttls: bool = False
     smtp_username: str | None = None
     smtp_password: SecretStr | None = None
-    mail_from: str = "hello@local-spark.local"
+    mail_from: str = "hello@meu-braco-direito.local"
     temporal_address: str = "localhost:7233"
     temporal_namespace: str = "default"
-    temporal_task_queue: str = "local-spark-foundation"
+    temporal_task_queue: str = "meu-braco-direito-foundation"
     temporal_api_key: SecretStr | None = None
     temporal_tls: bool = False
     pool_size: int = Field(default=5, ge=1, le=50)

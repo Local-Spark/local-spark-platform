@@ -1,12 +1,48 @@
 # Registro de mudanças
 
+## 2026-10-22 — Marca Meu Braço Direito
+
+- Produto renomeado na interface, metadados, logotipo, favicon, e-mails e
+  documentação. Pacotes e identificadores técnicos usam `meu-braco-direito`;
+  backend configura por `MEU_BRACO_DIREITO_`. Nomes, caminhos e remotos Git preservados.
+- Cookies, CSRF, Web Locks e canal de logout atualizados em conjunto, mantendo
+  tokens só em memória e as proteções HttpOnly/Origin. Novo login é necessário.
+- Migração preserva IDs, senhas/MFA, vínculos, políticas RLS e chaves de idempotência
+  de checkouts anteriores. E-mails pendentes recebem a marca nova ao enviar,
+  conservando seus links/tokens. Contas de demonstração mantêm IDs estáveis.
+- Ambiente local atualizado após backup SQL completo e cópia dos volumes parados;
+  originais preservados. PostgreSQL, Temporal e workers usam os nomes novos.
+  IDs de usuários/credenciais/negócios/organizações/checkouts comparados ao backup.
+  Nenhum workflow ativo ficou na fila antiga; histórico Temporal preservado.
+- Testes de navegador ajustados aos seletores e títulos atuais e ao HTML UTF-8
+  no retorno externo simulado. Documentação operacional em
+  [renomeação do produto](product-rename.md).
+- Validação final em andamento; resultados serão registrados antes da entrega.
+- Reiniciar a API em F5 para reler `.env` e autenticar novamente. Sem publicação,
+  commit ou push; configurações de marca em contas externas não foram alteradas.
+
+## 2026-10-22 — F02.2b1: correlação privada de mensagens
+
+- Migration 0015 cria papel/login restrito de correlação e fila cifrada de
+  materiais com identidade única, tenant/negócio, retenção e RLS.
+- Processo separado associa apenas mensagens posteriores a vínculo ativo;
+  descarta comandos e formatos não aceitos, audita e permite concorrência por
+  `SKIP LOCKED`. A fila ainda não é consumida por IA ou Temporal.
+- Migração 0015 validada com upgrade/downgrade/reaplicação em PostgreSQL
+  temporário `_test`; a base local renomeada está em 0015. 289 testes com
+  100% de linhas/ramos, Ruff, mypy e configuração Compose passaram. Não houve
+  smoke Meta real nem envio de conteúdo ao Temporal.
+- Após a migração de marca entrar na cadeia Alembic, uma segunda base temporária
+  confirmou upgrade completo desde zero, downgrade até `0015_product_brand`,
+  reaplicação da rota e seis testes direcionados. Containers de teste removidos.
+
 ## 2026-10-22 — Correção do CI da F02.2a
 
 - GitHub Actions define explicitamente `TEST_META_DATABASE_URL` na porta 5432 do
   serviço PostgreSQL do CI; antes, pytest carregava a URL de exemplo local na
   porta 55432 e falhava na checagem de isolamento do banco `_test`.
-- Preparação do banco de teste cria o login restrito `local_spark_ingest` e concede
-  `local_spark_meta`, necessário aos testes da inbox e do vínculo WhatsApp.
+- Preparação do banco de teste cria o login restrito `meu_braco_direito_ingest` e concede
+  `meu_braco_direito_meta`, necessário aos testes da inbox e do vínculo WhatsApp.
 - Pytest exige todas as URLs e o endereço Temporal explícitos sob `CI`, evitando
   que um ambiente remoto use por engano valores do exemplo local.
 - Validação local: YAML/URLs do workflow conferidos, setup dos logins executado
@@ -25,7 +61,7 @@
 - Webhook sintético e testes de falha/concorrência exercitam a prova localmente.
   UI, smoke Meta real, resolução do remetente e mídia/IA continuam pendentes.
 - Migration 0014 revertida e reaplicada no banco `_test` e no desenvolvimento
-  local, após backup `.local/backups/local-spark-before-0014-2026-10-22.dump`.
+  local, após backup `.local/backups/meu-braco-direito-before-0014-2026-10-22.dump`.
   As tabelas novas estavam vazias antes da reaplicação da política RLS; nenhum
   dado de vínculo foi descartado. 278 testes, 100% de linhas e ramos, Ruff e
   mypy aprovados com comandos equivalentes da `.venv`.
@@ -39,7 +75,7 @@
   Reentregas concorrentes não duplicam registros; login normal não lê a inbox.
   Eventos ficam em quarentena até vínculo comprovado na F02.2.
 - Role local criada no cluster existente; banco `_test` validou downgrade/upgrade.
-  Backup local `.local/backups/local-spark-before-0013-2026-10-21.dump` antecedeu
+  Backup local `.local/backups/meu-braco-direito-before-0013-2026-10-21.dump` antecedeu
   upgrade aditivo do banco de desenvolvimento. Dados existentes preservados.
 - 271 testes backend/100% linhas e ramos; Ruff e mypy passaram. `make ci` não
   executou porque `uv` não está no PATH deste shell; comandos equivalentes da
@@ -284,14 +320,14 @@
   da extensão e argumentos configurados, ready/Swagger/OpenAPI 200. API Docker
   restaurada após smoke. Não foi executada uma sessão interativa no editor.
 
-## 2026-10-20 — Nome e ambiente Local Spark
+## 2026-10-20 — Nome e ambiente Meu Braço Direito
 
 - Adotado `local-spark-platform` como repositório principal, preservando seu remoto
   e as alterações locais existentes. Restaurados os arquivos de CI, Docker e
   configuração que não estavam presentes na cópia do repositório.
-- Padronizados nome de pacote, Swagger, logs, configuração `LOCAL_SPARK_`, issuer,
-  audience e task queue. Bancos usam `local_spark_platform` e
-  `local_spark_platform_test`; roles usam `local_spark_*`.
+- Padronizados nome de pacote, Swagger, logs, configuração `MEU_BRACO_DIREITO_`, issuer,
+  audience e task queue. Bancos usam `meu_braco_direito_platform` e
+  `meu_braco_direito_platform_test`; roles usam `meu_braco_direito_*`.
 - Atualizadas senhas locais de administração, runtime e relay, além da chave JWT
   de desenvolvimento. `.env` local criado e ignorado pelo Git; tokens precisam
   ser reemitidos. Nenhuma credencial externa/produção foi alterada.

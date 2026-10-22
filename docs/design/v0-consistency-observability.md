@@ -177,7 +177,7 @@ Convenção proposta de atributos da aplicação, não nomes obrigatórios do pa
 {
   "timestamp": "2026-10-20T15:00:00.000Z",
   "severity": "WARN",
-  "service": "local-spark-io-worker",
+  "service": "meu-braco-direito-io-worker",
   "environment": "staging",
   "release": "git-sha",
   "event": "external_operation.outcome_unknown",

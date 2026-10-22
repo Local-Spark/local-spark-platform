@@ -1,4 +1,4 @@
-# Local Spark — Análise de Melhorias, IA de Conteúdo e Skills por Negócio
+# Meu Braço Direito — Análise de Melhorias, IA de Conteúdo e Skills por Negócio
 
 **Data:** 21/10/2026  
 **Contexto:** Análise solicitada durante finalização dos testes da F01.  
@@ -26,7 +26,7 @@ Principais recomendações prioritárias:
 
 ## 2. Estado Atual do Projeto (resumo dos documentos)
 
-- **Nome:** Local Spark  
+- **Nome:** Meu Braço Direito  
 - **Repositórios:** `local-spark-platform`, `local-spark-web`, (infra futura)  
 - **Fase atual:** F01 em finalização (F01.1–F01.6 implementadas localmente; staging/AWS e envio real Twilio ainda pendentes).  
 - **F00:** Concluída localmente com 100% coverage.  
@@ -48,7 +48,7 @@ Pontos fortes já existentes que facilitam as melhorias propostas:
 
 ### 3.1 Ferramentas recomendadas para avaliação
 
-| Necessidade                          | Ferramentas fortes em 2026                  | Observação para Local Spark                          |
+| Necessidade                          | Ferramentas fortes em 2026                  | Observação para Meu Braço Direito                          |
 |--------------------------------------|---------------------------------------------|-----------------------------------------------------|
 | Avatar realista + voz do dono        | **HeyGen** (líder), Synthesia, VEED, D-ID, Tavus | Manter HeyGen como primário. Bom suporte a clonagem e PT-BR. |
 | Vídeo gerado (B-roll, cenas, produto)| **Kling AI**, Google **Veo 3.1**, Seedance 2.5, Runway Gen-4 | Kling e Veo estão deliverando motion/física superiores em vários benchmarks. |

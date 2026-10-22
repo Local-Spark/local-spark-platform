@@ -17,19 +17,21 @@ jobs:
       postgres:
         image: postgres:17.6-alpine
         env:
-          POSTGRES_PASSWORD: local-spark-test-admin-password
-          POSTGRES_DB: local_spark_platform_test
+          POSTGRES_PASSWORD: meu-braco-direito-test-admin-password
+          POSTGRES_DB: meu_braco_direito_platform_test
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U postgres -d local_spark_platform_test"
+          --health-cmd "pg_isready -U postgres -d meu_braco_direito_platform_test"
           --health-interval 2s --health-timeout 3s --health-retries 20
     env:
-      LOCAL_SPARK_MIGRATION_DATABASE_URL: postgresql+asyncpg://postgres:local-spark-test-admin-password@127.0.0.1:5432/local_spark_platform_test
-      TEST_ADMIN_DATABASE_URL: postgresql+asyncpg://postgres:local-spark-test-admin-password@127.0.0.1:5432/local_spark_platform_test
-      TEST_DATABASE_URL: postgresql+asyncpg://local_spark_runtime:local-spark-app-password@127.0.0.1:5432/local_spark_platform_test
-      TEST_AUTH_DATABASE_URL: postgresql+asyncpg://local_spark_identity:local-spark-auth-password@127.0.0.1:5432/local_spark_platform_test
-      TEST_BILLING_DATABASE_URL: postgresql+asyncpg://local_spark_payments:local-spark-billing-password@127.0.0.1:5432/local_spark_platform_test
-      TEST_RELAY_DATABASE_URL: postgresql+asyncpg://local_spark_delivery:local-spark-relay-password@127.0.0.1:5432/local_spark_platform_test
+      MEU_BRACO_DIREITO_MIGRATION_DATABASE_URL: postgresql+asyncpg://postgres:meu-braco-direito-test-admin-password@127.0.0.1:5432/meu_braco_direito_platform_test
+      TEST_ADMIN_DATABASE_URL: postgresql+asyncpg://postgres:meu-braco-direito-test-admin-password@127.0.0.1:5432/meu_braco_direito_platform_test
+      TEST_DATABASE_URL: postgresql+asyncpg://meu_braco_direito_runtime:meu-braco-direito-app-password@127.0.0.1:5432/meu_braco_direito_platform_test
+      TEST_AUTH_DATABASE_URL: postgresql+asyncpg://meu_braco_direito_identity:meu-braco-direito-auth-password@127.0.0.1:5432/meu_braco_direito_platform_test
+      TEST_BILLING_DATABASE_URL: postgresql+asyncpg://meu_braco_direito_payments:meu-braco-direito-billing-password@127.0.0.1:5432/meu_braco_direito_platform_test
+      TEST_RELAY_DATABASE_URL: postgresql+asyncpg://meu_braco_direito_delivery:meu-braco-direito-relay-password@127.0.0.1:5432/meu_braco_direito_platform_test
+      TEST_META_DATABASE_URL: postgresql+asyncpg://meu_braco_direito_ingest:meu-braco-direito-meta-password@127.0.0.1:5432/meu_braco_direito_platform_test
+      TEST_CORRELATOR_DATABASE_URL: postgresql+asyncpg://meu_braco_direito_router:meu-braco-direito-router-password@127.0.0.1:5432/meu_braco_direito_platform_test
       TEST_TEMPORAL_ADDRESS: 127.0.0.1:7233
     steps:
       - uses: actions/checkout@v6
@@ -47,7 +49,7 @@ jobs:
           uv run alembic upgrade head
           uv run python scripts/prepare_local_tests.py
       - name: Start Temporal development service
-        run: docker run -d --name local-spark-temporal-test -p 127.0.0.1:7233:7233 temporalio/temporal:1.4.1 server start-dev --ip 0.0.0.0
+        run: docker run -d --name meu-braco-direito-temporal-test -p 127.0.0.1:7233:7233 temporalio/temporal:1.4.1 server start-dev --ip 0.0.0.0
       - name: Wait for Temporal
         run: uv run python scripts/wait_temporal.py
       - name: Unit, PostgreSQL and real Temporal integration tests; 100% line and branch coverage
@@ -57,7 +59,7 @@ jobs:
           uv run alembic downgrade base
           uv run alembic upgrade head
       - name: Build runtime image
-        run: docker build -t local-spark-platform:ci .
+        run: docker build -t meu-braco-direito-platform:ci .
       - uses: actions/upload-artifact@v4
         if: always()
         with:

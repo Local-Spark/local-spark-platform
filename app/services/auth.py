@@ -91,9 +91,9 @@ INSERT INTO auth_actions(digest,user_id,purpose,expires_at) VALUES
             {"digest": digest(token), "user": user, "purpose": purpose, "expires": deadline},
         )
         path, subject = (
-            ("verify-email", "Confirme seu e-mail na Local Spark")
+            ("verify-email", "Confirme seu e-mail no Meu Braço Direito")
             if purpose == "verify"
-            else ("reset-password", "Defina sua senha na Local Spark")
+            else ("reset-password", "Defina sua senha no Meu Braço Direito")
         )
         payload = {
             "to": email,
@@ -124,7 +124,7 @@ INSERT INTO auth_actions(digest,user_id,purpose,expires_at) VALUES
             await db.execute(
                 text("""
 INSERT INTO user_accounts(id,issuer,subject,display_name,email,email_verified)
-VALUES (:id,'local-spark',:subject,:name,:email,false)
+VALUES (:id,'meu-braco-direito',:subject,:name,:email,false)
 """),
                 {"id": user, "subject": str(user), "name": name, "email": email},
             )
@@ -284,7 +284,7 @@ INSERT INTO auth_challenges(digest,user_id,version,setup_secret,expires_at) VALU
                     "mfa_required": True,
                     "challenge": raw,
                     "setup_secret": setup,
-                    "provisioning_uri": pyotp.TOTP(setup).provisioning_uri(email, issuer_name="Local Spark")
+                    "provisioning_uri": pyotp.TOTP(setup).provisioning_uri(email, issuer_name="Meu Braço Direito")
                     if setup
                     else None,
                 }

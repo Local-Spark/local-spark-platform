@@ -2,18 +2,18 @@
 
 import asyncio
 import os
+from uuid import UUID
 
 from sqlalchemy import make_url, text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.core.config import get_settings
-from app.core.identity import actor_for_subject
 from scripts.seed_operator import main as seed
 
 
 async def main():
     settings = get_settings()
-    url = os.environ["LOCAL_SPARK_MIGRATION_DATABASE_URL"]
+    url = os.environ["MEU_BRACO_DIREITO_MIGRATION_DATABASE_URL"]
     parsed = make_url(url)
     if not (parsed.database or "").endswith("_test") or parsed.host not in {"localhost", "127.0.0.1"}:
         raise SystemExit("Browser setup requires an isolated loopback _test database")
@@ -27,7 +27,10 @@ async def main():
     engine = create_async_engine(url, hide_parameters=True)
     async with engine.begin() as db:
         for sub in ("11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"):
-            actor = actor_for_subject("http://localhost:8081/realms/local-spark", sub)
+            actor = {
+                "11111111-1111-4111-8111-111111111111": UUID("428f23bf-7d6b-55be-9150-792093ef0a4c"),
+                "22222222-2222-4222-8222-222222222222": UUID("5cdbeb2a-4fe3-50a0-a292-c8a8a238e49c"),
+            }[sub]
             await db.execute(
                 text("UPDATE auth_credentials SET mfa_secret=NULL,mfa_step=-1,recovery_hashes='[]' WHERE user_id=:id"),
                 {"id": actor},

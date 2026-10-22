@@ -2,7 +2,7 @@
 
 Data: 21/10/2026. Status: especificação aceita para F02–F07; nada deste documento
 está implementado por sua publicação. Origem: avaliação crítica de
-`../Local-Spark-Analise-Melhorias-IA-Skills-2026-10-21.md`.
+`../Meu-Braco-Direito-Analise-Melhorias-IA-Skills-2026-10-21.md`.
 
 ## Avaliação das recomendações recebidas
 

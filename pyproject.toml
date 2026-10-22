@@ -1,7 +1,7 @@
 [project]
-name = "local-spark-platform"
+name = "meu-braco-direito-platform"
 version = "0.1.0"
-description = "Multi-tenant content platform: API and durable Python workflows."
+description = "Meu Braço Direito: content platform, API and durable Python workflows."
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
 dependencies = [

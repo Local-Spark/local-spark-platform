@@ -27,7 +27,7 @@ são funcionalidades da v0, não incrementos
 indefinidos. A entrega pode ser implementada em fatias, mas só será considerada v0
 completa quando cumprir todos os critérios definidos nestes documentos.
 
-Nome adotado: Local Spark. Disponibilidade de marca/domínio ainda não validada.
+Nome adotado: Meu Braço Direito. Disponibilidade de marca/domínio ainda não validada.
 Repositórios: `local-spark-platform`, `local-spark-web` e `local-spark-infra`.
 O backend já possui remoto Git configurado; web e infra permanecem planejados.
 
@@ -165,12 +165,12 @@ flowchart LR
 
 Deployments do mesmo repositório backend:
 
-- `local-spark-api`: sessões, webhooks, OAuth e comandos rápidos.
-- `local-spark-event-relay`: entrega outbox ao Temporal com IDs determinísticos.
-- `local-spark-workflow-worker`: executa decisões determinísticas dos workflows.
-- `local-spark-io-worker`: activities de banco e integrações, isoladas por task queue quando necessário.
-- `local-spark-media-worker`: activities CPU/IO de áudio, imagem e vídeo em sandbox.
-- `local-spark-maintenance`: reconciliação, saúde, limpeza e retomada de comandos pendentes.
+- `meu-braco-direito-api`: sessões, webhooks, OAuth e comandos rápidos.
+- `meu-braco-direito-event-relay`: entrega outbox ao Temporal com IDs determinísticos.
+- `meu-braco-direito-workflow-worker`: executa decisões determinísticas dos workflows.
+- `meu-braco-direito-io-worker`: activities de banco e integrações, isoladas por task queue quando necessário.
+- `meu-braco-direito-media-worker`: activities CPU/IO de áudio, imagem e vídeo em sandbox.
+- `meu-braco-direito-maintenance`: reconciliação, saúde, limpeza e retomada de comandos pendentes.
 
 Scheduler de datas da jornada é o Temporal. `maintenance` não é segundo runner:
 identifica inconsistências de domínio e envia comandos para o workflow responsável.

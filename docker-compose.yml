@@ -1,17 +1,17 @@
-name: local-spark-platform
+name: meu-braco-direito-platform
 services:
   postgres:
     image: postgres:17.6-alpine
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: local-spark-admin-password
-      POSTGRES_DB: local_spark_platform
+      POSTGRES_PASSWORD: meu-braco-direito-admin-password
+      POSTGRES_DB: meu_braco_direito_platform
     ports: ["127.0.0.1:55432:5432"]
     volumes:
-      - local-spark-postgres:/var/lib/postgresql/data
+      - meu-braco-direito-postgres:/var/lib/postgresql/data
       - ./docker/postgres/001-local-users.sql:/docker-entrypoint-initdb.d/001-local-users.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d local_spark_platform"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d meu_braco_direito_platform"]
       interval: 2s
       timeout: 3s
       retries: 20
@@ -19,34 +19,34 @@ services:
     image: temporalio/temporal:1.4.1
     command: ["server", "start-dev", "--ip", "0.0.0.0", "--db-filename", "/var/lib/temporal/temporal.db"]
     volumes:
-      - local-spark-temporal:/var/lib/temporal
+      - meu-braco-direito-temporal:/var/lib/temporal
     ports: ["127.0.0.1:7233:7233", "127.0.0.1:8233:8233"]
   api:
     build: .
     environment:
-      LOCAL_SPARK_DATABASE_URL: postgresql+asyncpg://local_spark_runtime:local-spark-app-password@postgres:5432/local_spark_platform
-      LOCAL_SPARK_JWT_SECRET: development-local-spark-change-this-secret-before-deploying
-      LOCAL_SPARK_AUTH_DATABASE_URL: postgresql+asyncpg://local_spark_identity:local-spark-auth-password@postgres:5432/local_spark_platform
-      LOCAL_SPARK_BILLING_DATABASE_URL: postgresql+asyncpg://local_spark_payments:local-spark-billing-password@postgres:5432/local_spark_platform
-      LOCAL_SPARK_BILLING_MODE: ${LOCAL_SPARK_BILLING_MODE:-disabled}
-      LOCAL_SPARK_PUBLIC_WEB_URL: ${LOCAL_SPARK_PUBLIC_WEB_URL:-http://localhost:5173}
-      LOCAL_SPARK_STRIPE_SECRET_KEY: ${LOCAL_SPARK_STRIPE_SECRET_KEY:-}
-      LOCAL_SPARK_STRIPE_WEBHOOK_SECRET: ${LOCAL_SPARK_STRIPE_WEBHOOK_SECRET:-}
-      LOCAL_SPARK_STRIPE_PRICE_ID: ${LOCAL_SPARK_STRIPE_PRICE_ID:-}
-      LOCAL_SPARK_BILLING_MONTHLY_AMOUNT_MINOR: ${LOCAL_SPARK_BILLING_MONTHLY_AMOUNT_MINOR:-}
-      LOCAL_SPARK_PHONE_VERIFY_MODE: ${LOCAL_SPARK_PHONE_VERIFY_MODE:-disabled}
-      LOCAL_SPARK_PHONE_VERIFY_CHANNEL: ${LOCAL_SPARK_PHONE_VERIFY_CHANNEL:-sms}
-      LOCAL_SPARK_TWILIO_VERIFY_SERVICE_SID: ${LOCAL_SPARK_TWILIO_VERIFY_SERVICE_SID:-}
-      LOCAL_SPARK_TWILIO_API_KEY: ${LOCAL_SPARK_TWILIO_API_KEY:-}
-      LOCAL_SPARK_TWILIO_API_SECRET: ${LOCAL_SPARK_TWILIO_API_SECRET:-}
-      LOCAL_SPARK_META_WEBHOOK_MODE: ${LOCAL_SPARK_META_WEBHOOK_MODE:-disabled}
-      LOCAL_SPARK_META_DATABASE_URL: postgresql+asyncpg://local_spark_ingest:local-spark-meta-password@postgres:5432/local_spark_platform
-      LOCAL_SPARK_META_VERIFY_TOKEN: ${LOCAL_SPARK_META_VERIFY_TOKEN:-}
-      LOCAL_SPARK_META_APP_SECRET: ${LOCAL_SPARK_META_APP_SECRET:-}
-      LOCAL_SPARK_META_WABA_ID: ${LOCAL_SPARK_META_WABA_ID:-}
-      LOCAL_SPARK_META_PHONE_NUMBER_ID: ${LOCAL_SPARK_META_PHONE_NUMBER_ID:-}
-      LOCAL_SPARK_META_ENCRYPTION_KEY: ${LOCAL_SPARK_META_ENCRYPTION_KEY:-}
-    ports: ["127.0.0.1:${LOCAL_SPARK_API_PORT:-8000}:8000"]
+      MEU_BRACO_DIREITO_DATABASE_URL: postgresql+asyncpg://meu_braco_direito_runtime:meu-braco-direito-app-password@postgres:5432/meu_braco_direito_platform
+      MEU_BRACO_DIREITO_JWT_SECRET: development-meu-braco-direito-change-this-secret-before-deploying
+      MEU_BRACO_DIREITO_AUTH_DATABASE_URL: postgresql+asyncpg://meu_braco_direito_identity:meu-braco-direito-auth-password@postgres:5432/meu_braco_direito_platform
+      MEU_BRACO_DIREITO_BILLING_DATABASE_URL: postgresql+asyncpg://meu_braco_direito_payments:meu-braco-direito-billing-password@postgres:5432/meu_braco_direito_platform
+      MEU_BRACO_DIREITO_BILLING_MODE: ${MEU_BRACO_DIREITO_BILLING_MODE:-disabled}
+      MEU_BRACO_DIREITO_PUBLIC_WEB_URL: ${MEU_BRACO_DIREITO_PUBLIC_WEB_URL:-http://localhost:5173}
+      MEU_BRACO_DIREITO_STRIPE_SECRET_KEY: ${MEU_BRACO_DIREITO_STRIPE_SECRET_KEY:-}
+      MEU_BRACO_DIREITO_STRIPE_WEBHOOK_SECRET: ${MEU_BRACO_DIREITO_STRIPE_WEBHOOK_SECRET:-}
+      MEU_BRACO_DIREITO_STRIPE_PRICE_ID: ${MEU_BRACO_DIREITO_STRIPE_PRICE_ID:-}
+      MEU_BRACO_DIREITO_BILLING_MONTHLY_AMOUNT_MINOR: ${MEU_BRACO_DIREITO_BILLING_MONTHLY_AMOUNT_MINOR:-}
+      MEU_BRACO_DIREITO_PHONE_VERIFY_MODE: ${MEU_BRACO_DIREITO_PHONE_VERIFY_MODE:-disabled}
+      MEU_BRACO_DIREITO_PHONE_VERIFY_CHANNEL: ${MEU_BRACO_DIREITO_PHONE_VERIFY_CHANNEL:-sms}
+      MEU_BRACO_DIREITO_TWILIO_VERIFY_SERVICE_SID: ${MEU_BRACO_DIREITO_TWILIO_VERIFY_SERVICE_SID:-}
+      MEU_BRACO_DIREITO_TWILIO_API_KEY: ${MEU_BRACO_DIREITO_TWILIO_API_KEY:-}
+      MEU_BRACO_DIREITO_TWILIO_API_SECRET: ${MEU_BRACO_DIREITO_TWILIO_API_SECRET:-}
+      MEU_BRACO_DIREITO_META_WEBHOOK_MODE: ${MEU_BRACO_DIREITO_META_WEBHOOK_MODE:-disabled}
+      MEU_BRACO_DIREITO_META_DATABASE_URL: postgresql+asyncpg://meu_braco_direito_ingest:meu-braco-direito-meta-password@postgres:5432/meu_braco_direito_platform
+      MEU_BRACO_DIREITO_META_VERIFY_TOKEN: ${MEU_BRACO_DIREITO_META_VERIFY_TOKEN:-}
+      MEU_BRACO_DIREITO_META_APP_SECRET: ${MEU_BRACO_DIREITO_META_APP_SECRET:-}
+      MEU_BRACO_DIREITO_META_WABA_ID: ${MEU_BRACO_DIREITO_META_WABA_ID:-}
+      MEU_BRACO_DIREITO_META_PHONE_NUMBER_ID: ${MEU_BRACO_DIREITO_META_PHONE_NUMBER_ID:-}
+      MEU_BRACO_DIREITO_META_ENCRYPTION_KEY: ${MEU_BRACO_DIREITO_META_ENCRYPTION_KEY:-}
+    ports: ["127.0.0.1:${MEU_BRACO_DIREITO_API_PORT:-8000}:8000"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -54,9 +54,9 @@ services:
     build: .
     command: ["python", "-m", "app.entrypoints.worker"]
     environment:
-      LOCAL_SPARK_DATABASE_URL: postgresql+asyncpg://local_spark_runtime:local-spark-app-password@postgres:5432/local_spark_platform
-      LOCAL_SPARK_JWT_SECRET: development-local-spark-change-this-secret-before-deploying
-      LOCAL_SPARK_TEMPORAL_ADDRESS: temporal:7233
+      MEU_BRACO_DIREITO_DATABASE_URL: postgresql+asyncpg://meu_braco_direito_runtime:meu-braco-direito-app-password@postgres:5432/meu_braco_direito_platform
+      MEU_BRACO_DIREITO_JWT_SECRET: development-meu-braco-direito-change-this-secret-before-deploying
+      MEU_BRACO_DIREITO_TEMPORAL_ADDRESS: temporal:7233
     profiles: ["workers"]
     restart: on-failure
     depends_on:
@@ -64,14 +64,27 @@ services:
         condition: service_healthy
       temporal:
         condition: service_started
+  whatsapp-correlator:
+    build: .
+    command: ["python", "-m", "app.entrypoints.whatsapp_correlator"]
+    environment:
+      MEU_BRACO_DIREITO_DATABASE_URL: postgresql+asyncpg://meu_braco_direito_router:meu-braco-direito-router-password@postgres:5432/meu_braco_direito_platform
+      MEU_BRACO_DIREITO_CORRELATOR_DATABASE_URL: postgresql+asyncpg://meu_braco_direito_router:meu-braco-direito-router-password@postgres:5432/meu_braco_direito_platform
+      MEU_BRACO_DIREITO_JWT_SECRET: development-meu-braco-direito-change-this-secret-before-deploying
+      MEU_BRACO_DIREITO_META_ENCRYPTION_KEY: ${MEU_BRACO_DIREITO_META_ENCRYPTION_KEY:-}
+    profiles: ["workers"]
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
   relay:
     build: .
     command: ["python", "-m", "app.entrypoints.relay"]
     environment:
-      LOCAL_SPARK_DATABASE_URL: postgresql+asyncpg://local_spark_runtime:local-spark-app-password@postgres:5432/local_spark_platform
-      LOCAL_SPARK_RELAY_DATABASE_URL: postgresql+asyncpg://local_spark_delivery:local-spark-relay-password@postgres:5432/local_spark_platform
-      LOCAL_SPARK_JWT_SECRET: development-local-spark-change-this-secret-before-deploying
-      LOCAL_SPARK_TEMPORAL_ADDRESS: temporal:7233
+      MEU_BRACO_DIREITO_DATABASE_URL: postgresql+asyncpg://meu_braco_direito_runtime:meu-braco-direito-app-password@postgres:5432/meu_braco_direito_platform
+      MEU_BRACO_DIREITO_RELAY_DATABASE_URL: postgresql+asyncpg://meu_braco_direito_delivery:meu-braco-direito-relay-password@postgres:5432/meu_braco_direito_platform
+      MEU_BRACO_DIREITO_JWT_SECRET: development-meu-braco-direito-change-this-secret-before-deploying
+      MEU_BRACO_DIREITO_TEMPORAL_ADDRESS: temporal:7233
     profiles: ["workers"]
     restart: on-failure
     depends_on:
@@ -83,16 +96,16 @@ services:
     build: .
     command: ["python", "-m", "app.entrypoints.billing"]
     environment:
-      LOCAL_SPARK_DATABASE_URL: postgresql+asyncpg://local_spark_payments:local-spark-billing-password@postgres:5432/local_spark_platform
-      LOCAL_SPARK_BILLING_DATABASE_URL: postgresql+asyncpg://local_spark_payments:local-spark-billing-password@postgres:5432/local_spark_platform
-      LOCAL_SPARK_JWT_SECRET: development-local-spark-change-this-secret-before-deploying
-      LOCAL_SPARK_TEMPORAL_ADDRESS: temporal:7233
-      LOCAL_SPARK_BILLING_MODE: ${LOCAL_SPARK_BILLING_MODE:-disabled}
-      LOCAL_SPARK_PUBLIC_WEB_URL: ${LOCAL_SPARK_PUBLIC_WEB_URL:-http://localhost:5173}
-      LOCAL_SPARK_STRIPE_SECRET_KEY: ${LOCAL_SPARK_STRIPE_SECRET_KEY:-}
-      LOCAL_SPARK_STRIPE_WEBHOOK_SECRET: ${LOCAL_SPARK_STRIPE_WEBHOOK_SECRET:-}
-      LOCAL_SPARK_STRIPE_PRICE_ID: ${LOCAL_SPARK_STRIPE_PRICE_ID:-}
-      LOCAL_SPARK_BILLING_MONTHLY_AMOUNT_MINOR: ${LOCAL_SPARK_BILLING_MONTHLY_AMOUNT_MINOR:-}
+      MEU_BRACO_DIREITO_DATABASE_URL: postgresql+asyncpg://meu_braco_direito_payments:meu-braco-direito-billing-password@postgres:5432/meu_braco_direito_platform
+      MEU_BRACO_DIREITO_BILLING_DATABASE_URL: postgresql+asyncpg://meu_braco_direito_payments:meu-braco-direito-billing-password@postgres:5432/meu_braco_direito_platform
+      MEU_BRACO_DIREITO_JWT_SECRET: development-meu-braco-direito-change-this-secret-before-deploying
+      MEU_BRACO_DIREITO_TEMPORAL_ADDRESS: temporal:7233
+      MEU_BRACO_DIREITO_BILLING_MODE: ${MEU_BRACO_DIREITO_BILLING_MODE:-disabled}
+      MEU_BRACO_DIREITO_PUBLIC_WEB_URL: ${MEU_BRACO_DIREITO_PUBLIC_WEB_URL:-http://localhost:5173}
+      MEU_BRACO_DIREITO_STRIPE_SECRET_KEY: ${MEU_BRACO_DIREITO_STRIPE_SECRET_KEY:-}
+      MEU_BRACO_DIREITO_STRIPE_WEBHOOK_SECRET: ${MEU_BRACO_DIREITO_STRIPE_WEBHOOK_SECRET:-}
+      MEU_BRACO_DIREITO_STRIPE_PRICE_ID: ${MEU_BRACO_DIREITO_STRIPE_PRICE_ID:-}
+      MEU_BRACO_DIREITO_BILLING_MONTHLY_AMOUNT_MINOR: ${MEU_BRACO_DIREITO_BILLING_MONTHLY_AMOUNT_MINOR:-}
     profiles: ["workers"]
     restart: on-failure
     depends_on: [postgres, temporal]
@@ -103,17 +116,17 @@ services:
     build: .
     command: ["python", "-m", "app.entrypoints.auth_mail"]
     environment:
-      LOCAL_SPARK_DATABASE_URL: postgresql+asyncpg://local_spark_identity:local-spark-auth-password@postgres:5432/local_spark_platform
-      LOCAL_SPARK_AUTH_DATABASE_URL: postgresql+asyncpg://local_spark_identity:local-spark-auth-password@postgres:5432/local_spark_platform
-      LOCAL_SPARK_JWT_SECRET: development-local-spark-change-this-secret-before-deploying
-      LOCAL_SPARK_SMTP_HOST: mailpit
-      LOCAL_SPARK_SMTP_PORT: 1025
+      MEU_BRACO_DIREITO_DATABASE_URL: postgresql+asyncpg://meu_braco_direito_identity:meu-braco-direito-auth-password@postgres:5432/meu_braco_direito_platform
+      MEU_BRACO_DIREITO_AUTH_DATABASE_URL: postgresql+asyncpg://meu_braco_direito_identity:meu-braco-direito-auth-password@postgres:5432/meu_braco_direito_platform
+      MEU_BRACO_DIREITO_JWT_SECRET: development-meu-braco-direito-change-this-secret-before-deploying
+      MEU_BRACO_DIREITO_SMTP_HOST: mailpit
+      MEU_BRACO_DIREITO_SMTP_PORT: 1025
     profiles: ["workers"]
     restart: on-failure
     depends_on: [postgres, mailpit]
 
 volumes:
-  local-spark-postgres:
-  local-spark-temporal:
+  meu-braco-direito-postgres:
+  meu-braco-direito-temporal:
   # Legacy identity volume retained without a service; never delete user data during migration.
-  local-spark-keycloak:
+  meu-braco-direito-keycloak:

@@ -24,6 +24,7 @@ class IntegrationSettings(BaseSettings):
     auth_database_url: SecretStr
     billing_database_url: SecretStr
     meta_database_url: SecretStr
+    correlator_database_url: SecretStr
     relay_database_url: SecretStr
     temporal_address: str
 
@@ -38,6 +39,7 @@ def pytest_configure():
             "TEST_AUTH_DATABASE_URL",
             "TEST_BILLING_DATABASE_URL",
             "TEST_META_DATABASE_URL",
+            "TEST_CORRELATOR_DATABASE_URL",
             "TEST_TEMPORAL_ADDRESS",
         )
         missing = [name for name in required if not os.getenv(name)]
@@ -59,6 +61,7 @@ def settings():
         relay_database_url=os.getenv("TEST_RELAY_DATABASE_URL"),
         auth_database_url=os.getenv("TEST_AUTH_DATABASE_URL"),
         meta_database_url=os.getenv("TEST_META_DATABASE_URL"),
+        correlator_database_url=os.getenv("TEST_CORRELATOR_DATABASE_URL"),
         jwt_secret="unit-test-secret-with-at-least-32-characters",
     )
 

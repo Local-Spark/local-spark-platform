@@ -22,6 +22,7 @@ async def admin():
         "TEST_AUTH_DATABASE_URL",
         "TEST_BILLING_DATABASE_URL",
         "TEST_META_DATABASE_URL",
+        "TEST_CORRELATOR_DATABASE_URL",
     ):
         if not os.getenv(key):
             pytest.fail(f"{key} must use a restricted runtime login")

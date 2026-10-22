@@ -407,7 +407,7 @@ wheels = [
 ]
 
 [[package]]
-name = "local-spark-platform"
+name = "meu-braco-direito-platform"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

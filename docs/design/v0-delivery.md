@@ -1,6 +1,6 @@
 # v0 — Repositórios, infraestrutura e execução
 
-Data: 20/10/2026. Nome adotado: Local Spark; repositórios com prefixo `local-spark-`.
+Data: 20/10/2026. Nome adotado: Meu Braço Direito; repositórios com prefixo `meu-braco-direito-`.
 Documentação de [arquitetura](v0-architecture.md), [APIs](v0-integrations.md) e
 [resiliência](v0-reliability.md) define o contrato da v0.
 O complemento de [inteligência editorial](v0-intelligence.md) acrescenta pesquisa,
@@ -37,7 +37,7 @@ local-spark-platform/
     api.Dockerfile
     worker.Dockerfile
     media.Dockerfile
-  src/local_spark/
+  src/meu_braco_direito/
     entrypoints/
       api/
       event_relay/

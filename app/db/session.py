@@ -27,10 +27,19 @@ def current_schema_head() -> str:
 
 class Database:
     def __init__(
-        self, settings: Settings, *, relay: bool = False, auth: bool = False, billing: bool = False, meta: bool = False
+        self,
+        settings: Settings,
+        *,
+        relay: bool = False,
+        auth: bool = False,
+        billing: bool = False,
+        meta: bool = False,
+        correlator: bool = False,
     ) -> None:
         url = (
-            settings.meta_database_url
+            settings.correlator_database_url
+            if correlator
+            else settings.meta_database_url
             if meta
             else settings.billing_database_url
             if billing
@@ -50,15 +59,17 @@ class Database:
             max_overflow=settings.max_overflow,
             connect_args={
                 "server_settings": {
-                    "application_name": "local-spark-meta"
+                    "application_name": "meu-braco-direito-correlator"
+                    if correlator
+                    else "meu-braco-direito-meta"
                     if meta
-                    else "local-spark-billing"
+                    else "meu-braco-direito-billing"
                     if billing
-                    else "local-spark-auth"
+                    else "meu-braco-direito-auth"
                     if auth
-                    else "local-spark-relay"
+                    else "meu-braco-direito-relay"
                     if relay
-                    else "local-spark-api"
+                    else "meu-braco-direito-api"
                 }
             },
         )

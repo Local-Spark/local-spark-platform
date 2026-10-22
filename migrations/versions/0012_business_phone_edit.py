@@ -9,8 +9,8 @@ depends_on = None
 
 
 def upgrade():
-    op.execute("GRANT UPDATE(phone) ON business_profiles TO local_spark_app")
+    op.execute("GRANT UPDATE(phone) ON business_profiles TO meu_braco_direito_app")
 
 
 def downgrade():
-    op.execute("REVOKE UPDATE(phone) ON business_profiles FROM local_spark_app")
+    op.execute("REVOKE UPDATE(phone) ON business_profiles FROM meu_braco_direito_app")

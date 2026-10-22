@@ -7,7 +7,7 @@ políticas e gates das fases seguintes. Nunca usar `.env.example` em produção.
 
 F01.5 acrescenta o processo `billing` em Compose/debug. Por padrão ele registra
 billing.disabled e não consome jobs no Temporal nem chama Stripe. Login restrito
-local_spark_payments/local_spark_billing, separado de auth/app/relay. Setup de
+meu_braco_direito_payments/meu_braco_direito_billing, separado de auth/app/relay. Setup de
 sandbox, flags live e contratos em [SDD billing](design/billing.md) e README.
 Durante compras na sandbox local, mantenha o listener em execução:
 
@@ -48,9 +48,9 @@ Um novo convite pendente prevalece sobre a revogação anterior; o aceite reativ
 staff somente após login com o mesmo e-mail e novo login/MFA.
 
 Verificação de telefone usa Twilio Verify e fica desativada por padrão. Após criar
-conta, Verify Service e API key, configurar no backend `LOCAL_SPARK_PHONE_VERIFY_MODE=twilio`,
-`LOCAL_SPARK_TWILIO_VERIFY_SERVICE_SID`, `LOCAL_SPARK_TWILIO_API_KEY` e
-`LOCAL_SPARK_TWILIO_API_SECRET`. O canal padrão é SMS; `LOCAL_SPARK_PHONE_VERIFY_CHANNEL`
+conta, Verify Service e API key, configurar no backend `MEU_BRACO_DIREITO_PHONE_VERIFY_MODE=twilio`,
+`MEU_BRACO_DIREITO_TWILIO_VERIFY_SERVICE_SID`, `MEU_BRACO_DIREITO_TWILIO_API_KEY` e
+`MEU_BRACO_DIREITO_TWILIO_API_SECRET`. O canal padrão é SMS; `MEU_BRACO_DIREITO_PHONE_VERIFY_CHANNEL`
 pode ser `whatsapp` se o serviço estiver habilitado para isso. Reiniciar API após
 configurar. O número do perfil deve ser brasileiro válido ou E.164; código vence
 em 10 minutos, espera mínima entre envios de 60 segundos e máximo de cinco
@@ -62,14 +62,14 @@ isso remove a condição de verificado e invalida o código anterior. A migratio
 0012 é necessária para a atualização de `business_profiles.phone` pela role runtime.
 
 F02.1 usa `GET/POST /api/v1/webhooks/whatsapp` para desafio e eventos da Meta.
-Por padrão `LOCAL_SPARK_META_WEBHOOK_MODE=disabled`; a rota responde 503. Para
+Por padrão `MEU_BRACO_DIREITO_META_WEBHOOK_MODE=disabled`; a rota responde 503. Para
 habilitar em ambiente de teste com App/WABA e número próprios, configurar no
-backend o modo `cloud`, `META_DATABASE_URL` com login exclusivo `local_spark_ingest`,
+backend o modo `cloud`, `META_DATABASE_URL` com login exclusivo `meu_braco_direito_ingest`,
 `META_VERIFY_TOKEN`, `META_APP_SECRET`, `META_WABA_ID`, `META_PHONE_NUMBER_ID` e
-`META_ENCRYPTION_KEY` Fernet privada, todos sob prefixo `LOCAL_SPARK_`. Reiniciar
+`META_ENCRYPTION_KEY` Fernet privada, todos sob prefixo `MEU_BRACO_DIREITO_`. Reiniciar
 API; `/health/ready` exige migration 0013 e acesso ao banco restrito. A URL de
 callback precisa de HTTPS público controlado; não expor um túnel sem assinatura.
-O login recebe `local_spark_meta`, não `local_spark_app`/auth/billing. No volume
+O login recebe `meu_braco_direito_meta`, não `meu_braco_direito_app`/auth/billing. No volume
 local já existente, criar o login e conceder a role uma vez com
 `docker compose exec -T postgres psql -U postgres -d postgres < scripts/ensure_local_meta_login.sql`;
 initializer não roda novamente. Não apagar o volume. O banco de testes também precisa do login
@@ -94,14 +94,25 @@ somente no banco `_test`. Trocar o telefone desativa o vínculo. A inbox segue s
 processamento de material. Rotação da chave `META_ENCRYPTION_KEY` requer migrar
 e reindexar dados antes de aplicá-la, pois também é chave para HMAC do remetente.
 
+F02.2b1 adiciona a migration 0015 e o processo `whatsapp-correlator`. Após backup,
+aplicar a migração; no volume PostgreSQL existente, criar o login restrito uma
+vez com `docker compose exec -T postgres psql -U postgres -d postgres <
+scripts/ensure_local_correlator_login.sql`. O processo usa
+`MEU_BRACO_DIREITO_CORRELATOR_DATABASE_URL` e a mesma
+`MEU_BRACO_DIREITO_META_ENCRYPTION_KEY` da API. O processo não precisa das
+credenciais de assinatura do app Meta; ele permanece desativado sem URL do login
+restrito ou chave de criptografia. A API de webhook exige modo Meta `cloud`.
+Sua fila cifrada mantém materiais por até sete dias; ela ainda não aciona Temporal
+nem download. Não ligar o processo com conteúdo de clientes antes de F02.2b2.
+
 `docker compose up -d postgres temporal mailpit`; migração separada com conexão administrativa.
-O SQL de inicialização cria logins locais sem bypass e banco `local_spark_platform_test`. As roles
+O SQL de inicialização cria logins locais sem bypass e banco `meu_braco_direito_platform_test`. As roles
 de acesso são concedidas sem propriedade das tabelas. Se volume já existe, initializer
 não roda novamente; não apagar volumes para corrigir migrações de usuário.
 
 PostgreSQL em 55432; Temporal gRPC 7233 e UI 8233, todos ligados ao loopback.
 Temporal start-dev é exclusivamente desenvolvimento/CI, não topologia de produção.
-Seu SQLite fica no volume nomeado `local-spark-platform_local-spark-temporal`,
+Seu SQLite fica no volume nomeado `meu-braco-direito-platform_meu-braco-direito-temporal`,
 preservando o histórico ao recriar o container de desenvolvimento.
 Isso não representa persistência/HA de produção nem substitui Temporal Cloud.
 API só sobe após migration; health live não acessa DB, ready exige exatamente o
@@ -130,10 +141,10 @@ Variáveis: AWS_REGION, AWS_ROLE_ARN, ECR_REPOSITORY, ECS_CLUSTER, ECS_SERVICE,
 ECS_TASK_FAMILY e ECS_CONTAINER_NAME. Infra cria task definition com secret refs e
 IAM mínimos. TLS Temporal é obrigatório fora de desenvolvimento.
 
-Auth própria: definir `LOCAL_SPARK_AUTH_DATABASE_URL` com login restrito distinto
-(`local_spark_auth`), chave de assinatura aleatória e `LOCAL_SPARK_AUTH_ENCRYPTION_KEY`
+Auth própria: definir `MEU_BRACO_DIREITO_AUTH_DATABASE_URL` com login restrito distinto
+(`meu_braco_direito_auth`), chave de assinatura aleatória e `MEU_BRACO_DIREITO_AUTH_ENCRYPTION_KEY`
 Fernet privada. Staging/PRD exigem `PUBLIC_WEB_URL` HTTPS, SMTP com STARTTLS/autenticação
-e TLS Temporal. Prefixar as variáveis de aplicação com `LOCAL_SPARK_`.
+e TLS Temporal. Prefixar as variáveis de aplicação com `MEU_BRACO_DIREITO_`.
 O worker `python -m app.entrypoints.auth_mail` usa apenas o login de auth, sem
 privilégio sobre empresas. Mailpit e exemplos de chave/senha são exclusivamente locais.
 Secrets Manager guarda assinatura, chave Fernet, senha SMTP e credenciais Twilio;

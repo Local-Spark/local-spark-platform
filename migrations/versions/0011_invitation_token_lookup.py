@@ -15,7 +15,7 @@ def upgrade():
       AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at>now())"""
     op.execute("DROP POLICY auth_staff_invitation_read ON staff_invitations")
     op.execute(f"""CREATE POLICY auth_staff_invitation_read ON staff_invitations
-      FOR SELECT TO local_spark_auth USING(public.is_platform_staff() OR {own_email} OR {exact_token})""")
+      FOR SELECT TO meu_braco_direito_auth USING(public.is_platform_staff() OR {own_email} OR {exact_token})""")
 
 
 def downgrade():
@@ -23,4 +23,4 @@ def downgrade():
     own_email = f"email=(SELECT lower(email) FROM user_accounts WHERE id={actor})"
     op.execute("DROP POLICY auth_staff_invitation_read ON staff_invitations")
     op.execute(f"""CREATE POLICY auth_staff_invitation_read ON staff_invitations
-      FOR SELECT TO local_spark_auth USING(public.is_platform_staff() OR {own_email})""")
+      FOR SELECT TO meu_braco_direito_auth USING(public.is_platform_staff() OR {own_email})""")

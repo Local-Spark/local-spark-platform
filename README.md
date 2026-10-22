@@ -1,6 +1,16 @@
-# Local Spark Platform
+# Meu Braço Direito Platform
 
-FastAPI/Python da Local Spark, plataforma de conteúdo para pequenos negócios.
+22/10/2026 — Produto renomeado para **Meu Braço Direito**. Diretórios e remotos
+Git permanecem `local-spark-platform`/`local-spark-web`; os pacotes, Compose,
+variáveis `MEU_BRACO_DIREITO_`, bancos e roles usam os identificadores novos.
+A migração `0015_product_brand` precede a correlação WhatsApp, preserva IDs,
+senhas/MFA e permissões, atualiza as duas identidades de demonstração e congela
+as chaves Stripe de checkouts anteriores. Contas existentes conservam suas senhas;
+as senhas de exemplo abaixo valem para instalações novas. Instruções e exceções
+de compatibilidade em [renomeação do produto](docs/product-rename.md).
+
+
+FastAPI/Python da Meu Braço Direito, plataforma de conteúdo para pequenos negócios.
 F00 e as fatias locais da F01 funcionam. Checkout de teste e reconciliação estão
 implementados; geração/publicação continuam nas fases seguintes. A verificação
 de telefone precisa de conta Twilio e staging para homologação. Autenticação
@@ -8,6 +18,8 @@ própria substitui o Keycloak.
 F02.1 já recebe callbacks WhatsApp assinados em uma inbox criptografada, desativada
 por padrão. F02.2a comprova o vínculo do remetente ao negócio; processamento do
 material ainda aguarda as próximas fatias de F02.2.
+F02.2b1 prepara a correlação de mensagens com login e fila cifrada separados.
+Essa fila ainda não inicia IA ou publicação.
 
 ## Preparar o ambiente
 
@@ -17,7 +29,7 @@ Pré-requisitos: Python 3.13, uv, Docker Desktop. Na pasta do backend:
 uv sync --frozen
 cp -n .env.example .env
 docker compose up -d postgres temporal mailpit
-export LOCAL_SPARK_MIGRATION_DATABASE_URL=postgresql+asyncpg://postgres:local-spark-admin-password@localhost:55432/local_spark_platform
+export MEU_BRACO_DIREITO_MIGRATION_DATABASE_URL=postgresql+asyncpg://postgres:meu-braco-direito-admin-password@localhost:55432/meu_braco_direito_platform
 uv run alembic upgrade head
 uv run python scripts/seed_operator.py
 ```
@@ -41,7 +53,7 @@ Para rodar API, relay, worker Temporal e worker SMTP em containers:
 docker compose --profile workers up -d --build
 ```
 
-Para debug, abra **Local Spark: API (FastAPI)** no VS Code/F5. A tarefa para a API
+Para debug, abra **Meu Braço Direito: API (FastAPI)** no VS Code/F5. A tarefa para a API
 Docker, libera 8000 e inicia postgres, Temporal, workers e Mailpit. No macOS usa
 Docker Desktop por caminho absoluto para funcionar com VS Code aberto pelo Dock.
 A API usa `.venv/bin/python` e `.env`, sem reload, com breakpoints. Após atualizar
@@ -50,7 +62,7 @@ autenticação, reinicie F5 e reconstrua o worker SMTP: `docker compose build au
 Web: `../local-spark-web`, Node 24, `npm ci && npm run dev`.
 Abra **http://localhost:5173** ou **http://127.0.0.1:5173**. Em desenvolvimento/teste,
 a API aceita esses dois nomes de loopback na mesma porta e protocolo da
-`LOCAL_SPARK_PUBLIC_WEB_URL`; links de e-mail continuam usando a URL configurada.
+`MEU_BRACO_DIREITO_PUBLIC_WEB_URL`; links de e-mail continuam usando a URL configurada.
 Em staging/produção, somente a origem configurada é aceita. Reinicie F5 após mudar
 o código/configuração da API, pois o debug não usa reload.
 Proxy `/api` vai para `127.0.0.1:8000`; ajuste `.env` da web para outra porta.
@@ -64,15 +76,15 @@ Proxy `/api` vai para `127.0.0.1:8000`; ajuste `.env` da web para outra porta.
 | SMTP Mailpit para processos no host | localhost:11025 |
 | PostgreSQL | localhost:55432 |
 
-DBeaver: banco `local_spark_platform`, schema `public`, usuário administrativo
-`postgres`, senha **local** `local-spark-admin-password`. API usa
-`local_spark_runtime`; relay usa `local_spark_delivery`; autenticação/SMTP usam
-`local_spark_identity`. Nenhum login de runtime tem superuser ou BYPASSRLS.
+DBeaver: banco `meu_braco_direito_platform`, schema `public`, usuário administrativo
+`postgres`, senha **local** `meu-braco-direito-admin-password`. API usa
+`meu_braco_direito_runtime`; relay usa `meu_braco_direito_delivery`; autenticação/SMTP usam
+`meu_braco_direito_identity`. Nenhum login de runtime tem superuser ou BYPASSRLS.
 
 | Conta de desenvolvimento | Senha inicial |
 | --- | --- |
-| operator@local-spark.local | LocalSpark-Operator-2026! |
-| cliente@local-spark.local | LocalSpark-Client-2026! |
+| operator@meu-braco-direito.local | MeuBracoDireito-Operator-2026! |
+| cliente@meu-braco-direito.local | MeuBracoDireito-Client-2026! |
 
 O operador configura um autenticador TOTP no primeiro login e guarda os códigos
 de recuperação. Depois usa o código do aplicativo ou um código de recuperação.
@@ -101,7 +113,7 @@ Meta ainda faltam; mensagens permanecem em quarentena, sem gerar conteúdo.
 Cliente: http://localhost:5173/app/billing; equipe: http://localhost:5173/admin/billing
 (staff/MFA). Patrocínio de seis meses com motivo, revogável e sem renovação paga.
 Pagantes live, testes e patrocinados aparecem separados. Stripe é o primeiro
-adapter para teste/produção. Padrão `LOCAL_SPARK_BILLING_MODE=disabled`: sem cobrança
+adapter para teste/produção. Padrão `MEU_BRACO_DIREITO_BILLING_MODE=disabled`: sem cobrança
 e sem consumir tarefas do provedor. Contratos em [SDD billing](docs/design/billing.md).
 O admin mostra também checkouts abertos ou expirados sem acesso ativo, com negócio,
 prazo e contatos cadastrados. O endpoint paginado é
@@ -111,11 +123,11 @@ Para sandbox real, crie sua conta/sandbox Stripe e Price mensal BRL. Acrescente 
 variáveis abaixo ao `.env` existente; preserve chaves de auth/criptografia:
 
 ```dotenv
-LOCAL_SPARK_BILLING_MODE=test
-LOCAL_SPARK_STRIPE_SECRET_KEY=sk_test_SUA_CHAVE
-LOCAL_SPARK_STRIPE_WEBHOOK_SECRET=whsec_SEU_LISTENER
-LOCAL_SPARK_STRIPE_PRICE_ID=price_SEU_PRECO
-LOCAL_SPARK_BILLING_MONTHLY_AMOUNT_MINOR=9900
+MEU_BRACO_DIREITO_BILLING_MODE=test
+MEU_BRACO_DIREITO_STRIPE_SECRET_KEY=sk_test_SUA_CHAVE
+MEU_BRACO_DIREITO_STRIPE_WEBHOOK_SECRET=whsec_SEU_LISTENER
+MEU_BRACO_DIREITO_STRIPE_PRICE_ID=price_SEU_PRECO
+MEU_BRACO_DIREITO_BILLING_MONTHLY_AMOUNT_MINOR=9900
 ```
 
 9900 é exemplo R$99 para sandbox, não preço comercial aprovado. Valor e moeda
@@ -142,7 +154,7 @@ atualizar o código: `docker compose --profile workers up -d --build billing`.
 ## Telefone e operadores — F01.6
 
 Cliente: `/app/phone`; equipe: `/admin/staff`. O telefone é confirmado via Twilio
-Verify; o modo padrão `LOCAL_SPARK_PHONE_VERIFY_MODE=disabled` não envia código nem
+Verify; o modo padrão `MEU_BRACO_DIREITO_PHONE_VERIFY_MODE=disabled` não envia código nem
 marca número como verificado. Para habilitar, crie um Verify Service/API key e
 configure as variáveis comentadas em `.env.example`, preservando seus segredos no
 `.env` local. SMS é o canal padrão; WhatsApp exige habilitação no provedor. A
@@ -197,8 +209,8 @@ exige Idempotency-Key. Tokens antigos sem sessão são rejeitados.
 ## Qualidade
 
 ```bash
-export TEST_ADMIN_DATABASE_URL=postgresql+asyncpg://postgres:local-spark-admin-password@localhost:55432/local_spark_platform_test
-LOCAL_SPARK_MIGRATION_DATABASE_URL="$TEST_ADMIN_DATABASE_URL" uv run alembic upgrade head
+export TEST_ADMIN_DATABASE_URL=postgresql+asyncpg://postgres:meu-braco-direito-admin-password@localhost:55432/meu_braco_direito_platform_test
+MEU_BRACO_DIREITO_MIGRATION_DATABASE_URL="$TEST_ADMIN_DATABASE_URL" uv run alembic upgrade head
 uv run python scripts/prepare_local_tests.py
 make ci
 ```

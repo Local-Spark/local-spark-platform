@@ -14,7 +14,7 @@ from app.core.config import Settings
 from app.db.session import Database
 from app.workflows.contracts import BusinessEvent
 
-logger = logging.getLogger("local_spark.relay")
+logger = logging.getLogger("meu_braco_direito.relay")
 
 
 @dataclass(frozen=True)

@@ -1,6 +1,6 @@
 # F02 — WhatsApp e biblioteca de materiais
 
-Status: Em implementação; F02.1 entregue localmente em 21/10/2026; F02.2a entregue localmente em 22/10/2026.
+Status: Em implementação; F02.1, F02.2a e F02.2b1 entregues localmente; F02.2b2 pendente.
 Dependências: F00, F01.
 
 ## Objetivo
@@ -39,7 +39,7 @@ verify token correto. `POST` limita o corpo a 256 KiB durante a leitura, valida
 WhatsApp e filtra WABA/phone number ID configurados. Separa mensagens recebidas e
 transições de status; chave estável por subevento deduplica reentregas concorrentes.
 Só retorna 200 depois do commit. Eventos ficam cifrados com chave exclusiva em
-`whatsapp_inbox`, com RLS/role `local_spark_meta` e login isolado. Runtime normal
+`whatsapp_inbox`, com RLS/role `meu_braco_direito_meta` e login isolado. Runtime normal
 não possui leitura. Eventos não reconhecidos são ignorados sem criar negócio ou
 tratar texto externo como comando. Registros vencem em sete dias; ingressão nova
 remove os vencidos, e limpeza periódica fica para F02.2. Configuração desabilitada
@@ -86,8 +86,35 @@ restrito, associar eventos com identidade durável e outbox, agendar limpeza da
 retenção, baixar e validar mídia na biblioteca privada, iniciar workflow de
 extração/transcrição. O vínculo por si só não aciona IA ou publicação.
 
+### F02.2b1 — Correlação durável de mensagens (entregue localmente)
+
+Um processo separado, com login `meu_braco_direito_router` e papel
+`meu_braco_direito_correlator`, lê apenas a inbox cifrada, os vínculos ativos e
+sua própria fila de materiais. Mensagens recebidas **depois** do vínculo são
+associadas ao tenant/negócio por índice cego do remetente. `FOR UPDATE SKIP LOCKED`
+divide lotes entre instâncias; a transação copia o ciphertext para
+`whatsapp_material_events`, muda o estado da inbox e grava auditoria com o ID do
+evento. A chave única do evento impede duplicação. A fila mantém o payload cifrado
+até o prazo original de sete dias e o processo remove cópias vencidas. Comandos
+de vínculo e formatos não suportados são descartados; mensagens anteriores ao
+vínculo, sem remetente reconhecido ou de vínculos revogados permanecem em
+quarentena até expirar. O papel da API e o papel de ingestão não leem a nova fila.
+
+A fila está pendente para consumo posterior; esta fatia **não** inicia IA, Temporal,
+download de mídia, resposta ao usuário ou publicação. F02.2b2 deve validar plano,
+consentimento e vínculo novamente antes de qualquer efeito externo; fará download
+seguro, inspeção e biblioteca S3 privada, com relay/workflow e expiração explícita.
+Não operar esse processo com conteúdo real antes da próxima fatia e do smoke Meta.
+Aceite local: duas organizações isoladas, concorrência de dois correlators,
+reentrega sem duplicar, comando/formatos descartados, fila cifrada inacessível
+pelos papéis da API e ingestão, limpeza de item vencido. Migration 0015 validada
+com upgrade/downgrade/reaplicação em PostgreSQL temporário `_test`, inclusive
+após `0015_product_brand` na cadeia de renomeação. A suíte local
+passou com 289 testes e 100% de linhas/ramos, Ruff, mypy e Compose válidos.
+Nenhum evento Meta real foi usado.
+
 O CI declara URL Meta no PostgreSQL de teste na porta 5432 e cria o login
-`local_spark_ingest` com o papel restrito `local_spark_meta`. O exemplo local usa
+`meu_braco_direito_ingest` com o papel restrito `meu_braco_direito_meta`. O exemplo local usa
 55432. Todos os endpoints de teste devem apontar para o mesmo banco `_test`;
 sob `CI`, pytest falha cedo se faltar uma URL explícita.
 
@@ -105,3 +132,8 @@ A identidade é iniciada na web; a posse do WhatsApp é verificada nesta fase, a
 de associar mensagens à contratação/organização. Telefone digitado no checkout ou
 perfil não é verificação. Onboarding conversacional complementa o perfil inicial,
 sem exigir uso diário do painel. Consentimentos são específicos por finalidade.
+
+22/10/2026: renomeação para Meu Braço Direito aplica `MEU_BRACO_DIREITO_` e
+roles `meu_braco_direito_*` também ao correlator em desenvolvimento. A migration
+`0015_product_brand` fica entre 0014 e `0015_whatsapp_message_routing`; a
+renomeação preserva dados e permissões. Escopo funcional da F02 não é ampliado.

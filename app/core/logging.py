@@ -56,7 +56,7 @@ class JsonFormatter(logging.Formatter):
 def configure_logging() -> None:
     handler = logging.StreamHandler()
     handler.setFormatter(JsonFormatter())
-    logger = logging.getLogger("local_spark")
+    logger = logging.getLogger("meu_braco_direito")
     logger.handlers = [handler]
     logger.setLevel(logging.INFO)
     logger.propagate = False

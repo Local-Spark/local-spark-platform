@@ -9,10 +9,10 @@ depends_on = None
 
 
 def upgrade():
-    op.execute("""DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='local_spark_meta')
-    THEN CREATE ROLE local_spark_meta NOLOGIN NOSUPERUSER NOBYPASSRLS; END IF; END $$""")
-    op.execute("GRANT USAGE ON SCHEMA public TO local_spark_meta")
-    op.execute("GRANT SELECT ON alembic_version TO local_spark_meta")
+    op.execute("""DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='meu_braco_direito_meta')
+    THEN CREATE ROLE meu_braco_direito_meta NOLOGIN NOSUPERUSER NOBYPASSRLS; END IF; END $$""")
+    op.execute("GRANT USAGE ON SCHEMA public TO meu_braco_direito_meta")
+    op.execute("GRANT SELECT ON alembic_version TO meu_braco_direito_meta")
     op.execute("""CREATE TABLE whatsapp_inbox (
       id uuid PRIMARY KEY, dedupe_key char(64) NOT NULL UNIQUE,
       event_kind text NOT NULL CHECK(event_kind IN ('message','status')),
@@ -23,10 +23,10 @@ def upgrade():
     op.execute("CREATE INDEX whatsapp_inbox_expiry ON whatsapp_inbox(expires_at)")
     op.execute("ALTER TABLE whatsapp_inbox ENABLE ROW LEVEL SECURITY")
     op.execute("ALTER TABLE whatsapp_inbox FORCE ROW LEVEL SECURITY")
-    op.execute("CREATE POLICY meta_service ON whatsapp_inbox TO local_spark_meta USING(true) WITH CHECK(true)")
-    op.execute("GRANT SELECT,INSERT,UPDATE,DELETE ON whatsapp_inbox TO local_spark_meta")
+    op.execute("CREATE POLICY meta_service ON whatsapp_inbox TO meu_braco_direito_meta USING(true) WITH CHECK(true)")
+    op.execute("GRANT SELECT,INSERT,UPDATE,DELETE ON whatsapp_inbox TO meu_braco_direito_meta")
 
 
 def downgrade():
     op.execute("DROP TABLE whatsapp_inbox")
-    op.execute("REVOKE SELECT ON alembic_version FROM local_spark_meta")
+    op.execute("REVOKE SELECT ON alembic_version FROM meu_braco_direito_meta")

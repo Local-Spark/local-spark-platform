@@ -77,7 +77,7 @@ def test_transactional_email_has_safe_html_and_text_fallback(settings, monkeypat
         settings,
         {
             "to": "reader@example.com",
-            "subject": "Local Spark",
+            "subject": "Meu Braço Direito",
             "template": template,
             "link": 'https://example.com/next?value=1&name="quoted"#token=secret',
             "body": "Acesse https://example.com/next#token=secret",
@@ -90,7 +90,7 @@ def test_transactional_email_has_safe_html_and_text_fallback(settings, monkeypat
     assert html.get_content_type() == "text/html"
     assert "#token=secret" in plain.get_content()
     assert "&amp;name=&quot;quoted&quot;" in html.get_content()
-    assert "Local Spark" in html.get_content()
+    assert "Meu Braço Direito" in html.get_content()
 
 
 def test_legacy_or_unsafe_email_has_only_plain_text(settings, monkeypatch):
@@ -128,6 +128,9 @@ def test_legacy_or_unsafe_email_has_only_plain_text(settings, monkeypatch):
         ("Confirme seu e-mail na Local Spark", "http://localhost:5173/verify-email#token=old"),
         ("Defina sua senha na Local Spark", "http://localhost:5173/reset-password#token=old"),
         ("Convite para operar a Local Spark", "http://localhost:5173/staff-invite#token=old"),
+        ("Confirme seu e-mail no Meu Braço Direito", "http://localhost:5173/verify-email#token=old"),
+        ("Defina sua senha no Meu Braço Direito", "http://localhost:5173/reset-password#token=old"),
+        ("Convite para operar o Meu Braço Direito", "http://localhost:5173/staff-invite#token=old"),
     ],
 )
 def test_legacy_transactional_email_renders_html(settings, monkeypatch, subject, url):
@@ -141,6 +144,8 @@ def test_legacy_transactional_email_renders_html(settings, monkeypatch, subject,
     message = smtp.return_value.__enter__.return_value.send_message.call_args.args[0]
     assert message.get_content_type() == "multipart/alternative"
     assert url in message.get_payload()[1].get_content()
+    assert "Meu Braço Direito" in str(message["Subject"])
+    assert "Local Spark" not in str(message["Subject"])
 
 
 async def test_mfa_challenge_consumed_during_credential_lock(settings, fake_database):
@@ -180,13 +185,19 @@ def test_https_cookies_are_host_only_secure_and_http_only(settings):
         {
             "type": "http",
             "app": SimpleNamespace(
-                state=SimpleNamespace(settings=settings.model_copy(update={"public_web_url": "https://spark.example"}))
+                state=SimpleNamespace(
+                    settings=settings.model_copy(update={"public_web_url": "https://meu-braco-direito.example"})
+                )
             ),
             "headers": [],
         }
     )
     response = reply(request, {"access_token": "test-access", "_refresh": "test-refresh", "_csrf": "test-csrf"})
     cookies = response.headers.getlist("set-cookie")
-    assert cookies[0].startswith("__Host-spark-refresh=") and "Secure" in cookies[0] and "HttpOnly" in cookies[0]
+    assert (
+        cookies[0].startswith("__Host-meu-braco-direito-refresh=")
+        and "Secure" in cookies[0]
+        and "HttpOnly" in cookies[0]
+    )
     assert "Domain=" not in cookies[0]
     assert "HttpOnly" not in cookies[1]

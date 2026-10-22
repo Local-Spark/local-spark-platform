@@ -47,13 +47,13 @@ API, configuração, autenticação verificada, tenancy/RLS, idempotência, audi
 - Repositório principal `local-spark-platform` com remoto Git já configurado.
   Implementação permanece em alterações locais; não houve push, CI remoto ou deploy AWS.
 
-## Identidade Local Spark
+## Identidade Meu Braço Direito
 
-- Prefixo de configuração `LOCAL_SPARK_`; Swagger `Local Spark API`.
-- Bancos `local_spark_platform`/`local_spark_platform_test`, roles `local_spark_*`;
+- Prefixo de configuração `MEU_BRACO_DIREITO_`; Swagger `Meu Braço Direito API`.
+- Bancos `meu_braco_direito_platform`/`meu_braco_direito_platform_test`, roles `meu_braco_direito_*`;
   login administrativo de desenvolvimento continua `postgres`.
 - Senhas e assinatura JWT locais atualizadas; reemitir tokens de demonstração.
-- Compose `local-spark-platform`, volumes próprios para PostgreSQL e Temporal.
+- Compose `meu-braco-direito-platform`, volumes próprios para PostgreSQL e Temporal.
   Migração local preserva registros, permissões RLS e identidades de demonstração.
 - CI, lockfile, documentação e scripts usam os novos identificadores.
 - Revalidação: 54 testes, cobertura 96,05%, lint/tipos, actionlint, rollback/upgrade

@@ -697,7 +697,7 @@ async def test_delayed_checkout_cannot_start_after_sponsorship_was_granted(
         ("development", "http://localhost:5173", "https://localhost:5173", False),
         ("development", "http://localhost:5173", "https://untrusted.example", False),
         ("development", "http://localhost:5173", "null", False),
-        ("staging", "https://spark.example", "https://spark.example", True),
+        ("staging", "https://meu-braco-direito.example", "https://meu-braco-direito.example", True),
         ("production", "http://localhost:5173", "http://127.0.0.1:5173", False),
     ],
 )

@@ -28,7 +28,7 @@ from app.services.auth import AuthError, AuthService
 from app.services.billing import BillingError
 from app.services.business import AccessDenied, IdempotencyConflict
 
-logger = logging.getLogger("local_spark.api")
+logger = logging.getLogger("meu_braco_direito.api")
 
 
 def create_app(

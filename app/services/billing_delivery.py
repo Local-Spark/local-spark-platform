@@ -9,7 +9,7 @@ from temporalio.exceptions import WorkflowAlreadyStartedError
 from app.core.config import Settings
 from app.db.session import Database
 
-logger = logging.getLogger("local_spark.billing")
+logger = logging.getLogger("meu_braco_direito.billing")
 
 
 async def enqueue_open_checkout_reconciliation(database: Database, settings: Settings) -> int:

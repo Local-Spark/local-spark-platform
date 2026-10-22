@@ -1,4 +1,4 @@
-"""Shared, email-client-friendly HTML for Local Spark transactional mail."""
+"""Shared, email-client-friendly HTML for Meu Braço Direito transactional mail."""
 
 from html import escape
 from urllib.parse import urlsplit
@@ -24,9 +24,9 @@ CONTENT = {
     ),
 }
 LEGACY_SUBJECTS = {
-    "Confirme seu e-mail na Local Spark": "verify",
-    "Defina sua senha na Local Spark": "reset",
-    "Convite para operar a Local Spark": "staff_invite",
+    "Confirme seu e-mail no Meu Braço Direito": "verify",
+    "Defina sua senha no Meu Braço Direito": "reset",
+    "Convite para operar o Meu Braço Direito": "staff_invite",
 }
 
 
@@ -42,12 +42,12 @@ def render_html(payload: dict[str, str]) -> str | None:
     safe_link = escape(link, quote=True)
     return f"""<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{title} · Local Spark</title></head>
+<title>{title} · Meu Braço Direito</title></head>
 <body style="margin:0;background:#f6f5fb;color:#23253b;font-family:Arial,Helvetica,sans-serif">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f5fb;padding:36px 16px">
 <tr><td align="center"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px">
 <tr><td style="padding:0 0 22px;color:#5445e9;font-size:22px;font-weight:800;letter-spacing:-.5px">
-✦ local<span style="color:#23253b">spark.</span></td></tr>
+meu braço <span style="color:#23253b">direito.</span></td></tr>
 <tr><td style="background:#fff;border:1px solid #e8e5f1;border-radius:18px;padding:40px 36px">
 <p style="margin:0 0 14px;color:#6558d8;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase">
 Seu negócio, seu espaço</p>
@@ -63,5 +63,5 @@ Se o botão não funcionar, copie este endereço:</p>
 <a href="{safe_link}" style="color:#5445e9">{safe_link}</a></p>
 </td></tr>
 <tr><td style="padding:22px 8px;color:#83879b;font-size:12px;line-height:1.6">
-{footer}<br>Local Spark · Seu negócio merece aparecer.</td></tr>
+{footer}<br>Meu Braço Direito · Seu negócio merece aparecer.</td></tr>
 </table></td></tr></table></body></html>"""

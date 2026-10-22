@@ -68,11 +68,11 @@ def test_unsigned_token_rejected(settings):
         {"environment": "production", "jwt_secret": "development-secret-long-enough-for-testing", "temporal_tls": True},
         {"environment": "production", "temporal_tls": False},
         {"environment": "production", "temporal_tls": True},
-        {"environment": "production", "temporal_tls": True, "public_web_url": "https://spark.example"},
+        {"environment": "production", "temporal_tls": True, "public_web_url": "https://meu-braco-direito.example"},
         {
             "environment": "production",
             "temporal_tls": True,
-            "public_web_url": "https://spark.example",
+            "public_web_url": "https://meu-braco-direito.example",
             "auth_encryption_key": "c2VjdXJlLXRlc3Qta2V5LTAwMDAwMDAwMDAwMDAwMDA=",
             "smtp_starttls": False,
         },
@@ -90,7 +90,7 @@ def test_safe_production_configuration(settings):
             **settings.model_dump(),
             "environment": "production",
             "temporal_tls": True,
-            "public_web_url": "https://spark.example",
+            "public_web_url": "https://meu-braco-direito.example",
             "auth_encryption_key": "c2VjdXJlLXRlc3Qta2V5LTAwMDAwMDAwMDAwMDAwMDA=",
             "smtp_starttls": True,
             "smtp_username": "test",
@@ -138,7 +138,7 @@ def test_phone_provider_accepts_complete_configuration(settings):
         ("development", "http://localhost:5173", {"http://localhost:5173", "http://127.0.0.1:5173"}),
         ("testing", "http://127.0.0.1:5174", {"http://localhost:5174", "http://127.0.0.1:5174"}),
         ("development", "http://localhost", {"http://localhost", "http://127.0.0.1"}),
-        ("development", "https://spark.example", {"https://spark.example"}),
+        ("development", "https://meu-braco-direito.example", {"https://meu-braco-direito.example"}),
         ("staging", "https://localhost:5173", {"https://localhost:5173"}),
         ("production", "https://127.0.0.1:5173", {"https://127.0.0.1:5173"}),
     ],
@@ -149,8 +149,8 @@ def test_auth_origins_only_expand_loopback_in_local_environments(settings, envir
 
 
 def test_settings_cache(monkeypatch, settings):
-    monkeypatch.setenv("LOCAL_SPARK_DATABASE_URL", settings.database_url.get_secret_value())
-    monkeypatch.setenv("LOCAL_SPARK_JWT_SECRET", settings.jwt_secret.get_secret_value())
+    monkeypatch.setenv("MEU_BRACO_DIREITO_DATABASE_URL", settings.database_url.get_secret_value())
+    monkeypatch.setenv("MEU_BRACO_DIREITO_JWT_SECRET", settings.jwt_secret.get_secret_value())
     get_settings.cache_clear()
     assert get_settings() is get_settings()
     get_settings.cache_clear()
@@ -171,7 +171,7 @@ def test_normalization_and_fingerprint():
 
 def test_safe_json_logs():
     tenant = uuid4()
-    record = logging.LogRecord("local_spark.worker", logging.INFO, "", 0, "operation.completed", (), None)
+    record = logging.LogRecord("meu_braco_direito.worker", logging.INFO, "", 0, "operation.completed", (), None)
     record.tenant_id = tenant
     record.attempt = 2
     record.authorization = "secret-token"
@@ -195,7 +195,7 @@ def test_exception_message_not_logged():
     except ValueError:
         import sys
 
-        record = logging.LogRecord("local_spark", logging.ERROR, "", 0, "operation.failed", (), sys.exc_info())
+        record = logging.LogRecord("meu_braco_direito", logging.ERROR, "", 0, "operation.failed", (), sys.exc_info())
     encoded = JsonFormatter().format(record)
     assert "must-not-appear" not in encoded
     assert json.loads(encoded)["exception_type"] == "ValueError"
@@ -204,7 +204,7 @@ def test_exception_message_not_logged():
 def test_logging_configuration_does_not_add_handlers():
     configure_logging()
     configure_logging()
-    assert len(logging.getLogger("local_spark").handlers) == 1
+    assert len(logging.getLogger("meu_braco_direito").handlers) == 1
 
 
 def test_request_ids():

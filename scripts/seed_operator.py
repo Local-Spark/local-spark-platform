@@ -2,18 +2,18 @@
 
 import asyncio
 import os
+from uuid import UUID
 
 from sqlalchemy import make_url, text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.core.config import get_settings
-from app.core.identity import actor_for_subject
 from app.core.passwords import Passwords
 
 
 async def main():
     settings = get_settings()
-    url = os.environ["LOCAL_SPARK_MIGRATION_DATABASE_URL"]
+    url = os.environ["MEU_BRACO_DIREITO_MIGRATION_DATABASE_URL"]
     parsed, runtime = make_url(url), make_url(settings.database_url.get_secret_value())
     if settings.environment != "development" or parsed.host not in {"localhost", "127.0.0.1"}:
         raise SystemExit("Local development database required")
@@ -25,37 +25,40 @@ async def main():
         await connection.execute(
             text("""
 DO $$ BEGIN
-IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='local_spark_identity') THEN
-CREATE ROLE local_spark_identity LOGIN PASSWORD 'local-spark-auth-password'
+IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='meu_braco_direito_identity') THEN
+CREATE ROLE meu_braco_direito_identity LOGIN PASSWORD 'meu-braco-direito-auth-password'
 NOSUPERUSER NOBYPASSRLS;
 END IF;
-IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='local_spark_payments') THEN
-CREATE ROLE local_spark_payments LOGIN PASSWORD 'local-spark-billing-password' NOSUPERUSER NOBYPASSRLS;
+IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='meu_braco_direito_payments') THEN
+CREATE ROLE meu_braco_direito_payments LOGIN PASSWORD 'meu-braco-direito-billing-password' NOSUPERUSER NOBYPASSRLS;
 END IF; END $$
 """)
         )
-        await connection.execute(text("GRANT local_spark_auth TO local_spark_identity"))
-        await connection.execute(text("GRANT local_spark_billing TO local_spark_payments"))
-        await connection.execute(text("GRANT SELECT ON alembic_version TO local_spark_auth"))
+        await connection.execute(text("GRANT meu_braco_direito_auth TO meu_braco_direito_identity"))
+        await connection.execute(text("GRANT meu_braco_direito_billing TO meu_braco_direito_payments"))
+        await connection.execute(text("GRANT SELECT ON alembic_version TO meu_braco_direito_auth"))
         for sub, email, name, password in (
             (
                 "11111111-1111-4111-8111-111111111111",
-                "operator@local-spark.local",
-                "Equipe Local Spark",
-                "LocalSpark-Operator-2026!",
+                "operator@meu-braco-direito.local",
+                "Equipe Meu Braço Direito",
+                "MeuBracoDireito-Operator-2026!",
             ),
             (
                 "22222222-2222-4222-8222-222222222222",
-                "cliente@local-spark.local",
-                "Cliente Local Spark",
-                "LocalSpark-Client-2026!",
+                "cliente@meu-braco-direito.local",
+                "Cliente Meu Braço Direito",
+                "MeuBracoDireito-Client-2026!",
             ),
         ):
-            actor = actor_for_subject("http://localhost:8081/realms/local-spark", sub)
+            actor = {
+                "11111111-1111-4111-8111-111111111111": UUID("428f23bf-7d6b-55be-9150-792093ef0a4c"),
+                "22222222-2222-4222-8222-222222222222": UUID("5cdbeb2a-4fe3-50a0-a292-c8a8a238e49c"),
+            }[sub]
             await connection.execute(
                 text("""
 INSERT INTO user_accounts(id,issuer,subject,display_name,email,email_verified)
-VALUES (:id,'local-spark',:subject,:name,:email,true) ON CONFLICT(id) DO NOTHING
+VALUES (:id,'meu-braco-direito',:subject,:name,:email,true) ON CONFLICT(id) DO NOTHING
 """),
                 {"id": actor, "subject": str(actor), "name": name, "email": email},
             )

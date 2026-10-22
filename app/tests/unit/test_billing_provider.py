@@ -69,7 +69,7 @@ def test_explicit_live_configuration_and_environment_isolation(config):
         **config.model_dump(),
         "environment": "production",
         "temporal_tls": True,
-        "public_web_url": "https://spark.example",
+        "public_web_url": "https://meu-braco-direito.example",
         "auth_encryption_key": "c2VjdXJlLXRlc3Qta2V5LTAwMDAwMDAwMDAwMDAwMDA=",
         "smtp_starttls": True,
         "smtp_username": "test",
@@ -167,16 +167,18 @@ async def adapter(config, order, monkeypatch):
         await provider.close()
 
 
+@pytest.mark.parametrize("prefix", ["local-spark-checkout", "meu-braco-direito-checkout"])
 @pytest.mark.parametrize("return_origin", ["http://localhost:5173", "http://127.0.0.1:5173"])
 async def test_checkout_idempotency_uses_frozen_parameters_and_recovers_existing_session(
-    adapter, order, settings, return_origin
+    adapter, order, settings, return_origin, prefix
 ):
     order["origin"] = return_origin
+    order["provider_key_prefix"] = prefix
     await adapter.checkout(order)
     await adapter.checkout(order)
     calls = adapter.client.v1.checkout.sessions.create_async.call_args_list
     assert calls[0] == calls[1]
-    assert calls[0].kwargs["options"]["idempotency_key"].endswith(str(order["id"]))
+    assert calls[0].kwargs["options"]["idempotency_key"] == f"{prefix}/{order['id']}"
     assert calls[0].args[0]["mode"] == "subscription" and calls[0].args[0]["payment_method_types"] == ["card"]
     assert str(order["tenant_id"]) in calls[0].args[0]["success_url"]
     assert calls[0].args[0]["success_url"].startswith(f"{return_origin}/app/billing?")

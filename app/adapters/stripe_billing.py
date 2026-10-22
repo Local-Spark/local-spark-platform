@@ -92,7 +92,9 @@ class StripeBilling:
                     "cancel_url": f"{order['origin']}/app/billing?organization={order['tenant_id']}&return=cancel",
                     "expires_at": int(order["expires_at"].timestamp()),
                 },
-                options={"idempotency_key": f"local-spark-checkout/{order['id']}"},
+                options={
+                    "idempotency_key": f"{order.get('provider_key_prefix', 'meu-braco-direito-checkout')}/{order['id']}"
+                },
             )
         result = dict(response)
         if (

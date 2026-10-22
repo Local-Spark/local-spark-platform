@@ -1,7 +1,7 @@
 # Plataforma de conteúdo para pequenos negócios
 
 Documentação de produto e engenharia, revisada em 20/10/2026.
-Nome adotado: Local Spark (`local-spark-platform`). Os documentos descrevem uma especificação para
+Nome adotado: Meu Braço Direito (`local-spark-platform`). Os documentos descrevem uma especificação para
 implementação; não representam serviços desenvolvidos ou capacidade comprovada.
 
 ## Leitura

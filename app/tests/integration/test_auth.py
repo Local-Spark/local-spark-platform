@@ -53,7 +53,7 @@ async def test_register_verify_login_refresh_logout_http(native_api, admin, auth
     view = await native_api.post("/api/v1/session", headers=headers)
     assert view.status_code == 200 and view.json()["user"]["email_verified"] and not view.json()["is_staff"]
     assert (await native_api.get("/api/v1/admin/overview", headers=headers)).status_code == 403
-    csrf = native_api.cookies["spark-csrf"]
+    csrf = native_api.cookies["meu-braco-direito-csrf"]
     assert (await native_api.post("/api/v1/auth/refresh")).status_code == 403
     refreshed = await native_api.post("/api/v1/auth/refresh", headers={"X-CSRF-Token": csrf})
     assert refreshed.status_code == 200
@@ -83,8 +83,8 @@ async def test_register_verify_and_login_from_loopback_alias(native_api, admin, 
     verified = await native_api.post("/api/v1/auth/verify-email", headers=headers, json={"token": token})
     assert verified.status_code == 200
     logged = await native_api.post("/api/v1/auth/login", headers=headers, json=payload)
-    assert logged.status_code == 200 and logged.cookies["spark-refresh"]
-    csrf = native_api.cookies["spark-csrf"]
+    assert logged.status_code == 200 and logged.cookies["meu-braco-direito-refresh"]
+    csrf = native_api.cookies["meu-braco-direito-csrf"]
     refreshed = await native_api.post("/api/v1/auth/refresh", headers={**headers, "X-CSRF-Token": csrf})
     assert refreshed.status_code == 200
 

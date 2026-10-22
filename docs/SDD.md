@@ -1,6 +1,21 @@
 # SDD geral — Plataforma de conteúdo
 
+22/10/2026 — Produto renomeado para **Meu Braço Direito**. Diretórios e remotos
+Git permanecem `local-spark-platform`/`local-spark-web`; os pacotes, Compose,
+variáveis `MEU_BRACO_DIREITO_`, bancos e roles usam os identificadores novos.
+A migração `0015_product_brand` precede a correlação WhatsApp, preserva IDs,
+senhas/MFA e permissões, atualiza as duas identidades de demonstração e congela
+as chaves Stripe de checkouts anteriores. Contas existentes conservam suas senhas;
+as senhas de exemplo abaixo valem para instalações novas. Instruções e exceções
+de compatibilidade em [renomeação do produto](product-rename.md).
+
+
 Versão 1.1, 22/10/2026. Resumo implementável e índice das especificações detalhadas.
+
+F02.2b1 entregue localmente: processo de correlação com login exclusivo associa
+mensagens posteriores ao vínculo ao tenant/negócio, grava ciphertext numa fila
+durável com retenção de sete dias e audita em transação. Esta fila ainda não é
+consumida por Temporal; mídia, transcrição e ações externas seguem em F02.2b2.
 
 CI da F02 usa login Meta restrito e URL explícita para o mesmo banco `_test` dos
 demais papéis. No Actions a porta é 5432; o exemplo local usa 55432. Pytest em
@@ -31,9 +46,9 @@ de solicitações/tentativas e só grava `phone_verified=true` após aprovação
 provedor. O envio está desativado localmente até haver conta; staging AWS ainda
 não foi criado.
 
-Nome adotado: Local Spark; repositórios `local-spark-platform`, `local-spark-web`
-e `local-spark-infra`. Configuração Python utiliza `LOCAL_SPARK_`; PostgreSQL usa
-identificadores com underscore (`local_spark_platform`, roles `local_spark_*`).
+Nome adotado: Meu Braço Direito; repositórios `local-spark-platform`, `local-spark-web`
+e `local-spark-infra`. Configuração Python utiliza `MEU_BRACO_DIREITO_`; PostgreSQL usa
+identificadores com underscore (`meu_braco_direito_platform`, roles `meu_braco_direito_*`).
 Credenciais de exemplo são exclusivas de desenvolvimento; tokens locais anteriores
 à troca de nome/assinatura precisam ser reemitidos. Nenhuma credencial de produção
 é provisionada pelo Compose. PostgreSQL e o histórico Temporal de desenvolvimento

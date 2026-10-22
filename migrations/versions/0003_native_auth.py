@@ -22,8 +22,8 @@ TABLES = (
 def upgrade():
     op.execute(
         """
-DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='local_spark_auth')
-THEN CREATE ROLE local_spark_auth NOLOGIN NOSUPERUSER NOBYPASSRLS; END IF; END $$
+DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='meu_braco_direito_auth')
+THEN CREATE ROLE meu_braco_direito_auth NOLOGIN NOSUPERUSER NOBYPASSRLS; END IF; END $$
 """
     )
     statements = [
@@ -96,23 +96,23 @@ IS NOT NULL AND btrim(email)<>'') accounts WHERE n=1
     for table in TABLES:
         op.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY")
         op.execute(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY")
-        op.execute(f"CREATE POLICY auth_service ON {table} TO local_spark_auth USING(true) WITH CHECK(true)")
-        op.execute(f"GRANT SELECT,INSERT,UPDATE,DELETE ON {table} TO local_spark_auth")
+        op.execute(f"CREATE POLICY auth_service ON {table} TO meu_braco_direito_auth USING(true) WITH CHECK(true)")
+        op.execute(f"GRANT SELECT,INSERT,UPDATE,DELETE ON {table} TO meu_braco_direito_auth")
     op.execute("""
-CREATE POLICY auth_accounts ON user_accounts TO local_spark_auth USING(true) WITH
+CREATE POLICY auth_accounts ON user_accounts TO meu_braco_direito_auth USING(true) WITH
 CHECK(true)
 """)
-    op.execute("GRANT SELECT,INSERT ON user_accounts TO local_spark_auth")
-    op.execute("GRANT UPDATE(email_verified) ON user_accounts TO local_spark_auth")
-    op.execute("GRANT USAGE ON SCHEMA public TO local_spark_auth")
-    op.execute("GRANT SELECT ON alembic_version TO local_spark_auth")
-    op.execute("GRANT EXECUTE ON FUNCTION public.is_platform_staff() TO local_spark_auth")
+    op.execute("GRANT SELECT,INSERT ON user_accounts TO meu_braco_direito_auth")
+    op.execute("GRANT UPDATE(email_verified) ON user_accounts TO meu_braco_direito_auth")
+    op.execute("GRANT USAGE ON SCHEMA public TO meu_braco_direito_auth")
+    op.execute("GRANT SELECT ON alembic_version TO meu_braco_direito_auth")
+    op.execute("GRANT EXECUTE ON FUNCTION public.is_platform_staff() TO meu_braco_direito_auth")
 
 
 def downgrade():
-    op.execute("REVOKE SELECT ON alembic_version FROM local_spark_auth")
-    op.execute("REVOKE EXECUTE ON FUNCTION public.is_platform_staff() FROM local_spark_auth")
-    op.execute("REVOKE SELECT,INSERT,UPDATE(email_verified) ON user_accounts FROM local_spark_auth")
+    op.execute("REVOKE SELECT ON alembic_version FROM meu_braco_direito_auth")
+    op.execute("REVOKE EXECUTE ON FUNCTION public.is_platform_staff() FROM meu_braco_direito_auth")
+    op.execute("REVOKE SELECT,INSERT,UPDATE(email_verified) ON user_accounts FROM meu_braco_direito_auth")
     op.execute("DROP POLICY auth_accounts ON user_accounts")
     for table in reversed(TABLES):
         op.execute(f"DROP TABLE {table}")

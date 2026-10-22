@@ -28,7 +28,7 @@ PATH = "/"
 
 def cookie_names(request: Request) -> tuple[str, str]:
     prefix = "__Host-" if request.app.state.settings.public_web_url.startswith("https://") else ""
-    return f"{prefix}spark-refresh", f"{prefix}spark-csrf"
+    return f"{prefix}meu-braco-direito-refresh", f"{prefix}meu-braco-direito-csrf"
 
 
 def reply(request: Request, data: dict[str, Any]) -> JSONResponse:

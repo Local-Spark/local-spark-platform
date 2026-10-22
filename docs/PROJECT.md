@@ -1,6 +1,24 @@
 # Contexto vivo do projeto
 
-Atualizado: 22/10/2026. Nome adotado: Local Spark. Repositório principal: `local-spark-platform`.
+22/10/2026 — Produto renomeado para **Meu Braço Direito**. Diretórios e remotos
+Git permanecem `local-spark-platform`/`local-spark-web`; os pacotes, Compose,
+variáveis `MEU_BRACO_DIREITO_`, bancos e roles usam os identificadores novos.
+A migração `0015_product_brand` precede a correlação WhatsApp, preserva IDs,
+senhas/MFA e permissões, atualiza as duas identidades de demonstração e congela
+as chaves Stripe de checkouts anteriores. Contas existentes conservam suas senhas;
+as senhas de exemplo abaixo valem para instalações novas. Instruções e exceções
+de compatibilidade em [renomeação do produto](product-rename.md).
+
+
+Atualizado: 22/10/2026. Nome adotado: Meu Braço Direito. Repositório principal: `local-spark-platform`.
+
+F02.2b1 foi implementada e validada localmente: um processo restrito correlaciona mensagens
+cifradas ao negócio após a prova do canal e grava fila durável, privada e auditada.
+Não há IA, download, resposta ou publicação. F02.2b2 fará consumo da fila,
+validação de plano/consentimento, mídia e workflow. A migração 0015 foi testada
+com rollback/reaplicação num PostgreSQL temporário `_test`; a base local renomeada
+está no head 0015. 289 testes passaram com 100% de linhas/ramos; lint, tipos e
+Compose passaram. Smoke real Meta e staging ainda pendentes.
 
 Correção CI de F02.2a: o workflow declara `TEST_META_DATABASE_URL` com a porta
 5432 do PostgreSQL do Actions e prepara o login restrito Meta. Em `CI`, pytest
@@ -146,11 +164,11 @@ Fonte principal passa a ser este repositório. Os documentos de origem copiados 
 e `docs/phases` prevalecem sobre nomes de pastas sugeridos em rascunhos anteriores.
 O repositório principal já possui remoto Git configurado; esta implementação permanece
 em alterações locais. Não houve push, execução remota de CI ou provisionamento AWS.
-Configuração usa `LOCAL_SPARK_`, bancos `local_spark_platform`/`local_spark_platform_test`
-e roles `local_spark_*`. Credenciais locais foram atualizadas, incluindo a assinatura JWT.
+Configuração usa `MEU_BRACO_DIREITO_`, bancos `meu_braco_direito_platform`/`meu_braco_direito_platform_test`
+e roles `meu_braco_direito_*`. Credenciais locais foram atualizadas, incluindo a assinatura JWT.
 Não há cliente real ou integração paga provisionados.
 
-Desenvolvimento: `.vscode/launch.json` oferece `Local Spark: API (FastAPI)` com
+Desenvolvimento: `.vscode/launch.json` oferece `Meu Braço Direito: API (FastAPI)` com
 Python da `.venv`, `.env` local e porta 8000. Prelaunch para a API Docker e sobe
 dependências para evitar conflito de porta; workers seguem nos containers.
 No macOS, pré-tarefas usam o caminho absoluto do Docker Desktop e PATH explícito

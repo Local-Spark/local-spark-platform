@@ -36,14 +36,14 @@ def upgrade():
     for table in ("whatsapp_link_challenges", "whatsapp_channel_links"):
         op.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY")
         op.execute(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY")
-        op.execute(f"""CREATE POLICY owner_channel ON {table} TO local_spark_app
+        op.execute(f"""CREATE POLICY owner_channel ON {table} TO meu_braco_direito_app
           USING(tenant_id={tenant} AND EXISTS(SELECT 1 FROM memberships m
             WHERE m.tenant_id={table}.tenant_id AND m.actor_id={actor}
               AND m.role='owner' AND m.active))
           WITH CHECK(tenant_id={tenant} AND EXISTS(SELECT 1 FROM memberships m
             WHERE m.tenant_id={table}.tenant_id AND m.actor_id={actor}
               AND m.role='owner' AND m.active))""")
-        op.execute(f"GRANT SELECT,INSERT,UPDATE ON {table} TO local_spark_app")
+        op.execute(f"GRANT SELECT,INSERT,UPDATE ON {table} TO meu_braco_direito_app")
 
 
 def downgrade():

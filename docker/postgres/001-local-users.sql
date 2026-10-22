@@ -1,13 +1,16 @@
 -- Development-only credentials. Never mount this initializer in production.
-CREATE ROLE local_spark_runtime LOGIN PASSWORD 'local-spark-app-password' NOSUPERUSER NOBYPASSRLS;
-CREATE ROLE local_spark_delivery LOGIN PASSWORD 'local-spark-relay-password' NOSUPERUSER NOBYPASSRLS;
-CREATE ROLE local_spark_app NOLOGIN NOSUPERUSER NOBYPASSRLS;
-CREATE ROLE local_spark_relay NOLOGIN NOSUPERUSER NOBYPASSRLS;
-GRANT local_spark_app TO local_spark_runtime;
-GRANT local_spark_relay TO local_spark_delivery;
-CREATE ROLE local_spark_identity LOGIN PASSWORD 'local-spark-auth-password' NOSUPERUSER NOBYPASSRLS;
-CREATE ROLE local_spark_payments LOGIN PASSWORD 'local-spark-billing-password' NOSUPERUSER NOBYPASSRLS;
-CREATE ROLE local_spark_meta NOLOGIN NOSUPERUSER NOBYPASSRLS;
-CREATE ROLE local_spark_ingest LOGIN PASSWORD 'local-spark-meta-password' NOSUPERUSER NOBYPASSRLS;
-GRANT local_spark_meta TO local_spark_ingest;
-CREATE DATABASE local_spark_platform_test;
+CREATE ROLE meu_braco_direito_runtime LOGIN PASSWORD 'meu-braco-direito-app-password' NOSUPERUSER NOBYPASSRLS;
+CREATE ROLE meu_braco_direito_delivery LOGIN PASSWORD 'meu-braco-direito-relay-password' NOSUPERUSER NOBYPASSRLS;
+CREATE ROLE meu_braco_direito_app NOLOGIN NOSUPERUSER NOBYPASSRLS;
+CREATE ROLE meu_braco_direito_relay NOLOGIN NOSUPERUSER NOBYPASSRLS;
+GRANT meu_braco_direito_app TO meu_braco_direito_runtime;
+GRANT meu_braco_direito_relay TO meu_braco_direito_delivery;
+CREATE ROLE meu_braco_direito_identity LOGIN PASSWORD 'meu-braco-direito-auth-password' NOSUPERUSER NOBYPASSRLS;
+CREATE ROLE meu_braco_direito_payments LOGIN PASSWORD 'meu-braco-direito-billing-password' NOSUPERUSER NOBYPASSRLS;
+CREATE ROLE meu_braco_direito_meta NOLOGIN NOSUPERUSER NOBYPASSRLS;
+CREATE ROLE meu_braco_direito_ingest LOGIN PASSWORD 'meu-braco-direito-meta-password' NOSUPERUSER NOBYPASSRLS;
+GRANT meu_braco_direito_meta TO meu_braco_direito_ingest;
+CREATE ROLE meu_braco_direito_correlator NOLOGIN NOSUPERUSER NOBYPASSRLS;
+CREATE ROLE meu_braco_direito_router LOGIN PASSWORD 'meu-braco-direito-router-password' NOSUPERUSER NOBYPASSRLS;
+GRANT meu_braco_direito_correlator TO meu_braco_direito_router;
+CREATE DATABASE meu_braco_direito_platform_test;

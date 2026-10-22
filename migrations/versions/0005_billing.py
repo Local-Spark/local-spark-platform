@@ -9,9 +9,9 @@ depends_on = None
 
 
 def upgrade():
-    op.execute("""DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='local_spark_billing') THEN
-      CREATE ROLE local_spark_billing NOLOGIN NOSUPERUSER NOBYPASSRLS; END IF; END $$""")
-    op.execute("GRANT USAGE ON SCHEMA public TO local_spark_billing")
+    op.execute("""DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='meu_braco_direito_billing') THEN
+      CREATE ROLE meu_braco_direito_billing NOLOGIN NOSUPERUSER NOBYPASSRLS; END IF; END $$""")
+    op.execute("GRANT USAGE ON SCHEMA public TO meu_braco_direito_billing")
     for sql in [
         """CREATE TABLE billing_jobs (
           id uuid PRIMARY KEY, tenant_id uuid REFERENCES tenants(id), actor_id uuid REFERENCES user_accounts(id),
@@ -73,45 +73,49 @@ def upgrade():
     ):
         op.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY")
         op.execute(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY")
-        op.execute(f"CREATE POLICY billing_processor ON {table} TO local_spark_billing USING(true) WITH CHECK(true)")
-        op.execute(f"""CREATE POLICY billing_read ON {table} FOR SELECT TO local_spark_app USING (
+        op.execute(
+            f"CREATE POLICY billing_processor ON {table} TO meu_braco_direito_billing USING(true) WITH CHECK(true)"
+        )
+        op.execute(f"""CREATE POLICY billing_read ON {table} FOR SELECT TO meu_braco_direito_app USING (
           (tenant_id={tenant} AND {member}) OR public.is_platform_staff())""")
-        op.execute(f"GRANT SELECT ON {table} TO local_spark_app")
-        op.execute(f"GRANT SELECT ON {table} TO local_spark_billing")
+        op.execute(f"GRANT SELECT ON {table} TO meu_braco_direito_app")
+        op.execute(f"GRANT SELECT ON {table} TO meu_braco_direito_billing")
         if table != "billing_sponsorships":
-            op.execute(f"GRANT INSERT ON {table} TO local_spark_billing")
+            op.execute(f"GRANT INSERT ON {table} TO meu_braco_direito_billing")
         if table in {"billing_jobs", "billing_accounts", "billing_checkouts"}:
-            op.execute(f"GRANT UPDATE ON {table} TO local_spark_billing")
-    op.execute(f"""CREATE POLICY billing_checkout_request ON billing_jobs FOR INSERT TO local_spark_app
+            op.execute(f"GRANT UPDATE ON {table} TO meu_braco_direito_billing")
+    op.execute(f"""CREATE POLICY billing_checkout_request ON billing_jobs FOR INSERT TO meu_braco_direito_app
       WITH CHECK (tenant_id={tenant} AND actor_id={actor} AND kind='checkout' AND state='pending' AND {owner})""")
-    op.execute("GRANT INSERT ON billing_jobs TO local_spark_app")
-    op.execute(f"""CREATE POLICY sponsorship_create ON billing_sponsorships FOR INSERT TO local_spark_app
+    op.execute("GRANT INSERT ON billing_jobs TO meu_braco_direito_app")
+    op.execute(f"""CREATE POLICY sponsorship_create ON billing_sponsorships FOR INSERT TO meu_braco_direito_app
       WITH CHECK(public.is_platform_staff() AND actor_id={actor})""")
-    op.execute("""CREATE POLICY sponsorship_revoke ON billing_sponsorships FOR UPDATE TO local_spark_app
+    op.execute("""CREATE POLICY sponsorship_revoke ON billing_sponsorships FOR UPDATE TO meu_braco_direito_app
       USING(public.is_platform_staff()) WITH CHECK(public.is_platform_staff())""")
-    op.execute("GRANT INSERT ON billing_sponsorships TO local_spark_app")
-    op.execute("GRANT UPDATE(revoked_at) ON billing_sponsorships TO local_spark_app")
+    op.execute("GRANT INSERT ON billing_sponsorships TO meu_braco_direito_app")
+    op.execute("GRANT UPDATE(revoked_at) ON billing_sponsorships TO meu_braco_direito_app")
     for table in ("billing_audit", "billing_outbox"):
         op.execute(
             f"CREATE POLICY billing_staff_event ON {table} FOR INSERT "
-            "TO local_spark_app WITH CHECK(public.is_platform_staff())"
+            "TO meu_braco_direito_app WITH CHECK(public.is_platform_staff())"
         )
-        op.execute(f"GRANT INSERT ON {table} TO local_spark_app")
+        op.execute(f"GRANT INSERT ON {table} TO meu_braco_direito_app")
     for table in ("memberships", "user_accounts", "tenants"):
-        op.execute(f"CREATE POLICY billing_reference_read ON {table} FOR SELECT TO local_spark_billing USING(true)")
-    op.execute("GRANT SELECT ON memberships TO local_spark_billing")
-    op.execute("GRANT SELECT(id,active,email_verified) ON user_accounts TO local_spark_billing")
-    op.execute("GRANT SELECT(id) ON tenants TO local_spark_billing")
-    op.execute("GRANT SELECT ON alembic_version TO local_spark_billing")
+        op.execute(
+            f"CREATE POLICY billing_reference_read ON {table} FOR SELECT TO meu_braco_direito_billing USING(true)"
+        )
+    op.execute("GRANT SELECT ON memberships TO meu_braco_direito_billing")
+    op.execute("GRANT SELECT(id,active,email_verified) ON user_accounts TO meu_braco_direito_billing")
+    op.execute("GRANT SELECT(id) ON tenants TO meu_braco_direito_billing")
+    op.execute("GRANT SELECT ON alembic_version TO meu_braco_direito_billing")
 
 
 def downgrade():
     for table in ("memberships", "user_accounts", "tenants"):
         op.execute(f"DROP POLICY billing_reference_read ON {table}")
-    op.execute("REVOKE SELECT ON memberships FROM local_spark_billing")
-    op.execute("REVOKE SELECT(id,active,email_verified) ON user_accounts FROM local_spark_billing")
-    op.execute("REVOKE SELECT(id) ON tenants FROM local_spark_billing")
-    op.execute("REVOKE SELECT ON alembic_version FROM local_spark_billing")
+    op.execute("REVOKE SELECT ON memberships FROM meu_braco_direito_billing")
+    op.execute("REVOKE SELECT(id,active,email_verified) ON user_accounts FROM meu_braco_direito_billing")
+    op.execute("REVOKE SELECT(id) ON tenants FROM meu_braco_direito_billing")
+    op.execute("REVOKE SELECT ON alembic_version FROM meu_braco_direito_billing")
     op.execute("ALTER TABLE billing_accounts DROP CONSTRAINT billing_accounts_checkout_id_fkey")
     for table in (
         "billing_outbox",
