@@ -2,6 +2,12 @@
 
 Versão 1.1, 22/10/2026. Resumo implementável e índice das especificações detalhadas.
 
+CI da F02 usa login Meta restrito e URL explícita para o mesmo banco `_test` dos
+demais papéis. No Actions a porta é 5432; o exemplo local usa 55432. Pytest em
+CI rejeita configuração incompleta antes de executar testes. A próxima fatia
+F02.2b correlaciona eventos ao vínculo e os encaminha com identidade durável;
+o vínculo isolado de F02.2a ainda não processa conteúdo.
+
 F02.2a entregue localmente: vínculo WhatsApp requer dono autenticado, telefone
 verificado, acesso ativo e mensagem com código único recebida do mesmo número
 via webhook assinado. Desafio expira e é de uso único; troca do telefone revoga

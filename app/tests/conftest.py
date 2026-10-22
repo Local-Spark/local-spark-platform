@@ -30,6 +30,19 @@ class IntegrationSettings(BaseSettings):
 
 def pytest_configure():
     # Only test configuration is loaded here; the application's .env is never a DB fallback.
+    if os.getenv("CI"):
+        required = (
+            "TEST_ADMIN_DATABASE_URL",
+            "TEST_DATABASE_URL",
+            "TEST_RELAY_DATABASE_URL",
+            "TEST_AUTH_DATABASE_URL",
+            "TEST_BILLING_DATABASE_URL",
+            "TEST_META_DATABASE_URL",
+            "TEST_TEMPORAL_ADDRESS",
+        )
+        missing = [name for name in required if not os.getenv(name)]
+        if missing:
+            raise pytest.UsageError(f"CI must define test services explicitly: {', '.join(missing)}")
     config = IntegrationSettings()
     for field, value in config.model_dump().items():
         os.environ.setdefault(

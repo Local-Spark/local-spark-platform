@@ -28,12 +28,16 @@ async def main():
           IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='local_spark_payments') THEN
             CREATE ROLE local_spark_payments LOGIN PASSWORD 'local-spark-billing-password' NOSUPERUSER NOBYPASSRLS;
           END IF;
+          IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='local_spark_ingest') THEN
+            CREATE ROLE local_spark_ingest LOGIN PASSWORD 'local-spark-meta-password' NOSUPERUSER NOBYPASSRLS;
+          END IF;
         END $$""")
         )
         await connection.execute(text("GRANT local_spark_app TO local_spark_runtime"))
         await connection.execute(text("GRANT local_spark_relay TO local_spark_delivery"))
         await connection.execute(text("GRANT local_spark_auth TO local_spark_identity"))
         await connection.execute(text("GRANT local_spark_billing TO local_spark_payments"))
+        await connection.execute(text("GRANT local_spark_meta TO local_spark_ingest"))
     await engine.dispose()
 
 

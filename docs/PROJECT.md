@@ -2,6 +2,14 @@
 
 Atualizado: 22/10/2026. Nome adotado: Local Spark. Repositório principal: `local-spark-platform`.
 
+Correção CI de F02.2a: o workflow declara `TEST_META_DATABASE_URL` com a porta
+5432 do PostgreSQL do Actions e prepara o login restrito Meta. Em `CI`, pytest
+exige todas as URLs explicitamente para não herdar a porta local 55432 do
+`.env.test.example`. A próxima fatia funcional é F02.2b: correlação de eventos
+ao negócio vinculado, retenção, biblioteca de mídia e início dos workflows.
+Simulação local do modo CI passou: 278 testes, 100% de linhas/ramos, lint e tipos.
+O workflow remoto ainda não foi executado nesta alteração.
+
 F02.2a implementa a prova de posse do canal WhatsApp: dono autenticado com
 telefone verificado e plano ativo recebe código único, envia-o pelo WhatsApp
 registrado, e confirma após webhook Meta assinado. Há vínculo tenant/negócio,

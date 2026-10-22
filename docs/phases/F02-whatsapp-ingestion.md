@@ -86,6 +86,11 @@ restrito, associar eventos com identidade durável e outbox, agendar limpeza da
 retenção, baixar e validar mídia na biblioteca privada, iniciar workflow de
 extração/transcrição. O vínculo por si só não aciona IA ou publicação.
 
+O CI declara URL Meta no PostgreSQL de teste na porta 5432 e cria o login
+`local_spark_ingest` com o papel restrito `local_spark_meta`. O exemplo local usa
+55432. Todos os endpoints de teste devem apontar para o mesmo banco `_test`;
+sob `CI`, pytest falha cedo se faltar uma URL explícita.
+
 ## Integração e manutenção
 
 

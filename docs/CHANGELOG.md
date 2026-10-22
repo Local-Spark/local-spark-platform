@@ -1,5 +1,19 @@
 # Registro de mudanças
 
+## 2026-10-22 — Correção do CI da F02.2a
+
+- GitHub Actions define explicitamente `TEST_META_DATABASE_URL` na porta 5432 do
+  serviço PostgreSQL do CI; antes, pytest carregava a URL de exemplo local na
+  porta 55432 e falhava na checagem de isolamento do banco `_test`.
+- Preparação do banco de teste cria o login restrito `local_spark_ingest` e concede
+  `local_spark_meta`, necessário aos testes da inbox e do vínculo WhatsApp.
+- Pytest exige todas as URLs e o endereço Temporal explícitos sob `CI`, evitando
+  que um ambiente remoto use por engano valores do exemplo local.
+- Validação local: YAML/URLs do workflow conferidos, setup dos logins executado
+  no banco `_test`, guarda de URL ausente exercitada, 278 testes em modo `CI=true`
+  com 100% de linhas e ramos, Ruff e mypy aprovados. Execução remota do Actions
+  ainda depende de push.
+
 ## 2026-10-22 — F02.2a: vínculo comprovado do WhatsApp
 
 - Migration 0014 acrescenta índice cego do remetente à inbox e tabelas de desafio
