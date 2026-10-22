@@ -6,7 +6,8 @@ implementados; geração/publicação continuam nas fases seguintes. A verifica�
 de telefone precisa de conta Twilio e staging para homologação. Autenticação
 própria substitui o Keycloak.
 F02.1 já recebe callbacks WhatsApp assinados em uma inbox criptografada, desativada
-por padrão. O vínculo do canal e o processamento do material ainda são F02.2.
+por padrão. F02.2a comprova o vínculo do remetente ao negócio; processamento do
+material ainda aguarda as próximas fatias de F02.2.
 
 ## Preparar o ambiente
 
@@ -89,7 +90,11 @@ entram numa inbox isolada e criptografada; ainda não aparecem na área do clien
 nem iniciam geração. O SMS confirmado na F01 não vincula automaticamente uma
 conversa do WhatsApp ao negócio. Consulte [F02](docs/phases/F02-whatsapp-ingestion.md)
 e [operação](docs/operations.md) antes de configurar App/WABA, número, secrets,
-login PostgreSQL dedicado e callback HTTPS. A migration 0013 deve preceder a API.
+login PostgreSQL dedicado e callback HTTPS. A migration 0014 deve preceder a API.
+F02.2a expõe `GET/POST /api/v1/organizations/{tenant_id}/businesses/{business_id}/whatsapp-link`
+e `POST .../confirm`: o dono com telefone verificado e plano ativo envia ao número
+oficial o código retornado e confirma após o webhook. A interface e o smoke real
+Meta ainda faltam; mensagens permanecem em quarentena, sem gerar conteúdo.
 
 ## Cobrança e patrocínio — F01.5
 

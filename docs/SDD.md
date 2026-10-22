@@ -1,13 +1,20 @@
 # SDD geral — Plataforma de conteúdo
 
-Versão 1.0, 21/10/2026. Resumo implementável e índice das especificações detalhadas.
+Versão 1.1, 22/10/2026. Resumo implementável e índice das especificações detalhadas.
+
+F02.2a entregue localmente: vínculo WhatsApp requer dono autenticado, telefone
+verificado, acesso ativo e mensagem com código único recebida do mesmo número
+via webhook assinado. Desafio expira e é de uso único; troca do telefone revoga
+o vínculo. Ingestão, vínculo e processamento são fronteiras distintas: a inbox
+continua em quarentena até F02.2b criar correlação, outbox e workflows. Ver
+[F02](phases/F02-whatsapp-ingestion.md). UI e smoke Meta real pendentes.
 
 F02.1 entregue localmente: webhook WhatsApp Cloud API com handshake, HMAC do corpo
 bruto, limite de 256 KiB e inbox criptografada/deduplicada em login próprio com RLS.
 Mensagens ainda ficam em quarentena sem vínculo verificado ao negócio; não há
 download, transcrição, resposta ou workflow de conteúdo. Ver
 [F02](phases/F02-whatsapp-ingestion.md). Configuração Meta permanece desabilitada
-até existirem App/WABA/número/chaves; teste real e F02.2 pendentes.
+até existirem App/WABA/número/chaves; teste real e restante de F02.2 pendentes.
 
 F01.6: o billing worker agenda reconciliação canônica periódica de checkouts abertos
 sem acesso pago, com jobs duráveis e dedupe por janela de cinco minutos; o webhook

@@ -20,6 +20,7 @@ from app.api.v1.phone_verification import phone_router
 from app.api.v1.reference import reference_router
 from app.api.v1.staff import staff_router
 from app.api.v1.whatsapp import whatsapp_router
+from app.api.v1.whatsapp_link import whatsapp_link_router
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging, request_id, request_id_context
 from app.db.session import Database
@@ -82,6 +83,7 @@ def create_app(
     application.include_router(staff_router)
     application.include_router(phone_router)
     application.include_router(whatsapp_router)
+    application.include_router(whatsapp_link_router)
 
     @application.middleware("http")
     async def diagnostics(request: Request, call_next):  # type: ignore[no-untyped-def]

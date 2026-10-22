@@ -77,6 +77,21 @@ class PhoneVerificationService:
                   WHERE tenant_id=:tenant AND business_id=:business"""),
                 {"tenant": tenant, "business": business},
             )
+            await db.execute(
+                text("""UPDATE whatsapp_link_challenges SET state='cancelled'
+                  WHERE tenant_id=:tenant AND business_id=:business AND state='pending'"""),
+                {"tenant": tenant, "business": business},
+            )
+            await db.execute(
+                text("""WITH unlinked AS (
+                    UPDATE whatsapp_channel_links SET active=false
+                    WHERE tenant_id=:tenant AND business_id=:business AND active
+                    RETURNING business_id
+                  )
+                  INSERT INTO audit_events(tenant_id,actor_id,operation_id,action,resource_id)
+                  SELECT :tenant,:actor,:operation,'whatsapp.unlinked',business_id FROM unlinked"""),
+                {"tenant": tenant, "business": business, "actor": actor, "operation": uuid4()},
+            )
         return {"phone": destination, "destination": destination, "verified": False}
 
     async def start(self, tenant: UUID, business: UUID, actor: UUID) -> dict[str, str]:

@@ -1,13 +1,23 @@
 # Contexto vivo do projeto
 
-Atualizado: 21/10/2026. Nome adotado: Local Spark. Repositório principal: `local-spark-platform`.
+Atualizado: 22/10/2026. Nome adotado: Local Spark. Repositório principal: `local-spark-platform`.
+
+F02.2a implementa a prova de posse do canal WhatsApp: dono autenticado com
+telefone verificado e plano ativo recebe código único, envia-o pelo WhatsApp
+registrado, e confirma após webhook Meta assinado. Há vínculo tenant/negócio,
+auditoria e revogação automática ao trocar o telefone. A inbox continua em
+quarentena: UI do vínculo, correlação de mensagens, mídia, transcrição e workflow
+de conteúdo permanecem nas próximas fatias. Validação local usa webhooks
+sintéticos; ainda não existe App/WABA Meta disponível para smoke real.
+Migration 0014 aplicada no desenvolvimento local após backup; 278 testes com
+100% de linhas/ramos, lint e tipos passaram. Banco `_test` validou rollback/upgrade.
 
 F02 começou pela ingressão segura de WhatsApp (F02.1): desafio e assinatura Meta,
 limite de corpo, inbox cifrada/deduplicada com papel PostgreSQL isolado e migração
 0013. Sem App/WABA configurados, a rota fica desabilitada. Sem vínculo específico
 entre remetente e negócio, eventos ficam em quarentena; ainda não há processamento
-de fotos/áudio/texto nem resposta via WhatsApp. F02.2 fará vínculo do canal,
-biblioteca privada e workflow. Validado com 270 testes/100% linhas e ramos, lint,
+de fotos/áudio/texto nem resposta via WhatsApp. F02.2 continua com resolução do
+remetente, biblioteca privada e workflow. F02.1 foi validada com 271 testes/100% linhas e ramos, lint,
 tipos, migração de teste revertida/reaplicada e migração local após backup. Nenhum
 smoke real com a Meta ocorreu.
 

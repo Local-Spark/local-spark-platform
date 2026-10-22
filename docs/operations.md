@@ -80,9 +80,19 @@ eventos ainda não são atribuídos a negócio nem enviados ao Temporal. Reentre
 da Meta recebe 200 após commit sem criar duplicata. Falha de banco retorna erro,
 permitindo retry do provedor. Nunca consultar/copiar ciphertext ou payload bruto
 para logs/tickets. Ingressão remove linhas expiradas quando chega novo evento;
-F02.2 acrescentará limpeza periódica, vínculo de canal e processamento. A
+F02.2 acrescentará limpeza periódica e processamento. A
 [coleção oficial da Meta](https://www.postman.com/meta/whatsapp-business-platform/overview)
 documenta a configuração do webhook e os formatos de mensagens/status.
+
+F02.2a acrescenta a migration 0014. Após backup, aplicá-la antes de iniciar a
+API nova. O proprietário com telefone verificado e plano ativo chama `POST` no
+recurso `/api/v1/organizations/{tenant_id}/businesses/{business_id}/whatsapp-link`,
+envia exatamente a mensagem retornada para o número oficial da plataforma e
+chama `POST` no mesmo recurso com sufixo `/confirm`. O `GET` mostra o status.
+Sem modo Meta `cloud` e webhook real, o vínculo fica indisponível; simulações
+somente no banco `_test`. Trocar o telefone desativa o vínculo. A inbox segue sem
+processamento de material. Rotação da chave `META_ENCRYPTION_KEY` requer migrar
+e reindexar dados antes de aplicá-la, pois também é chave para HMAC do remetente.
 
 `docker compose up -d postgres temporal mailpit`; migração separada com conexão administrativa.
 O SQL de inicialização cria logins locais sem bypass e banco `local_spark_platform_test`. As roles

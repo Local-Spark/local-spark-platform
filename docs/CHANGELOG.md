@@ -1,5 +1,21 @@
 # Registro de mudanças
 
+## 2026-10-22 — F02.2a: vínculo comprovado do WhatsApp
+
+- Migration 0014 acrescenta índice cego do remetente à inbox e tabelas de desafio
+  e vínculo com RLS por dono/tenant, expiração e unicidade de remetente ativo.
+- API cria código único de 15 minutos após verificar dono, telefone e plano; confirma
+  somente mensagem assinada do mesmo número. Corridas de confirmação, troca de
+  telefone e repetição não vinculam um negócio incorreto; vínculo e revogação
+  têm auditoria durável.
+- Webhook sintético e testes de falha/concorrência exercitam a prova localmente.
+  UI, smoke Meta real, resolução do remetente e mídia/IA continuam pendentes.
+- Migration 0014 revertida e reaplicada no banco `_test` e no desenvolvimento
+  local, após backup `.local/backups/local-spark-before-0014-2026-10-22.dump`.
+  As tabelas novas estavam vazias antes da reaplicação da política RLS; nenhum
+  dado de vínculo foi descartado. 278 testes, 100% de linhas e ramos, Ruff e
+  mypy aprovados com comandos equivalentes da `.venv`.
+
 ## 2026-10-21 — F02.1: entrada segura do WhatsApp
 
 - Handshake e callback WhatsApp Cloud API com HMAC do corpo bruto, limite de 256 KiB,
