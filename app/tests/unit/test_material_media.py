@@ -203,6 +203,8 @@ async def test_store_configuration_upload_and_sign(settings, monkeypatch):
         await store.put("file", FetchedMedia(b"ok", "image/png", "hash"))
     with pytest.raises(MaterialError, match="MATERIAL_STORAGE_NOT_CONFIGURED"):
         await store.signed_url("file", "image/png")
+    with pytest.raises(MaterialError, match="MATERIAL_STORAGE_NOT_CONFIGURED"):
+        await store.delete("file")
     config = settings.model_copy(
         update={
             "material_storage_bucket": "bucket",
@@ -216,6 +218,8 @@ async def test_store_configuration_upload_and_sign(settings, monkeypatch):
     create = Mock()
     monkeypatch.setattr(module.boto3, "client", create)
     await store.put("file", FetchedMedia(b"ok", "image/png", "hash"))
+    await store.delete("file")
+    create.return_value.delete_object.assert_called_once_with(Bucket="bucket", Key="file")
     assert create.call_args.kwargs["endpoint_url"] == "http://private:9000"
     create.return_value.generate_presigned_url.return_value = "https://public.example/signed"
     assert await store.signed_url("file", "image/png") == "https://public.example/signed"
@@ -223,6 +227,9 @@ async def test_store_configuration_upload_and_sign(settings, monkeypatch):
     create.return_value.put_object.side_effect = RuntimeError("storage down")
     with pytest.raises(MaterialError, match="MATERIAL_STORAGE_UNAVAILABLE"):
         await store.put("file", FetchedMedia(b"ok", "image/png", "hash"))
+    create.return_value.delete_object.side_effect = RuntimeError("storage down")
+    with pytest.raises(MaterialError, match="MATERIAL_STORAGE_UNAVAILABLE"):
+        await store.delete("file")
     create.return_value.generate_presigned_url.side_effect = RuntimeError("signing unavailable")
     with pytest.raises(MaterialError, match="MATERIAL_STORAGE_UNAVAILABLE"):
         await store.signed_url("file", "image/png")

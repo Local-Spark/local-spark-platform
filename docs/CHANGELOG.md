@@ -1,5 +1,23 @@
 # Registro de mudanças
 
+## 2026-10-22 — F02.2c1: retenção e exclusão de materiais
+
+- Migração 0017 adiciona prazo de 30 dias aos assets e estado de exclusão com
+  lease/fencing e privilégios RLS. API oferece pedido idempotente de exclusão ao
+  proprietário; materiais pedidos/vencidos somem da biblioteca e não geram links.
+- Dispatcher limpa inbox/fila cifradas vencidas e apaga objetos S3 antes dos
+  registros correspondentes. Falha de storage mantém a intenção para retry.
+  A web mostra prazo e confirmação de exclusão; links já emitidos duram até 2 min.
+- Validação: 367 testes backend com 100% de linhas/ramos; 149 testes web com
+  100% nos quatro critérios; uma jornada Chromium de exclusão; Ruff, mypy,
+  typecheck, build e formatação aprovados. Migração 0017 revertida/reaplicada no
+  `_test`, aplicada localmente após backup. Arquivo sintético removido no
+  SeaweedFS e dispatcher atualizado em execução.
+- A API iniciada antes da migração pelo depurador VS Code precisa reiniciar com
+  F5 para reconhecer o novo head; readiness local fica 503 até esse reinício.
+- Reconciliação de upload órfão, agrupamento/transcrição, Meta real e staging
+  permanecem pendentes antes de conteúdo real.
+
 ## 2026-10-22 — Diagnóstico do sandbox Meta
 
 - App/WABA e número de teste configurados somente no `.env` local; sem segredos

@@ -89,11 +89,30 @@ async def test_whatsapp_dispatcher_disabled_and_loop_shutdown(settings, monkeypa
     monkeypatch.setattr(dispatcher, "connect_temporal", AsyncMock())
     dispatch = AsyncMock(side_effect=[1, 0, asyncio.CancelledError()])
     monkeypatch.setattr(dispatcher, "dispatch_materials", dispatch)
+    purge = AsyncMock(return_value=1)
+    monkeypatch.setattr(dispatcher, "purge_once", purge)
     monkeypatch.setattr(dispatcher.asyncio, "sleep", AsyncMock())
     with pytest.raises(asyncio.CancelledError):
         await dispatcher.run_dispatcher()
     assert dispatch.await_count == 3
+    purge.assert_awaited_once()
     assert database.close.await_count == 1
+
+
+async def test_whatsapp_dispatcher_empty_purge_is_quiet(settings, monkeypatch):
+    from app.entrypoints import whatsapp_dispatcher as dispatcher
+
+    configured = settings.model_copy(update={"meta_encryption_key": SecretStr(Fernet.generate_key().decode())})
+    monkeypatch.setattr(dispatcher, "get_settings", lambda: configured)
+    database = AsyncMock()
+    monkeypatch.setattr(dispatcher, "Database", lambda *args, **kwargs: database)
+    monkeypatch.setattr(dispatcher, "connect_temporal", AsyncMock())
+    monkeypatch.setattr(dispatcher, "dispatch_materials", AsyncMock(side_effect=[0, asyncio.CancelledError()]))
+    monkeypatch.setattr(dispatcher, "purge_once", AsyncMock(return_value=0))
+    monkeypatch.setattr(dispatcher.asyncio, "sleep", AsyncMock())
+    with pytest.raises(asyncio.CancelledError):
+        await dispatcher.run_dispatcher()
+    dispatcher.purge_once.assert_awaited_once()
 
 
 async def test_relay_releases_database_on_shutdown(settings, fake_database, monkeypatch):

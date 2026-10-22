@@ -35,7 +35,11 @@ async def route_once(database: Database, settings: Settings, limit: int = 25) ->
     """Atomically copy eligible encrypted messages into a tenant-scoped pending queue."""
     cipher = Fernet(settings.meta_encryption_key.get_secret_value().encode())  # type: ignore[union-attr]
     async with database.sessions() as session, session.begin():
-        await session.execute(text("DELETE FROM whatsapp_material_events WHERE expires_at<now()"))
+        await session.execute(
+            text("""DELETE FROM whatsapp_material_events WHERE id IN (
+              SELECT id FROM whatsapp_material_events WHERE expires_at<now()
+              ORDER BY expires_at,id LIMIT 1000 FOR UPDATE SKIP LOCKED)""")
+        )
         rows = (
             (
                 await session.execute(

@@ -1,0 +1,134 @@
+"""Owner deletion and expiry never expose another business's materials."""
+
+from unittest.mock import AsyncMock
+from uuid import uuid4
+
+import httpx
+from sqlalchemy import text
+
+from app.adapters.material_media import MaterialError
+from app.db.session import Database
+from app.main import create_app
+from app.services.whatsapp_retention import claim_expired_assets, finish_purge, purge_expired_raw, purge_once
+from app.tests.unit.test_core import access_token
+
+
+async def test_owner_request_is_private_and_purge_retries_storage(admin, database, auth_database, seeded, settings):
+    first, second = uuid4(), uuid4()
+    event, other_event = uuid4(), uuid4()
+    async with admin.begin() as connection:
+        for tenant, business, asset, key in (
+            (seeded["t1"], first, event, "private/first"),
+            (seeded["t2"], second, other_event, "private/second"),
+        ):
+            await connection.execute(
+                text("INSERT INTO businesses(id,tenant_id,name,timezone) VALUES(:id,:tenant,'Test','UTC')"),
+                {"id": business, "tenant": tenant},
+            )
+            await connection.execute(
+                text("""INSERT INTO business_profiles(tenant_id,business_id,category,city,description,phone,brand_color)
+                  VALUES(:tenant,:business,'Food','Rio','Test','+5511999999999','#6557ed')"""),
+                {"tenant": tenant, "business": business},
+            )
+            await connection.execute(
+                text("""INSERT INTO whatsapp_material_assets
+                  (id,tenant_id,business_id,kind,ciphertext,object_key,mime_type)
+                  VALUES(:id,:tenant,:business,'image','cipher',:key,'image/png')"""),
+                {"id": asset, "tenant": tenant, "business": business, "key": key},
+            )
+    app = create_app(settings, database, auth_database)
+    base = f"/api/v1/organizations/{seeded['t1']}/businesses/{first}/whatsapp-materials"
+    owner = {"Authorization": f"Bearer {access_token(settings, seeded['a1'])}"}
+    foreign = {"Authorization": f"Bearer {access_token(settings, seeded['a2'])}"}
+    router = Database(settings, correlator=True)
+    try:
+        async with (
+            app.router.lifespan_context(app),
+            httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url="http://test") as client,
+        ):
+            assert (await client.get(base, headers=owner)).json()["items"][0]["id"] == str(event)
+            assert (await client.delete(f"{base}/{event}", headers=foreign)).status_code == 403
+            assert (await client.delete(f"{base}/{other_event}", headers=owner)).status_code == 404
+            assert (await client.delete(f"{base}/{event}", headers=owner)).json() == {"status": "scheduled"}
+            assert (await client.delete(f"{base}/{event}", headers=owner)).status_code == 202
+            assert (await client.get(base, headers=owner)).json()["items"] == []
+            assert (await client.get(f"{base}/{event}/download-link", headers=owner)).status_code == 404
+        storage = AsyncMock()
+        storage.delete.side_effect = MaterialError("MATERIAL_STORAGE_UNAVAILABLE", retryable=True)
+        assert await purge_once(router, storage, uuid4()) == 0
+        async with admin.connect() as connection:
+            assert await connection.scalar(text("SELECT count(*) FROM whatsapp_material_assets")) == 2
+        async with admin.begin() as connection:
+            await connection.execute(
+                text("UPDATE whatsapp_material_assets SET delete_lease_until=now()-interval '1 second' WHERE id=:id"),
+                {"id": event},
+            )
+        storage.delete.side_effect = None
+        assert await purge_once(router, storage, uuid4()) == 1
+        storage.delete.assert_awaited_with("private/first")
+        async with admin.connect() as connection:
+            assert await connection.scalar(text("SELECT count(*) FROM whatsapp_material_assets")) == 1
+            assert (
+                await connection.scalar(
+                    text("SELECT count(*) FROM whatsapp_material_assets WHERE id=:id"), {"id": other_event}
+                )
+                == 1
+            )
+            assert (
+                await connection.scalar(
+                    text("""SELECT count(*) FROM audit_events WHERE operation_id=:id
+                  AND action='whatsapp.material_delete_requested'"""),
+                    {"id": event},
+                )
+                == 1
+            )
+    finally:
+        await router.close()
+
+
+async def test_expiry_claim_fencing_and_raw_cleanup(admin, seeded, settings):
+    business, event, raw = uuid4(), uuid4(), uuid4()
+    async with admin.begin() as connection:
+        await connection.execute(
+            text("INSERT INTO businesses(id,tenant_id,name,timezone) VALUES(:id,:tenant,'Test','UTC')"),
+            {"id": business, "tenant": seeded["t1"]},
+        )
+        await connection.execute(
+            text("""INSERT INTO whatsapp_material_assets
+              (id,tenant_id,business_id,kind,ciphertext,expires_at)
+              VALUES(:id,:tenant,:business,'text','cipher',now()-interval '1 day')"""),
+            {"id": event, "tenant": seeded["t1"], "business": business},
+        )
+        await connection.execute(
+            text("""INSERT INTO whatsapp_inbox(id,dedupe_key,event_kind,ciphertext,expires_at)
+              VALUES(:id,:dedupe,'message','cipher',now()-interval '1 day')"""),
+            {"id": raw, "dedupe": "0" * 64},
+        )
+    router = Database(settings, correlator=True)
+    first, second = uuid4(), uuid4()
+    try:
+        await purge_expired_raw(router)
+        async with admin.connect() as connection:
+            assert await connection.scalar(text("SELECT count(*) FROM whatsapp_inbox WHERE id=:id"), {"id": raw}) == 0
+        claims = await claim_expired_assets(router, first)
+        assert len(claims) == 1
+        assert await claim_expired_assets(router, second) == []
+        async with admin.begin() as connection:
+            await connection.execute(
+                text("UPDATE whatsapp_material_assets SET delete_lease_until=now()-interval '1 second' WHERE id=:id"),
+                {"id": event},
+            )
+        newer = (await claim_expired_assets(router, second))[0]
+        assert newer.fencing_token > claims[0].fencing_token
+        assert not await finish_purge(router, first, claims[0])
+        assert await finish_purge(router, second, newer)
+        assert not await finish_purge(router, second, newer)
+        async with admin.connect() as connection:
+            assert (
+                await connection.scalar(
+                    text("SELECT count(*) FROM whatsapp_material_assets WHERE id=:id"), {"id": event}
+                )
+                == 0
+            )
+    finally:
+        await router.close()

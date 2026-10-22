@@ -209,6 +209,18 @@ class MaterialStore:
         except Exception as exc:
             raise MaterialError("MATERIAL_STORAGE_UNAVAILABLE", retryable=True) from exc
 
+    async def delete(self, key: str) -> None:
+        if not self.settings.material_storage_bucket:
+            raise MaterialError("MATERIAL_STORAGE_NOT_CONFIGURED")
+
+        def remove() -> None:
+            self._client().delete_object(Bucket=self.settings.material_storage_bucket, Key=key)
+
+        try:
+            await asyncio.to_thread(remove)
+        except Exception as exc:
+            raise MaterialError("MATERIAL_STORAGE_UNAVAILABLE", retryable=True) from exc
+
     async def signed_url(self, key: str, mime_type: str) -> str:
         if not self.settings.material_storage_bucket:
             raise MaterialError("MATERIAL_STORAGE_NOT_CONFIGURED")

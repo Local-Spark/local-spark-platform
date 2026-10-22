@@ -45,6 +45,28 @@ async def test_repeated_consent_actions_do_not_duplicate_audit(settings):
     session.execute.assert_not_awaited()
 
 
+async def test_delete_material_replay_and_missing_record(settings):
+    tenant, business, actor, event = [uuid4() for _ in range(4)]
+    session = Mock()
+    session.scalar = AsyncMock(side_effect=[1, None, 1, 1, None, None])
+    session.execute = AsyncMock()
+    service = WhatsAppMaterialsService(settings, database_with(session))
+    assert await service.delete_material(tenant, business, actor, event) == {"status": "scheduled"}
+    with pytest.raises(AuthError, match="MATERIAL_NOT_FOUND"):
+        await service.delete_material(tenant, business, actor, event)
+    session.execute.assert_not_awaited()
+
+
+async def test_delete_material_first_request_records_audit(settings):
+    tenant, business, actor, event = [uuid4() for _ in range(4)]
+    session = Mock()
+    session.scalar = AsyncMock(side_effect=[1, event])
+    session.execute = AsyncMock()
+    service = WhatsAppMaterialsService(settings, database_with(session))
+    assert await service.delete_material(tenant, business, actor, event) == {"status": "scheduled"}
+    session.execute.assert_awaited_once()
+
+
 def test_receipt_hides_corrupt_or_unavailable_content():
     row = {
         "id": uuid4(),

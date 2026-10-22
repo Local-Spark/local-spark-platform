@@ -12,6 +12,20 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Atualizado: 22/10/2026. Nome adotado: Meu Braço Direito. Repositório principal: `local-spark-platform`.
 
+F02.2c1 entregou localmente retenção e exclusão da biblioteca: materiais preparados vencem
+em 30 dias, o dono pode pedir exclusão antecipada e um worker remove objetos com
+retry/lease/fencing antes de apagar registros. Inbox/fila vencem em sete dias com
+limpeza periódica. Objetos órfãos de upload sem commit ainda exigem reconciliação;
+agrupamento/transcrição, Meta real e staging seguem pendentes. Não operar conteúdo
+real até esses bloqueios serem tratados.
+Validação: 367 testes backend/100% linhas e ramos, 149 web/100% nos quatro
+critérios, Chromium da exclusão, rollback/reaplicação da 0017 no `_test` e
+remoção de arquivo sintético no SeaweedFS. Migração 0017 aplicada localmente
+após backup; dispatcher atualizado está em execução.
+A API que já estava aberta pelo depurador VS Code conserva o head antigo em
+memória e responde readiness 503 até ser reiniciada com F5; o processo do
+depurador foi preservado para o desenvolvedor reiniciá-lo.
+
 Smoke Meta de 22/10: o app e a WABA de teste foram criados, e o callback HTTPS
 temporário respondeu ao desafio e aceitou um POST sintético assinado. O primeiro
 envio pelo número de teste falhou na Meta com `131031` (`Business Account locked`);
@@ -25,8 +39,8 @@ cifradas ao negócio após a prova do canal e grava fila durável, privada e aud
 F02.2b2 agora consome essa fila pelo Temporal, revalida autorização/consentimento,
 guarda texto e mídia em biblioteca privada e oferece conexão/recibos na área do
 cliente. O storage local usa SeaweedFS/S3; migration 0016 adiciona consentimento,
-leases, fencing e assets. Transcrição, resposta, agrupamento, retenção/exclusão de
-assets e smoke com a Meta continuam pendentes, logo não operar conteúdo real ainda.
+leases, fencing e assets. Transcrição, resposta, agrupamento, reconciliação de
+uploads órfãos e smoke com a Meta continuam pendentes, logo não operar conteúdo real ainda.
 A migração 0015 foi testada
 com rollback/reaplicação num PostgreSQL temporário `_test`; a base local renomeada
 está no head 0015. 289 testes passaram com 100% de linhas/ramos; lint, tipos e

@@ -54,3 +54,10 @@ async def download_link(
 ) -> dict[str, str]:
     key, mime_type = await service(request).file_key(tenant_id, business_id, actor, event_id)
     return {"url": await MaterialStore(request.app.state.settings).signed_url(key, mime_type)}
+
+
+@materials_router.delete("/{event_id}", status_code=202)
+async def delete_material(
+    tenant_id: UUID, business_id: UUID, event_id: UUID, request: Request, actor: Actor
+) -> dict[str, str]:
+    return await service(request).delete_material(tenant_id, business_id, actor, event_id)

@@ -1,6 +1,6 @@
 # F02 — WhatsApp e biblioteca de materiais
 
-Status: Em implementação; F02.1, F02.2a e F02.2b1 entregues localmente; F02.2b2 em validação local.
+Status: Em implementação; F02.1–F02.2c1 entregues localmente.
 Dependências: F00, F01.
 
 ## Objetivo
@@ -119,7 +119,7 @@ O CI declara URL Meta no PostgreSQL de teste na porta 5432 e cria o login
 55432. Todos os endpoints de teste devem apontar para o mesmo banco `_test`;
 sob `CI`, pytest falha cedo se faltar uma URL explícita.
 
-### F02.2b2 — Consumo e biblioteca privada (em validação local)
+### F02.2b2 — Consumo e biblioteca privada (entregue localmente)
 
 O proprietário autoriza separadamente o recebimento de materiais na nova tela
 `/app/whatsapp`; revogar o consentimento desativa o vínculo imediatamente. A
@@ -150,9 +150,9 @@ Graph, o download de mídia falha com recibo explícito. Ainda **não** há resp
 automática no WhatsApp, transcrição,
 extração de fala, agrupamento de mensagens, confirmação de fatos ambíguos,
 geração nem publicação. Essas partes formam F02.2c/F03 e dependem de orçamento,
-política de retenção da biblioteca e consentimentos separados. A fila cifrada
-vence em sete dias; os assets da biblioteca ainda exigem política de retenção e
-exclusão antes de operar com conteúdo real. URLs já assinadas podem continuar
+reconciliação de uploads órfãos e consentimentos separados. A fila cifrada
+vence em sete dias; F02.2c1 define retenção e exclusão dos assets, mas o fluxo
+de mídia real permanece bloqueado até resolver os demais pontos. URLs já assinadas podem continuar
 válidas por até dois minutos após a revogação.
 
 Aceite local: migração 0016 com rollback/reaplicação no banco `_test`, testes de
@@ -168,6 +168,34 @@ restrição; então checar a inscrição do app na WABA, além do campo `message
 antes de repetir o teste. O staging não foi criado.
 
 ## Integração e manutenção
+
+### F02.2c1 — Retenção e exclusão da biblioteca (entregue localmente)
+
+Materiais preparados vencem 30 dias após a criação do asset; os existentes recebem
+prazo a partir de sua data original. A inbox e a fila cifrada continuam com prazo
+de sete dias e agora têm limpeza periódica independente de novos webhooks. O dono
+pode pedir a exclusão antecipada de um material preparado por `DELETE
+/api/v1/organizations/{tenant_id}/businesses/{business_id}/whatsapp-materials/{event_id}`.
+A operação registra auditoria em transação, é idempotente enquanto a linha existe,
+oculta o recibo imediatamente e bloqueia novos links. O worker reivindica lotes
+limitados de itens vencidos ou pedidos com lease e fencing, remove o objeto S3 fora da transação e só
+depois apaga asset, evento e inbox, com auditoria. Falha de storage mantém o registro
+para retry. Link assinado antes da exclusão pode funcionar até seu vencimento de
+dois minutos; isso deve ser explicado ao usuário. A web apresenta prazo e ação de
+exclusão com confirmação. Migração 0017 aplica RLS e privilégios restritos.
+
+Este recorte cobre assets finalizados. Ainda falta tratar objetos órfãos caso o
+upload termine, mas o commit de processamento não ocorra; por isso não usar mídia
+real até existir reconciliação de staging/órfãos e smoke Meta. Agrupamento de
+mensagens, transcrição, resposta, confirmação de fatos e preferência contextual
+permanecem F02.2c2+. O prazo de 30 dias é decisão inicial de produto e deve ser
+reavaliado antes do piloto com clientes reais.
+
+Validação local: migração 0017 revertida e reaplicada no banco `_test` e aplicada
+na base local após backup; 367 testes backend com 100% de linhas/ramos, Ruff e
+mypy aprovados. A web passou 149 testes/100% e uma jornada Chromium de exclusão.
+Um objeto sintético foi gravado e removido no SeaweedFS; o dispatcher atualizado
+subiu no Compose. Nenhum conteúdo real ou evento Meta foi usado.
 
 
 Dividir as features acima em mudanças revisáveis. Cada mudança atualiza este SDD,
