@@ -1,5 +1,22 @@
 # Registro de mudanças
 
+## 2026-10-23 — F02.2c3b: transcrição de áudio controlada
+
+- Migration 0020 adiciona transcript cifrado ao asset e ledger privado de
+  segundos reservados; idempotência por evento e orçamento diário por tenant.
+- Worker normaliza áudio a WAV, usa `gpt-transcribe` somente com chave e limite
+  explícitos, e não repete chamada paga após submissão. Dispatcher converte
+  submissões antigas sem conclusão em estado incerto. API e web mostram texto
+  e estados ao proprietário; exclusão do asset remove o transcript.
+- Consentimento específico por negócio é exigido para enviar áudio à OpenAI;
+  aceite antigo de materiais não basta. O dono ativa/revoga pela API e web.
+- Sem credenciais OpenAI configuradas, integração permanece desligada. Smoke
+  real Meta/fornecedor e interpretação semântica continuam pendentes.
+- Validação: 410 testes backend com 100% de linhas/ramos, Ruff e mypy;
+  migration 0020 revertida/reaplicada no `_test` e aplicada localmente após
+  backup verificado. Testes cobrem reserva, replay, teto, consentimento,
+  conversão, falha incerta e reconciliação. Sem chamada paga real.
+
 ## 2026-10-23 — F02.2c3a: materiais de um mesmo envio
 
 - Migration 0019 adiciona identidade estável de grupo à fila e aos assets,

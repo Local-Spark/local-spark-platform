@@ -50,7 +50,7 @@ async def test_material_worker_registers_activities_and_closes_both_pools(settin
     monkeypatch.setattr(worker, "Worker", constructor)
     await worker.run_worker()
     assert len(constructor.call_args.kwargs["workflows"]) == 2
-    assert len(constructor.call_args.kwargs["activities"]) == 3
+    assert len(constructor.call_args.kwargs["activities"]) == 4
     assert database.close.await_count == 2
 
 
@@ -91,11 +91,13 @@ async def test_whatsapp_dispatcher_disabled_and_loop_shutdown(settings, monkeypa
     monkeypatch.setattr(dispatcher, "dispatch_materials", dispatch)
     purge = AsyncMock(return_value=1)
     monkeypatch.setattr(dispatcher, "purge_once", purge)
+    monkeypatch.setattr(dispatcher, "reconcile_stale_audio", AsyncMock(return_value=0))
     monkeypatch.setattr(dispatcher.asyncio, "sleep", AsyncMock())
     with pytest.raises(asyncio.CancelledError):
         await dispatcher.run_dispatcher()
     assert dispatch.await_count == 3
     purge.assert_awaited_once()
+    dispatcher.reconcile_stale_audio.assert_awaited_once()
     assert database.close.await_count == 1
 
 
@@ -109,6 +111,7 @@ async def test_whatsapp_dispatcher_empty_purge_is_quiet(settings, monkeypatch):
     monkeypatch.setattr(dispatcher, "connect_temporal", AsyncMock())
     monkeypatch.setattr(dispatcher, "dispatch_materials", AsyncMock(side_effect=[0, asyncio.CancelledError()]))
     monkeypatch.setattr(dispatcher, "purge_once", AsyncMock(return_value=0))
+    monkeypatch.setattr(dispatcher, "reconcile_stale_audio", AsyncMock(return_value=0))
     monkeypatch.setattr(dispatcher.asyncio, "sleep", AsyncMock())
     with pytest.raises(asyncio.CancelledError):
         await dispatcher.run_dispatcher()

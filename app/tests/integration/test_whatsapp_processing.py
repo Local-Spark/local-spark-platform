@@ -57,6 +57,15 @@ async def test_text_material_consent_library_and_revocation(admin, database, aut
         }
         assert (await client.post(base + "/consent", headers=owner, json={"accepted": True})).status_code == 200
         assert (await client.get(base + "/consent", headers=owner)).json() == {"accepted": True}
+        assert (await client.get(base + "/audio-consent", headers=owner)).json() == {"accepted": False}
+        assert (await client.post(base + "/audio-consent", headers=foreign, json={"accepted": True})).status_code == 403
+        assert (await client.post(base + "/audio-consent", headers=owner, json={"accepted": True})).json() == {
+            "accepted": True
+        }
+        assert (await client.get(base + "/audio-consent", headers=owner)).json() == {"accepted": True}
+        assert (await client.post(base + "/audio-consent", headers=owner, json={"accepted": False})).json() == {
+            "accepted": False
+        }
         async with admin.begin() as connection:
             await connection.execute(
                 text("""INSERT INTO whatsapp_channel_links

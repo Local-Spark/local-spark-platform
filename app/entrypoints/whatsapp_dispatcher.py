@@ -10,6 +10,7 @@ from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.db.session import Database
 from app.entrypoints.worker import connect_temporal
+from app.services.audio_transcription import reconcile_stale_audio
 from app.services.whatsapp_processing import dispatch_materials
 from app.services.whatsapp_retention import purge_once
 
@@ -33,6 +34,7 @@ async def run_dispatcher() -> None:
             if count:
                 logger.info("whatsapp.material_dispatched", extra={"count": count})
             if monotonic() - last_purge >= 10:
+                await reconcile_stale_audio(database)
                 purged = await purge_once(database, store, owner)
                 if purged:
                     logger.info("whatsapp.materials_purged", extra={"count": purged})

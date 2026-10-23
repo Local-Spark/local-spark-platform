@@ -10,15 +10,22 @@ as senhas de exemplo abaixo valem para instalações novas. Instruções e exce�
 de compatibilidade em [renomeação do produto](product-rename.md).
 
 
-Versão 1.1, 22/10/2026. Resumo implementável e índice das especificações detalhadas.
+Versão 1.2, 23/10/2026. Resumo implementável e índice das especificações detalhadas.
 
 F02.2c3a acrescenta `group_id` determinístico por tenant, negócio, remetente e
 janela fixa de dez minutos, persistido na fila e no asset. A biblioteca mostra
 materiais relacionados sem unir negócios ou depender da ordem dos workers.
-Itens antigos formam grupos unitários. F02.2c3b tratará transcrição de áudio
+Itens antigos formam grupos unitários. F02.2c3b implementou transcrição de áudio
 com provedor configurado, reserva de orçamento, ledger e estado incerto; F03
 tratará interpretação semântica e confirmação de fatos. Não há LLM/Jev/harness
 interpretando mensagens agora. Ver [F02](phases/F02-whatsapp-ingestion.md).
+
+F02.2c3b implementa transcrição opcional com `gpt-transcribe`, WAV normalizado,
+limite de 180 s, reserva diária por tenant antes da chamada, ledger de segundos,
+texto cifrado e reconciliação de submissões incertas sem repetir cobrança.
+O envio à OpenAI exige consentimento separado por negócio; aceite antigo de
+material não autoriza transcrição.
+Transcrição não confirma fatos nem interpreta intenção; isso permanece F03.
 
 F02.2c2 registra a tentativa de mídia antes do upload S3. Uma chave exclusiva
 por tentativa e uma intenção transacional permitem reconciliar arquivos quando o

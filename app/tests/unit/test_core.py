@@ -83,6 +83,22 @@ def test_invalid_configuration(settings, changes):
         Settings(_env_file=None, **{**settings.model_dump(), **changes})
 
 
+def test_audio_transcription_requires_key_cipher_and_explicit_budget(settings):
+    from cryptography.fernet import Fernet
+
+    base = {**settings.model_dump(), "audio_transcription_mode": "openai"}
+    valid = {
+        **base,
+        "openai_api_key": "test-key",
+        "meta_encryption_key": Fernet.generate_key().decode(),
+        "audio_daily_seconds_limit": 600,
+    }
+    assert Settings(_env_file=None, **valid).audio_daily_seconds_limit == 600
+    for missing in ("openai_api_key", "meta_encryption_key", "audio_daily_seconds_limit"):
+        with pytest.raises(ValidationError, match="Audio transcription requires"):
+            Settings(_env_file=None, **{**valid, missing: None if missing != "audio_daily_seconds_limit" else 0})
+
+
 def test_safe_production_configuration(settings):
     value = Settings(
         _env_file=None,

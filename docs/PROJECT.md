@@ -10,19 +10,31 @@ as senhas de exemplo abaixo valem para instalações novas. Instruções e exce�
 de compatibilidade em [renomeação do produto](product-rename.md).
 
 
-Atualizado: 22/10/2026. Nome adotado: Meu Braço Direito. Repositório principal: `local-spark-platform`.
+Atualizado: 23/10/2026. Nome adotado: Meu Braço Direito. Repositório principal: `local-spark-platform`.
 
 23/10/2026 — F02.2c3a agrupa mensagens do mesmo remetente e negócio em
 janelas fixas de dez minutos, com `group_id` estável desde a correlação até o
 asset e a biblioteca web. Migration 0019 preserva itens antigos como grupos
 unitários. Nenhuma LLM, Jev ou harness interpreta mensagens nesta entrega:
-Temporal orquestra material, mas não infere conteúdo. F02.2c3b fará transcrição
+Temporal orquestra material, mas não infere conteúdo. F02.2c3b adicionou transcrição
 com orçamento e ledger; sem credencial, a feature segue desativada. Meta real
 continua bloqueada pela WABA de teste.
 Validação local: 374 testes backend e 100% de linhas/ramos, Ruff/mypy;
 migration 0019 revertida/reaplicada no `_test` e aplicada à base de
 desenvolvimento após backup. A UI passou 150 testes com 100% nos quatro
 critérios e fluxo Chromium do WhatsApp.
+
+23/10/2026 — F02.2c3b adiciona transcrição de áudio no worker Temporal,
+desativada por padrão. Migration 0020 guarda texto cifrado e ledger de segundos
+reservados por evento/tenant; chamadas pagas são únicas por evento e resultados
+incertos não são reenviados. A biblioteca mostra o texto e o estado verdadeiro.
+Ativação exige chave OpenAI, chave Meta e limite diário explícito. Ainda não há
+interpretação de intenção por LLM/Jev, resposta automática ou smoke Meta real.
+O proprietário também precisa aceitar separadamente o envio de áudio ao
+provedor; revogar o recebimento geral apaga esse aceite.
+Validação: 410 testes backend/100% de linhas e ramos, Ruff/mypy; migration
+0020 reversível no `_test`, base local atualizada após backup. Web: 151 testes,
+100% nos quatro critérios, build e jornada Chromium aprovados.
 
 F02.2c2 entregou localmente o registro durável de cada tentativa de upload antes
 do S3 e a reconciliação de arquivos sem commit, com chaves exclusivas, retry,

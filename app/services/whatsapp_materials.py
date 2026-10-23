@@ -36,6 +36,51 @@ class WhatsAppMaterialsService:
             )
         return {"accepted": bool(accepted)}
 
+    async def audio_consent_status(self, tenant: UUID, business: UUID, actor: UUID) -> dict[str, bool]:
+        async with self.database.transaction(tenant, actor) as session:
+            await self._require_owner(session, tenant, business, actor)
+            accepted = await session.scalar(
+                text("""SELECT audio_transcription_accepted_at IS NOT NULL
+                  FROM whatsapp_processing_consents WHERE tenant_id=:tenant AND business_id=:business
+                    AND revoked_at IS NULL"""),
+                {"tenant": tenant, "business": business},
+            )
+        return {"accepted": bool(accepted)}
+
+    async def set_audio_consent(self, tenant: UUID, business: UUID, actor: UUID, accepted: bool) -> dict[str, bool]:
+        async with self.database.transaction(tenant, actor) as session:
+            await self._require_owner(session, tenant, business, actor)
+            changed = await session.scalar(
+                text("""UPDATE whatsapp_processing_consents SET
+                  audio_transcription_accepted_at=CASE WHEN :accepted THEN now() ELSE NULL END
+                  WHERE tenant_id=:tenant AND business_id=:business AND revoked_at IS NULL
+                    AND (audio_transcription_accepted_at IS NOT NULL)<>:accepted
+                  RETURNING business_id"""),
+                {"tenant": tenant, "business": business, "accepted": accepted},
+            )
+            if changed is not None:
+                await session.execute(
+                    text("""INSERT INTO audit_events(tenant_id,actor_id,operation_id,action,resource_id)
+                      VALUES(:tenant,:actor,:operation,:action,:business)"""),
+                    {
+                        "tenant": tenant,
+                        "actor": actor,
+                        "operation": uuid4(),
+                        "business": business,
+                        "action": "whatsapp.audio_consent_accepted" if accepted else "whatsapp.audio_consent_revoked",
+                    },
+                )
+            else:
+                current = await session.scalar(
+                    text("""SELECT audio_transcription_accepted_at IS NOT NULL
+                      FROM whatsapp_processing_consents WHERE tenant_id=:tenant AND business_id=:business
+                        AND revoked_at IS NULL"""),
+                    {"tenant": tenant, "business": business},
+                )
+                if current is None:
+                    raise AuthError("WHATSAPP_CONSENT_REQUIRED", 409)
+        return {"accepted": accepted}
+
     async def accept_consent(self, tenant: UUID, business: UUID, actor: UUID) -> dict[str, bool]:
         async with self.database.transaction(tenant, actor) as session:
             await self._require_owner(session, tenant, business, actor)
@@ -60,7 +105,7 @@ class WhatsAppMaterialsService:
         async with self.database.transaction(tenant, actor) as session:
             await self._require_owner(session, tenant, business, actor)
             changed = await session.scalar(
-                text("""UPDATE whatsapp_processing_consents SET revoked_at=now()
+                text("""UPDATE whatsapp_processing_consents SET revoked_at=now(),audio_transcription_accepted_at=NULL
                   WHERE tenant_id=:tenant AND business_id=:business AND revoked_at IS NULL RETURNING business_id"""),
                 {"tenant": tenant, "business": business},
             )
@@ -86,7 +131,7 @@ class WhatsAppMaterialsService:
                         text("""SELECT coalesce(e.id,a.id) AS id,coalesce(e.kind,a.kind) AS kind,
                           coalesce(e.state,'processed') AS state,
                           coalesce(e.created_at,a.created_at) AS created_at,e.error_code,a.ciphertext,
-                          a.object_key,a.mime_type,a.size_bytes,
+                          a.object_key,a.mime_type,a.size_bytes,a.transcript_ciphertext,a.transcription_state,
                           coalesce(e.group_id,a.group_id,e.id,a.id) AS group_id
                           FROM whatsapp_material_assets a FULL OUTER JOIN whatsapp_material_events e ON e.id=a.id
                           WHERE coalesce(e.tenant_id,a.tenant_id)=:tenant
@@ -110,11 +155,17 @@ class WhatsAppMaterialsService:
     @staticmethod
     def _present(row: Any, cipher: Fernet | None) -> dict[str, Any]:
         body = None
+        transcript = None
         if row["ciphertext"] and cipher:
             try:
                 body = cipher.decrypt(row["ciphertext"].encode()).decode()
             except (InvalidToken, UnicodeDecodeError):
                 body = None
+        if row["transcript_ciphertext"] and cipher:
+            try:
+                transcript = cipher.decrypt(row["transcript_ciphertext"].encode()).decode()
+            except (InvalidToken, UnicodeDecodeError):
+                transcript = None
         return {
             "id": row["id"],
             "group_id": row["group_id"],
@@ -123,6 +174,8 @@ class WhatsAppMaterialsService:
             "created_at": row["created_at"],
             "error_code": row["error_code"],
             "text": body,
+            "transcript": transcript,
+            "transcription_state": row["transcription_state"],
             "has_file": bool(row["object_key"]),
             "mime_type": row["mime_type"],
             "size_bytes": row["size_bytes"],

@@ -45,6 +45,22 @@ async def test_repeated_consent_actions_do_not_duplicate_audit(settings):
     session.execute.assert_not_awaited()
 
 
+async def test_audio_consent_is_owner_only_audited_and_requires_material_consent(settings):
+    ids = [uuid4() for _ in range(3)]
+    session = Mock()
+    session.scalar = AsyncMock(side_effect=[None, 1, True, 1, ids[1], 1, ids[1], 1, None, False, 1, None, None])
+    session.execute = AsyncMock()
+    service = WhatsAppMaterialsService(settings, database_with(session))
+    with pytest.raises(AuthError, match="BUSINESS_OWNER_REQUIRED"):
+        await service.audio_consent_status(*ids)
+    assert await service.audio_consent_status(*ids) == {"accepted": True}
+    assert await service.set_audio_consent(*ids, True) == {"accepted": True}
+    assert await service.set_audio_consent(*ids, False) == {"accepted": False}
+    assert await service.set_audio_consent(*ids, False) == {"accepted": False}
+    with pytest.raises(AuthError, match="WHATSAPP_CONSENT_REQUIRED"):
+        await service.set_audio_consent(*ids, True)
+
+
 async def test_delete_material_replay_and_missing_record(settings):
     tenant, business, actor, event = [uuid4() for _ in range(4)]
     session = Mock()
@@ -76,6 +92,8 @@ def test_receipt_hides_corrupt_or_unavailable_content():
         "created_at": "now",
         "error_code": None,
         "ciphertext": "bad-token",
+        "transcript_ciphertext": "bad-token",
+        "transcription_state": "uncertain",
         "object_key": None,
         "mime_type": None,
         "size_bytes": None,
@@ -84,3 +102,8 @@ def test_receipt_hides_corrupt_or_unavailable_content():
     assert WhatsAppMaterialsService._present(row, cipher)["text"] is None
     assert WhatsAppMaterialsService._present(row, None)["text"] is None
     assert WhatsAppMaterialsService._present({**row, "ciphertext": None}, cipher)["text"] is None
+    assert WhatsAppMaterialsService._present(row, cipher)["transcript"] is None
+    assert WhatsAppMaterialsService._present({**row, "transcript_ciphertext": None}, cipher)["transcript"] is None
+    good = cipher.encrypt(b"Promocao amanha").decode()
+    shown = WhatsAppMaterialsService._present({**row, "transcript_ciphertext": good}, cipher)
+    assert shown["transcript"] == "Promocao amanha"

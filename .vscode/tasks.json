@@ -1,0 +1,70 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Meu Braço Direito: stop Docker API",
+      "type": "process",
+      "command": "docker",
+      "args": [
+        "compose",
+        "stop",
+        "api"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "osx": {
+        "command": "/Applications/Docker.app/Contents/Resources/bin/docker",
+        "options": {
+          "cwd": "${workspaceFolder}",
+          "env": {
+            "PATH": "/Applications/Docker.app/Contents/Resources/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:${env:PATH}"
+          }
+        }
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Meu Braço Direito: start debug dependencies",
+      "type": "process",
+      "command": "docker",
+      "args": [
+        "compose",
+        "--profile",
+        "workers",
+        "up",
+        "-d",
+        "--wait",
+        "postgres",
+        "temporal",
+        "worker",
+        "relay",
+        "auth-mail",
+        "billing",
+        "mailpit"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "osx": {
+        "command": "/Applications/Docker.app/Contents/Resources/bin/docker",
+        "options": {
+          "cwd": "${workspaceFolder}",
+          "env": {
+            "PATH": "/Applications/Docker.app/Contents/Resources/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:${env:PATH}"
+          }
+        }
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Meu Braço Direito: prepare API debug",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Meu Braço Direito: stop Docker API",
+        "Meu Braço Direito: start debug dependencies"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

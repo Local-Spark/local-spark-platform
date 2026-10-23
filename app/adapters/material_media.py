@@ -214,6 +214,30 @@ class MaterialStore:
         except Exception as exc:
             raise MaterialError("MATERIAL_STORAGE_UNAVAILABLE", retryable=True) from exc
 
+    async def get_audio(self, key: str) -> bytes:
+        if not self.settings.material_storage_bucket:
+            raise MaterialError("MATERIAL_STORAGE_NOT_CONFIGURED")
+
+        def download() -> bytes:
+            response = self._client().get_object(Bucket=self.settings.material_storage_bucket, Key=key)
+            body = response["Body"]
+            try:
+                if response.get("ContentLength", 0) > MAX_BYTES["audio"]:
+                    raise MaterialError("MEDIA_SIZE_EXCEEDED")
+                data = cast(bytes, body.read(MAX_BYTES["audio"] + 1))
+                if len(data) > MAX_BYTES["audio"]:
+                    raise MaterialError("MEDIA_SIZE_EXCEEDED")
+                return data
+            finally:
+                body.close()
+
+        try:
+            return await asyncio.to_thread(download)
+        except MaterialError:
+            raise
+        except Exception as exc:
+            raise MaterialError("MATERIAL_STORAGE_UNAVAILABLE", retryable=True) from exc
+
     async def delete(self, key: str) -> None:
         if not self.settings.material_storage_bucket:
             raise MaterialError("MATERIAL_STORAGE_NOT_CONFIGURED")

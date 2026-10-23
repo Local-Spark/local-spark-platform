@@ -1,6 +1,6 @@
 # F02 — WhatsApp e biblioteca de materiais
 
-Status: Em implementação; F02.1–F02.2c2 e F02.2c3a entregues localmente.
+Status: Em implementação; F02.1–F02.2c3b entregues localmente, integração paga desativada.
 Dependências: F00, F01.
 
 ## Objetivo
@@ -20,7 +20,9 @@ grupos unitários e grava o grupo no asset antes de a fila vencer. A API só
 devolve o identificador ao proprietário autorizado; a web reúne recibos do
 mesmo envio e mantém exclusão individual. Não há interpretação de conteúdo.
 
-F02.2c3b: converter áudio validado para formato aceito pelo provedor, limitar
+## F02.2c3b — Transcrição de áudio controlada (entregue localmente)
+
+Converter áudio validado para formato aceito pelo provedor, limitar
 duração, reservar franquia/segundos por tenant em ledger antes de cada chamada
 paga, chamar `gpt-transcribe` por adapter no worker Temporal e guardar texto
 cifrado com estado auditável. Uma tentativa de resultado incerto não será
@@ -28,6 +30,24 @@ submetida automaticamente de novo; revogação, retenção e exclusão também d
 abranger a transcrição. Credencial e teto de gasto são obrigatórios para ativar.
 Transcrição converte fala em texto; extração de intenção, fatos, promoções e
 respostas com LLM/Jev pertencem a uma etapa posterior com confirmação do dono.
+
+Implementação: migration 0020 grava transcript cifrado no asset e ledger de
+segundos reservados por evento. A unidade de orçamento é tenant/dia UTC; a
+reserva usa advisory lock transacional por tenant e não é devolvida em resultado
+incerto. Áudio acima de 180 s é rejeitado antes da reserva. O worker normaliza
+com FFmpeg para WAV mono 16 kHz, com protocolos `file,pipe` apenas; a chamada ao
+provedor ocorre fora da transação com ID estável do evento. Estados expostos:
+`submitted`, `completed`, `uncertain`, `rejected`, `budget_exceeded`. Queda após
+submissão não aciona retry pago; o dispatcher marca reservas `submitted` com
+mais de cinco minutos como `uncertain`. Exclusão do asset apaga o transcript; o
+ledger mantém apenas IDs, segundos e estado para custos e auditoria. Sem chave
+OpenAI e teto diário configurados, a transcrição fica desativada. Credenciais,
+limites, smoke real e orçamento comercial devem ser aprovados antes de ativar.
+O dono deve autorizar separadamente o envio do áudio à OpenAI no endpoint
+`/whatsapp-materials/audio-consent`; aceite anterior dos materiais não basta.
+Revogar o consentimento geral também remove esta autorização. A activity
+revalida antes e após a chamada; falhas transitórias anteriores à reserva podem
+ser repetidas, mas a submissão paga não é refeita.
 
 ## Features e contratos
 

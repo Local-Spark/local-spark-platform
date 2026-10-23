@@ -51,6 +51,9 @@ class Settings(BaseSettings):
     material_storage_public_endpoint: str | None = None
     material_storage_access_key: SecretStr | None = None
     material_storage_secret_key: SecretStr | None = None
+    audio_transcription_mode: Literal["disabled", "openai"] = "disabled"
+    openai_api_key: SecretStr | None = None
+    audio_daily_seconds_limit: int = Field(default=0, ge=0)
     jwt_secret: SecretStr = Field(min_length=32)
     jwt_issuer: str = "meu-braco-direito-local"
     jwt_audience: str = "meu-braco-direito-api"
@@ -153,6 +156,10 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def material_safety(self) -> "Settings":
+        if self.audio_transcription_mode == "openai" and (
+            not self.openai_api_key or not self.audio_daily_seconds_limit or not self.meta_encryption_key
+        ):
+            raise ValueError("Audio transcription requires a provider key, encryption key and daily seconds limit")
         if bool(self.meta_access_token) != bool(self.meta_graph_version):
             raise ValueError("Meta media access token and Graph version must be configured together")
         if bool(self.material_storage_access_key) != bool(self.material_storage_secret_key):

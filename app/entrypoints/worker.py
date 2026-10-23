@@ -3,10 +3,12 @@ import asyncio
 from temporalio.client import Client
 from temporalio.worker import Worker
 
+from app.adapters.audio_transcription import OpenAIAudioTranscriber
 from app.adapters.material_media import MaterialStore, MetaMediaClient
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging
 from app.db.session import Database
+from app.services.audio_transcription import AudioTranscriptionService
 from app.services.whatsapp_processing import MaterialProcessor
 from app.workflows.activities import FoundationActivities
 from app.workflows.foundation import BusinessCreatedWorkflow
@@ -36,7 +38,10 @@ async def run_worker() -> None:
         client = await connect_temporal(settings)
         material_activities = (
             WhatsAppMaterialActivities(
-                MaterialProcessor(settings, material_database, MetaMediaClient(settings), MaterialStore(settings))
+                processor := MaterialProcessor(
+                    settings, material_database, MetaMediaClient(settings), MaterialStore(settings)
+                ),
+                AudioTranscriptionService(processor, OpenAIAudioTranscriber(settings)),
             )
             if material_database
             else None
@@ -49,7 +54,11 @@ async def run_worker() -> None:
             else [BusinessCreatedWorkflow],
             activities=[FoundationActivities(database).record_business_created]
             + (
-                [material_activities.process_whatsapp_material, material_activities.fail_whatsapp_material]
+                [
+                    material_activities.process_whatsapp_material,
+                    material_activities.fail_whatsapp_material,
+                    material_activities.transcribe_whatsapp_audio,
+                ]
                 if material_activities
                 else []
             ),

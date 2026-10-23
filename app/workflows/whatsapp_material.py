@@ -12,7 +12,7 @@ class WhatsAppMaterialWorkflow:
     @workflow.run
     async def run(self, event_id: str) -> str:
         try:
-            return cast(
+            result = cast(
                 str,
                 await workflow.execute_activity(
                     "process_whatsapp_material",
@@ -28,6 +28,18 @@ class WhatsAppMaterialWorkflow:
                     ),
                 ),
             )
+            if result == "processed":
+                try:
+                    await workflow.execute_activity(
+                        "transcribe_whatsapp_audio",
+                        event_id,
+                        result_type=str,
+                        start_to_close_timeout=timedelta(minutes=3),
+                        retry_policy=RetryPolicy(maximum_attempts=3),
+                    )
+                except Exception:
+                    pass  # The submitted state prevents a second paid call.
+            return result
         except Exception:
             return cast(
                 str,

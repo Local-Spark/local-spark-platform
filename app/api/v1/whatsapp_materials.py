@@ -20,6 +20,10 @@ class ConsentRequest(BaseModel):
     accepted: Literal[True]
 
 
+class AudioConsentRequest(BaseModel):
+    accepted: bool
+
+
 def service(request: Request) -> WhatsAppMaterialsService:
     return WhatsAppMaterialsService(request.app.state.settings, request.app.state.database)
 
@@ -39,6 +43,18 @@ async def accept_consent(
 @materials_router.delete("/consent")
 async def revoke_consent(tenant_id: UUID, business_id: UUID, request: Request, actor: Actor) -> dict[str, bool]:
     return await service(request).revoke_consent(tenant_id, business_id, actor)
+
+
+@materials_router.get("/audio-consent")
+async def audio_consent_status(tenant_id: UUID, business_id: UUID, request: Request, actor: Actor) -> dict[str, bool]:
+    return await service(request).audio_consent_status(tenant_id, business_id, actor)
+
+
+@materials_router.post("/audio-consent")
+async def set_audio_consent(
+    tenant_id: UUID, business_id: UUID, body: AudioConsentRequest, request: Request, actor: Actor
+) -> dict[str, bool]:
+    return await service(request).set_audio_consent(tenant_id, business_id, actor, body.accepted)
 
 
 @materials_router.get("")
