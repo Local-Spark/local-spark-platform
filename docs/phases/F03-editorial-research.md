@@ -189,6 +189,23 @@ ramos; migration 0023 reversível no banco exclusivo `_test`, base de
 desenvolvimento migrada após backup verificado. Web: 170 testes e 100% nos
 quatro critérios, typecheck/build e Chromium em viewport mobile.
 
+Segunda fatia em 23/10: novos eventos `editorial.proposal_*` usam o ID interno
+único do pedido como chave de auditoria, associado ao `operation_id` externo
+na projeção. Isso evita misturar dois negócios que reutilizem o mesmo ID externo;
+reentregas da mesma transição não criam outro marco. O claim registra `dispatching` na mesma
+transação que muda o estado. A migration 0024 expõe função SQL `SECURITY DEFINER`
+restrita a staff para consultar somente ação e data de eventos de um pedido.
+`GET /api/v1/admin/editorial-operations/{proposal_id}/events` audita a leitura;
+o painel mostra essas etapas sob demanda. Pedidos anteriores à mudança podem
+ter histórico incompleto: a API não reconstrói eventos nem apresenta tempos
+inferidos. A visão ainda cobre somente geração editorial; correlação com
+webhook, transcrição, publicação, custos monetários, alertas e feedback seguem
+pendentes nesta fase.
+Validação da segunda fatia: `make ci` com 443 testes e 100% de linhas/ramos;
+migration 0024 revertida/reaplicada no banco `_test` e aplicada à base local
+após backup. Teste de integração cobre dois negócios com mesmo `operation_id`
+externo sem cruzamento de etapas e revogação de staff.
+
 Materiais WhatsApp conservam a retenção da F02 (inbox/fila curta, asset preparado
 com prazo inicial de 30 dias); a plataforma não guarda a conversa inteira para
 sempre nem usa toda mensagem automaticamente como dataset. O `BusinessContext`

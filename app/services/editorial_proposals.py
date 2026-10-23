@@ -41,11 +41,12 @@ def _access_sql() -> str:
 async def _audit(session: Any, row: Any, action: str) -> None:
     await session.execute(
         text("""INSERT INTO audit_events(tenant_id,actor_id,operation_id,action,resource_id)
-          VALUES(:tenant,:actor,:operation,:action,:resource)"""),
+          VALUES(:tenant,:actor,:operation,:action,:resource)
+          ON CONFLICT DO NOTHING"""),
         {
             "tenant": row["tenant_id"],
             "actor": row["actor_id"],
-            "operation": uuid4(),
+            "operation": row.get("id") or uuid4(),
             "action": action,
             "resource": row["business_id"],
         },

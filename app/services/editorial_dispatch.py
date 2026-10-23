@@ -42,6 +42,14 @@ async def claim_proposals(database: Database, owner: UUID, limit: int = 10) -> l
             .mappings()
             .all()
         )
+        for row in rows:
+            await session.execute(
+                text("""INSERT INTO audit_events(tenant_id,actor_id,operation_id,action,resource_id)
+                  SELECT tenant_id,actor_id,id,'editorial.proposal_dispatching',business_id
+                  FROM editorial_proposals WHERE id=:id
+                  ON CONFLICT DO NOTHING"""),
+                {"id": row["id"]},
+            )
         return [ProposalClaim(row["id"], owner, row["dispatch_fence"]) for row in rows]
 
 

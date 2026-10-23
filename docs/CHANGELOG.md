@@ -1,5 +1,18 @@
 # Registro de mudanças
 
+## 2026-10-23 — F03.2c: etapas editoriais correlacionadas
+
+- Auditoria de novos pedidos usa o ID interno único, associado ao `operation_id`
+  externo, para não misturar negócios que reutilizem o mesmo ID. Claim do dispatcher
+  registra etapa em transação; replay da mesma etapa é deduplicado.
+- Migration 0024 cria projeção SQL restrita a staff para ação/data por pedido;
+  endpoint auditado não devolve texto, mídia, prompt nem rascunho.
+- Histórico legado pode ser parcial. Fluxo WhatsApp/publicação, custos em moeda,
+  alertas e avaliação semântica ainda não estão concluídos.
+- Validação: `make ci` com 443 testes e 100% de linhas/ramos, Ruff e mypy;
+  migration 0024 revertida/reaplicada no `_test` e aplicada no banco local após
+  backup em `.local/backups/`.
+
 ## 2026-10-23 — F03.2b: abstinência; F03.2c: diagnóstico inicial
 
 - Pedidos editoriais sem fato vigente confirmado terminam com código

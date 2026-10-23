@@ -18,6 +18,9 @@ F03.2c iniciou uma projeção administrativa auditada por pedido editorial: esta
 IDs, versões, tokens e erro. A API nunca devolve rascunho, prompt ou material
 nesse endpoint; custo em moeda é nulo até existir tarifa versionada. O percurso
 completo, feedback e custo por etapa ainda estão no plano F03.2c.
+Uma segunda fatia correlaciona novos eventos ao ID interno do pedido, preservando
+o vínculo com o `operation_id` externo, e
+mostra suas etapas reais ao operador; eventos legados podem estar incompletos.
 O resultado da avaliação F03.2b é **no-go comercial**: título e ângulo são
 derivados deterministicamente de fato confirmado; formato, hipóteses e perguntas
 do modelo continuam apenas para revisão. Revalidação semântica e staging são

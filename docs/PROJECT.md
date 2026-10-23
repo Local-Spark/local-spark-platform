@@ -12,6 +12,13 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Atualizado: 23/10/2026. Nome adotado: Meu Braço Direito. Repositório principal: `local-spark-platform`.
 
+23/10/2026 — F03.2c, segunda fatia: eventos editoriais novos são correlacionados
+ao ID interno único do pedido, vinculado ao `operation_id` externo, e consultáveis
+por staff numa linha do tempo de metadados,
+sem prompt ou material. O dispatcher registra a etapa de claim na transação;
+duplicatas não criam outro marco. Eventos antigos podem estar incompletos.
+Percurso WhatsApp/publicação, custo monetário e alertas ainda faltam.
+
 23/10/2026 — F03.2b: a geração agora exige pelo menos um fato vigente
 confirmado pelo proprietário, inclusive quando há material WhatsApp. Sem isso,
 o pedido termina com `EDITORIAL_FACTS_REQUIRED` antes da reserva de tokens ou

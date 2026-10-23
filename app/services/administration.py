@@ -90,3 +90,19 @@ async def editorial_operations(session: AsyncSession, actor: UUID, tenant: UUID 
         .all()
     )
     return {"items": [dict(row) | {"estimated_cost_minor": None} for row in rows]}
+
+
+async def editorial_operation_events(session: AsyncSession, actor: UUID, proposal: UUID) -> dict[str, Any]:
+    """Return persisted stage transitions only; legacy events may be incomplete."""
+    await require_staff(session, actor, "admin.editorial_operation_events.read")
+    rows = (
+        (
+            await session.execute(
+                text("SELECT * FROM public.admin_editorial_operation_events(:proposal)"),
+                {"proposal": proposal},
+            )
+        )
+        .mappings()
+        .all()
+    )
+    return {"items": [dict(row) for row in rows]}

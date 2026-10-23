@@ -56,3 +56,8 @@ async def admin_editorial_operations(
     limit: Annotated[int, Query(ge=1, le=100)] = 25,
 ) -> dict[str, Any]:
     return await administration.editorial_operations(session, actor, tenant_id, limit)
+
+
+@onboarding_router.get("/admin/editorial-operations/{proposal_id}/events", tags=["administration"])
+async def admin_editorial_operation_events(proposal_id: UUID, actor: Actor, session: ActorSession) -> dict[str, Any]:
+    return await administration.editorial_operation_events(session, actor, proposal_id)

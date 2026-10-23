@@ -14,7 +14,7 @@ from app.adapters.editorial_ai import EditorialProviderError
 from app.core.identity import Identity
 from app.db.session import Database
 from app.schemas.editorial_proposals import ProposalDraft, ProposalRequest
-from app.services.administration import editorial_operations
+from app.services.administration import editorial_operation_events, editorial_operations
 from app.services.business import AccessDenied
 from app.services.editorial_dispatch import claim_proposals, finish_proposal_dispatch
 from app.services.editorial_proposals import EditorialProposalService, reconcile_stale_proposals
@@ -650,6 +650,9 @@ async def test_unconfirmed_material_abstains_without_spending_and_admin_projecti
         path = f"/api/v1/admin/editorial-operations?tenant_id={tenant}&limit=10"
         owner_headers = {"Authorization": f"Bearer {access_token(settings, actor)}"}
         assert (await api.get(path, headers=owner_headers)).status_code == 403
+        assert (
+            await api.get(f"/api/v1/admin/editorial-operations/{proposal.id}/events", headers=owner_headers)
+        ).status_code == 403
         async with admin.begin() as connection:
             await connection.execute(
                 text("INSERT INTO platform_staff(actor_id,active) VALUES(:actor,true)"), {"actor": seeded["a2"]}
@@ -662,6 +665,15 @@ async def test_unconfirmed_material_abstains_without_spending_and_admin_projecti
             assert item["error_code"] == "EDITORIAL_FACTS_REQUIRED"
             assert item["estimated_cost_minor"] is None
             assert "document" not in item and "ciphertext" not in item
+            events = await editorial_operation_events(session, seeded["a2"], proposal.id)
+            assert [event["action"] for event in events["items"]] == [
+                "editorial.proposal_requested",
+                "editorial.proposal_dispatching",
+                "editorial.proposal_rejected",
+            ]
+            assert all("created_at" in event for event in events["items"])
+            assert (await editorial_operation_events(session, seeded["a2"], uuid4()))["items"] == []
+            assert "operation_id" not in events["items"][0]
             assert (
                 await session.scalar(text("SELECT document FROM editorial_proposals WHERE id=:id"), {"id": proposal.id})
                 is None
@@ -674,11 +686,54 @@ async def test_unconfirmed_material_abstains_without_spending_and_admin_projecti
         response = await api.get(path, headers=staff_headers)
         assert response.status_code == 200, response.text
         assert response.json()["items"][0]["id"] == str(proposal.id)
+        events_response = await api.get(
+            f"/api/v1/admin/editorial-operations/{proposal.id}/events", headers=staff_headers
+        )
+        assert events_response.status_code == 200, events_response.text
+        assert len(events_response.json()["items"]) == 3
+        other_business, other_proposal = uuid4(), uuid4()
+        async with admin.begin() as connection:
+            operation_id = await connection.scalar(
+                text("SELECT operation_id FROM editorial_proposals WHERE id=:id"), {"id": proposal.id}
+            )
+            await connection.execute(
+                text("INSERT INTO businesses(id,tenant_id,name,timezone) VALUES(:id,:tenant,'Second','UTC')"),
+                {"id": other_business, "tenant": tenant},
+            )
+            await connection.execute(
+                text("""INSERT INTO editorial_proposals
+                  (id,tenant_id,business_id,actor_id,operation_id,request_hash,context_version)
+                  VALUES(:id,:tenant,:business,:actor,:operation,:digest,0)"""),
+                {
+                    "id": other_proposal,
+                    "tenant": tenant,
+                    "business": other_business,
+                    "actor": actor,
+                    "operation": operation_id,
+                    "digest": "a" * 64,
+                },
+            )
+            await connection.execute(
+                text("""INSERT INTO audit_events(tenant_id,actor_id,operation_id,action,resource_id)
+                  VALUES(:tenant,:actor,:proposal,'editorial.proposal_requested',:business)"""),
+                {"tenant": tenant, "actor": actor, "proposal": other_proposal, "business": other_business},
+            )
+        other_events = await api.get(
+            f"/api/v1/admin/editorial-operations/{other_proposal}/events", headers=staff_headers
+        )
+        assert [event["action"] for event in other_events.json()["items"]] == ["editorial.proposal_requested"]
+        original_events = await api.get(
+            f"/api/v1/admin/editorial-operations/{proposal.id}/events", headers=staff_headers
+        )
+        assert len(original_events.json()["items"]) == 3
         async with admin.begin() as connection:
             await connection.execute(
                 text("UPDATE platform_staff SET active=false WHERE actor_id=:actor"), {"actor": seeded["a2"]}
             )
         assert (await api.get(path, headers=staff_headers)).status_code == 403
+        assert (
+            await api.get(f"/api/v1/admin/editorial-operations/{proposal.id}/events", headers=staff_headers)
+        ).status_code == 403
     finally:
         await owner_db.close()
         await worker_db.close()
