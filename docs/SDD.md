@@ -18,6 +18,13 @@ histórico/restauração, auditoria e RLS por negócio. A área do cliente edita
 restaura versões. Hipóteses continuam vazias e não há LLM interpretando as
 mensagens ou gerando conteúdo nesta fatia. Ver [F03](phases/F03-editorial-research.md).
 
+F03.2a acrescenta sugestões editoriais sob pedido do proprietário: snapshot
+versionado, material opcional, baseline local, provedor OpenAI opt-in com quota
+reservada antes da chamada, estado incerto sem retry pago e revisão na área do
+cliente. Hipóteses não alteram fatos; não há publicação, pesquisa externa ou
+interpretação automática de todo WhatsApp. Contratos, pendências de avaliação
+e ativação em [F03](phases/F03-editorial-research.md).
+
 F02.2c3a acrescenta `group_id` determinístico por tenant, negócio, remetente e
 janela fixa de dez minutos, persistido na fila e no asset. A biblioteca mostra
 materiais relacionados sem unir negócios ou depender da ordem dos workers.

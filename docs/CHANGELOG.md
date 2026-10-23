@@ -1,5 +1,28 @@
 # Registro de mudanças
 
+## 2026-10-23 — Contrato futuro de conversa editorial no WhatsApp
+
+- F02 define respostas curtas por ação editorial, confirmação explícita para
+  preço/horário e limites entre falar com o dono e atender consumidores.
+- Jev fica candidato a roteamento fechado após eval; extração de campos livres
+  e redação exigem outros componentes. Documentação apenas, sem execução nova.
+
+## 2026-10-23 — F03.2a: sugestões editoriais revisáveis
+
+- Migration 0022 separa consentimento de IA, pedidos idempotentes e ledger de
+  tokens reservados por tenant. RLS owner/worker, Temporal com ID determinístico,
+  reconciliação de estado incerto e exclusão de sugestões derivadas de material.
+- Baseline local por padrão. OpenAI Responses API opcional (`store=false`, JSON
+  Schema estrito, saída limitada), com consentimento e quota antes da chamada;
+  sem retry pago. Fatos vencidos, plano revogado e material ausente bloqueiam uso.
+- A sugestão é um rascunho, sem publicação ou confirmação automática de fatos.
+  Teste real do provedor, eval PT-BR e custo monetário aferido ficam pendentes.
+- Validação: 442 testes backend com 100% de linhas/ramos, Ruff e mypy;
+  migration 0022 revertida/reaplicada no `_test` e aplicada no banco local após
+  backup verificado. Web: 167 testes/100% nos quatro critérios, typecheck,
+  build, formatação e jornada Chromium. Workers reconstruídos e em execução.
+  API local em debug precisa reiniciar para carregar a rota nova.
+
 ## 2026-10-23 — F03.1: contexto editorial confirmado
 
 - Migration 0021 cria cabeça e versões imutáveis por tenant/negócio, com RLS

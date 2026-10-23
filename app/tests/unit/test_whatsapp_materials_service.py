@@ -70,7 +70,8 @@ async def test_delete_material_replay_and_missing_record(settings):
     assert await service.delete_material(tenant, business, actor, event) == {"status": "scheduled"}
     with pytest.raises(AuthError, match="MATERIAL_NOT_FOUND"):
         await service.delete_material(tenant, business, actor, event)
-    session.execute.assert_not_awaited()
+    session.execute.assert_awaited_once()
+    assert "DELETE FROM editorial_proposals" in str(session.execute.await_args.args[0])
 
 
 async def test_delete_material_first_request_records_audit(settings):
@@ -80,7 +81,8 @@ async def test_delete_material_first_request_records_audit(settings):
     session.execute = AsyncMock()
     service = WhatsAppMaterialsService(settings, database_with(session))
     assert await service.delete_material(tenant, business, actor, event) == {"status": "scheduled"}
-    session.execute.assert_awaited_once()
+    assert session.execute.await_count == 2
+    assert "DELETE FROM editorial_proposals" in str(session.execute.await_args.args[0])
 
 
 def test_receipt_hides_corrupt_or_unavailable_content():

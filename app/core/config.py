@@ -54,6 +54,9 @@ class Settings(BaseSettings):
     audio_transcription_mode: Literal["disabled", "openai"] = "disabled"
     openai_api_key: SecretStr | None = None
     audio_daily_seconds_limit: int = Field(default=0, ge=0)
+    editorial_ai_mode: Literal["disabled", "openai"] = "disabled"
+    editorial_ai_model: str = "gpt-5-mini"
+    editorial_daily_token_limit: int = Field(default=0, ge=0)
     jwt_secret: SecretStr = Field(min_length=32)
     jwt_issuer: str = "meu-braco-direito-local"
     jwt_audience: str = "meu-braco-direito-api"
@@ -171,6 +174,14 @@ class Settings(BaseSettings):
                 "https://"
             ):
                 raise ValueError("Public object storage endpoint must use HTTPS outside development")
+        return self
+
+    @model_validator(mode="after")
+    def editorial_ai_safety(self) -> "Settings":
+        if self.editorial_ai_mode == "openai" and (not self.openai_api_key or self.editorial_daily_token_limit < 30000):
+            raise ValueError("Editorial AI requires a provider key and daily token reservation limit")
+        if not self.editorial_ai_model or len(self.editorial_ai_model) > 80:
+            raise ValueError("Invalid editorial model")
         return self
 
 

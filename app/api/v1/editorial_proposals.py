@@ -1,0 +1,44 @@
+"""Owner requests and reviews draft ideas; no publication action is exposed."""
+
+from uuid import UUID
+
+from fastapi import APIRouter, Query, Request
+
+from app.api.deps import Actor
+from app.schemas.editorial_proposals import EditorialAIConsent, EditorialAIStatus, ProposalRead, ProposalRequest
+from app.services.editorial_proposals import EditorialProposalService
+
+proposals_router = APIRouter(
+    prefix="/api/v1/organizations/{tenant_id}/businesses/{business_id}/editorial-proposals",
+    tags=["editorial-proposals"],
+)
+
+
+def service(request: Request) -> EditorialProposalService:
+    return EditorialProposalService(request.app.state.settings, request.app.state.database)
+
+
+@proposals_router.get("/consent", response_model=EditorialAIStatus)
+async def consent_status(tenant_id: UUID, business_id: UUID, request: Request, actor: Actor) -> dict[str, bool]:
+    return await service(request).consent_status(tenant_id, business_id, actor)
+
+
+@proposals_router.put("/consent", response_model=EditorialAIStatus)
+async def set_consent(
+    tenant_id: UUID, business_id: UUID, body: EditorialAIConsent, request: Request, actor: Actor
+) -> dict[str, bool]:
+    return await service(request).set_consent(tenant_id, business_id, actor, body.accepted)
+
+
+@proposals_router.post("", response_model=ProposalRead, status_code=202)
+async def request_proposal(
+    tenant_id: UUID, business_id: UUID, body: ProposalRequest, request: Request, actor: Actor
+) -> ProposalRead:
+    return await service(request).request(tenant_id, business_id, actor, body)
+
+
+@proposals_router.get("", response_model=list[ProposalRead])
+async def list_proposals(
+    tenant_id: UUID, business_id: UUID, request: Request, actor: Actor, limit: int = Query(default=30, ge=1, le=100)
+) -> list[ProposalRead]:
+    return await service(request).list(tenant_id, business_id, actor, limit)

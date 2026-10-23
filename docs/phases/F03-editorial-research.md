@@ -1,6 +1,6 @@
 # F03 — Pesquisa, temas e planejamento proativo
 
-Status: Em implementação; F03.1 entregue localmente em 23/10/2026.
+Status: Em implementação; F03.1 e a primeira fatia da F03.2 entregues localmente em 23/10/2026.
 Dependências: F01, F02.
 
 ## Objetivo
@@ -37,6 +37,63 @@ concorrência, replay, autorização e isolamento em PostgreSQL real. Migration 
 revertida/reaplicada no `_test` e aplicada ao desenvolvimento após backup
 verificado. Web: 158 testes com 100% nos quatro critérios, build, formatação e
 jornada Chromium de salvar/restaurar.
+
+## F03.2a — Sugestão editorial revisável (entregue localmente)
+
+O proprietário solicita uma ideia por negócio a partir de um material preparado
+do WhatsApp ou dos fatos confirmados. A API grava o pedido com `operation_id`,
+versão fixa do contexto e fonte opcional. Um dispatcher com lease/fencing usa ID
+determinístico no Temporal; a activity executa uma vez. O mesmo pedido devolve o
+mesmo resultado e a concorrência não duplica uma chamada paga. A lista do dono
+mostra estado, data, versão, formato, ângulo, fatos referidos, hipóteses e perguntas.
+Não existe aprovação nem publicação nesta fatia.
+O conteúdo legível nesta fatia é texto de mensagem, legenda de mídia ou áudio
+transcrito; imagem/vídeo sem texto não é analisado. A interface só oferece
+materiais com texto disponível.
+
+Sem provedor configurado, `baseline-v1` monta uma sugestão local simples, sem
+enviar conteúdo externo. Com `MEU_BRACO_DIREITO_EDITORIAL_AI_MODE=openai`, o worker
+usa a Responses API com JSON Schema estrito, `store=false`, sem ferramentas, modelo
+configurável (padrão `gpt-5-mini`) e resposta limitada. O dono deve aceitar um
+consentimento separado para texto/contexto; recepção de material e transcrição
+de áudio não autorizam esse envio. A ativação exige chave e limite diário de
+reserva de pelo menos 30 mil tokens. Antes da chamada, uma transação com lock por
+tenant reserva teto conservador no ledger; o retorno registra tokens observados.
+Submissão incerta não é repetida automaticamente. Revogação de consentimento ou
+plano, fonte excluída e fatos vencidos impedem usar o resultado. Pedir exclusão
+do material remove no mesmo commit todas as sugestões derivadas dele. Ideias
+expiram em 30 dias, quando o reconciliador apaga os registros.
+
+O modelo recebe apenas o snapshot confirmado ainda válido e o texto selecionado;
+material é tratado como dado não confiável. IDs de fatos, números não apoiados e
+assuntos a evitar passam por guardas determinísticas. Isso não prova que toda
+afirmação em linguagem natural é verdadeira: a ideia é um rascunho para revisão.
+Hipóteses permanecem separadas e não alteram `BusinessContext`. Não há uso de
+Jev, busca externa, classificação de intenção persistida ou disparo automático
+por novo WhatsApp. A WABA de teste bloqueada segue impedindo o smoke Meta real.
+
+Validação: 442 testes backend com 100% de linhas/ramos, Ruff/mypy, migration 0022
+revertida/reaplicada no `_test` e aplicada no desenvolvimento após backup
+verificado. PostgreSQL com papéis restritos, RLS, replay, concorrência,
+orçamento e falhas incertas; testes de contrato do provedor sem chamada paga
+real. Web: 167 testes/100% em quatro critérios, typecheck, build, formatação e
+jornada Chromium de `/app/ideas` com API simulada. Workers reconstruídos e
+em execução; reiniciar API em debug para ler a rota nova. O teste real do
+provedor e avaliação PT-BR por coorte continuam
+pendentes antes de qualquer ativação comercial. Preço/token em moeda e COGS real
+dependem de tarifas vigentes e serão medidos na F03.2b, sem supor custo fixo.
+
+## F03.2b — Avaliação e ativação controlada (pendente)
+
+Criar conjunto de avaliação PT-BR com materiais consentidos/sintéticos de
+segmentos distintos e casos de abstention; comparar baseline e modelo em acerto,
+fatos inventados, utilidade, latência e custo. Validar credencial/modelo em
+sandbox, observar limites por tenant e só então habilitar coortes. Integração
+Jev permanece experimental até contrato/API, benchmark e disponibilidade serem
+verificados. Pesquisa por raio e planejamento proativo serão fatias posteriores.
+O assistente de conversa editorial no WhatsApp segue o contrato da
+[F02](F02-whatsapp-ingestion.md); sua classificação/extração deve entrar no
+mesmo conjunto de eval antes de ativar respostas automáticas.
 
 ## Features e contratos
 

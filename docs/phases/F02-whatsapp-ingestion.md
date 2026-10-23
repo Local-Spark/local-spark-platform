@@ -1,5 +1,50 @@
 # F02 — WhatsApp e biblioteca de materiais
 
+## Próximo recorte: assistente editorial conversacional (decisão de produto, pendente)
+
+O WhatsApp é a conversa com o proprietário verificado sobre materiais e peças
+do **próprio negócio**; não é atendimento aos consumidores dele nem um chat geral.
+Cada entrada gera no máximo uma ação editorial: guardar material, propor fato
+temporário, responder pergunta sobre o fluxo, pedir uma informação indispensável,
+mostrar rascunho para revisão ou encaminhar à equipe. Mensagens de um mesmo envio
+são agrupadas antes da resposta; confirmação de recebimento é uma só por grupo,
+idempotente, e pode ser omitida quando uma pergunta específica já responde ao dono.
+
+Exemplos de contrato:
+
+- “Hoje tenho agenda livre às 15h” → detectar disponibilidade, fixar a data pelo
+  fuso do negócio e perguntar uma vez: “Quer divulgar um horário livre hoje às
+  15h? Responda Confirmar, Ajustar ou Só guardar.” A confirmação cria um fato
+  temporário com expiração no fim do dia; não agenda cliente nem publica sozinha.
+- “Hoje o X-tudo está 20 reais” → propor preço R$ 20,00 para o produto identificado
+  e perguntar se vale apenas hoje e se pode ser divulgado. Se produto, moeda,
+  vigência ou contexto estiverem ambíguos, perguntar só o dado que falta. Sem
+  confirmação, guardar como material/hypótese; não atualizar preço confirmado.
+- Foto/vídeo sem legenda → acusar recebimento uma vez e, quando necessário,
+  perguntar “O que você quer destacar nessa imagem?”; não afirmar o que há nela
+  antes de uma capacidade visual avaliada. Perguntas sobre o serviço (“o que você
+  pode postar hoje?”) usam contexto e estado autorizados, sem conversa aberta.
+
+Pipeline planejada: webhook autenticado → correlação de owner/tenant e grupo →
+transcrição opcional → classificação de intenção + extração estruturada com
+evidência do trecho → validação determinística (datas, fuso, preço, produto,
+consentimento, plano, expiração) → estado `awaiting_confirmation` ou
+`material_saved` → resposta curta por template → confirmação explícita → nova
+versão do contexto ou pedido de ideia → revisão da peça → publicação só após
+aprovação própria. Entrada incerta, fora de escopo ou falha do modelo nunca vira
+fato confirmado; resposta segura ou revisão humana. Processar eventos por
+ID/conversa com idempotência, ordem e outbox de envio; não repetir mensagem ao
+reentregar webhook. Respeitar janela/regras de mensagens da Meta e opt-out.
+
+Primeiro corte: regras para comandos claros e LLM de saída estruturada para
+extrair intenção e campos de texto livre. Jev pode ser avaliado em shadow para
+decisões fechadas (`material`, `oferta`, `disponibilidade`, `pergunta`, `fora de
+escopo`; `responder`, `perguntar`, `guardar`, `revisar`), com limiar de confiança
+e fallback. Jev não gera texto nem extrai preço arbitrário; não escolhê-lo como
+motor único de conversa antes de eval PT-BR, custo/latência e termos de dados.
+Modelo de conversa e limiares permanecem decisões da fase de avaliação. Nenhuma
+resposta automática está entregue neste recorte documental.
+
 Status: Em implementação; F02.1–F02.2c3b entregues localmente, integração paga desativada.
 Dependências: F00, F01.
 

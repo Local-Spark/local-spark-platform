@@ -219,4 +219,9 @@ class WhatsAppMaterialsService:
                       VALUES(:tenant,:actor,:event,'whatsapp.material_delete_requested',:business)"""),
                     {"tenant": tenant, "actor": actor, "event": event, "business": business},
                 )
+            await session.execute(
+                text("""DELETE FROM editorial_proposals WHERE tenant_id=:tenant
+                  AND business_id=:business AND source_asset_id=:event"""),
+                {"tenant": tenant, "business": business, "event": event},
+            )
         return {"status": "scheduled"}

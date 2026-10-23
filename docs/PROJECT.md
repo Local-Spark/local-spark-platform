@@ -12,6 +12,14 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Atualizado: 23/10/2026. Nome adotado: Meu Braço Direito. Repositório principal: `local-spark-platform`.
 
+23/10/2026 — F03.2a cria sugestões editoriais revisáveis a pedido do dono,
+ligadas a uma versão do contexto e opcionalmente a um material WhatsApp. O modo
+local funciona sem chave; o modo OpenAI usa consentimento próprio, quota diária,
+JSON estruturado e activity Temporal sem repetição de chamada paga. Excluir um
+material apaga suas sugestões. A interface `/app/ideas` mostra o estado e separa
+hipóteses de fatos. Teste real de provedor, avaliação PT-BR, pesquisa e
+planejamento proativo são F03.2b/fatias seguintes. WABA Meta segue restrita.
+
 23/10/2026 — F03.1 iniciou o contexto editorial por negócio. O dono confirma
 fatos com origem e validade, informa preferências e pode corrigir/restaurar
 versões. A API usa CAS e operação idempotente, guarda histórico imutável e audita

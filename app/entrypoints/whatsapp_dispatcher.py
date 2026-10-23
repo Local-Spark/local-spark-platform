@@ -11,6 +11,8 @@ from app.core.logging import configure_logging
 from app.db.session import Database
 from app.entrypoints.worker import connect_temporal
 from app.services.audio_transcription import reconcile_stale_audio
+from app.services.editorial_dispatch import dispatch_proposals
+from app.services.editorial_proposals import reconcile_stale_proposals
 from app.services.whatsapp_processing import dispatch_materials
 from app.services.whatsapp_retention import purge_once
 
@@ -20,7 +22,7 @@ logger = logging.getLogger("meu_braco_direito.whatsapp_dispatcher")
 async def run_dispatcher() -> None:
     configure_logging()
     settings = get_settings()
-    if settings.correlator_database_url is None or settings.meta_encryption_key is None:
+    if settings.correlator_database_url is None:
         logger.info("whatsapp.dispatcher.disabled")
         return
     database = Database(settings, correlator=True)
@@ -30,12 +32,17 @@ async def run_dispatcher() -> None:
         store = MaterialStore(settings)
         last_purge = 0.0
         while True:
-            count = await dispatch_materials(database, client, settings, owner)
+            count = await dispatch_materials(database, client, settings, owner) if settings.meta_encryption_key else 0
+            proposals = await dispatch_proposals(database, client, settings, owner)
             if count:
                 logger.info("whatsapp.material_dispatched", extra={"count": count})
+            if proposals:
+                logger.info("editorial.proposals_dispatched", extra={"count": proposals})
             if monotonic() - last_purge >= 10:
-                await reconcile_stale_audio(database)
-                purged = await purge_once(database, store, owner)
+                if settings.meta_encryption_key:
+                    await reconcile_stale_audio(database)
+                await reconcile_stale_proposals(database)
+                purged = await purge_once(database, store, owner) if settings.meta_encryption_key else 0
                 if purged:
                     logger.info("whatsapp.materials_purged", extra={"count": purged})
                 last_purge = monotonic()

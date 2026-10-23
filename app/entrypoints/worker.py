@@ -4,13 +4,17 @@ from temporalio.client import Client
 from temporalio.worker import Worker
 
 from app.adapters.audio_transcription import OpenAIAudioTranscriber
+from app.adapters.editorial_ai import OpenAIEditorialProvider
 from app.adapters.material_media import MaterialStore, MetaMediaClient
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging
 from app.db.session import Database
 from app.services.audio_transcription import AudioTranscriptionService
+from app.services.editorial_proposals import EditorialProposalService
 from app.services.whatsapp_processing import MaterialProcessor
 from app.workflows.activities import FoundationActivities
+from app.workflows.editorial_activities import EditorialActivities
+from app.workflows.editorial_proposal import EditorialProposalWorkflow
 from app.workflows.foundation import BusinessCreatedWorkflow
 from app.workflows.whatsapp_activities import WhatsAppMaterialActivities
 from app.workflows.whatsapp_material import WhatsAppMaterialWorkflow
@@ -29,11 +33,7 @@ async def run_worker() -> None:
     configure_logging()
     settings = get_settings()
     database = Database(settings)
-    material_database = (
-        Database(settings, correlator=True)
-        if settings.correlator_database_url and settings.meta_encryption_key
-        else None
-    )
+    material_database = Database(settings, correlator=True) if settings.correlator_database_url else None
     try:
         client = await connect_temporal(settings)
         material_activities = (
@@ -43,15 +43,22 @@ async def run_worker() -> None:
                 ),
                 AudioTranscriptionService(processor, OpenAIAudioTranscriber(settings)),
             )
+            if material_database and settings.meta_encryption_key
+            else None
+        )
+        editorial_activities = (
+            EditorialActivities(
+                EditorialProposalService(settings, material_database, OpenAIEditorialProvider(settings))
+            )
             if material_database
             else None
         )
         worker = Worker(
             client,
             task_queue=settings.temporal_task_queue,
-            workflows=[BusinessCreatedWorkflow, WhatsAppMaterialWorkflow]
-            if material_activities
-            else [BusinessCreatedWorkflow],
+            workflows=[BusinessCreatedWorkflow]
+            + ([WhatsAppMaterialWorkflow] if material_activities else [])
+            + ([EditorialProposalWorkflow] if editorial_activities else []),
             activities=[FoundationActivities(database).record_business_created]
             + (
                 [
@@ -61,7 +68,8 @@ async def run_worker() -> None:
                 ]
                 if material_activities
                 else []
-            ),
+            )
+            + ([editorial_activities.generate_editorial_proposal] if editorial_activities else []),
             max_concurrent_activities=4,
         )
         await worker.run()
