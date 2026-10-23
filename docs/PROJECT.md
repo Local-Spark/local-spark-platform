@@ -12,12 +12,19 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Atualizado: 23/10/2026. Nome adotado: Meu Braço Direito. Repositório principal: `local-spark-platform`.
 
+23/10/2026 — F03.2c, terceira fatia: `GET /api/v1/admin/editorial-usage`
+agrega por organização as reservas de tokens do dia UTC, tokens informados pelo
+provedor e chamadas pendentes/incertas. Leitura exclusiva de staff e auditada;
+alertas de 80% e 100% usam o limite diário atualmente configurado, não valor
+histórico. Não há tarifa versionada, portanto custo monetário permanece
+desconhecido. Fluxo completo WhatsApp/publicação e feedback continuam pendentes.
+
 23/10/2026 — F03.2c, segunda fatia: eventos editoriais novos são correlacionados
 ao ID interno único do pedido, vinculado ao `operation_id` externo, e consultáveis
 por staff numa linha do tempo de metadados,
 sem prompt ou material. O dispatcher registra a etapa de claim na transação;
 duplicatas não criam outro marco. Eventos antigos podem estar incompletos.
-Percurso WhatsApp/publicação, custo monetário e alertas ainda faltam.
+Percurso WhatsApp/publicação, custo monetário e alertas além da quota editorial ainda faltam.
 
 23/10/2026 — F03.2b: a geração agora exige pelo menos um fato vigente
 confirmado pelo proprietário, inclusive quando há material WhatsApp. Sem isso,

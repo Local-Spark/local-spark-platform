@@ -1,5 +1,17 @@
 # Registro de mudanças
 
+## 2026-10-23 — F03.2c: consumo editorial diário
+
+- Migration 0025 cria projeção SQL restrita a staff para uso editorial do dia UTC,
+  por organização, sem liberar leitura direta da tabela do ledger. Endpoint
+  auditado devolve tokens reservados, observados, chamadas medidas e incertas.
+- Estados de quota usam o limite atual: aviso em 80%, esgotado em 100% e ausência
+  de configuração explícita. Custo monetário segue desconhecido até haver tarifa
+  versionada; não há alerta automatizado fora do painel.
+- Validação: `make ci` com 444 testes, 100% de linhas/ramos, Ruff e mypy;
+  teste de integração cobre isolamento de tenant, staff/cliente e agregação.
+  Migration 0025 aplicada no `_test` e na base local após backup verificado.
+
 ## 2026-10-23 — F03.2c: etapas editoriais correlacionadas
 
 - Auditoria de novos pedidos usa o ID interno único, associado ao `operation_id`

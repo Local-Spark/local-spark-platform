@@ -182,7 +182,7 @@ erro estável, versão do contexto/modelo, tokens reservados/observados e datas.
 nem custo monetário confiável. Não retorna texto do material, prompt ou rascunho.
 O painel web `/admin/editorial-operations` mostra 25 registros recentes e filtro
 por organização. É apenas o trecho de geração de ideias; timeline unificada,
-tentativas por etapa, agregações/alertas, feedback por negócio e acesso restrito
+tentativas por etapa, agregações além da quota editorial, feedback por negócio e acesso restrito
 ao conteúdo permanecem nesta fase antes do piloto pago.
 Validação local: `make ci` passou com 443 testes e 100% de cobertura de linhas e
 ramos; migration 0023 reversível no banco exclusivo `_test`, base de
@@ -199,12 +199,26 @@ restrita a staff para consultar somente ação e data de eventos de um pedido.
 o painel mostra essas etapas sob demanda. Pedidos anteriores à mudança podem
 ter histórico incompleto: a API não reconstrói eventos nem apresenta tempos
 inferidos. A visão ainda cobre somente geração editorial; correlação com
-webhook, transcrição, publicação, custos monetários, alertas e feedback seguem
+webhook, transcrição, publicação, custos monetários, alertas externos e feedback seguem
 pendentes nesta fase.
 Validação da segunda fatia: `make ci` com 443 testes e 100% de linhas/ramos;
 migration 0024 revertida/reaplicada no banco `_test` e aplicada à base local
 após backup. Teste de integração cobre dois negócios com mesmo `operation_id`
 externo sem cruzamento de etapas e revogação de staff.
+
+Terceira fatia em 23/10: migration 0025 adiciona a projeção
+`admin_editorial_usage_today` restrita a staff, limitada a 100 organizações e
+indexada por data. `GET /api/v1/admin/editorial-usage` audita a leitura, aceita
+filtro por organização e retorna reservas, tokens observados, quantidade de
+chamadas com medição completa, pendentes e incertas no dia UTC. O limite atual
+de tokens configura os estados normal, aviso em 80%, esgotado em 100% e sem
+configuração. A soma observada pode ser parcial e não equivale a custo; a API
+mantém `estimated_cost_minor=null`. A consulta não retorna conteúdo privado.
+O painel exibe alertas de quota por organização. Não há ainda custo em moeda,
+alerta automatizado fora do painel, paginação além dos 25 maiores consumidores,
+nem composição de todas as etapas do WhatsApp à publicação.
+Validação: `make ci` com 444 testes, 100% de linhas/ramos, Ruff e mypy;
+migration 0025 aplicada no banco `_test` e na base local após backup.
 
 Materiais WhatsApp conservam a retenção da F02 (inbox/fila curta, asset preparado
 com prazo inicial de 30 dias); a plataforma não guarda a conversa inteira para
@@ -233,7 +247,8 @@ escopo, expiração e leitura auditada; ocultar por padrão, proibir busca globa
 por conteúdo e respeitar exclusão/retenção. O cliente vê seu próprio histórico
 e pode corrigir o contexto. Console mínimo entra nesta F03.2c; F08 amplia SLO,
 tracing distribuído e operação em escala. Estado atual: auditoria, ledger e IDs
-existem em partes do backend; esse percurso unificado e a UI admin não existem.
+existem em partes do backend; a UI admin cobre apenas a geração de ideias, e o
+percurso unificado ainda não existe.
 
 ## Features e contratos
 

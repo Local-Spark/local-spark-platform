@@ -248,6 +248,12 @@ F04/F05 usam adapters por capacidade e avaliação controlada de fornecedores;
 nenhum modelo listado está aprovado para produção por constar na especificação.
 Contrato e gates: [contexto, geração e custo](design/business-context-and-generation.md).
 
+F03.2c agrega no admin o ledger editorial do dia UTC por organização: reservas,
+tokens observados quando o provedor os informou e estados de quota calculados
+com o limite atual (aviso em 80%, esgotado em 100%). A leitura é de staff,
+auditada e limitada; não inclui material ou respostas. Reserva não equivale a
+custo monetário. Tarifa versionada e percurso completo da operação seguem pendentes.
+
 ## Jornada comercial e interfaces (decisão F01)
 
 Landing → contratação → webhook confirmado → provisionamento/ativação idempotentes

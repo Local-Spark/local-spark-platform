@@ -1,5 +1,6 @@
 """Audited administrative projections; platform staff is distinct from tenant ownership."""
 
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
@@ -106,3 +107,40 @@ async def editorial_operation_events(session: AsyncSession, actor: UUID, proposa
         .all()
     )
     return {"items": [dict(row) for row in rows]}
+
+
+async def editorial_usage_today(
+    session: AsyncSession, actor: UUID, tenant: UUID | None, limit: int, token_limit: int
+) -> dict[str, Any]:
+    """Summarize quota reservations; observed tokens may be incomplete and are not money."""
+    await require_staff(session, actor, "admin.editorial_usage.read")
+    rows = (
+        (
+            await session.execute(
+                text("SELECT * FROM public.admin_editorial_usage_today(:tenant,:limit)"),
+                {"tenant": tenant, "limit": limit},
+            )
+        )
+        .mappings()
+        .all()
+    )
+    day_start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+    items = []
+    for row in rows:
+        item = dict(row)
+        reserved = item["reserved_tokens"]
+        if token_limit == 0:
+            state = "unconfigured"
+        elif reserved >= token_limit:
+            state = "exhausted"
+        elif reserved * 5 >= token_limit * 4:
+            state = "warning"
+        else:
+            state = "normal"
+        items.append(item | {"quota_state": state, "estimated_cost_minor": None})
+    return {
+        "period_start": day_start,
+        "period_end": day_start + timedelta(days=1),
+        "daily_token_limit": token_limit,
+        "items": items,
+    }

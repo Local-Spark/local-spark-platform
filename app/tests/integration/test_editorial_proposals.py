@@ -14,7 +14,7 @@ from app.adapters.editorial_ai import EditorialProviderError
 from app.core.identity import Identity
 from app.db.session import Database
 from app.schemas.editorial_proposals import ProposalDraft, ProposalRequest
-from app.services.administration import editorial_operation_events, editorial_operations
+from app.services.administration import editorial_operation_events, editorial_operations, editorial_usage_today
 from app.services.business import AccessDenied
 from app.services.editorial_dispatch import claim_proposals, finish_proposal_dispatch
 from app.services.editorial_proposals import EditorialProposalService, reconcile_stale_proposals
@@ -737,3 +737,81 @@ async def test_unconfirmed_material_abstains_without_spending_and_admin_projecti
     finally:
         await owner_db.close()
         await worker_db.close()
+
+
+async def test_staff_daily_usage_keeps_tenants_private_and_separates_reserved_from_measured(
+    admin, api, seeded, settings
+):
+    business = await _business(admin, seeded)
+    other_business = uuid4()
+    async with admin.begin() as connection:
+        await connection.execute(
+            text("INSERT INTO businesses(id,tenant_id,name,timezone) VALUES(:id,:tenant,'Other','UTC')"),
+            {"id": other_business, "tenant": seeded["t2"]},
+        )
+        await connection.execute(
+            text("INSERT INTO platform_staff(actor_id,active) VALUES(:actor,true)"), {"actor": seeded["a2"]}
+        )
+        for tenant, target, reserved, input_tokens, output_tokens, state in (
+            (seeded["t1"], business, 80, 20, 10, "completed"),
+            (seeded["t1"], business, 20, None, None, "uncertain"),
+            (seeded["t2"], other_business, 25, None, None, "submitted"),
+        ):
+            await connection.execute(
+                text("""INSERT INTO editorial_ai_usage
+                  (proposal_id,tenant_id,business_id,reserved_tokens,input_tokens,output_tokens,state)
+                  VALUES(:proposal,:tenant,:business,:reserved,:input,:output,:state)"""),
+                {
+                    "proposal": uuid4(),
+                    "tenant": tenant,
+                    "business": target,
+                    "reserved": reserved,
+                    "input": input_tokens,
+                    "output": output_tokens,
+                    "state": state,
+                },
+            )
+    db = Database(settings)
+    try:
+        async with db.transaction(seeded["t1"], seeded["a1"]) as session:
+            with pytest.raises(AccessDenied):
+                await editorial_usage_today(session, seeded["a1"], seeded["t1"], 25, 100)
+        async with db.transaction(seeded["t2"], seeded["a2"]) as session:
+            all_usage = await editorial_usage_today(session, seeded["a2"], None, 25, 100)
+            assert len(all_usage["items"]) == 2
+            assert all_usage["period_end"] > all_usage["period_start"]
+            first = all_usage["items"][0]
+            assert first["tenant_id"] == seeded["t1"]
+            assert first["request_count"] == 2
+            assert first["reserved_tokens"] == 100
+            assert first["observed_tokens"] == 30
+            assert first["measured_count"] == 1
+            assert first["uncertain_count"] == 1
+            assert first["completed_count"] == 1
+            assert first["estimated_cost_minor"] is None
+            assert first["quota_state"] == "exhausted"
+            assert all_usage["items"][1]["in_progress_count"] == 1
+            assert all_usage["items"][1]["quota_state"] == "normal"
+            assert (await editorial_usage_today(session, seeded["a2"], seeded["t1"], 25, 120))["items"][0][
+                "quota_state"
+            ] == "warning"
+            assert (await editorial_usage_today(session, seeded["a2"], seeded["t1"], 25, 0))["items"][0][
+                "quota_state"
+            ] == "unconfigured"
+            assert (await editorial_usage_today(session, seeded["a2"], uuid4(), 25, 100))["items"] == []
+        staff_headers = {"Authorization": f"Bearer {access_token(settings, seeded['a2'])}"}
+        owner_headers = {"Authorization": f"Bearer {access_token(settings, seeded['a1'])}"}
+        assert (await api.get("/api/v1/admin/editorial-usage", headers=owner_headers)).status_code == 403
+        api._transport.app.state.identity_verifier.authenticate = AsyncMock(
+            return_value=Identity(seeded["a2"], settings.jwt_issuer, str(seeded["a2"]), "Test")
+        )
+        response = await api.get(
+            f"/api/v1/admin/editorial-usage?tenant_id={seeded['t1']}&limit=1", headers=staff_headers
+        )
+        assert response.status_code == 200, response.text
+        assert len(response.json()["items"]) == 1
+        assert response.json()["items"][0]["tenant_id"] == str(seeded["t1"])
+        assert response.json()["items"][0]["estimated_cost_minor"] is None
+        assert (await api.get("/api/v1/admin/editorial-usage?limit=101", headers=staff_headers)).status_code == 422
+    finally:
+        await db.close()

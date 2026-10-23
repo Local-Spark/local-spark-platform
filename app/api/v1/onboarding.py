@@ -1,7 +1,7 @@
 from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Query, Response
+from fastapi import APIRouter, Query, Request, Response
 
 from app.api.deps import Actor, ActorSession, Principal
 from app.schemas.onboarding import OnboardingCreate, OnboardingResult, SessionRead
@@ -61,3 +61,16 @@ async def admin_editorial_operations(
 @onboarding_router.get("/admin/editorial-operations/{proposal_id}/events", tags=["administration"])
 async def admin_editorial_operation_events(proposal_id: UUID, actor: Actor, session: ActorSession) -> dict[str, Any]:
     return await administration.editorial_operation_events(session, actor, proposal_id)
+
+
+@onboarding_router.get("/admin/editorial-usage", tags=["administration"])
+async def admin_editorial_usage(
+    request: Request,
+    actor: Actor,
+    session: ActorSession,
+    tenant_id: UUID | None = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+) -> dict[str, Any]:
+    return await administration.editorial_usage_today(
+        session, actor, tenant_id, limit, request.app.state.settings.editorial_daily_token_limit
+    )
