@@ -61,6 +61,7 @@ def event_row(kind="text", state="pending", expires=None):
         "id": uuid4(),
         "tenant_id": uuid4(),
         "business_id": uuid4(),
+        "group_id": uuid4(),
         "kind": kind,
         "sender_hash": "a" * 64,
         "state": state,

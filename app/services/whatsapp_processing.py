@@ -189,7 +189,7 @@ class MaterialProcessor:
             row = (
                 (
                     await session.execute(
-                        text("""SELECT id,tenant_id,business_id,kind,ciphertext,sender_hash,
+                        text("""SELECT id,tenant_id,business_id,kind,ciphertext,sender_hash,group_id,
                           state,created_at,expires_at FROM whatsapp_material_events WHERE id=:id"""),
                         {"id": event},
                     )
@@ -234,7 +234,7 @@ class MaterialProcessor:
             current = (
                 (
                     await session.execute(
-                        text("""SELECT id,tenant_id,business_id,kind,sender_hash,state,created_at,expires_at
+                        text("""SELECT id,tenant_id,business_id,kind,sender_hash,group_id,state,created_at,expires_at
                           FROM whatsapp_material_events WHERE id=:id FOR UPDATE"""),
                         {"id": event},
                     )
@@ -263,8 +263,8 @@ class MaterialProcessor:
                     return await self._mark_failed(session, current, event, "UPLOAD_RECONCILING")
             await session.execute(
                 text("""INSERT INTO whatsapp_material_assets
-                  (id,tenant_id,business_id,kind,ciphertext,object_key,mime_type,size_bytes,sha256)
-                  VALUES(:id,:tenant,:business,:kind,:ciphertext,:object_key,:mime,:size,:checksum)
+                  (id,tenant_id,business_id,kind,ciphertext,object_key,mime_type,size_bytes,sha256,group_id)
+                  VALUES(:id,:tenant,:business,:kind,:ciphertext,:object_key,:mime,:size,:checksum,:group)
                   ON CONFLICT(id) DO NOTHING"""),
                 {
                     "id": event,
@@ -276,6 +276,7 @@ class MaterialProcessor:
                     "mime": mime_type,
                     "size": size_bytes,
                     "checksum": checksum,
+                    "group": current["group_id"],
                 },
             )
             await session.execute(

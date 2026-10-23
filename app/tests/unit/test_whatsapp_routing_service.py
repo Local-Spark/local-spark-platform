@@ -3,6 +3,7 @@
 import asyncio
 import json
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, Mock
 from uuid import uuid4
 
@@ -66,6 +67,7 @@ async def test_route_once_writes_only_supported_messages(settings):
             "id": uuid4(),
             "ciphertext": encrypt(cipher, {"type": "text", "text": {"body": "ideia"}}),
             "expires_at": "expiry",
+            "received_at": datetime(2026, 10, 23, 12, tzinfo=UTC),
             "tenant_id": tenant,
             "business_id": business,
             "actor_id": actor,
@@ -75,6 +77,7 @@ async def test_route_once_writes_only_supported_messages(settings):
             "id": uuid4(),
             "ciphertext": encrypt(cipher, {"type": "text", "text": {"body": "VINCULAR code"}}),
             "expires_at": "expiry",
+            "received_at": datetime(2026, 10, 23, 12, tzinfo=UTC),
             "tenant_id": tenant,
             "business_id": business,
             "actor_id": actor,

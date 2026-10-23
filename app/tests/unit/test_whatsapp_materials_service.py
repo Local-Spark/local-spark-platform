@@ -70,6 +70,7 @@ async def test_delete_material_first_request_records_audit(settings):
 def test_receipt_hides_corrupt_or_unavailable_content():
     row = {
         "id": uuid4(),
+        "group_id": uuid4(),
         "kind": "text",
         "state": "processed",
         "created_at": "now",

@@ -91,6 +91,20 @@ async def test_text_material_consent_library_and_revocation(admin, database, aut
             response = await client.get(base, headers=owner)
             assert response.status_code == 200, response.text
             assert response.json()["items"][0]["text"] == "Promoção de sexta"
+            async with admin.connect() as connection:
+                group = (
+                    await connection.execute(
+                        text("""SELECT e.group_id,a.group_id FROM whatsapp_material_events e
+                          JOIN whatsapp_material_assets a ON a.id=e.id WHERE e.id=:event"""),
+                        {"event": event},
+                    )
+                ).one()
+            assert response.json()["items"][0]["group_id"] == str(group[0])
+            assert group[0] == group[1]
+            async with admin.begin() as connection:
+                await connection.execute(text("DELETE FROM whatsapp_material_events WHERE id=:event"), {"event": event})
+            retained = await client.get(base, headers=owner)
+            assert retained.json()["items"][0]["group_id"] == str(group[1])
             assert (await client.get(base, headers=foreign)).status_code == 403
             assert (await client.get(base + f"/{event}/download-link", headers=owner)).status_code == 404
             async with database.transaction(tenant, actor) as session:

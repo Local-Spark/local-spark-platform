@@ -1,11 +1,33 @@
 # F02 — WhatsApp e biblioteca de materiais
 
-Status: Em implementação; F02.1–F02.2c2 entregues localmente.
+Status: Em implementação; F02.1–F02.2c2 e F02.2c3a entregues localmente.
 Dependências: F00, F01.
 
 ## Objetivo
 
 Receber texto, áudio, fotos e vídeo no número oficial da plataforma e montar solicitações com fatos rastreáveis.
+
+## F02.2c3a — Agrupamento determinístico (entregue localmente)
+
+O correlator atribui `group_id` ao copiar uma mensagem da inbox para a fila. A
+identidade usa tenant, negócio, remetente autenticado e uma janela **fixa** de
+dez minutos em UTC, calculada a partir do horário recebido pela Meta. Dois
+workers concorrentes ou reentregas produzem o mesmo grupo sem consultar ou
+travar um grupo mutável. Uma mensagem na virada da janela inicia outro grupo;
+este limite é visível na biblioteca e pode ser ajustado em versão futura, com
+migração explícita de regra. A migration 0019 preserva materiais antigos como
+grupos unitários e grava o grupo no asset antes de a fila vencer. A API só
+devolve o identificador ao proprietário autorizado; a web reúne recibos do
+mesmo envio e mantém exclusão individual. Não há interpretação de conteúdo.
+
+F02.2c3b: converter áudio validado para formato aceito pelo provedor, limitar
+duração, reservar franquia/segundos por tenant em ledger antes de cada chamada
+paga, chamar `gpt-transcribe` por adapter no worker Temporal e guardar texto
+cifrado com estado auditável. Uma tentativa de resultado incerto não será
+submetida automaticamente de novo; revogação, retenção e exclusão também devem
+abranger a transcrição. Credencial e teto de gasto são obrigatórios para ativar.
+Transcrição converte fala em texto; extração de intenção, fatos, promoções e
+respostas com LLM/Jev pertencem a uma etapa posterior com confirmação do dono.
 
 ## Features e contratos
 

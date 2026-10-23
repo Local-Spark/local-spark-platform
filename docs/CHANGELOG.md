@@ -1,5 +1,22 @@
 # Registro de mudanças
 
+## 2026-10-23 — F02.2c3a: materiais de um mesmo envio
+
+- Migration 0019 adiciona identidade estável de grupo à fila e aos assets,
+  preservando materiais anteriores como grupos unitários. O correlator usa
+  tenant, negócio, remetente e janela fixa de dez minutos; o processamento
+  persiste essa identidade e a API a expõe apenas ao proprietário.
+- Biblioteca web reúne itens do mesmo envio. Testes cobrem concorrência,
+  isolamento entre negócios, virada da janela e persistência até o recibo.
+- Validação: 374 testes backend com 100% de linhas/ramos, Ruff e mypy.
+  Migration 0019 revertida/reaplicada no `_test`; backup verificado da base local
+  antes da atualização para 0019. Integração PostgreSQL passou com logins
+  restritos; correlator e worker locais foram reconstruídos e a API respondeu
+  200 em `/health/ready`. Nenhum conteúdo Meta real foi processado.
+- A transcrição com provedor, reserva de orçamento e ledger forma F02.2c3b.
+  Ainda não existe interpretação semântica por LLM/Jev ou harness de agentes;
+  WABA real continua restrita.
+
 ## 2026-10-22 — F02.2c2: reconciliação de uploads interrompidos
 
 - Cada upload ganha intenção durável, chave S3 única por tentativa e auditoria antes

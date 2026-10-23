@@ -1,6 +1,8 @@
 """Correlate encrypted messages to a proved business without exposing them to the API."""
 
 import json
+from datetime import datetime
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from cryptography.fernet import Fernet, InvalidToken
 from sqlalchemy import text
@@ -9,6 +11,13 @@ from app.core.config import Settings
 from app.db.session import Database
 
 MATERIAL_KINDS = frozenset({"text", "image", "audio", "video"})
+GROUP_SECONDS = 600
+
+
+def material_group(tenant: UUID, business: UUID, sender_hash: str, received_at: datetime) -> UUID:
+    """A fixed ten-minute window makes group identity independent of worker order."""
+    slot = int(received_at.timestamp()) // GROUP_SECONDS
+    return uuid5(NAMESPACE_URL, f"whatsapp-material:v1:{tenant}:{business}:{sender_hash}:{slot}")
 
 
 def material_kind(cipher: Fernet, ciphertext: str) -> str | None:
@@ -43,7 +52,8 @@ async def route_once(database: Database, settings: Settings, limit: int = 25) ->
         rows = (
             (
                 await session.execute(
-                    text("""SELECT i.id,i.ciphertext,i.expires_at,i.sender_hash,l.tenant_id,l.business_id,l.actor_id
+                    text("""SELECT i.id,i.ciphertext,i.expires_at,i.received_at,i.sender_hash,
+                      l.tenant_id,l.business_id,l.actor_id
                       FROM whatsapp_inbox i JOIN whatsapp_channel_links l
                         ON l.sender_hash=i.sender_hash AND l.active
                       WHERE i.state='quarantined' AND i.event_kind='message'
@@ -62,8 +72,8 @@ async def route_once(database: Database, settings: Settings, limit: int = 25) ->
             if kind:
                 await session.execute(
                     text("""INSERT INTO whatsapp_material_events
-                      (id,tenant_id,business_id,kind,ciphertext,expires_at,sender_hash)
-                      VALUES(:id,:tenant,:business,:kind,:ciphertext,:expires,:sender)
+                      (id,tenant_id,business_id,kind,ciphertext,created_at,expires_at,sender_hash,group_id)
+                      VALUES(:id,:tenant,:business,:kind,:ciphertext,:received,:expires,:sender,:group)
                       ON CONFLICT(id) DO NOTHING"""),
                     {
                         "id": row["id"],
@@ -72,7 +82,11 @@ async def route_once(database: Database, settings: Settings, limit: int = 25) ->
                         "kind": kind,
                         "ciphertext": row["ciphertext"],
                         "expires": row["expires_at"],
+                        "received": row["received_at"],
                         "sender": row["sender_hash"],
+                        "group": material_group(
+                            row["tenant_id"], row["business_id"], row["sender_hash"], row["received_at"]
+                        ),
                     },
                 )
                 routed += 1

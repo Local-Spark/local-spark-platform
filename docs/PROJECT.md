@@ -12,6 +12,18 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Atualizado: 22/10/2026. Nome adotado: Meu Braço Direito. Repositório principal: `local-spark-platform`.
 
+23/10/2026 — F02.2c3a agrupa mensagens do mesmo remetente e negócio em
+janelas fixas de dez minutos, com `group_id` estável desde a correlação até o
+asset e a biblioteca web. Migration 0019 preserva itens antigos como grupos
+unitários. Nenhuma LLM, Jev ou harness interpreta mensagens nesta entrega:
+Temporal orquestra material, mas não infere conteúdo. F02.2c3b fará transcrição
+com orçamento e ledger; sem credencial, a feature segue desativada. Meta real
+continua bloqueada pela WABA de teste.
+Validação local: 374 testes backend e 100% de linhas/ramos, Ruff/mypy;
+migration 0019 revertida/reaplicada no `_test` e aplicada à base de
+desenvolvimento após backup. A UI passou 150 testes com 100% nos quatro
+critérios e fluxo Chromium do WhatsApp.
+
 F02.2c2 entregou localmente o registro durável de cada tentativa de upload antes
 do S3 e a reconciliação de arquivos sem commit, com chaves exclusivas, retry,
 lease/fencing e auditoria. A migration 0018 protege as intenções por papel; a

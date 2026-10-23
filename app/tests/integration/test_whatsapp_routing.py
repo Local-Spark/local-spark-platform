@@ -57,6 +57,7 @@ async def test_routing_is_tenant_scoped_durable_private_and_concurrent(admin, da
             config,
             [
                 ("routed-text", "message", {"from": phones[0], "type": "text", "text": {"body": "Oferta"}}),
+                ("routed-photo", "message", {"from": phones[0], "type": "image", "image": {"id": "photo"}}),
                 ("routed-image", "message", {"from": phones[1], "type": "image", "image": {"id": "media"}}),
                 ("link-command", "message", {"from": phones[0], "type": "text", "text": {"body": "VINCULAR abc"}}),
                 ("unsupported", "message", {"from": phones[0], "type": "reaction"}),
@@ -76,33 +77,46 @@ async def test_routing_is_tenant_scoped_durable_private_and_concurrent(admin, da
                 },
             )
         results = await asyncio.gather(route_once(router1, config), route_once(router2, config))
-        assert sum(results) == 2
+        assert sum(results) == 3
         assert await route_once(router1, config) == 0
         async with admin.connect() as connection:
             rows = (
                 (
                     await connection.execute(
-                        text("SELECT id,tenant_id,business_id,kind,ciphertext,state FROM whatsapp_material_events")
+                        text("""SELECT id,tenant_id,business_id,kind,ciphertext,state,group_id
+                          FROM whatsapp_material_events""")
                     )
                 )
                 .mappings()
                 .all()
             )
-            assert len(rows) == 2
+            assert len(rows) == 3
             assert {(r["tenant_id"], r["business_id"], r["kind"]) for r in rows} == {
                 (seeded["t1"], businesses[0], "text"),
+                (seeded["t1"], businesses[0], "image"),
                 (seeded["t2"], businesses[1], "image"),
             }
+            first_group = {r["group_id"] for r in rows if r["business_id"] == businesses[0]}
+            second_group = {r["group_id"] for r in rows if r["business_id"] == businesses[1]}
+            assert len(first_group) == len(second_group) == 1
+            assert first_group != second_group
             assert all("Oferta" not in r["ciphertext"] for r in rows)
             states = (
                 await connection.execute(text("SELECT dedupe_key,state FROM whatsapp_inbox ORDER BY dedupe_key"))
             ).all()
-            assert sorted(state for _, state in states) == ["discarded", "discarded", "linked", "linked", "quarantined"]
+            assert sorted(state for _, state in states) == [
+                "discarded",
+                "discarded",
+                "linked",
+                "linked",
+                "linked",
+                "quarantined",
+            ]
             assert (
                 await connection.scalar(
                     text("SELECT count(*) FROM audit_events WHERE action='whatsapp.material_routed'")
                 )
-                == 2
+                == 3
             )
             assert (
                 await connection.scalar(

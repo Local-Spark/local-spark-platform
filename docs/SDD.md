@@ -12,6 +12,14 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Versão 1.1, 22/10/2026. Resumo implementável e índice das especificações detalhadas.
 
+F02.2c3a acrescenta `group_id` determinístico por tenant, negócio, remetente e
+janela fixa de dez minutos, persistido na fila e no asset. A biblioteca mostra
+materiais relacionados sem unir negócios ou depender da ordem dos workers.
+Itens antigos formam grupos unitários. F02.2c3b tratará transcrição de áudio
+com provedor configurado, reserva de orçamento, ledger e estado incerto; F03
+tratará interpretação semântica e confirmação de fatos. Não há LLM/Jev/harness
+interpretando mensagens agora. Ver [F02](phases/F02-whatsapp-ingestion.md).
+
 F02.2c2 registra a tentativa de mídia antes do upload S3. Uma chave exclusiva
 por tentativa e uma intenção transacional permitem reconciliar arquivos quando o
 commit do material falha; limpeza com lease/fencing e retry roda no dispatcher.

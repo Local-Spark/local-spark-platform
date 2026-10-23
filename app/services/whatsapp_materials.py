@@ -86,7 +86,8 @@ class WhatsAppMaterialsService:
                         text("""SELECT coalesce(e.id,a.id) AS id,coalesce(e.kind,a.kind) AS kind,
                           coalesce(e.state,'processed') AS state,
                           coalesce(e.created_at,a.created_at) AS created_at,e.error_code,a.ciphertext,
-                          a.object_key,a.mime_type,a.size_bytes
+                          a.object_key,a.mime_type,a.size_bytes,
+                          coalesce(e.group_id,a.group_id,e.id,a.id) AS group_id
                           FROM whatsapp_material_assets a FULL OUTER JOIN whatsapp_material_events e ON e.id=a.id
                           WHERE coalesce(e.tenant_id,a.tenant_id)=:tenant
                             AND coalesce(e.business_id,a.business_id)=:business
@@ -116,6 +117,7 @@ class WhatsAppMaterialsService:
                 body = None
         return {
             "id": row["id"],
+            "group_id": row["group_id"],
             "kind": row["kind"],
             "state": row["state"],
             "created_at": row["created_at"],
