@@ -1,6 +1,12 @@
 # F02 — WhatsApp e biblioteca de materiais
 
-## Próximo recorte: assistente editorial conversacional (decisão de produto, pendente)
+## Assistente editorial conversacional: simulação local (primeira fatia entregue)
+
+A migration 0026 e os endpoints autenticados `POST /api/v1/organizations/{tenant_id}/businesses/{business_id}/editorial-conversation/simulate` e `POST /api/v1/organizations/{tenant_id}/businesses/{business_id}/editorial-conversation/{decision_id}/decide` permitem ensaiar a conversa pelo Swagger em `development`/`testing`. Apenas o proprietário do negócio pode chamar os endpoints. O simulador reconhece duas frases claras de preço ou horário livre **hoje**, fixa a data pelo fuso do negócio e devolve uma pergunta curta de confirmação. Texto fora dos padrões fica em `needs_review`, sem fato confirmado. Confirmar acrescenta um fato temporário ao contexto editorial versionado na mesma transação; descartar não o acrescenta. `operation_id` é idempotente por tenant/negócio; reutilizá-lo com outro texto gera conflito. A decisão registra intenção, proposta estruturada, hash do texto e auditoria, sem persistir a mensagem integral nessa tabela.
+
+Esta fatia usa regras determinísticas, sem LLM/Jev, sem webhook, sem envio de WhatsApp e sem publicação. O próximo recorte conecta inbox/grupos reais ao mesmo estado de decisão, acrescenta extração estruturada avaliada para texto livre e respostas por outbox com idempotência, janela e opt-out Meta. Depende do desbloqueio da WABA para smoke ponta a ponta. Até lá, testes no Swagger não exigem conta, chave ou despesa nova.
+
+Validação: `make ci` com 450 testes e 100% de linhas/ramos; migration 0026 aplicada no banco local após backup e testada por downgrade/upgrade no banco `_test`.
 
 O WhatsApp é a conversa com o proprietário verificado sobre materiais e peças
 do **próprio negócio**; não é atendimento aos consumidores dele nem um chat geral.
@@ -42,8 +48,8 @@ decisões fechadas (`material`, `oferta`, `disponibilidade`, `pergunta`, `fora d
 escopo`; `responder`, `perguntar`, `guardar`, `revisar`), com limiar de confiança
 e fallback. Jev não gera texto nem extrai preço arbitrário; não escolhê-lo como
 motor único de conversa antes de eval PT-BR, custo/latência e termos de dados.
-Modelo de conversa e limiares permanecem decisões da fase de avaliação. Nenhuma
-resposta automática está entregue neste recorte documental.
+Modelo de conversa e limiares permanecem decisões da fase de avaliação. O simulador
+devolve uma resposta na API, mas ainda não envia respostas pelo WhatsApp.
 
 Status: Em implementação; F02.1–F02.2c3b entregues localmente, integração paga desativada.
 Dependências: F00, F01.

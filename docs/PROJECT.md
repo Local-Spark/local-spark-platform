@@ -12,6 +12,13 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Atualizado: 23/10/2026. Nome adotado: Meu Braço Direito. Repositório principal: `local-spark-platform`.
 
+23/10/2026 — Primeira fatia do assistente conversacional editorial: simulador local
+restrito ao proprietário recebe texto e `operation_id`, reconhece oferta de preço
+ou disponibilidade para hoje, pede confirmação e grava fato temporário no contexto
+versionado após aceite. Repetições são idempotentes; mensagens incertas vão para
+revisão. Migration 0026. Ainda não usa LLM nem responde pelo WhatsApp real;
+Meta/WABA restrita continua bloqueando o smoke externo. Ver [F02](phases/F02-whatsapp-ingestion.md).
+
 23/10/2026 — F03.2c, terceira fatia: `GET /api/v1/admin/editorial-usage`
 agrega por organização as reservas de tokens do dia UTC, tokens informados pelo
 provedor e chamadas pendentes/incertas. Leitura exclusiva de staff e auditada;

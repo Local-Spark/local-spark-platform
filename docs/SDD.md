@@ -12,6 +12,15 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Versão 1.2, 23/10/2026. Resumo implementável e índice das especificações detalhadas.
 
+F02 inicia o assistente editorial por simulação local autenticada: mensagem e
+`operation_id` entram em decisão durável por tenant/negócio; classificador
+determinístico propõe preço ou horário de hoje e abstém-se em outros textos.
+Confirmação do proprietário insere fato válido até a data local no contexto
+versionado em transação; descarte não o altera. A tabela conserva hash e proposta
+estruturada, não o texto integral. API disponível apenas em development/testing.
+Webhook real, envio por outbox, LLM avaliada e publicação permanecem em recortes
+posteriores de [F02](phases/F02-whatsapp-ingestion.md).
+
 F03.2b bloqueia geração quando nenhum fato válido foi confirmado, inclusive se
 um material foi recebido; não consome quota nem chama o modelo nesse caso.
 F03.2c iniciou uma projeção administrativa auditada por pedido editorial: estado,

@@ -1,5 +1,12 @@
 # Registro de mudanças
 
+## 2026-10-23 — F02: primeira fatia do assistente editorial conversacional
+
+- Migration 0026 guarda decisões por tenant/negócio e `operation_id`, com RLS e auditoria. O texto original não é persistido nessa tabela.
+- Simulador autenticado somente em ambiente local/teste classifica duas entradas claras de preço/agenda de hoje, pede confirmação e permite confirmar ou descartar. Confirmação cria um fato temporário versionado; entradas ambíguas ficam para revisão.
+- WhatsApp real, LLM e publicação seguem pendentes; o simulador não envia mensagens externas.
+- Validação: `make ci` passou com 450 testes, Ruff, mypy e 100% de linhas/ramos. Migration 0026 aplicada no banco local após backup e revertida/reaplicada no `_test`.
+
 ## 2026-10-23 — F03.2c: consumo editorial diário
 
 - Migration 0025 cria projeção SQL restrita a staff para uso editorial do dia UTC,
