@@ -12,6 +12,16 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Versão 1.2, 23/10/2026. Resumo implementável e índice das especificações detalhadas.
 
+F03.2c planeja personalização com contexto/fatos/feedback isolados por negócio,
+sem treino automático por tenant ou reutilização cruzada de mensagens. Antes do
+piloto, admin precisa ver a cadeia operacional e o custo por etapa; conteúdo
+integral requer acesso separado, limitado e auditado. Ver [F03](phases/F03-editorial-research.md).
+
+F03.2b iniciou smoke/eval sintéticos com o provedor real e corrigiu limite de
+saída e restrições do JSON Schema. O teste técnico passou, mas abstention factual
+e comparação com modelo atual continuam pendentes; nenhuma coorte comercial foi
+ativada. Ver [F03](phases/F03-editorial-research.md).
+
 F03.1 entrega o contexto editorial confirmado pelo proprietário: fatos com origem
 declarada e validade, preferências separadas, versões imutáveis, CAS/idempotência,
 histórico/restauração, auditoria e RLS por negócio. A área do cliente edita e

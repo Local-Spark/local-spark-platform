@@ -1,5 +1,27 @@
 # Registro de mudanças
 
+## 2026-10-23 — Política planejada de aprendizado e diagnóstico
+
+- F03.2c explicita retenção e personalização por contexto versionado/feedback,
+  sem treino automático por cliente ou dataset compartilhado de WhatsApp.
+- Visão admin por operação reúne etapas e gastos; leitura de conteúdo fica em
+  caminho restrito e auditado. Mudança documental, sem UI/API nova.
+
+## 2026-10-23 — F03.2b: primeiro smoke e avaliação sintética
+
+- Adapter ajustado após o modelo consumir o limite antigo em raciocínio:
+  esforço baixo, 1200 tokens de saída e limites no JSON Schema.
+- Cinco casos PT-BR sintéticos versionados e runner com `--live` explícito;
+  relatório local ignorado pelo Git. Última rodada: 5/5 respostas completas,
+  5/5 guardas automáticos, 1.276 tokens de entrada e 1.945 de saída.
+- Revisão humana encontrou uma inferência não fundamentada em caso sem fato
+  confirmado. Coorte comercial permanece desativada; dados reais não foram usados.
+- Worker local lê modo OpenAI, mas a base tinha zero consentimentos ativos,
+  pedidos em andamento ou propostas OpenAI persistidas ao fim da avaliação.
+- `make ci`: 442 testes, 100% de linhas e ramos, Ruff e mypy aprovados.
+- Comparação sintética com `gpt-5.4-mini`: 5/5 respostas completas, 4/5 nos
+  guardas; sem troca do modelo local nem escolha de modelo para produção.
+
 ## 2026-10-23 — Contrato futuro de conversa editorial no WhatsApp
 
 - F02 define respostas curtas por ação editorial, confirmação explícita para

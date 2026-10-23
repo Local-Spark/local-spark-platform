@@ -50,8 +50,11 @@ async def test_provider_request_and_success(settings, monkeypatch):
     assert (input_tokens, output_tokens) == (12, 8)
     sent = json.loads(captured["request"].content)
     assert sent["store"] is False
+    assert sent["max_output_tokens"] == 1200
+    assert sent["reasoning"] == {"effort": "low"}
     assert sent["tools"] == []
     assert sent["text"]["format"]["strict"] is True
+    assert sent["text"]["format"]["schema"]["properties"]["questions"]["maxItems"] == 3
     assert captured["request"].headers["authorization"] == "Bearer fake"
 
 

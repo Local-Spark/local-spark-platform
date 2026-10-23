@@ -83,7 +83,7 @@ provedor e avaliação PT-BR por coorte continuam
 pendentes antes de qualquer ativação comercial. Preço/token em moeda e COGS real
 dependem de tarifas vigentes e serão medidos na F03.2b, sem supor custo fixo.
 
-## F03.2b — Avaliação e ativação controlada (pendente)
+## F03.2b — Avaliação e ativação controlada (em andamento)
 
 Criar conjunto de avaliação PT-BR com materiais consentidos/sintéticos de
 segmentos distintos e casos de abstention; comparar baseline e modelo em acerto,
@@ -94,6 +94,72 @@ verificados. Pesquisa por raio e planejamento proativo serão fatias posteriores
 O assistente de conversa editorial no WhatsApp segue o contrato da
 [F02](F02-whatsapp-ingestion.md); sua classificação/extração deve entrar no
 mesmo conjunto de eval antes de ativar respostas automáticas.
+
+Primeiro smoke de 23/10/2026 com dados **sintéticos**, sem conteúdo de cliente:
+a credencial respondeu, mas o limite anterior de 800 tokens foi consumido pelo
+raciocínio sem saída visível. O adapter agora usa esforço `low`, limite 1200 e
+JSON Schema com tamanhos compatíveis com `ProposalDraft`. O conjunto versionado
+`docs/evals/editorial-ptbr-v1.json` cobre manicure, preço confirmado, preço e
+agenda sem confirmação, e instrução maliciosa em material. Execute
+`uv run python -m scripts.evaluate_editorial` para baseline sem custo ou acrescente
+`--live` para no máximo cinco chamadas pagas sintéticas. O relatório completo fica
+em `.local/evals/`, fora do Git; nenhum conteúdo de cliente é incluído.
+
+Na última rodada, 5/5 respostas foram estruturadas e 5/5 passaram pelos guardas
+automáticos de IDs, números e assunto evitado. Foram 1.276 tokens de entrada e
+1.945 de saída, cerca de US$ 0,0042 para a rodada às tarifas publicadas do
+[`gpt-5-mini`](https://developers.openai.com/api/docs/models/gpt-5-mini) em
+23/10/2026 (sem incluir chamadas diagnósticas). Latência observada
+entre 3,2 e 9,8 segundos. Esses guardas não medem verdade semântica: uma sugestão
+para agenda sem fato confirmado insinuou tipo de atendimento não informado.
+Comparação pontual com o mesmo conjunto e prompt usando
+[`gpt-5.4-mini`](https://developers.openai.com/api/docs/models/gpt-5.4-mini):
+5/5 saídas estruturadas, 4/5 nos guardas (preço sem confirmação foi recusado),
+1.276 tokens de entrada, 1.509 de saída, cerca de US$ 0,0077 na tarifa publicada,
+latência entre 3,1 e 4,8 segundos. A amostra é pequena e nenhum modelo está
+escolhido para produção.
+Portanto **não liberar coorte comercial**. Antes: ampliar eval PT-BR e revisão
+humana, endurecer abstention para material sem fato confirmado, comparar outros
+modelos atuais (a documentação do `gpt-5-mini` o marca como deprecated), registrar preço
+vigente e fazer smoke via serviço/ledger/Temporal em ambiente isolado. O worker
+local já recebeu `EDITORIAL_AI_MODE=openai` pela configuração do ambiente; no
+fechamento havia zero consentimentos ativos, zero pedidos em andamento e zero
+propostas OpenAI persistidas. Esta avaliação chamou o adapter diretamente com
+dados sintéticos; não houve uso de dados reais.
+Validação do código: `make ci` passou com 442 testes, 100% de linhas/ramos,
+Ruff e mypy. O runner é uma ferramenta sintética explícita; não é um gate de
+qualidade suficiente para liberar clientes.
+
+## F03.2c — Aprendizado por negócio e diagnóstico operacional (planejado antes do piloto)
+
+Materiais WhatsApp conservam a retenção da F02 (inbox/fila curta, asset preparado
+com prazo inicial de 30 dias); a plataforma não guarda a conversa inteira para
+sempre nem usa toda mensagem automaticamente como dataset. O `BusinessContext`
+versionado guarda fatos confirmados e preferências explícitas por negócio; sinais
+de correção, aprovação/rejeição e desempenho podem virar hipóteses separadas,
+revisáveis e expiráveis. Chamar isso de personalização/contexto, não de treino ou
+"skill" executável por tenant. A cada geração, recuperar somente fatos atuais,
+preferências e materiais relevantes com orçamento de tokens; persistir histórico
+sozinho não reduz tokens. Medir tokens e qualidade antes de introduzir resumo,
+cache por tenant ou modelo treinado. Evals globais começam com casos sintéticos;
+amostras reais exigem finalidade, direitos, controle de acesso, retenção e
+autorização específicos. Não misturar conteúdo privado entre negócios.
+
+Antes de piloto pago, criar uma visão administrativa por `operation_id` que una
+webhook, correlação, material, transcrição, classificação, pedido, workflow,
+activity, chamada de modelo, validações, revisão e publicação. Cada etapa mostra
+estado, início/fim, tentativas, erro estável, versão do contexto/modelo/prompt,
+tokens reservados/observados, custo estimado/real quando conhecido e IDs de
+proveedor; incerteza e custo desconhecido devem ser explícitos. Agregar gasto por
+tenant, fase, fornecedor e período com alertas de orçamento. Logs e traces usam
+IDs e metadados permitidos, nunca prompt, resposta integral, telefone ou mídia.
+Para diagnosticar uma sugestão errada, o admin pode abrir o material e rascunho
+persistidos por caminho **separado**, com papel de suporte específico, motivo,
+escopo, expiração e leitura auditada; ocultar por padrão, proibir busca global
+por conteúdo e respeitar exclusão/retenção. O cliente vê seu próprio histórico
+e pode corrigir o contexto. Console mínimo entra nesta F03.2c; F08 amplia SLO,
+tracing distribuído e operação em escala. Estado atual: auditoria, ledger e IDs
+existem em partes do backend; esse percurso unificado e a UI admin não existem.
 
 ## Features e contratos
 

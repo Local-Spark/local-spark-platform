@@ -20,12 +20,20 @@ FORMAT = {
     "schema": {
         "type": "object",
         "properties": {
-            "title": {"type": "string"},
+            "title": {"type": "string", "minLength": 4, "maxLength": 120},
             "format": {"type": "string", "enum": ["photo", "carousel", "short_video", "story"]},
-            "angle": {"type": "string"},
-            "fact_ids": {"type": "array", "items": {"type": "string"}},
-            "hypotheses": {"type": "array", "items": {"type": "string"}},
-            "questions": {"type": "array", "items": {"type": "string"}},
+            "angle": {"type": "string", "minLength": 8, "maxLength": 300},
+            "fact_ids": {"type": "array", "maxItems": 10, "items": {"type": "string", "format": "uuid"}},
+            "hypotheses": {
+                "type": "array",
+                "maxItems": 3,
+                "items": {"type": "string", "minLength": 4, "maxLength": 160},
+            },
+            "questions": {
+                "type": "array",
+                "maxItems": 3,
+                "items": {"type": "string", "minLength": 4, "maxLength": 160},
+            },
         },
         "required": ["title", "format", "angle", "fact_ids", "hypotheses", "questions"],
         "additionalProperties": False,
@@ -44,7 +52,8 @@ class OpenAIEditorialProvider:
         request = {
             "model": self.settings.editorial_ai_model,
             "store": False,
-            "max_output_tokens": 800,
+            "max_output_tokens": 1200,
+            "reasoning": {"effort": "low"},
             "tools": [],
             "text": {"format": FORMAT},
             "input": [
@@ -56,6 +65,7 @@ class OpenAIEditorialProvider:
                         "Use somente fatos confirmados e atuais; cite seus IDs em fact_ids. "
                         "Não invente preço, desconto, resultado, horário, endereço ou métrica. "
                         "Separe suposições em hypotheses e dúvidas em questions. "
+                        "Liste no máximo três hipóteses e três perguntas. "
                         "Não produza peça pronta para publicação."
                     ),
                 },

@@ -12,6 +12,22 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Atualizado: 23/10/2026. Nome adotado: Meu Braço Direito. Repositório principal: `local-spark-platform`.
 
+23/10/2026 — F03.2c planejada antes do piloto: contexto confirmado e feedback
+por negócio personalizam a geração sem treinar um modelo por cliente; mensagens
+WhatsApp seguem retenção F02, e eval com conteúdo real pede finalidade/autorização
+específicas. Admin terá visão por operação com etapas, erros, tokens e custos;
+acesso eventual ao conteúdo será restrito, justificado e auditado. O console
+unificado e o dataset real ainda não foram implementados. Ver [F03](phases/F03-editorial-research.md).
+
+23/10/2026 — F03.2b iniciou avaliação sintética da geração editorial: credencial
+OpenAI validada, adapter ajustado para limite/estrutura, cinco casos PT-BR
+versionados e runner pago apenas com `--live`. Cinco respostas completas passaram
+pelos guardas automáticos, mas revisão identificou sugestão semântica não apoiada
+em caso sem fato confirmado. Sem liberação comercial, alteração de consentimentos,
+conteúdo real; o worker local já lê o modo OpenAI do `.env`, mas não havia
+consentimentos ativos nem pedidos pendentes. Ampliar eval, comparar modelo atual e
+homologar fluxo completo ainda são pendências. Ver [F03](phases/F03-editorial-research.md).
+
 23/10/2026 — F03.2a cria sugestões editoriais revisáveis a pedido do dono,
 ligadas a uma versão do contexto e opcionalmente a um material WhatsApp. O modo
 local funciona sem chave; o modo OpenAI usa consentimento próprio, quota diária,
