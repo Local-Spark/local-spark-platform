@@ -13,6 +13,7 @@ from sqlalchemy.exc import ProgrammingError
 from app.adapters.material_media import FetchedMedia, MaterialError, MaterialStore
 from app.db.session import Database
 from app.main import create_app
+from app.services.editorial_conversation import record_inbound_text
 from app.services.whatsapp_ingest import save_events, sender_hash
 from app.services.whatsapp_processing import MaterialClaim, MaterialProcessor, dispatch_materials, finish_dispatch
 from app.services.whatsapp_retention import claim_upload_intents, reconcile_uploads
@@ -85,7 +86,13 @@ async def test_text_material_consent_library_and_revocation(admin, database, aut
             await save_events(
                 meta,
                 cfg,
-                [("idea-1", "message", {"from": number, "type": "text", "text": {"body": "Promoção de sexta"}})],
+                [
+                    (
+                        "idea-1",
+                        "message",
+                        {"from": number, "type": "text", "text": {"body": "Hoje o X-tudo está 20 reais"}},
+                    )
+                ],
             )
             assert await route_once(router, cfg) == 1
             async with admin.connect() as connection:
@@ -99,7 +106,7 @@ async def test_text_material_consent_library_and_revocation(admin, database, aut
             store.put.assert_not_awaited()
             response = await client.get(base, headers=owner)
             assert response.status_code == 200, response.text
-            assert response.json()["items"][0]["text"] == "Promoção de sexta"
+            assert response.json()["items"][0]["text"] == "Hoje o X-tudo está 20 reais"
             async with admin.connect() as connection:
                 group = (
                     await connection.execute(
@@ -110,6 +117,58 @@ async def test_text_material_consent_library_and_revocation(admin, database, aut
                 ).one()
             assert response.json()["items"][0]["group_id"] == str(group[0])
             assert group[0] == group[1]
+            async with admin.connect() as connection:
+                decision = (
+                    (
+                        await connection.execute(
+                            text("""SELECT id,operation_id,state,intent,proposal,reply
+                          FROM editorial_conversation_decisions WHERE business_id=:business"""),
+                            {"business": business},
+                        )
+                    )
+                    .mappings()
+                    .one()
+                )
+                original = (
+                    (
+                        await connection.execute(
+                            text("""SELECT id,tenant_id,business_id,sender_hash,created_at
+                          FROM whatsapp_material_events WHERE id=:event"""),
+                            {"event": event},
+                        )
+                    )
+                    .mappings()
+                    .one()
+                )
+            assert decision["operation_id"] == event
+            assert decision["state"] == "awaiting_confirmation"
+            assert decision["intent"] == "price"
+            assert decision["proposal"]["summary"] == "X-tudo: R$ 20,00 hoje"
+            assert "Confirmar" in decision["reply"]
+            conversation_base = f"/api/v1/organizations/{tenant}/businesses/{business}/editorial-conversation"
+            assert (await client.get(conversation_base, headers=foreign)).status_code == 403
+            listed = await client.get(conversation_base, headers=owner)
+            assert listed.status_code == 200
+            assert listed.json()[0]["id"] == str(decision["id"])
+            accepted = await client.post(
+                conversation_base + f"/{decision['id']}/decide", headers=owner, json={"confirmed": True}
+            )
+            assert accepted.status_code == 200, accepted.text
+            assert accepted.json()["state"] == "confirmed"
+            context = await client.get(
+                f"/api/v1/organizations/{tenant}/businesses/{business}/editorial-context", headers=owner
+            )
+            assert context.json()["facts"][0]["statement"] == "X-tudo: R$ 20,00 hoje"
+            async with router.sessions() as session, session.begin():
+                await record_inbound_text(session, original, "Hoje o X-tudo está 20 reais")
+            async with admin.connect() as connection:
+                assert await connection.scalar(text("SELECT count(*) FROM editorial_conversation_decisions")) == 1
+                assert (
+                    await connection.scalar(
+                        text("SELECT count(*) FROM audit_events WHERE action='editorial.conversation_received'")
+                    )
+                    == 1
+                )
             async with admin.begin() as connection:
                 await connection.execute(text("DELETE FROM whatsapp_material_events WHERE id=:event"), {"event": event})
             retained = await client.get(base, headers=owner)

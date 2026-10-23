@@ -1,5 +1,12 @@
 # Registro de mudanças
 
+## 2026-10-23 — F02.2c4: inbox vinculada → decisão editorial
+
+- Migration 0027 dá ao papel restrito do worker a inserção idempotente de decisões de texto, sem abrir acesso ao texto de mensagens para a API.
+- O processamento do material grava a proposta na mesma transação; usa o fuso do negócio, o ID do evento e o proprietário do vínculo. A API do dono lista propostas e permite confirmar ou descartar em qualquer ambiente.
+- Resposta WhatsApp, comandos de aceite no canal, LLM e publicação continuam pendentes da próxima fatia; smoke externo requer WABA liberada.
+- Validação: `make ci` com 450 testes, 100% de linhas/ramos, Ruff e mypy. Migration 0027 aplicada no banco local após backup e revertida/reaplicada no `_test`.
+
 ## 2026-10-23 — F02: primeira fatia do assistente editorial conversacional
 
 - Migration 0026 guarda decisões por tenant/negócio e `operation_id`, com RLS e auditoria. O texto original não é persistido nessa tabela.

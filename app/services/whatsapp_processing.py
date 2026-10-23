@@ -15,6 +15,7 @@ from temporalio.exceptions import ApplicationError, WorkflowAlreadyStartedError
 from app.adapters.material_media import MaterialError, MaterialStore, MetaMediaClient
 from app.core.config import Settings
 from app.db.session import Database
+from app.services.editorial_conversation import record_inbound_text
 
 logger = logging.getLogger("meu_braco_direito.whatsapp_material")
 
@@ -279,6 +280,8 @@ class MaterialProcessor:
                     "group": current["group_id"],
                 },
             )
+            if current["kind"] == "text":
+                await record_inbound_text(session, current, text_body)
             await session.execute(
                 text("""UPDATE whatsapp_material_events SET state='processed',processed_at=now(),
                   lease_until=NULL,owner_id=NULL,error_code=NULL WHERE id=:id"""),

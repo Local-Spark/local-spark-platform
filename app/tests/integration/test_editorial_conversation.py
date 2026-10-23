@@ -53,6 +53,8 @@ async def test_local_conversation_confirmation_and_replay(admin, api, seeded, se
     assert body["state"] == "awaiting_confirmation"
     assert body["intent"] == "price"
     assert body["summary"] == "X-tudo: R$ 20,00 hoje"
+    assert (await api.get(base, headers=viewer)).status_code == 403
+    assert (await api.get(base, headers=owner)).json() == [body]
     assert (await api.post(base + "/simulate", json=payload, headers=owner)).json() == body
     conflict = await api.post(base + "/simulate", json={**payload, "text": "Outro texto"}, headers=owner)
     assert conflict.json()["error_code"] == "CONVERSATION_OPERATION_CONFLICT"
@@ -173,12 +175,6 @@ async def test_simulator_disabled_outside_local(settings):
         assert error.code == "CONVERSATION_SIMULATOR_DISABLED"
     else:
         raise AssertionError("Simulator must be disabled")
-    try:
-        await service.decide(uuid4(), uuid4(), uuid4(), uuid4(), True)
-    except AuthError as error:
-        assert error.code == "CONVERSATION_SIMULATOR_DISABLED"
-    else:
-        raise AssertionError("Simulator must be disabled")
 
 
 async def test_concurrent_replay_and_existing_context(admin, api, seeded, settings):
@@ -227,6 +223,9 @@ async def test_concurrent_replay_and_existing_context(admin, api, seeded, settin
         )
         assert (await service.decide(tenant, business, actor, to_discard.id, False)).state == "discarded"
         assert len((await api.get(context, headers=owner)).json()["facts"]) == 2
+        listed = await service.list(tenant, business, actor, 20)
+        assert len(listed) == 3
+        assert {item.state for item in listed} == {"confirmed", "discarded"}
     finally:
         await db.close()
 

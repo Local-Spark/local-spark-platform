@@ -12,14 +12,20 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Versão 1.2, 23/10/2026. Resumo implementável e índice das especificações detalhadas.
 
+F02.2c4 liga mensagens de texto vinculadas à decisão editorial no commit do
+material processado: evento WhatsApp = operação idempotente, proprietário do
+vínculo = ator, data local do negócio = validade da proposta. O proprietário
+lista e decide pela API; o simulador continua local. Resposta no canal, comandos
+de aceite via WhatsApp e LLM de texto livre permanecem em [F02](phases/F02-whatsapp-ingestion.md).
+
 F02 inicia o assistente editorial por simulação local autenticada: mensagem e
 `operation_id` entram em decisão durável por tenant/negócio; classificador
 determinístico propõe preço ou horário de hoje e abstém-se em outros textos.
 Confirmação do proprietário insere fato válido até a data local no contexto
 versionado em transação; descarte não o altera. A tabela conserva hash e proposta
 estruturada, não o texto integral. API disponível apenas em development/testing.
-Webhook real, envio por outbox, LLM avaliada e publicação permanecem em recortes
-posteriores de [F02](phases/F02-whatsapp-ingestion.md).
+A ligação à inbox entrou na F02.2c4. Envio por outbox, LLM avaliada e publicação
+permanecem em recortes posteriores de [F02](phases/F02-whatsapp-ingestion.md).
 
 F03.2b bloqueia geração quando nenhum fato válido foi confirmado, inclusive se
 um material foi recebido; não consome quota nem chama o modelo nesse caso.

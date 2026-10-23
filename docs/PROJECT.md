@@ -12,6 +12,12 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Atualizado: 23/10/2026. Nome adotado: Meu Braço Direito. Repositório principal: `local-spark-platform`.
 
+23/10/2026 — F02.2c4 conecta texto WhatsApp já vinculado e autorizado à decisão
+editorial na transação de material processado. O proprietário pode listar propostas
+e confirmar/descartar pela API; a simulação permanece local. Não há resposta
+enviada ao WhatsApp, interpretação de comando recebido ou LLM. Migration 0027;
+o smoke externo aguarda liberação da WABA. Ver [F02](phases/F02-whatsapp-ingestion.md).
+
 23/10/2026 — Primeira fatia do assistente conversacional editorial: simulador local
 restrito ao proprietário recebe texto e `operation_id`, reconhece oferta de preço
 ou disponibilidade para hoje, pede confirmação e grava fato temporário no contexto

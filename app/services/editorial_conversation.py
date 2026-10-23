@@ -5,11 +5,13 @@ import json
 import re
 from datetime import datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid4, uuid5
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import text
+from sqlalchemy.engine import CursorResult
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
 from app.db.session import Database
@@ -63,6 +65,59 @@ def classify(message: str, now: datetime) -> tuple[str, dict[str, Any], str]:
     )
 
 
+async def record_inbound_text(session: AsyncSession, row: Any, body: str) -> None:
+    """Persist one proposal with the processed material, without sending a reply."""
+    source = (
+        (
+            await session.execute(
+                text("""SELECT l.actor_id,b.timezone FROM whatsapp_channel_links l
+                  JOIN businesses b ON b.tenant_id=l.tenant_id AND b.id=l.business_id
+                  WHERE l.tenant_id=:tenant AND l.business_id=:business
+                    AND l.sender_hash=:sender AND l.active AND l.linked_at<=:created"""),
+                {
+                    "tenant": row["tenant_id"],
+                    "business": row["business_id"],
+                    "sender": row["sender_hash"],
+                    "created": row["created_at"],
+                },
+            )
+        )
+        .mappings()
+        .one()
+    )
+    local_time = row["created_at"].astimezone(ZoneInfo(source["timezone"]))
+    intent, proposal, reply = classify(body, local_time)
+    result = await session.execute(
+        text("""INSERT INTO editorial_conversation_decisions
+          (id,tenant_id,business_id,actor_id,operation_id,request_hash,intent,state,proposal,reply)
+          VALUES(:id,:tenant,:business,:actor,:operation,:digest,:intent,:state,CAST(:proposal AS jsonb),:reply)
+          ON CONFLICT(tenant_id,business_id,operation_id) DO NOTHING"""),
+        {
+            "id": uuid5(row["id"], "editorial-decision"),
+            "tenant": row["tenant_id"],
+            "business": row["business_id"],
+            "actor": source["actor_id"],
+            "operation": row["id"],
+            "digest": hashlib.sha256(body.encode()).hexdigest(),
+            "intent": intent,
+            "state": "needs_review" if intent == "unknown" else "awaiting_confirmation",
+            "proposal": json.dumps(proposal),
+            "reply": reply,
+        },
+    )
+    if cast(CursorResult[Any], result).rowcount:
+        await session.execute(
+            text("""INSERT INTO audit_events(tenant_id,actor_id,operation_id,action,resource_id)
+              VALUES(:tenant,:actor,:operation,'editorial.conversation_received',:business)"""),
+            {
+                "tenant": row["tenant_id"],
+                "actor": source["actor_id"],
+                "operation": row["id"],
+                "business": row["business_id"],
+            },
+        )
+
+
 class EditorialConversationService:
     def __init__(self, settings: Settings, database: Database) -> None:
         self.settings, self.database = settings, database
@@ -76,6 +131,23 @@ class EditorialConversationService:
             summary=row["proposal"].get("summary"),
             reply=row["reply"],
         )
+
+    async def list(self, tenant: UUID, business: UUID, actor: UUID, limit: int) -> list[ConversationDecision]:
+        async with self.database.transaction(tenant, actor) as session:
+            await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
+            rows = (
+                (
+                    await session.execute(
+                        text("""SELECT id,state,intent,proposal,reply FROM editorial_conversation_decisions
+                          WHERE tenant_id=:tenant AND business_id=:business
+                          ORDER BY created_at DESC,id DESC LIMIT :limit"""),
+                        {"tenant": tenant, "business": business, "limit": limit},
+                    )
+                )
+                .mappings()
+                .all()
+            )
+            return [self._present(row) for row in rows]
 
     async def simulate(
         self, tenant: UUID, business: UUID, actor: UUID, payload: SimulateMessage
@@ -145,8 +217,6 @@ class EditorialConversationService:
     async def decide(
         self, tenant: UUID, business: UUID, actor: UUID, decision: UUID, confirmed: bool
     ) -> ConversationDecision:
-        if self.settings.environment not in {"development", "testing"}:
-            raise AuthError("CONVERSATION_SIMULATOR_DISABLED", 404)
         async with self.database.transaction(tenant, actor) as session:
             await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
             row = (
