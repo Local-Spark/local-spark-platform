@@ -5,6 +5,8 @@ import logging
 from time import monotonic
 from uuid import uuid4
 
+import httpx
+
 from app.adapters.material_media import MaterialStore
 from app.core.config import get_settings
 from app.core.logging import configure_logging
@@ -14,6 +16,7 @@ from app.services.audio_transcription import reconcile_stale_audio
 from app.services.editorial_dispatch import dispatch_proposals
 from app.services.editorial_proposals import reconcile_stale_proposals
 from app.services.whatsapp_processing import dispatch_materials
+from app.services.whatsapp_replies import dispatch_reply
 from app.services.whatsapp_retention import purge_once
 
 logger = logging.getLogger("meu_braco_direito.whatsapp_dispatcher")
@@ -31,22 +34,27 @@ async def run_dispatcher() -> None:
         client = await connect_temporal(settings)
         store = MaterialStore(settings)
         last_purge = 0.0
-        while True:
-            count = await dispatch_materials(database, client, settings, owner) if settings.meta_encryption_key else 0
-            proposals = await dispatch_proposals(database, client, settings, owner)
-            if count:
-                logger.info("whatsapp.material_dispatched", extra={"count": count})
-            if proposals:
-                logger.info("editorial.proposals_dispatched", extra={"count": proposals})
-            if monotonic() - last_purge >= 10:
+        async with httpx.AsyncClient() as http:
+            while True:
+                count = (
+                    await dispatch_materials(database, client, settings, owner) if settings.meta_encryption_key else 0
+                )
+                proposals = await dispatch_proposals(database, client, settings, owner)
                 if settings.meta_encryption_key:
-                    await reconcile_stale_audio(database)
-                await reconcile_stale_proposals(database)
-                purged = await purge_once(database, store, owner) if settings.meta_encryption_key else 0
-                if purged:
-                    logger.info("whatsapp.materials_purged", extra={"count": purged})
-                last_purge = monotonic()
-            await asyncio.sleep(2)
+                    await dispatch_reply(database, settings, http)
+                if count:
+                    logger.info("whatsapp.material_dispatched", extra={"count": count})
+                if proposals:
+                    logger.info("editorial.proposals_dispatched", extra={"count": proposals})
+                if monotonic() - last_purge >= 10:
+                    if settings.meta_encryption_key:
+                        await reconcile_stale_audio(database)
+                    await reconcile_stale_proposals(database)
+                    purged = await purge_once(database, store, owner) if settings.meta_encryption_key else 0
+                    if purged:
+                        logger.info("whatsapp.materials_purged", extra={"count": purged})
+                    last_purge = monotonic()
+                await asyncio.sleep(2)
     finally:
         await database.close()
 

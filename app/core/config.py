@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     meta_public_phone: str | None = None
     meta_encryption_key: SecretStr | None = None
     meta_access_token: SecretStr | None = None
+    meta_reply_enabled: bool = False
     meta_graph_version: str | None = Field(default=None, pattern=r"^v\d+\.\d+$")
     material_storage_bucket: str | None = None
     material_storage_region: str = "us-east-1"

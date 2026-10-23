@@ -12,6 +12,12 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Atualizado: 23/10/2026. Nome adotado: Meu Braço Direito. Repositório principal: `local-spark-platform`.
 
+23/10/2026 — F02.2c5 prepara respostas WhatsApp duráveis e cifradas para as
+propostas, com envio Cloud API atrás de chave explicitamente desligada. Comando
+`Confirmar`/`Descartar` aceita referência ao ID Meta ou uma única proposta recente
+do mesmo remetente e negócio; não decide quando houver ambiguidade. Resultado incerto não é reenviado. Sem smoke externo, comprovante de
+entrega ou envio ativo até a WABA ser liberada. Ver [F02](phases/F02-whatsapp-ingestion.md).
+
 23/10/2026 — F02.2c4 conecta texto WhatsApp já vinculado e autorizado à decisão
 editorial na transação de material processado. O proprietário pode listar propostas
 e confirmar/descartar pela API; a simulação permanece local. Não há resposta

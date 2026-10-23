@@ -3,12 +3,13 @@
 import hashlib
 import json
 import re
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any, cast
 from uuid import UUID, uuid4, uuid5
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from cryptography.fernet import Fernet
 from sqlalchemy import text
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -65,7 +66,7 @@ def classify(message: str, now: datetime) -> tuple[str, dict[str, Any], str]:
     )
 
 
-async def record_inbound_text(session: AsyncSession, row: Any, body: str) -> None:
+async def record_inbound_text(session: AsyncSession, row: Any, body: str, recipient: str, cipher: Fernet) -> None:
     """Persist one proposal with the processed material, without sending a reply."""
     source = (
         (
@@ -87,13 +88,14 @@ async def record_inbound_text(session: AsyncSession, row: Any, body: str) -> Non
     )
     local_time = row["created_at"].astimezone(ZoneInfo(source["timezone"]))
     intent, proposal, reply = classify(body, local_time)
+    decision_id = uuid5(row["id"], "editorial-decision")
     result = await session.execute(
         text("""INSERT INTO editorial_conversation_decisions
           (id,tenant_id,business_id,actor_id,operation_id,request_hash,intent,state,proposal,reply)
           VALUES(:id,:tenant,:business,:actor,:operation,:digest,:intent,:state,CAST(:proposal AS jsonb),:reply)
           ON CONFLICT(tenant_id,business_id,operation_id) DO NOTHING"""),
         {
-            "id": uuid5(row["id"], "editorial-decision"),
+            "id": decision_id,
             "tenant": row["tenant_id"],
             "business": row["business_id"],
             "actor": source["actor_id"],
@@ -106,6 +108,24 @@ async def record_inbound_text(session: AsyncSession, row: Any, body: str) -> Non
         },
     )
     if cast(CursorResult[Any], result).rowcount:
+        if intent != "unknown":
+            await session.execute(
+                text("""INSERT INTO editorial_whatsapp_replies
+                  (id,tenant_id,business_id,source_event_id,sender_hash,recipient_ciphertext,state,expires_at)
+                  VALUES(:id,:tenant,:business,:event,:sender,:recipient,'pending',:expires)"""),
+                {
+                    "id": decision_id,
+                    "tenant": row["tenant_id"],
+                    "business": row["business_id"],
+                    "event": row["id"],
+                    "sender": row["sender_hash"],
+                    "recipient": cipher.encrypt(recipient.encode()).decode(),
+                    "expires": min(
+                        row["created_at"] + timedelta(hours=23),
+                        local_time.replace(hour=23, minute=59, second=0, microsecond=0).astimezone(UTC),
+                    ),
+                },
+            )
         await session.execute(
             text("""INSERT INTO audit_events(tenant_id,actor_id,operation_id,action,resource_id)
               VALUES(:tenant,:actor,:operation,'editorial.conversation_received',:business)"""),

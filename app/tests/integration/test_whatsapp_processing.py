@@ -16,6 +16,7 @@ from app.main import create_app
 from app.services.editorial_conversation import record_inbound_text
 from app.services.whatsapp_ingest import save_events, sender_hash
 from app.services.whatsapp_processing import MaterialClaim, MaterialProcessor, dispatch_materials, finish_dispatch
+from app.services.whatsapp_replies import dispatch_reply
 from app.services.whatsapp_retention import claim_upload_intents, reconcile_uploads
 from app.services.whatsapp_routing import route_once
 from app.tests.unit.test_core import access_token
@@ -150,17 +151,59 @@ async def test_text_material_consent_library_and_revocation(admin, database, aut
             listed = await client.get(conversation_base, headers=owner)
             assert listed.status_code == 200
             assert listed.json()[0]["id"] == str(decision["id"])
-            accepted = await client.post(
-                conversation_base + f"/{decision['id']}/decide", headers=owner, json={"confirmed": True}
+            send_cfg = cfg.model_copy(
+                update={
+                    "meta_access_token": SecretStr("test-token"),
+                    "meta_graph_version": "v23.0",
+                    "meta_phone_number_id": "123",
+                    "meta_reply_enabled": True,
+                }
             )
-            assert accepted.status_code == 200, accepted.text
-            assert accepted.json()["state"] == "confirmed"
+
+            def respond(request):
+                assert request.url.path == "/v23.0/123/messages"
+                return httpx.Response(200, json={"messages": [{"id": "wamid.test-prompt"}]})
+
+            async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as graph:
+                assert await dispatch_reply(router, send_cfg, graph) is True
+                assert await dispatch_reply(router, send_cfg, graph) is False
+            async with admin.connect() as connection:
+                assert (
+                    await connection.scalar(
+                        text("SELECT state FROM editorial_whatsapp_replies WHERE id=:id"), {"id": decision["id"]}
+                    )
+                    == "accepted"
+                )
+            await save_events(
+                meta,
+                cfg,
+                [
+                    (
+                        "command-1",
+                        "message",
+                        {
+                            "from": number,
+                            "type": "text",
+                            "text": {"body": "Confirmar"},
+                            "context": {"id": "wamid.test-prompt"},
+                        },
+                    )
+                ],
+            )
+            assert await route_once(router, cfg) == 1
+            async with admin.connect() as connection:
+                command_event = await connection.scalar(
+                    text("SELECT id FROM whatsapp_material_events WHERE id<>:event"), {"event": event}
+                )
+            assert await processor.process(command_event) == "processed"
+            assert await processor.process(command_event) == "already_finished"
+            assert (await client.get(conversation_base, headers=owner)).json()[0]["state"] == "confirmed"
             context = await client.get(
                 f"/api/v1/organizations/{tenant}/businesses/{business}/editorial-context", headers=owner
             )
             assert context.json()["facts"][0]["statement"] == "X-tudo: R$ 20,00 hoje"
             async with router.sessions() as session, session.begin():
-                await record_inbound_text(session, original, "Hoje o X-tudo está 20 reais")
+                await record_inbound_text(session, original, "Hoje o X-tudo está 20 reais", number, Fernet(key))
             async with admin.connect() as connection:
                 assert await connection.scalar(text("SELECT count(*) FROM editorial_conversation_decisions")) == 1
                 assert (
@@ -169,10 +212,29 @@ async def test_text_material_consent_library_and_revocation(admin, database, aut
                     )
                     == 1
                 )
+            await save_events(
+                meta, cfg, [("unclear-1", "message", {"from": number, "type": "text", "text": {"body": "Oi"}})]
+            )
+            assert await route_once(router, cfg) == 1
+            async with admin.connect() as connection:
+                unclear_event = await connection.scalar(
+                    text("""SELECT id FROM whatsapp_material_events
+                      WHERE id<>:first AND id<>:command"""),
+                    {"first": event, "command": command_event},
+                )
+            assert await processor.process(unclear_event) == "processed"
+            async with admin.connect() as connection:
+                assert (
+                    await connection.scalar(
+                        text("SELECT count(*) FROM editorial_conversation_decisions WHERE state='needs_review'")
+                    )
+                    == 1
+                )
+                assert await connection.scalar(text("SELECT count(*) FROM editorial_whatsapp_replies")) == 1
             async with admin.begin() as connection:
                 await connection.execute(text("DELETE FROM whatsapp_material_events WHERE id=:event"), {"event": event})
             retained = await client.get(base, headers=owner)
-            assert retained.json()["items"][0]["group_id"] == str(group[1])
+            assert any(item["group_id"] == str(group[1]) for item in retained.json()["items"])
             assert (await client.get(base, headers=foreign)).status_code == 403
             assert (await client.get(base + f"/{event}/download-link", headers=owner)).status_code == 404
             async with database.transaction(tenant, actor) as session:

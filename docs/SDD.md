@@ -12,6 +12,13 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Versão 1.2, 23/10/2026. Resumo implementável e índice das especificações detalhadas.
 
+F02.2c5 grava resposta cifrada na transação da decisão e só habilita envio Cloud
+API com chave explícita. Estados distinguem pendente, submetendo, aceito pela API,
+falha, prazo vencido e resultado incerto; este último não tem retry automático.
+Aceite/descarte inbound usa `context.id` do prompt aceito ou exige uma única
+proposta aceita nos últimos 30 minutos para o mesmo remetente e negócio. Recibos de entrega, reconciliação de
+incertos e custo de mensagens seguem pendentes em [F02](phases/F02-whatsapp-ingestion.md).
+
 F02.2c4 liga mensagens de texto vinculadas à decisão editorial no commit do
 material processado: evento WhatsApp = operação idempotente, proprietário do
 vínculo = ator, data local do negócio = validade da proposta. O proprietário

@@ -16,6 +16,7 @@ from app.adapters.material_media import MaterialError, MaterialStore, MetaMediaC
 from app.core.config import Settings
 from app.db.session import Database
 from app.services.editorial_conversation import record_inbound_text
+from app.services.whatsapp_replies import apply_inbound_command
 
 logger = logging.getLogger("meu_braco_direito.whatsapp_material")
 
@@ -214,6 +215,11 @@ class MaterialProcessor:
             text_body = content.get("body") if row["kind"] == "text" else content.get("caption", "")
             if not isinstance(text_body, str) or len(text_body) > 4096:
                 raise MaterialError("MATERIAL_INVALID")
+            is_command = (
+                await apply_inbound_command(self.settings, self.database, row, message)
+                if row["kind"] == "text"
+                else False
+            )
             object_key = mime_type = checksum = None
             upload_intent = None
             size_bytes = None
@@ -280,8 +286,8 @@ class MaterialProcessor:
                     "group": current["group_id"],
                 },
             )
-            if current["kind"] == "text":
-                await record_inbound_text(session, current, text_body)
+            if current["kind"] == "text" and not is_command:
+                await record_inbound_text(session, current, text_body, message["from"], cipher)
             await session.execute(
                 text("""UPDATE whatsapp_material_events SET state='processed',processed_at=now(),
                   lease_until=NULL,owner_id=NULL,error_code=NULL WHERE id=:id"""),

@@ -1,5 +1,12 @@
 # Registro de mudanças
 
+## 2026-10-23 — F02.2c5: respostas WhatsApp e confirmação vinculada
+
+- Migration 0028 cria fila durável com destinatário cifrado, prazo de 24 horas e ID Meta. Envio Cloud API fica desativado por padrão e requer chave, token e número configurados.
+- Dispatcher revalida vínculo, consentimento, proprietário, telefone e plano; não reenvia tentativas de resultado incerto. `Confirmar`/`Descartar` usam o ID da pergunta ou, sem citação, uma única pergunta aceita nos últimos 30 minutos para o mesmo negócio/remetente. Ambiguidade não altera fatos.
+- A aceitação da API ainda não prova entrega; recibos de status, reconciliação, resposta final no canal e smoke Meta seguem pendentes. Nenhuma mensagem real foi enviada.
+- Validação: `make ci` com 452 testes, Ruff, mypy e 100% de linhas/ramos. Migration 0028 aplicada no banco local após backup, revertida/reaplicada no `_test`; worker e dispatcher locais reconstruídos com envio desativado.
+
 ## 2026-10-23 — F02.2c4: inbox vinculada → decisão editorial
 
 - Migration 0027 dá ao papel restrito do worker a inserção idempotente de decisões de texto, sem abrir acesso ao texto de mensagens para a API.

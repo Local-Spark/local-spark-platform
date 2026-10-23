@@ -14,6 +14,16 @@ A entrada de webhook e a correlação existentes são aproveitadas, mas **não h
 
 Validação: `make ci` com 450 testes e 100% de linhas/ramos; migration 0027 aplicada no banco local após backup e revertida/reaplicada no `_test`.
 
+## F02.2c5 — Respostas editoriais e comandos vinculados (entregue localmente)
+
+Migration 0028 adiciona uma fila de respostas por decisão: destinatário cifrado, ID do evento de origem, prazo conservador de até 23 horas e limitado ao fim do dia da oferta, estado e ID retornado pela Meta. O worker cria a resposta na mesma transação em que conclui o texto. O dispatcher usa a Cloud API oficial `/{phone_number_id}/messages` somente quando `MEU_BRACO_DIREITO_META_REPLY_ENABLED=true`, token, versão e número estão configurados; a chave vem **desativada** por padrão. Antes de enviar, revalida vínculo ativo, consentimento, proprietário, telefone verificado e plano. Respostas vencidas não saem; itens concluídos têm dados do destinatário apagados após 30 dias.
+
+Uma tentativa é gravada como `submitting` antes da chamada. `200` com ID vira `accepted` (aceitação da API, **não** entrega no aparelho); HTTP 4xx explícito vira `failed`; 5xx, resposta malformada, queda de rede ou interrupção do processo viram `uncertain`. Estado incerto não é reenviado automaticamente, porque a Cloud API não fornece neste contrato uma chave de idempotência de envio. Mensagens exatamente como `Confirmar` ou `Descartar` atuam quando respondem ao ID de uma pergunta `accepted` do mesmo remetente e negócio; sem citação, só quando existe exatamente uma pergunta pendente aceita nos últimos 30 minutos. Havendo ambiguidade, nenhum fato é confirmado. A confirmação usa a transação idempotente do contexto editorial.
+
+Ainda faltam recibos de entrega/falha do webhook, interface de reconciliação para estado incerto, resposta de confirmação ao proprietário, teste externo após desbloqueio da WABA e orçamento específico para mensagens pagas. Até essas verificações, a chave de envio permanece desligada em local e produção. Nenhuma mensagem real foi enviada nesta entrega.
+
+Validação: `make ci` com 452 testes e 100% de linhas/ramos; migration 0028 aplicada no banco local após backup e testada por downgrade/upgrade no `_test`. Worker e dispatcher reconstruídos com a chave de envio desligada.
+
 Validação: `make ci` com 450 testes e 100% de linhas/ramos; migration 0026 aplicada no banco local após backup e testada por downgrade/upgrade no banco `_test`.
 
 O WhatsApp é a conversa com o proprietário verificado sobre materiais e peças
