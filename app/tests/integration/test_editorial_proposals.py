@@ -11,8 +11,11 @@ from pydantic import SecretStr
 from sqlalchemy import text
 
 from app.adapters.editorial_ai import EditorialProviderError
+from app.core.identity import Identity
 from app.db.session import Database
 from app.schemas.editorial_proposals import ProposalDraft, ProposalRequest
+from app.services.administration import editorial_operations
+from app.services.business import AccessDenied
 from app.services.editorial_dispatch import claim_proposals, finish_proposal_dispatch
 from app.services.editorial_proposals import EditorialProposalService, reconcile_stale_proposals
 from app.services.whatsapp_materials import WhatsAppMaterialsService
@@ -59,6 +62,40 @@ async def _asset(admin, tenant, business, key, *, kind="text", body="Mensagem do
             {"id": asset, "tenant": tenant, "business": business, "kind": kind, "ciphertext": ciphertext},
         )
     return asset
+
+
+async def _fact(admin, tenant, business, actor):
+    async with admin.begin() as connection:
+        await connection.execute(
+            text("INSERT INTO business_context_heads(tenant_id,business_id,version) VALUES(:tenant,:business,1)"),
+            {"tenant": tenant, "business": business},
+        )
+        await connection.execute(
+            text("""INSERT INTO business_context_versions
+              (tenant_id,business_id,version,operation_id,actor_id,request_hash,document)
+              VALUES(:tenant,:business,1,:operation,:actor,:hash,CAST(:doc AS jsonb))"""),
+            {
+                "tenant": tenant,
+                "business": business,
+                "operation": uuid4(),
+                "actor": actor,
+                "hash": "f" * 64,
+                "doc": json.dumps(
+                    {
+                        "facts": [
+                            {
+                                "id": str(uuid4()),
+                                "kind": "product",
+                                "statement": "Pao artesanal",
+                                "source_detail": "Dono",
+                                "valid_until": None,
+                            }
+                        ],
+                        "preferences": {"goal": "sales", "tone": None, "avoided_topics": [], "posts_per_week": None},
+                    }
+                ),
+            },
+        )
 
 
 async def test_baseline_request_consent_replay_and_rls(admin, api, database, seeded, settings):
@@ -158,12 +195,13 @@ async def test_paid_reservation_budget_invalid_fact_and_uncertain(admin, seeded,
     api_db = Database(config)
     worker_db = Database(config, correlator=True)
     provider = AsyncMock()
+    fact_id = uuid4()
     provider.propose.return_value = (
         ProposalDraft(
-            title="Um detalhe do negócio",
+            title="Promoção incrível do negócio",
             format="story",
-            angle="Apresente este ponto do negócio ao público.",
-            fact_ids=[],
+            angle="Aproveite a oferta imperdível para você.",
+            fact_ids=[fact_id],
             hypotheses=[],
             questions=[],
         ),
@@ -201,7 +239,7 @@ async def test_paid_reservation_budget_invalid_fact_and_uncertain(admin, seeded,
                         {
                             "facts": [
                                 {
-                                    "id": str(uuid4()),
+                                    "id": str(fact_id),
                                     "kind": "product",
                                     "statement": "Pao artesanal",
                                     "source_detail": "Dono",
@@ -226,6 +264,11 @@ async def test_paid_reservation_budget_invalid_fact_and_uncertain(admin, seeded,
         async with admin.connect() as connection:
             assert await connection.scalar(text("SELECT reserved_tokens FROM editorial_ai_usage")) > 0
             assert await connection.scalar(text("SELECT input_tokens FROM editorial_ai_usage")) == 100
+            delivered = await connection.scalar(
+                text("SELECT document FROM editorial_proposals WHERE id=:id"), {"id": request.id}
+            )
+            assert delivered["title"] == "Uma história do seu negócio"
+            assert delivered["angle"] == "Apresente este ponto do negócio: Pao artesanal."
         config.editorial_daily_token_limit = 1
         request2 = await api_service.request(tenant, business, actor, ProposalRequest(operation_id=uuid4()))
         claim2 = (await claim_proposals(worker_db, uuid4()))[0]
@@ -256,8 +299,8 @@ async def test_material_source_is_private_and_deletion_removes_derived_idea(admi
         )
         claim = (await claim_proposals(worker_db, uuid4()))[0]
         await finish_proposal_dispatch(worker_db, claim, True)
-        assert await worker.run(requested.id) == "completed"
-        assert (await service.list(tenant, business, actor))[0].document.format == "photo"
+        assert await worker.run(requested.id) == "rejected"
+        assert (await service.list(tenant, business, actor))[0].error_code == "EDITORIAL_FACTS_REQUIRED"
         materials = WhatsAppMaterialsService(config, api_db)
         assert await materials.delete_material(tenant, business, actor, source) == {"status": "scheduled"}
         assert await service.list(tenant, business, actor) == []
@@ -368,6 +411,7 @@ async def test_paid_failed_or_unverified_output_is_uncertain_and_never_retried(a
     tenant, actor = seeded["t1"], seeded["a1"]
     key = Fernet.generate_key().decode()
     source = await _asset(admin, tenant, business, key)
+    await _fact(admin, tenant, business, actor)
     config = settings.model_copy(
         update={
             "meta_encryption_key": SecretStr(key),
@@ -562,4 +606,79 @@ async def test_missing_snapshot_or_source_and_oversized_input_never_call_provide
         provider.propose.assert_not_awaited()
     finally:
         await api_db.close()
+        await worker_db.close()
+
+
+async def test_unconfirmed_material_abstains_without_spending_and_admin_projection_is_private(
+    admin, api, seeded, settings
+):
+    business = await _business(admin, seeded)
+    tenant, actor = seeded["t1"], seeded["a1"]
+    key = Fernet.generate_key().decode()
+    source = await _asset(admin, tenant, business, key, body="Hoje tenho agenda livre às 15h")
+    config = settings.model_copy(
+        update={
+            "meta_encryption_key": SecretStr(key),
+            "editorial_ai_mode": "openai",
+            "openai_api_key": SecretStr("fake"),
+        }
+    )
+    owner_db, worker_db = Database(config), Database(config, correlator=True)
+    provider = AsyncMock()
+    owner = EditorialProposalService(config, owner_db)
+    worker = EditorialProposalService(config, worker_db, provider)
+    try:
+        await owner.set_consent(tenant, business, actor, True)
+        proposal = await owner.request(
+            tenant, business, actor, ProposalRequest(operation_id=uuid4(), source_asset_id=source)
+        )
+        claim = (await claim_proposals(worker_db, uuid4()))[0]
+        await finish_proposal_dispatch(worker_db, claim, True)
+        assert await worker.run(proposal.id) == "rejected"
+        provider.propose.assert_not_awaited()
+        async with admin.connect() as connection:
+            assert await connection.scalar(text("SELECT count(*) FROM editorial_ai_usage")) == 0
+            assert (
+                await connection.scalar(
+                    text("SELECT error_code FROM editorial_proposals WHERE id=:id"), {"id": proposal.id}
+                )
+                == "EDITORIAL_FACTS_REQUIRED"
+            )
+        async with owner_db.transaction(tenant, actor) as session:
+            with pytest.raises(AccessDenied):
+                await editorial_operations(session, actor, tenant, 10)
+        path = f"/api/v1/admin/editorial-operations?tenant_id={tenant}&limit=10"
+        owner_headers = {"Authorization": f"Bearer {access_token(settings, actor)}"}
+        assert (await api.get(path, headers=owner_headers)).status_code == 403
+        async with admin.begin() as connection:
+            await connection.execute(
+                text("INSERT INTO platform_staff(actor_id,active) VALUES(:actor,true)"), {"actor": seeded["a2"]}
+            )
+        async with owner_db.transaction(seeded["t2"], seeded["a2"]) as session:
+            result = await editorial_operations(session, seeded["a2"], tenant, 10)
+            assert len(result["items"]) == 1
+            item = result["items"][0]
+            assert item["id"] == proposal.id
+            assert item["error_code"] == "EDITORIAL_FACTS_REQUIRED"
+            assert item["estimated_cost_minor"] is None
+            assert "document" not in item and "ciphertext" not in item
+            assert (
+                await session.scalar(text("SELECT document FROM editorial_proposals WHERE id=:id"), {"id": proposal.id})
+                is None
+            )
+            assert (await editorial_operations(session, seeded["a2"], seeded["t2"], 10))["items"] == []
+        staff_headers = {"Authorization": f"Bearer {access_token(settings, seeded['a2'])}"}
+        api._transport.app.state.identity_verifier.authenticate = AsyncMock(
+            return_value=Identity(seeded["a2"], settings.jwt_issuer, str(seeded["a2"]), "Test")
+        )
+        response = await api.get(path, headers=staff_headers)
+        assert response.status_code == 200, response.text
+        assert response.json()["items"][0]["id"] == str(proposal.id)
+        async with admin.begin() as connection:
+            await connection.execute(
+                text("UPDATE platform_staff SET active=false WHERE actor_id=:actor"), {"actor": seeded["a2"]}
+            )
+        assert (await api.get(path, headers=staff_headers)).status_code == 403
+    finally:
+        await owner_db.close()
         await worker_db.close()

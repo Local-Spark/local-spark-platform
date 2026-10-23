@@ -12,15 +12,25 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Versão 1.2, 23/10/2026. Resumo implementável e índice das especificações detalhadas.
 
+F03.2b bloqueia geração quando nenhum fato válido foi confirmado, inclusive se
+um material foi recebido; não consome quota nem chama o modelo nesse caso.
+F03.2c iniciou uma projeção administrativa auditada por pedido editorial: estado,
+IDs, versões, tokens e erro. A API nunca devolve rascunho, prompt ou material
+nesse endpoint; custo em moeda é nulo até existir tarifa versionada. O percurso
+completo, feedback e custo por etapa ainda estão no plano F03.2c.
+O resultado da avaliação F03.2b é **no-go comercial**: título e ângulo são
+derivados deterministicamente de fato confirmado; formato, hipóteses e perguntas
+do modelo continuam apenas para revisão. Revalidação semântica e staging são
+gates antes de clientes reais.
+
 F03.2c planeja personalização com contexto/fatos/feedback isolados por negócio,
 sem treino automático por tenant ou reutilização cruzada de mensagens. Antes do
 piloto, admin precisa ver a cadeia operacional e o custo por etapa; conteúdo
 integral requer acesso separado, limitado e auditado. Ver [F03](phases/F03-editorial-research.md).
 
-F03.2b iniciou smoke/eval sintéticos com o provedor real e corrigiu limite de
-saída e restrições do JSON Schema. O teste técnico passou, mas abstention factual
-e comparação com modelo atual continuam pendentes; nenhuma coorte comercial foi
-ativada. Ver [F03](phases/F03-editorial-research.md).
+F03.2b avaliou o provedor com casos sintéticos e decidiu não ativar coorte
+comercial. O contrato factual foi endurecido; comparação e revisão por coorte
+continuam como gates do piloto. Ver [F03](phases/F03-editorial-research.md).
 
 F03.1 entrega o contexto editorial confirmado pelo proprietário: fatos com origem
 declarada e validade, preferências separadas, versões imutáveis, CAS/idempotência,

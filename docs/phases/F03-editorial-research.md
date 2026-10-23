@@ -63,6 +63,9 @@ Submissão incerta não é repetida automaticamente. Revogação de consentiment
 plano, fonte excluída e fatos vencidos impedem usar o resultado. Pedir exclusão
 do material remove no mesmo commit todas as sugestões derivadas dele. Ideias
 expiram em 30 dias, quando o reconciliador apaga os registros.
+O contrato de `text.format` e `store=false` segue a
+[documentação oficial de Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs)
+e o [guia da Responses API](https://developers.openai.com/api/docs/guides/migrate-to-responses).
 
 O modelo recebe apenas o snapshot confirmado ainda válido e o texto selecionado;
 material é tratado como dado não confiável. IDs de fatos, números não apoiados e
@@ -83,7 +86,45 @@ provedor e avaliação PT-BR por coorte continuam
 pendentes antes de qualquer ativação comercial. Preço/token em moeda e COGS real
 dependem de tarifas vigentes e serão medidos na F03.2b, sem supor custo fixo.
 
-## F03.2b — Avaliação e ativação controlada (em andamento)
+## F03.2b — Avaliação técnica concluída; ativação comercial bloqueada
+
+Atualização de 23/10: material sem nenhum fato vigente confirmado agora produz
+`EDITORIAL_FACTS_REQUIRED` no worker, sem reserva/cobrança do provedor. A web
+bloqueia a criação nesses casos e orienta o dono a confirmar um fato no contexto.
+O runner `--live` não chama o provedor nos dois casos sintéticos sem fatos.
+Isso elimina a inferência observada nesses dois cenários, mas não demonstra
+ausência de afirmações inventadas quando há fatos: a revisão humana continua
+necessária. O gate comercial segue fechado até avaliação por coorte consentida,
+comparação de modelos com preço vigente e smoke em staging.
+
+Nova rodada sintética `gpt-5-mini` em 23/10: 3/3 chamadas elegíveis retornaram
+JSON válido e passaram os guardas automáticos; 2/2 materiais sem fato exigiram
+confirmação sem chamada. Foram 821 tokens de entrada e 1.335 de saída. Revisão
+manual dos três rascunhos encontrou linguagem promocional e contexto não
+confirmado, como “promoção”, “horário de pico” e “ambiente acolhedor”. Logo,
+**decisão desta avaliação: não ativar o provedor para clientes**. O fluxo pode
+ser testado com material sintético, mas o critério de segurança semântica não
+foi atingido. Próxima iteração da F03.2b deve mudar o contrato do rascunho para
+separar afirmações factuais de sugestões hipotéticas verificáveis, ampliar o
+conjunto de casos e passar por revisão humana antes de qualquer coorte.
+
+Correção local seguinte: o título e o ângulo entregue ao proprietário agora são
+montados deterministicamente a partir do primeiro fato vigente confirmado. O
+modelo só escolhe formato e fornece hipóteses/perguntas marcadas para revisão;
+suas afirmações livres em título/ângulo não são persistidas como sugestão. A
+validação exige ao menos um ID de fato válido citado pelo modelo. Essa guarda
+remove o risco identificado da superfície factual, mas reduz a diversidade do
+texto. **Não interpretar como aprovação comercial**: utilidade, hipóteses,
+revisão humana e testes em staging ainda precisam de critérios de aceite.
+Na rodada após a guarda, 3/3 propostas elegíveis passaram pelos guardas e
+2/2 casos sem fatos foram bloqueados sem chamada; 821 tokens de entrada e
+1.466 de saída. Os três ângulos efetivamente entregues continham somente o
+fato confirmado usado como fonte, mesmo quando o texto bruto do modelo trouxe
+adjetivos ou ofertas não confirmadas.
+O fechamento desta fatia é um **no-go de ativação**: credencial, contrato,
+orçamento, ledger, abstinência e isolamento foram exercitados; qualidade
+semântica e utilidade ainda não justificam coorte comercial. A avaliação
+consentida por coorte e o staging são gates do piloto, não liberação implícita.
 
 Criar conjunto de avaliação PT-BR com materiais consentidos/sintéticos de
 segmentos distintos e casos de abstention; comparar baseline e modelo em acerto,
@@ -131,6 +172,22 @@ Ruff e mypy. O runner é uma ferramenta sintética explícita; não é um gate d
 qualidade suficiente para liberar clientes.
 
 ## F03.2c — Aprendizado por negócio e diagnóstico operacional (planejado antes do piloto)
+
+Primeira fatia implementada em 23/10: endpoint de leitura
+`GET /api/v1/admin/editorial-operations?tenant_id=…&limit=…` para staff, com
+auditoria e função SQL de projeção restrita, lista até 100 pedidos recentes.
+RLS continua bloqueando leitura cruzada direta das tabelas. Projeta IDs, estado,
+erro estável, versão do contexto/modelo, tokens reservados/observados e datas.
+`estimated_cost_minor=null` significa que ainda não existe tarifa versionada
+nem custo monetário confiável. Não retorna texto do material, prompt ou rascunho.
+O painel web `/admin/editorial-operations` mostra 25 registros recentes e filtro
+por organização. É apenas o trecho de geração de ideias; timeline unificada,
+tentativas por etapa, agregações/alertas, feedback por negócio e acesso restrito
+ao conteúdo permanecem nesta fase antes do piloto pago.
+Validação local: `make ci` passou com 443 testes e 100% de cobertura de linhas e
+ramos; migration 0023 reversível no banco exclusivo `_test`, base de
+desenvolvimento migrada após backup verificado. Web: 170 testes e 100% nos
+quatro critérios, typecheck/build e Chromium em viewport mobile.
 
 Materiais WhatsApp conservam a retenção da F02 (inbox/fila curta, asset preparado
 com prazo inicial de 30 dias); a plataforma não guarda a conversa inteira para

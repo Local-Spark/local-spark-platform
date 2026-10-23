@@ -36,11 +36,25 @@ def test_baseline_formats_and_claim_guard(settings, fake_database):
         questions=[],
     )
     assert service._safe(good, _data("image", facts), {fact_id})
+    assert not service._safe(good.model_copy(update={"fact_ids": []}), _data("image", facts), {fact_id})
     assert not service._safe(good, _data("image", facts), set())
     assert not service._safe(good.model_copy(update={"angle": "Combo por R$ 99"}), _data("image", facts), {fact_id})
     assert not service._safe(
         good.model_copy(update={"title": "Política do combo"}), _data("image", facts, ["política"]), {fact_id}
     )
+    assert not service._safe(
+        good,
+        _data("image", [{"id": str(fact_id), "statement": "Política de preços", "kind": "offer"}], ["política"]),
+        {fact_id},
+    )
+    grounded = service._ground(
+        good.model_copy(update={"title": "Promoção incrível", "angle": "Corra antes de acabar"}),
+        _data("image", facts),
+    )
+    assert grounded.title == "Uma história do seu negócio"
+    assert grounded.angle == "Apresente este ponto do negócio: Combo por R$ 20."
+    assert grounded.fact_ids == [fact_id]
+    assert grounded.format == "photo"
 
 
 def test_private_source_requires_valid_ciphertext(settings, fake_database):

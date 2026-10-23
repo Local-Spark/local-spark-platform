@@ -1,5 +1,30 @@
 # Registro de mudanças
 
+## 2026-10-23 — F03.2b: abstinência; F03.2c: diagnóstico inicial
+
+- Pedidos editoriais sem fato vigente confirmado terminam com código
+  `EDITORIAL_FACTS_REQUIRED` antes da reserva ou chamada paga, mesmo com material.
+- Runner sintético registra esses casos como necessidade de confirmação, com zero
+  tokens, e conserva os dados do relatório fora do Git.
+- Nova rodada live sintética: 3/3 respostas elegíveis válidas, 2/2 casos sem
+  fatos bloqueados, 821 tokens de entrada/1.335 de saída. Revisão humana ainda
+  encontrou afirmações não fundamentadas; decisão de liberação comercial é
+  **não**, até corrigir o contrato e passar por nova avaliação.
+- Guarda adicional exige ID de fato citado; título e ângulo expostos são
+  reconstituídos de um fato confirmado, enquanto formato/hipóteses/perguntas
+  permanecem do modelo para revisão. Testes cobrem a remoção de uma promoção
+  inventada do rascunho persistido.
+- Migration 0023 cria uma função de projeção de metadados para staff, sem
+  liberar leitura cruzada das tabelas editoriais ao papel da API. Endpoint
+  `/admin/editorial-operations` audita a consulta e devolve só metadados de até
+  100 pedidos por filtro de organização, sem texto, rascunho ou mídia.
+- Custo monetário aparece como desconhecido. A linha do tempo completa e a
+  leitura excepcional de conteúdo seguem para a continuação da F03.2c.
+- Validação: `make ci` com 443 testes e 100% de linhas/ramos; migration 0023
+  revertida/reaplicada no banco `_test` e aplicada ao desenvolvimento após
+  backup verificado. Eval sintético pago repetido após a guarda, sem dados de
+  clientes. A web passou 170 testes/100%, build e Chromium mobile.
+
 ## 2026-10-23 — Política planejada de aprendizado e diagnóstico
 
 - F03.2c explicita retenção e personalização por contexto versionado/feedback,

@@ -272,7 +272,7 @@ class EditorialProposalService:
         fact = facts[0] if facts else None
         assert fact is None or isinstance(fact, dict)
         angle = (
-            f"Apresente este ponto do negócio: {fact['statement']}."
+            f"Apresente este ponto do negócio: {str(fact['statement']).rstrip('. ')}."
             if fact
             else "Mostre o material recebido e explique ao público o que ele representa para o negócio."
         )
@@ -291,7 +291,7 @@ class EditorialProposalService:
 
     @staticmethod
     def _safe(draft: ProposalDraft, data: dict[str, object], valid_ids: set[UUID]) -> bool:
-        if not set(draft.fact_ids) <= valid_ids:
+        if not draft.fact_ids or not set(draft.fact_ids) <= valid_ids:
             return False
         facts = data["confirmed_facts"]
         assert isinstance(facts, list)
@@ -300,9 +300,21 @@ class EditorialProposalService:
             return False
         preferences = data["preferences"]
         assert isinstance(preferences, dict)
-        return not any(
-            str(topic).casefold() in (draft.title + " " + draft.angle).casefold()
-            for topic in preferences.get("avoided_topics", [])
+        grounded = EditorialProposalService._ground(draft, data)
+        visible_text = " ".join((draft.title, draft.angle, grounded.title, grounded.angle)).casefold()
+        return not any(str(topic).casefold() in visible_text for topic in preferences.get("avoided_topics", []))
+
+    @staticmethod
+    def _ground(draft: ProposalDraft, data: dict[str, object]) -> ProposalDraft:
+        """Keep the factual surface deterministic; model text is review-only."""
+        baseline = EditorialProposalService._baseline(data)
+        return ProposalDraft(
+            title=baseline.title,
+            format=draft.format,
+            angle=baseline.angle,
+            fact_ids=baseline.fact_ids,
+            hypotheses=draft.hypotheses,
+            questions=draft.questions,
         )
 
     async def run(self, proposal_id: UUID) -> str:
@@ -332,6 +344,8 @@ class EditorialProposalService:
             if inputs is None:
                 return await self._reject(session, row, "EDITORIAL_SOURCE_UNAVAILABLE")
             data, _ = inputs
+            if not data["confirmed_facts"]:
+                return await self._reject(session, row, "EDITORIAL_FACTS_REQUIRED")
             if self.settings.editorial_ai_mode == "disabled":
                 baseline_draft = self._baseline(data)
                 await session.execute(
@@ -393,6 +407,8 @@ class EditorialProposalService:
             safe = bool(
                 draft is not None and fresh_inputs is not None and self._safe(draft, fresh_inputs[0], fresh_inputs[1])
             )
+            if safe and draft is not None and fresh_inputs is not None:
+                draft = self._ground(draft, fresh_inputs[0])
             state = "completed" if safe else "uncertain"
             await session.execute(
                 text("""UPDATE editorial_proposals SET state=:state,

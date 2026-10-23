@@ -74,3 +74,19 @@ async def organizations(
     )
     items = [dict(row) for row in rows[:limit]]
     return {"items": items, "next_cursor": str(items[-1]["id"]) if len(rows) > limit else None}
+
+
+async def editorial_operations(session: AsyncSession, actor: UUID, tenant: UUID | None, limit: int) -> dict[str, Any]:
+    """Only operational fields cross the admin boundary; no prompts or drafts."""
+    await require_staff(session, actor, "admin.editorial_operations.read")
+    rows = (
+        (
+            await session.execute(
+                text("SELECT * FROM public.admin_editorial_operations(:tenant,:limit)"),
+                {"tenant": tenant, "limit": limit},
+            )
+        )
+        .mappings()
+        .all()
+    )
+    return {"items": [dict(row) | {"estimated_cost_minor": None} for row in rows]}

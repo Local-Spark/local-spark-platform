@@ -12,6 +12,18 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Atualizado: 23/10/2026. Nome adotado: Meu Braço Direito. Repositório principal: `local-spark-platform`.
 
+23/10/2026 — F03.2b: a geração agora exige pelo menos um fato vigente
+confirmado pelo proprietário, inclusive quando há material WhatsApp. Sem isso,
+o pedido termina com `EDITORIAL_FACTS_REQUIRED` antes da reserva de tokens ou
+da chamada à OpenAI. O eval sintético pula esses casos em modo live. F03.2c
+iniciada: `/admin/editorial-operations` projeta apenas estado, IDs, versão de
+contexto/modelo, tokens e erro estável, com função restrita a staff e auditoria. Custo
+monetário fica explicitamente desconhecido; trace de todas as etapas e leitura
+restrita de conteúdo ainda estão pendentes. Ver [F03](phases/F03-editorial-research.md).
+Avaliação técnica F03.2b encerrada com decisão **não ativar comercialmente**;
+o modelo permanece apenas para testes consentidos. Título e ângulo entregues
+são derivados deterministicamente de fato confirmado.
+
 23/10/2026 — F03.2c planejada antes do piloto: contexto confirmado e feedback
 por negócio personalizam a geração sem treinar um modelo por cliente; mensagens
 WhatsApp seguem retenção F02, e eval com conteúdo real pede finalidade/autorização

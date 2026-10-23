@@ -44,14 +44,21 @@ async def evaluate(live: bool) -> dict:
         baseline = EditorialProposalService._baseline(data)
         result: dict = {
             "case": case["id"],
-            "baseline_safe": EditorialProposalService._safe(baseline, data, fact_ids),
+            "baseline_safe": bool(fact_ids) and EditorialProposalService._safe(baseline, data, fact_ids),
             "baseline_questions": bool(baseline.questions),
         }
+        if not fact_ids:
+            result.update(
+                status="needs_confirmed_fact", safe=True, asks_when_needed=True, input_tokens=0, output_tokens=0
+            )
+            results.append(result)
+            continue
         if live:
             start = time.perf_counter()
             try:
                 draft, input_tokens, output_tokens = await provider.propose(data, uuid4())
                 safe = EditorialProposalService._safe(draft, data, fact_ids)
+                guarded = EditorialProposalService._ground(draft, data) if safe else None
                 result.update(
                     status="completed",
                     safe=safe,
@@ -60,6 +67,7 @@ async def evaluate(live: bool) -> dict:
                     output_tokens=output_tokens,
                     latency_ms=round((time.perf_counter() - start) * 1000),
                     draft=draft.model_dump(mode="json"),
+                    delivered_draft=guarded.model_dump(mode="json") if guarded else None,
                 )
             except EditorialProviderError as exc:
                 result.update(status="provider_error", code=str(exc))
@@ -68,6 +76,7 @@ async def evaluate(live: bool) -> dict:
         "run_at": datetime.now(UTC).isoformat(),
         "model": settings.editorial_ai_model if live else "baseline-v1",
         "live": live,
+        "release_decision": "blocked_pending_semantic_review_and_staging",
         "cases": results,
     }
 
@@ -88,6 +97,7 @@ def main() -> None:
             "model": report["model"],
             "cases": len(report["cases"]),
             "completed": sum(item.get("status") == "completed" for item in report["cases"]),
+            "confirmation_required": sum(item.get("status") == "needs_confirmed_fact" for item in report["cases"]),
             "guard_pass": sum(item.get("safe") is True for item in report["cases"]),
             "baseline_guard_pass": sum(item["baseline_safe"] for item in report["cases"]),
             "input_tokens": sum(item.get("input_tokens", 0) for item in report["cases"]),
