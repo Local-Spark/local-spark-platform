@@ -12,6 +12,16 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Atualizado: 23/10/2026. Nome adotado: Meu Braço Direito. Repositório principal: `local-spark-platform`.
 
+23/10/2026 — F03.1 iniciou o contexto editorial por negócio. O dono confirma
+fatos com origem e validade, informa preferências e pode corrigir/restaurar
+versões. A API usa CAS e operação idempotente, guarda histórico imutável e audita
+o commit sob RLS. A web oferece a edição. Nenhuma extração automática, LLM/Jev,
+pesquisa paga, sugestão ou publicação foi ativada. F03.2 usará snapshots
+versionados para separar hipóteses de fatos antes de gerar propostas.
+Validação local: 417 testes backend/100% de linhas e ramos, migration 0021
+revertida/reaplicada no `_test`, backup e upgrade local. Web: 158 testes/100%,
+build e fluxo Chromium de salvar/restaurar.
+
 23/10/2026 — F02.2c3a agrupa mensagens do mesmo remetente e negócio em
 janelas fixas de dez minutos, com `group_id` estável desde a correlação até o
 asset e a biblioteca web. Migration 0019 preserva itens antigos como grupos

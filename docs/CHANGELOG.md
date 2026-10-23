@@ -1,5 +1,20 @@
 # Registro de mudanças
 
+## 2026-10-23 — F03.1: contexto editorial confirmado
+
+- Migration 0021 cria cabeça e versões imutáveis por tenant/negócio, com RLS
+  restrito ao proprietário. API salva com versão esperada e ID de operação,
+  rejeita concorrência, oferece histórico e restauração auditada.
+- Fatos têm tipo, origem declarada e validade; preço, horário e oferta exigem
+  prazo. Preferências ficam separadas de hipóteses. A área do cliente permite
+  corrigir e restaurar versões sem publicar ou afirmar conteúdo gerado.
+- Sem LLM/Jev, pesquisa externa ou chamadas pagas nesta entrega. F03.2 tratará
+  interpretação estruturada, propostas e orçamento após fixar o contexto.
+- Validação: 417 testes backend/100% de linhas e ramos, Ruff/mypy, concorrência
+  PostgreSQL e rollback/upgrade da 0021 no `_test`. Banco local migrado após
+  backup verificado. Web: 158 testes/100% em quatro critérios, build e jornada
+  Chromium de edição e restauração.
+
 ## 2026-10-23 — F02.2c3b: transcrição de áudio controlada
 
 - Migration 0020 adiciona transcript cifrado ao asset e ledger privado de

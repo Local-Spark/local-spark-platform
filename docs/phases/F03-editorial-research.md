@@ -1,11 +1,42 @@
 # F03 — Pesquisa, temas e planejamento proativo
 
-Status: Planejada. Atualizado em 20/10/2026.
+Status: Em implementação; F03.1 entregue localmente em 23/10/2026.
 Dependências: F01, F02.
 
 ## Objetivo
 
 Pesquisar referências permitidas e produzir ideias/roteiros úteis mesmo sem material novo no dia.
+
+## F03.1 — Contexto confirmado e versionado (entregue localmente)
+
+O proprietário registra até 20 fatos por negócio, com tipo, declaração, origem
+informada e validade. Preços, horários e ofertas exigem validade; fatos vencidos
+continuam no histórico, mas uma proposta futura não poderá usá-los como atuais.
+Preferências de objetivo, tom, frequência semanal e assuntos a evitar ficam em
+campo separado. Hipóteses são uma categoria distinta e permanecem vazias nesta
+fatia: texto vindo do WhatsApp, transcrição ou pesquisa não vira fato confirmado.
+
+`GET/PUT /api/v1/organizations/{tenant_id}/businesses/{business_id}/editorial-context`
+consulta e substitui o snapshot. O PUT exige `expected_version` e `operation_id`;
+o banco faz compare-and-swap, registra cada versão imutável e audita no mesmo
+commit. Repetir a mesma operação devolve a versão original; mesmo ID com outro
+conteúdo e edição baseada em versão antiga retornam 409. Histórico limitado a 20
+versões recentes, leitura por versão e restauração explícita estão na mesma API.
+A restauração cria nova versão; não apaga o histórico. RLS e autorização de owner
+protegem os dois registros por tenant/negócio. A web oferece edição, correção e
+restauração, com conflito de versão visível.
+
+Não há chamada paga nem inferência nesta fatia. F03.2 consumirá um snapshot
+fixado, separará propostas e fatos e só então integrará um provedor de texto com
+consentimento, orçamento e eval. Pesquisa de referências, raio e agendamento
+proativo também continuam pendentes. A WABA Meta restrita não bloqueia a edição
+manual do contexto, mas impede homologar ingestão real.
+
+Validação local: 417 testes backend com 100% de linhas/ramos, Ruff e mypy;
+concorrência, replay, autorização e isolamento em PostgreSQL real. Migration 0021
+revertida/reaplicada no `_test` e aplicada ao desenvolvimento após backup
+verificado. Web: 158 testes com 100% nos quatro critérios, build, formatação e
+jornada Chromium de salvar/restaurar.
 
 ## Features e contratos
 

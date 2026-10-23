@@ -12,6 +12,12 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Versão 1.2, 23/10/2026. Resumo implementável e índice das especificações detalhadas.
 
+F03.1 entrega o contexto editorial confirmado pelo proprietário: fatos com origem
+declarada e validade, preferências separadas, versões imutáveis, CAS/idempotência,
+histórico/restauração, auditoria e RLS por negócio. A área do cliente edita e
+restaura versões. Hipóteses continuam vazias e não há LLM interpretando as
+mensagens ou gerando conteúdo nesta fatia. Ver [F03](phases/F03-editorial-research.md).
+
 F02.2c3a acrescenta `group_id` determinístico por tenant, negócio, remetente e
 janela fixa de dez minutos, persistido na fila e no asset. A biblioteca mostra
 materiais relacionados sem unir negócios ou depender da ordem dos workers.
