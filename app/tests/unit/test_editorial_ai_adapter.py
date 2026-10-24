@@ -21,6 +21,7 @@ def _response(*, status="completed", output=None, usage=None):
         "fact_ids": [],
         "hypotheses": [],
         "questions": [],
+        "scene_plan": ["material", "fact", "cta"],
     }
     return {
         "status": status,
@@ -47,6 +48,7 @@ async def test_provider_request_and_success(settings, monkeypatch):
         {"material": "Foto do lanche"}, uuid4()
     )
     assert isinstance(draft, ProposalDraft)
+    assert draft.scene_plan == ["material", "fact", "cta"]
     assert (input_tokens, output_tokens) == (12, 8)
     sent = json.loads(captured["request"].content)
     assert sent["store"] is False
@@ -55,6 +57,7 @@ async def test_provider_request_and_success(settings, monkeypatch):
     assert sent["tools"] == []
     assert sent["text"]["format"]["strict"] is True
     assert sent["text"]["format"]["schema"]["properties"]["questions"]["maxItems"] == 3
+    assert "scene_plan" in sent["text"]["format"]["schema"]["required"]
     assert captured["request"].headers["authorization"] == "Bearer fake"
 
 

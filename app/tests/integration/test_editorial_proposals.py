@@ -13,8 +13,9 @@ from sqlalchemy import text
 from app.adapters.editorial_ai import EditorialProviderError
 from app.core.identity import Identity
 from app.db.session import Database
-from app.schemas.editorial_proposals import ProposalDraft, ProposalRequest
+from app.schemas.editorial_proposals import ProposalDraft, ProposalRequest, ScriptReview
 from app.services.administration import editorial_operation_events, editorial_operations, editorial_usage_today
+from app.services.auth import AuthError
 from app.services.business import AccessDenied
 from app.services.editorial_dispatch import claim_proposals, finish_proposal_dispatch
 from app.services.editorial_proposals import EditorialProposalService, reconcile_stale_proposals
@@ -169,6 +170,30 @@ async def test_baseline_request_consent_replay_and_rls(admin, api, database, see
         assert result["document"]["fact_ids"] == [str(fact)]
         assert result["document"]["hypotheses"] == []
         assert result["context_version"] == 1
+        assert result["document"]["script"][0]["fact_ids"] == [str(fact)]
+        review_url = proposals + f"/{result['id']}/script-review"
+        review_op = str(uuid4())
+        review_body = {"operation_id": review_op, "decision": "accepted"}
+        assert (await api.post(review_url, headers=viewer, json=review_body)).status_code == 403
+        assert (
+            await api.post(proposals + f"/{uuid4()}/script-review", headers=owner, json=review_body)
+        ).status_code == 404
+        reviewed = await api.post(review_url, headers=owner, json=review_body)
+        assert reviewed.status_code == 200, reviewed.text
+        assert reviewed.json()["review_state"] == "accepted"
+        assert (await api.post(review_url, headers=owner, json=review_body)).json() == reviewed.json()
+        changed = await api.post(
+            review_url, headers=owner, json={**review_body, "decision": "changes_requested", "note": "Outro texto"}
+        )
+        assert changed.status_code == 409 and changed.json()["error_code"] == "PROPOSAL_OPERATION_CONFLICT"
+        again = await api.post(review_url, headers=owner, json={"operation_id": str(uuid4()), "decision": "accepted"})
+        assert again.status_code == 409 and again.json()["error_code"] == "SCRIPT_ALREADY_REVIEWED"
+        assert (
+            await api.post(
+                review_url, headers=owner, json={"operation_id": str(uuid4()), "decision": "changes_requested"}
+            )
+        ).status_code == 422
+        assert (await api.get(proposals, headers=owner)).json()[0]["review_state"] == "accepted"
         assert await reconcile_stale_proposals(worker_db) == 0
     finally:
         await worker_db.close()
@@ -523,6 +548,142 @@ async def test_concurrent_request_same_operation_is_idempotent(admin, seeded, se
             assert await connection.scalar(text("SELECT count(*) FROM editorial_proposals")) == 1
     finally:
         await db.close()
+
+
+async def test_script_review_requires_ready_script_and_unique_operation(admin, api, database, seeded, settings):
+    business = await _business(admin, seeded)
+    tenant, actor = seeded["t1"], seeded["a1"]
+    base = f"/api/v1/organizations/{tenant}/businesses/{business}/editorial-proposals"
+    owner = {"Authorization": f"Bearer {access_token(settings, actor)}"}
+    first = (await api.post(base, headers=owner, json={"operation_id": str(uuid4())})).json()
+    second = (await api.post(base, headers=owner, json={"operation_id": str(uuid4())})).json()
+    operation = str(uuid4())
+    body = {"operation_id": operation, "decision": "changes_requested", "note": "Mostrar outro ângulo"}
+    url = base + f"/{first['id']}/script-review"
+    service = EditorialProposalService(settings, database)
+    with pytest.raises(AuthError, match="PROPOSAL_NOT_FOUND"):
+        await service.review_script(tenant, business, actor, uuid4(), ScriptReview.model_validate(body))
+    with pytest.raises(AuthError, match="SCRIPT_NOT_READY"):
+        await service.review_script(tenant, business, actor, first["id"], ScriptReview.model_validate(body))
+    pending = await api.post(url, headers=owner, json=body)
+    assert pending.status_code == 409 and pending.json()["error_code"] == "SCRIPT_NOT_READY"
+    async with admin.begin() as connection:
+        await connection.execute(
+            text("UPDATE editorial_proposals SET state='completed',document=CAST(:doc AS jsonb) WHERE id=:id"),
+            {
+                "id": first["id"],
+                "doc": json.dumps(
+                    {
+                        "title": "Uma ideia local",
+                        "format": "photo",
+                        "angle": "Mostre um ponto do negócio.",
+                        "fact_ids": [],
+                        "hypotheses": [],
+                        "questions": [],
+                    }
+                ),
+            },
+        )
+    empty = await api.post(url, headers=owner, json=body)
+    assert empty.status_code == 409 and empty.json()["error_code"] == "SCRIPT_NOT_READY"
+    document = {
+        "title": "Uma ideia local",
+        "format": "photo",
+        "angle": "Mostre um ponto do negócio.",
+        "fact_ids": [],
+        "hypotheses": [],
+        "questions": [],
+        "script": [
+            {
+                "role": "cta",
+                "visual": "brand_card",
+                "on_screen_text": "Fale com o negócio",
+                "voiceover": "Entre em contato para saber mais.",
+                "fact_ids": [],
+                "source_asset_id": None,
+            }
+        ],
+    }
+    async with admin.begin() as connection:
+        await connection.execute(
+            text("UPDATE editorial_proposals SET document=CAST(:doc AS jsonb) WHERE id=:id"),
+            {"id": first["id"], "doc": json.dumps(document)},
+        )
+        await connection.execute(
+            text("UPDATE editorial_proposals SET state='completed',document=CAST(:doc AS jsonb) WHERE id=:id"),
+            {"id": second["id"], "doc": json.dumps(document)},
+        )
+    reviewed = await api.post(url, headers=owner, json=body)
+    assert reviewed.status_code == 200, reviewed.text
+    assert reviewed.json()["review_note"] == "Mostrar outro ângulo"
+    assert (
+        await service.review_script(tenant, business, actor, first["id"], ScriptReview.model_validate(body))
+    ).review_note == "Mostrar outro ângulo"
+    with pytest.raises(AuthError, match="PROPOSAL_OPERATION_CONFLICT"):
+        await service.review_script(
+            tenant, business, actor, first["id"], ScriptReview(operation_id=operation, decision="accepted")
+        )
+    with pytest.raises(AuthError, match="SCRIPT_ALREADY_REVIEWED"):
+        await service.review_script(
+            tenant, business, actor, first["id"], ScriptReview(operation_id=uuid4(), decision="accepted")
+        )
+    duplicate = await api.post(base + f"/{second['id']}/script-review", headers=owner, json=body)
+    assert duplicate.status_code == 409 and duplicate.json()["error_code"] == "PROPOSAL_OPERATION_CONFLICT"
+    with pytest.raises(AuthError, match="PROPOSAL_OPERATION_CONFLICT"):
+        await service.review_script(tenant, business, actor, second["id"], ScriptReview.model_validate(body))
+    fresh = await service.review_script(
+        tenant, business, actor, second["id"], ScriptReview.model_validate({**body, "operation_id": str(uuid4())})
+    )
+    assert fresh.review_state == "changes_requested"
+    assert (await api.get(base, headers=owner)).json()[0]["review_state"] == "changes_requested"
+
+
+async def test_concurrent_script_reviews_cannot_reuse_operation(admin, database, seeded, settings):
+    business = await _business(admin, seeded)
+    tenant, actor = seeded["t1"], seeded["a1"]
+    service = EditorialProposalService(settings, database)
+    first, second = await asyncio.gather(
+        service.request(tenant, business, actor, ProposalRequest(operation_id=uuid4())),
+        service.request(tenant, business, actor, ProposalRequest(operation_id=uuid4())),
+    )
+    document = json.dumps(
+        {
+            "title": "Uma ideia local",
+            "format": "photo",
+            "angle": "Mostre um ponto do negócio.",
+            "fact_ids": [],
+            "hypotheses": [],
+            "questions": [],
+            "script": [
+                {
+                    "role": "cta",
+                    "visual": "brand_card",
+                    "on_screen_text": "Fale com o negócio",
+                    "voiceover": "Entre em contato para saber mais.",
+                    "fact_ids": [],
+                    "source_asset_id": None,
+                }
+            ],
+        }
+    )
+    async with admin.begin() as connection:
+        await connection.execute(
+            text(
+                "UPDATE editorial_proposals SET state='completed',document=CAST(:doc AS jsonb) "
+                "WHERE id IN (:first,:second)"
+            ),
+            {"first": first.id, "second": second.id, "doc": document},
+        )
+    review = ScriptReview(operation_id=uuid4(), decision="accepted")
+    outcomes = await asyncio.gather(
+        service.review_script(tenant, business, actor, first.id, review),
+        service.review_script(tenant, business, actor, second.id, review),
+        return_exceptions=True,
+    )
+    assert (
+        sum(isinstance(result, AuthError) and result.code == "PROPOSAL_OPERATION_CONFLICT" for result in outcomes) == 1
+    )
+    assert sum(not isinstance(result, BaseException) for result in outcomes) == 1
 
 
 async def test_missing_snapshot_or_source_and_oversized_input_never_call_provider(admin, seeded, settings):

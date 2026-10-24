@@ -5,7 +5,13 @@ from uuid import UUID
 from fastapi import APIRouter, Query, Request
 
 from app.api.deps import Actor
-from app.schemas.editorial_proposals import EditorialAIConsent, EditorialAIStatus, ProposalRead, ProposalRequest
+from app.schemas.editorial_proposals import (
+    EditorialAIConsent,
+    EditorialAIStatus,
+    ProposalRead,
+    ProposalRequest,
+    ScriptReview,
+)
 from app.services.editorial_proposals import EditorialProposalService
 
 proposals_router = APIRouter(
@@ -42,3 +48,10 @@ async def list_proposals(
     tenant_id: UUID, business_id: UUID, request: Request, actor: Actor, limit: int = Query(default=30, ge=1, le=100)
 ) -> list[ProposalRead]:
     return await service(request).list(tenant_id, business_id, actor, limit)
+
+
+@proposals_router.post("/{proposal_id}/script-review", response_model=ProposalRead)
+async def review_script(
+    tenant_id: UUID, business_id: UUID, proposal_id: UUID, body: ScriptReview, request: Request, actor: Actor
+) -> ProposalRead:
+    return await service(request).review_script(tenant_id, business_id, actor, proposal_id, body)

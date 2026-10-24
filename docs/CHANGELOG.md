@@ -1,5 +1,24 @@
 # Registro de mudanças
 
+## 2026-10-24 — F03.3: roteiro estruturado e revisão local
+
+- Ideias passam a incluir até três cenas, fala, texto na tela e origem de cada fato/material; afirmações comerciais são montadas de fatos confirmados e vigentes, mesmo quando a ordem vem da IA.
+- Proprietário pode aceitar ou pedir ajustes por API, com operação idempotente, bloqueio transacional, auditoria e isolamento por tenant. Aceite não publica.
+- Migration 0030 registra decisão e comentário. Faltam edição direta, ciclo automático de revisão, leitura visual e benchmark PT-BR antes de uso comercial.
+- Validação: `make ci` passou com 459 testes e 100% de linhas/ramos; inclui revisão concorrente, replay, isolamento e auditoria. Migration 0030 aplicada no `_test` e na base local após backup em `.local/backups/`; worker local atualizado com o código novo. Homologação Meta externa pendente.
+
+## 2026-10-24 — Caminho de entrega consolidado
+
+- Índice das fases atualizado para refletir F02.2c6 e o estado real de F03. Próxima
+  entrega definida como F03.3: briefing e roteiro revisável a partir dos materiais,
+  com avaliação factual antes de ativação comercial.
+- F04 e F06 seguem em adapter fake até homologação externa Meta; avatar F05 é
+  opcional para a primeira publicação. Nenhuma capacidade de produção foi ativada
+  por esta atualização documental.
+- F03.3 exige benchmark PT-BR de qualidade, latência e custo por roteiro aprovado
+  antes de substituir o `gpt-5-mini` configurado, agora deprecated; baseline sem IA,
+  Luna e Sol são candidatos, sem escolha automática de modelo.
+
 ## 2026-10-23 — F02.2c6: recibos e revisão dos envios WhatsApp
 
 - Migration 0029 liga recibos `sent`, `failed`, `delivered` e `read` ao ID Meta sem confundir aceite HTTP com entrega; eventos repetidos ou fora de ordem não regridem estado.

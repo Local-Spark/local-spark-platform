@@ -81,7 +81,10 @@ motor único de conversa antes de eval PT-BR, custo/latência e termos de dados.
 Modelo de conversa e limiares permanecem decisões da fase de avaliação. O simulador
 devolve uma resposta na API, mas ainda não envia respostas pelo WhatsApp.
 
-Status: Em implementação; F02.1–F02.2c3b entregues localmente, integração paga desativada.
+Status: Em implementação; F02.1–F02.2c6 entregues localmente, envio real desativado
+e smoke Meta pendente por restrição da WABA. As seções abaixo registram o estado
+de cada fatia quando foi entregue; pendências históricas podem ter sido resolvidas
+por fatias posteriores.
 Dependências: F00, F01.
 
 ## Objetivo

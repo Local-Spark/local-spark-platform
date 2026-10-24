@@ -67,3 +67,37 @@ def test_private_source_requires_valid_ciphertext(settings, fake_database):
     assert service._source({"ciphertext": None, "transcript_ciphertext": None}) is None
     without_key = EditorialProposalService(settings, fake_database)
     assert without_key._source({"ciphertext": encrypted, "transcript_ciphertext": None}) is None
+
+
+def test_storyboard_uses_only_confirmed_fact_and_authorized_material(settings, fake_database):
+    service = EditorialProposalService(settings, fake_database)
+    fact_id, asset_id = uuid4(), uuid4()
+    data = _data("image", [{"id": str(fact_id), "statement": "X-tudo por R$ 20", "kind": "price"}])
+    data["source_asset_id"] = asset_id
+    baseline = service._baseline(data)
+    assert [scene.role for scene in baseline.script] == ["material", "fact", "cta"]
+    assert baseline.script[0].source_asset_id == asset_id
+    assert baseline.script[0].fact_ids == []
+    assert baseline.script[1].on_screen_text == "X-tudo por R$ 20."
+    assert baseline.script[1].fact_ids == [fact_id]
+    assert baseline.script[2].voiceover == "Entre em contato para saber mais."
+    assert baseline.script[2].fact_ids == []
+    assert all("foto" not in scene.on_screen_text.casefold() for scene in baseline.script)
+
+    proposed = baseline.model_copy(update={"scene_plan": ["cta", "cta", "material"]})
+    grounded = service._ground(proposed, data)
+    assert [scene.role for scene in grounded.script] == ["fact", "cta", "material"]
+    assert grounded.script[0].fact_ids == [fact_id]
+    assert grounded.script[2].source_asset_id == asset_id
+
+
+def test_storyboard_omits_visual_scene_without_image_or_fact(settings, fake_database):
+    service = EditorialProposalService(settings, fake_database)
+    fact_id, asset_id = uuid4(), uuid4()
+    data = _data("audio", [{"id": str(fact_id), "statement": "Atendimento às 15h", "kind": "hours"}])
+    data["source_asset_id"] = asset_id
+    draft = service._baseline(data)
+    assert [scene.role for scene in draft.script] == ["fact", "cta"]
+    assert all(scene.source_asset_id is None for scene in draft.script)
+    assert service._script(draft.model_copy(update={"scene_plan": ["material"]}), data)[0].role == "fact"
+    assert service._baseline(_data("image")).script == []

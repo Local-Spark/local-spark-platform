@@ -12,6 +12,14 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Versão 1.2, 23/10/2026. Resumo implementável e índice das especificações detalhadas.
 
+Sequência de entrega atual em [fases](phases/README.md): F03.3 transforma material
+F02 em roteiro de cenas com fontes e revisão local; falta avaliação de qualidade
+comercial. F04 renderiza a primeira peça e F06 exercita
+aprovação/agendamento/publicação com adapter fake. F05/avatares não bloqueiam
+posts com foto/vídeo reais. Credenciais e homologação Meta são posteriores aos
+testes locais, mas obrigatórias antes de operar com clientes reais. Ideias F03.2a
+existem; qualidade comercial ainda não está aprovada.
+
 F02.2c6 diferencia resposta aceita pela Meta de recibo `sent`/`failed`/`delivered`/`read`, correlacionado pelo ID do provedor na inbox cifrada. Confirmação/descarte prepara uma resposta curta na transação da decisão; envio e recibo usam estados próprios. O dispatcher reserva tentativas sob teto diário por organização e bloqueio transacional; sem teto positivo, não habilita envio. Staff vê apenas metadados de falhas/incertezas e pode registrar revisão sem reenviar. O smoke externo, o valor monetário por mensagem e o opt-out explícito permanecem pendentes em [F02](phases/F02-whatsapp-ingestion.md).
 
 F02.2c5 grava resposta cifrada na transação da decisão e só habilita envio Cloud

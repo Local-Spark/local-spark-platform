@@ -34,8 +34,13 @@ FORMAT = {
                 "maxItems": 3,
                 "items": {"type": "string", "minLength": 4, "maxLength": 160},
             },
+            "scene_plan": {
+                "type": "array",
+                "maxItems": 3,
+                "items": {"type": "string", "enum": ["material", "fact", "cta"]},
+            },
         },
-        "required": ["title", "format", "angle", "fact_ids", "hypotheses", "questions"],
+        "required": ["title", "format", "angle", "fact_ids", "hypotheses", "questions", "scene_plan"],
         "additionalProperties": False,
     },
 }
@@ -66,6 +71,9 @@ class OpenAIEditorialProvider:
                         "Não invente preço, desconto, resultado, horário, endereço ou métrica. "
                         "Separe suposições em hypotheses e dúvidas em questions. "
                         "Liste no máximo três hipóteses e três perguntas. "
+                        "Sugira uma sequência de até três cenas usando apenas material, fact e cta. "
+                        "Uma cena de material só pode usar o arquivo recebido, sem inventar o que ele mostra. "
+                        "O texto factual e a fala serão montados a partir dos fatos confirmados. "
                         "Não produza peça pronta para publicação."
                     ),
                 },

@@ -1,7 +1,7 @@
 # F06 — Aprovação, agenda e Instagram
 
 Status: Planejada. Atualizado em 20/10/2026.
-Dependências: F01, F04, F05.
+Dependências: F01 e F04. F05 é necessária somente para peças com avatar.
 
 ## Objetivo
 
@@ -9,6 +9,9 @@ Publicar versões efetivamente aprovadas em contas profissionais elegíveis, com
 
 ## Features e contratos
 
+- Adapter fake de Instagram para exercitar aprovação, agendamento, erro, timeout,
+  callback duplicado e resultado incerto sem conta Meta; o adapter oficial entra
+  após essas regras estarem testadas. Publicação real exige OAuth e smoke externo.
 - OAuth, scopes e capability discovery por conta; não pedir senha do Instagram.
 - Aprovação vincula ator, versão, hashes, legenda, conta, janela e consentimento.
 - Imagem/carrossel/Reel/Story elegível, processamento de container e confirmação.

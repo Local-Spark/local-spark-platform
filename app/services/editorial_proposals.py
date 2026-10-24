@@ -1,5 +1,8 @@
 """Durable, owner-requested editorial proposals with one-shot paid execution."""
 
+from __future__ import annotations
+
+import builtins
 import hashlib
 import json
 import re
@@ -14,7 +17,7 @@ from app.adapters.editorial_ai import EditorialProviderError, OpenAIEditorialPro
 from app.core.config import Settings
 from app.db.session import Database
 from app.schemas.editorial_context import ContextContent
-from app.schemas.editorial_proposals import ProposalDraft, ProposalRead, ProposalRequest
+from app.schemas.editorial_proposals import ProposalDraft, ProposalRead, ProposalRequest, ScriptReview, ScriptScene
 from app.services.auth import AuthError
 from app.services.whatsapp_materials import WhatsAppMaterialsService
 
@@ -189,6 +192,68 @@ class EditorialProposalService:
             )
             return [_present(row) for row in rows]
 
+    async def review_script(
+        self, tenant: UUID, business: UUID, actor: UUID, proposal_id: UUID, body: ScriptReview
+    ) -> ProposalRead:
+        digest = hashlib.sha256(
+            json.dumps({"decision": body.decision, "note": body.note}, sort_keys=True).encode()
+        ).hexdigest()
+        async with self.database.transaction(tenant, actor) as session:
+            await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
+            row = (
+                (
+                    await session.execute(
+                        text("""SELECT * FROM editorial_proposals WHERE id=:id
+                  AND tenant_id=:tenant AND business_id=:business FOR UPDATE"""),
+                        {"id": proposal_id, "tenant": tenant, "business": business},
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+            if row is None:
+                raise AuthError("PROPOSAL_NOT_FOUND", 404)
+            if row["review_operation_id"] == body.operation_id:
+                if row["review_hash"] != digest:
+                    raise AuthError("PROPOSAL_OPERATION_CONFLICT", 409)
+                return _present(row)
+            if row["review_state"] is not None:
+                raise AuthError("SCRIPT_ALREADY_REVIEWED", 409)
+            if row["state"] != "completed" or not row["document"] or not row["document"].get("script"):
+                raise AuthError("SCRIPT_NOT_READY", 409)
+            await session.execute(
+                text("SELECT pg_advisory_xact_lock(hashtextextended(:key,0))"),
+                {"key": f"{tenant}:{business}:{body.operation_id}"},
+            )
+            used_operation = await session.scalar(
+                text("""SELECT 1 FROM editorial_proposals WHERE tenant_id=:tenant
+                  AND business_id=:business AND review_operation_id=:operation"""),
+                {"tenant": tenant, "business": business, "operation": body.operation_id},
+            )
+            if used_operation:
+                raise AuthError("PROPOSAL_OPERATION_CONFLICT", 409)
+            result = (
+                (
+                    await session.execute(
+                        text("""UPDATE editorial_proposals SET review_state=:decision,
+                  review_note=:note,review_operation_id=:operation,review_hash=:digest,
+                  reviewed_at=now(),reviewed_by=:actor WHERE id=:id RETURNING *"""),
+                        {
+                            "id": proposal_id,
+                            "decision": body.decision,
+                            "note": body.note,
+                            "operation": body.operation_id,
+                            "digest": digest,
+                            "actor": actor,
+                        },
+                    )
+                )
+                .mappings()
+                .one()
+            )
+            await _audit(session, result, "editorial.script_reviewed")
+            return _present(result)
+
     @staticmethod
     async def _consented(session: Any, tenant: UUID, business: UUID) -> bool:
         return bool(
@@ -258,10 +323,19 @@ class EditorialProposalService:
         if not source and not facts:
             return None
         data: dict[str, object] = {
-            "confirmed_facts": [{"id": str(fact.id), "kind": fact.kind, "statement": fact.statement} for fact in facts],
+            "confirmed_facts": [
+                {
+                    "id": str(fact.id),
+                    "kind": fact.kind,
+                    "statement": fact.statement,
+                    "valid_until": str(fact.valid_until) if fact.valid_until else None,
+                }
+                for fact in facts
+            ],
             "preferences": context.preferences.model_dump(mode="json"),
             "material": source,
             "material_kind": kind,
+            "source_asset_id": str(row["source_asset_id"]) if row["source_asset_id"] else None,
             "context_version": row["context_version"],
         }
         return data, {fact.id for fact in facts}
@@ -281,14 +355,75 @@ class EditorialProposalService:
         fmt: Literal["short_video", "photo", "story"] = (
             "short_video" if kind in {"audio", "video"} else "photo" if kind == "image" else "story"
         )
-        return ProposalDraft(
+        draft = ProposalDraft(
             title="Uma história do seu negócio",
             format=fmt,
             angle=angle,
             fact_ids=[UUID(str(fact["id"]))] if fact else [],
             hypotheses=[],
             questions=["Qual detalhe você gostaria de destacar?"],
+            scene_plan=["material", "fact", "cta"] if kind in {"image", "video"} else ["fact", "cta"],
         )
+        return draft.model_copy(update={"script": EditorialProposalService._script(draft, data)})
+
+    @staticmethod
+    def _script(draft: ProposalDraft, data: dict[str, object]) -> builtins.list[ScriptScene]:
+        facts = data["confirmed_facts"]
+        assert isinstance(facts, list)
+        if not facts:
+            return []
+        first = facts[0]
+        assert isinstance(first, dict)
+        fact_id = UUID(str(first["id"]))
+        statement = str(first["statement"]).rstrip(". ") + "."
+        source_value = data.get("source_asset_id")
+        source_id = UUID(str(source_value)) if source_value else None
+        visual_available = source_id is not None and data.get("material_kind") in {"image", "video"}
+        default_plan: list[Literal["material", "fact", "cta"]] = (
+            ["material", "fact", "cta"] if visual_available else ["fact", "cta"]
+        )
+        requested = list(dict.fromkeys(draft.scene_plan or default_plan))
+        roles: list[Literal["material", "fact", "cta"]] = [
+            role for role in requested if role != "material" or visual_available
+        ]
+        if "fact" not in roles:
+            roles.insert(0, "fact")
+        if "cta" not in roles:
+            roles.append("cta")
+        scenes: list[ScriptScene] = []
+        for role in roles:
+            if role == "material":
+                scenes.append(
+                    ScriptScene(
+                        role=role,
+                        visual="source_material",
+                        on_screen_text="Seu negócio em destaque",
+                        voiceover="Veja este material do negócio.",
+                        fact_ids=[],
+                        source_asset_id=source_id,
+                    )
+                )
+            elif role == "fact":
+                scenes.append(
+                    ScriptScene(
+                        role=role,
+                        visual="brand_card",
+                        on_screen_text=statement,
+                        voiceover=statement,
+                        fact_ids=[fact_id],
+                    )
+                )
+            else:
+                scenes.append(
+                    ScriptScene(
+                        role=role,
+                        visual="brand_card",
+                        on_screen_text="Fale com o negócio",
+                        voiceover="Entre em contato para saber mais.",
+                        fact_ids=[],
+                    )
+                )
+        return scenes
 
     @staticmethod
     def _safe(draft: ProposalDraft, data: dict[str, object], valid_ids: set[UUID]) -> bool:
@@ -316,6 +451,8 @@ class EditorialProposalService:
             fact_ids=baseline.fact_ids,
             hypotheses=draft.hypotheses,
             questions=draft.questions,
+            scene_plan=draft.scene_plan,
+            script=EditorialProposalService._script(draft, data),
         )
 
     async def run(self, proposal_id: UUID) -> str:

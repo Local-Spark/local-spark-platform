@@ -3,6 +3,15 @@
 Status: Planejada. Atualizado em 20/10/2026.
 Dependências: F02, F03.
 
+Próxima fatia F04.1 (24/10/2026): consumir somente roteiro F03.3 aceito e
+contexto/material ainda válidos; produzir prévia estática com template de marca,
+texto comercial legível, proveniência e arquivo privado. A chave de render deve
+incluir versão do roteiro, template e entradas; reserva de trabalho, lock, retry e
+falha parcial não podem gerar duas peças finais. O proprietário revisa a prévia,
+sem publicação. F04.2 amplia para vídeo curto com FFmpeg e legenda sincronizada;
+F05 mantém avatar opcional. Edição direta e revisão iterativa do roteiro F03.3
+permanecem como melhoria antes de ativação comercial.
+
 ## Objetivo
 
 Transformar roteiro e materiais em previews imutáveis com qualidade previsível e custo conhecido.

@@ -1,7 +1,56 @@
 # F03 — Pesquisa, temas e planejamento proativo
 
-Status: Em implementação; F03.1 e a primeira fatia da F03.2 entregues localmente em 23/10/2026.
+Status: Em implementação; F03.1, F03.2a e partes de F03.2c entregues localmente. F03.3 tem roteiro e revisão local, ainda sem benchmark comercial.
 Dependências: F01, F02.
+
+Entrega local F03.3: roteiro estruturado de até três cenas a partir do
+material e dos fatos confirmados, conforme a sequência no [índice das fases](README.md). F03.2a já
+produz uma ideia inicial, mas F03.2b decidiu não ativá-la comercialmente após
+encontrar linguagem não fundamentada nos fatos confirmados. F03.2c cobre parte
+do diagnóstico administrativo, sem completar o percurso inteiro. F03.3 deve
+melhorar e avaliar a ideia e gerar cenas, fala/texto, CTA, fonte de cada fato e
+validade, com versão e revisão pelo proprietário; ainda não renderiza ou publica.
+Testes usam a entrada F02 com webhooks assinados e mídia sintética, mesmo com a
+Meta indisponível. Um mock não dispensa smoke real antes da operação comercial.
+
+Aceite da F03.3: uma foto com legenda e uma mensagem de preço confirmada, vindas
+de webhook sintético assinado e vinculadas ao mesmo negócio, chegam à biblioteca;
+o proprietário solicita um roteiro que cita somente fatos vigentes e os materiais
+autorizados. A UI mostra cenas e fontes para edição/aprovação. Material sem fato
+confirmado pede informação em vez de publicar uma afirmação. Replay, concorrência,
+revogação de consentimento e conteúdo de outro tenant não criam roteiro válido.
+Nenhuma peça é renderizada ou publicada nesta entrega.
+
+Implementação local F03.3: o modelo escolhe formato e ordem das cenas em JSON
+estrito; o serviço monta texto da cena factual exclusivamente de fatos vigentes do
+snapshot fixado. Uma foto ou vídeo autorizado pode aparecer como cena de material;
+áudio e texto entram como referência, sem fingir que são imagem. Cada cena expõe
+IDs de fatos e material, e a UI permite ao proprietário aceitar o roteiro ou pedir
+ajustes com uma observação. A decisão é única, idempotente por operação, serializada
+por bloqueio de linha, auditada e isolada por tenant. Aceitar o roteiro não é
+autorizar produção ou publicação. A ausência de fato confirmado continua bloqueando
+o pedido antes da chamada paga; fatos vencidos são excluídos do contexto.
+
+Gaps: edição direta de cenas e ciclo automático de nova versão após pedido de
+ajustes ainda não existem; o proprietário pode alterar fatos e solicitar novo
+roteiro. Não há leitura visual da imagem, avaliação humana em lote nem benchmark
+PT-BR que libere qualidade comercial. O teste Meta externo aguarda WABA liberada.
+F04 deve usar esta estrutura para renderizar peça de foto/cartão com legenda e
+prévia; vídeo e avatar são incrementos posteriores. A passagem de F03.3 para F04
+não equivale a ativar geração automática para clientes reais.
+
+Seleção de modelo da F03.3 (24/10/2026): o padrão local `gpt-5-mini` permanece
+configurável para compatibilidade, mas [está marcado como deprecated na documentação
+oficial](https://developers.openai.com/api/docs/models/gpt-5-mini). Antes de escolher
+um novo padrão, comparar ao menos o baseline sem IA, `gpt-6-luna` e `gpt-6.1-sol`
+com o mesmo conjunto PT-BR de mensagens e roteiros, incluindo afirmação inventada,
+abstenção, utilidade, revisão humana, latência, tokens totais e custo por roteiro
+aprovado. A [documentação atual de modelos](https://developers.openai.com/api/docs/models)
+classifica Luna para volume sensível a custo e Sol para equilíbrio entre capacidade
+e custo; isso é ponto de partida, não evidência de qualidade neste produto. O
+modelo vencedor deve ter versão fixada após os testes; nenhuma troca automática
+por novidade ou preço por token isolado. Revalidar preços, API e disponibilidade
+antes de ativar cada fornecedor em produção.
 
 ## Objetivo
 

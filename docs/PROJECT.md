@@ -12,6 +12,14 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Atualizado: 23/10/2026. Nome adotado: Meu Braço Direito. Repositório principal: `local-spark-platform`.
 
+24/10/2026 — Sequência executável consolidada em [fases](phases/README.md):
+F02 recebe/guarda materiais localmente; F03.3 agora cria roteiro estruturado e
+revisão do proprietário a partir desses materiais e fatos confirmados. A avaliação
+de qualidade comercial e a edição direta de cenas continuam pendentes.
+F04 renderiza, F06 aprova/publica com adapter fake e F05 adiciona avatar sem
+bloquear a publicação inicial. A conta Meta real fica para homologação externa,
+obrigatória antes de clientes reais, sem bloquear desenvolvimento e testes locais.
+
 23/10/2026 — F02.2c6 acrescenta recibos de entrega/falha vinculados ao ID Meta, resposta final durável após decisão, teto diário de tentativas por organização e revisão administrativa auditada sem reenvio. A interface web tem uma lista de falhas/incertezas. Envio real continua desligado até a Meta liberar a WABA e o smoke externo ser aprovado; custo monetário e opt-out ainda são pendências. Ver [F02](phases/F02-whatsapp-ingestion.md).
 
 23/10/2026 — F02.2c5 prepara respostas WhatsApp duráveis e cifradas para as
