@@ -6,6 +6,8 @@ A migration 0026 e os endpoints autenticados `POST /api/v1/organizations/{tenant
 
 O simulador usa regras determinísticas, sem LLM/Jev, envio de WhatsApp ou publicação. A fatia seguinte conecta a inbox real ao estado de decisão. Respostas por outbox, extração estruturada de texto livre, janela e opt-out Meta ficam em recorte posterior. O smoke externo depende do desbloqueio da WABA; testes no Swagger não exigem conta, chave ou despesa nova.
 
+Validação: `make ci` com 450 testes e 100% de linhas/ramos; migration 0026 aplicada no banco local após backup e testada por downgrade/upgrade no banco `_test`.
+
 ## F02.2c4 — Decisões a partir da inbox vinculada (entregue localmente)
 
 O worker de materiais agora registra uma decisão para cada mensagem de texto elegível na mesma transação em que salva o material e marca o evento como processado. Usa o ID do evento como `operation_id`, o proprietário vinculado como ator e o horário da mensagem no fuso do negócio para determinar a data de validade. Reentregas não criam outra decisão nem outra auditoria. A API do proprietário lista decisões por negócio (`GET /editorial-conversation`) e aceita confirmação/descarte (`POST /{decision_id}/decide`) em qualquer ambiente; o endpoint de simulação continua restrito a development/testing. A confirmação versiona o contexto, sem publicar.
@@ -24,7 +26,17 @@ Ainda faltam recibos de entrega/falha do webhook, interface de reconciliação p
 
 Validação: `make ci` com 452 testes e 100% de linhas/ramos; migration 0028 aplicada no banco local após backup e testada por downgrade/upgrade no `_test`. Worker e dispatcher reconstruídos com a chave de envio desligada.
 
-Validação: `make ci` com 450 testes e 100% de linhas/ramos; migration 0026 aplicada no banco local após backup e testada por downgrade/upgrade no banco `_test`.
+## F02.2c6 — Recibos, limite e revisão operacional (entregue localmente)
+
+Migration 0029 registra separadamente o estado da chamada e o resultado de entrega de cada pergunta e confirmação. O correlator lê apenas recibos assinados que já foram persistidos e cifrados na inbox. Faz a correspondência pelo ID de mensagem devolvido pela Meta, deduplica por evento, aceita avanço `sent → failed/delivered → read` e ignora regressões tardias. Um recibo que chega antes do commit do ID fica em quarentena por até dois minutos; sem correspondência depois disso é descartado, sem associar a outro cliente. Só códigos numéricos de erro entram no diagnóstico, nunca texto do WhatsApp ou telefone. O aceite HTTP continua distinto da entrega.
+
+Ao confirmar ou descartar uma proposta, o backend prepara na mesma transação uma resposta curta ao proprietário, apenas se a pergunta original foi aceita e ainda está na janela conservadora. Ela usa o mesmo destinatário cifrado, vínculo/consentimento/plano revalidados, tentativas duráveis e o mesmo tratamento de resultado incerto. Não há repetição automática de envio incerto. A fila considera as duas mensagens no teto de tentativas por organização e dia UTC (`MEU_BRACO_DIREITO_META_DAILY_MESSAGE_LIMIT`); o bloqueio transacional por organização impede duas instâncias de excederem o limite. Sem teto positivo, a chave de envio não pode ser ativada. Esse teto limita tentativas, não é uma estimativa de reais cobrados pela Meta.
+
+`GET /api/v1/admin/whatsapp-replies` lista somente metadados de envios com falha/incerteza ou sem comprovante de entrega após 15 minutos; `POST /api/v1/admin/whatsapp-replies/{id}/review` permite marcar `investigating` ou `closed_no_retry`. O backend exige staff com MFA, usa projeção SQL restrita e audita leitura/revisão e tentativas de envio sem duplicar ações. A revisão não altera o estado de entrega e não dispara retry. A web mostra esses casos em **Administração → Envios WhatsApp**. Sem acesso à WABA liberada, o percurso foi validado com respostas HTTP e webhooks sintéticos assinados; nenhum envio real foi ativado.
+
+Permanecem: smoke externo em baixo volume após verificação da empresa na Meta, custos monetários de mensagens por categoria/tarifa versionada, tratamento explícito de opt-out e classificação de texto livre com avaliação semântica. Até o smoke, `MEU_BRACO_DIREITO_META_REPLY_ENABLED=false`.
+
+Validação: `make ci` com 455 testes e 100% de linhas/ramos; migration 0029 revertida/reaplicada no `_test` e aplicada na base local após backup em `.local/backups/`. Frontend: 179 testes, cobertura integral, build e smoke Chromium de 390 px.
 
 O WhatsApp é a conversa com o proprietário verificado sobre materiais e peças
 do **próprio negócio**; não é atendimento aos consumidores dele nem um chat geral.

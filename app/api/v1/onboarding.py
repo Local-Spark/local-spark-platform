@@ -1,7 +1,8 @@
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Query, Request, Response
+from pydantic import BaseModel
 
 from app.api.deps import Actor, ActorSession, Principal
 from app.schemas.onboarding import OnboardingCreate, OnboardingResult, SessionRead
@@ -9,6 +10,10 @@ from app.services import administration
 from app.services.onboarding import provision_initial_business, session_context, sync_identity
 
 onboarding_router = APIRouter(prefix="/api/v1")
+
+
+class WhatsAppReviewInput(BaseModel):
+    outcome: Literal["investigating", "closed_no_retry"]
 
 
 @onboarding_router.post("/session", response_model=SessionRead, tags=["identity"])
@@ -74,3 +79,20 @@ async def admin_editorial_usage(
     return await administration.editorial_usage_today(
         session, actor, tenant_id, limit, request.app.state.settings.editorial_daily_token_limit
     )
+
+
+@onboarding_router.get("/admin/whatsapp-replies", tags=["administration"])
+async def admin_whatsapp_replies(
+    actor: Actor,
+    session: ActorSession,
+    tenant_id: UUID | None = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+) -> dict[str, Any]:
+    return await administration.whatsapp_reply_issues(session, actor, tenant_id, limit)
+
+
+@onboarding_router.post("/admin/whatsapp-replies/{reply_id}/review", tags=["administration"])
+async def admin_review_whatsapp_reply(
+    reply_id: UUID, payload: WhatsAppReviewInput, actor: Actor, session: ActorSession
+) -> dict[str, str]:
+    return await administration.review_whatsapp_reply(session, actor, reply_id, payload.outcome)

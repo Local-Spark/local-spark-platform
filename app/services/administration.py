@@ -7,6 +7,7 @@ from uuid import UUID
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.services.auth import AuthError
 from app.services.business import AccessDenied
 
 
@@ -144,3 +145,30 @@ async def editorial_usage_today(
         "daily_token_limit": token_limit,
         "items": items,
     }
+
+
+async def whatsapp_reply_issues(session: AsyncSession, actor: UUID, tenant: UUID | None, limit: int) -> dict[str, Any]:
+    """Staff-only metadata for uncertain or failed delivery; no phone or message body."""
+    await require_staff(session, actor, "admin.whatsapp_replies.read")
+    rows = (
+        (
+            await session.execute(
+                text("SELECT * FROM public.admin_whatsapp_replies(:tenant,:limit)"),
+                {"tenant": tenant, "limit": limit},
+            )
+        )
+        .mappings()
+        .all()
+    )
+    return {"items": [dict(row) for row in rows]}
+
+
+async def review_whatsapp_reply(session: AsyncSession, actor: UUID, reply: UUID, outcome: str) -> dict[str, str]:
+    await require_staff(session, actor, "admin.whatsapp_replies.review")
+    found = await session.scalar(
+        text("SELECT public.admin_review_whatsapp_reply(:reply,:outcome)"),
+        {"reply": reply, "outcome": outcome},
+    )
+    if not found:
+        raise AuthError("WHATSAPP_REPLY_NOT_FOUND", 404)
+    return {"review_outcome": outcome}

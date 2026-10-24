@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     meta_encryption_key: SecretStr | None = None
     meta_access_token: SecretStr | None = None
     meta_reply_enabled: bool = False
+    meta_daily_message_limit: int = Field(default=0, ge=0)
     meta_graph_version: str | None = Field(default=None, pattern=r"^v\d+\.\d+$")
     material_storage_bucket: str | None = None
     material_storage_region: str = "us-east-1"
@@ -166,6 +167,13 @@ class Settings(BaseSettings):
             raise ValueError("Audio transcription requires a provider key, encryption key and daily seconds limit")
         if bool(self.meta_access_token) != bool(self.meta_graph_version):
             raise ValueError("Meta media access token and Graph version must be configured together")
+        if self.meta_reply_enabled and (
+            not self.meta_encryption_key
+            or not self.meta_access_token
+            or not self.meta_phone_number_id
+            or self.meta_daily_message_limit < 1
+        ):
+            raise ValueError("Meta replies require Cloud API credentials and a daily message limit")
         if bool(self.material_storage_access_key) != bool(self.material_storage_secret_key):
             raise ValueError("Object storage access key and secret must be configured together")
         if self.environment in {"staging", "production"}:

@@ -131,6 +131,8 @@ async def test_entrypoint_closes_database_after_loop(settings, monkeypatch):
     database.close = AsyncMock()
     monkeypatch.setattr(whatsapp_correlator, "Database", lambda *_args, **_kwargs: database)
     monkeypatch.setattr(whatsapp_correlator, "route_once", AsyncMock(side_effect=[0, 2]))
+    receipts = AsyncMock(side_effect=[0, 1])
+    monkeypatch.setattr(whatsapp_correlator, "process_receipts", receipts)
     calls = 0
 
     async def stop_after_second(_seconds):
@@ -143,3 +145,4 @@ async def test_entrypoint_closes_database_after_loop(settings, monkeypatch):
     with pytest.raises(asyncio.CancelledError):
         await whatsapp_correlator.run_correlator()
     database.close.assert_awaited_once()
+    assert receipts.await_count == 2

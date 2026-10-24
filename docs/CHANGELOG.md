@@ -1,5 +1,12 @@
 # Registro de mudanças
 
+## 2026-10-23 — F02.2c6: recibos e revisão dos envios WhatsApp
+
+- Migration 0029 liga recibos `sent`, `failed`, `delivered` e `read` ao ID Meta sem confundir aceite HTTP com entrega; eventos repetidos ou fora de ordem não regridem estado.
+- Decisão do proprietário prepara resposta curta na mesma transação. Pergunta e confirmação compartilham teto diário de tentativas por organização, com bloqueio transacional; resultados incertos não são reenviados.
+- API e web administrativas exibem metadados de falhas/incertezas e permitem registrar análise/encerramento sem reenvio. Leitura e revisão exigem staff e auditoria; conteúdo e telefone permanecem fora da projeção.
+- Validação local: `make ci` passou com 455 testes e 100% de linhas/ramos; testes cobrem recibos, limite, resposta final, RLS, revisão e auditoria idempotente. Migration 0029 revertida/reaplicada no `_test` e aplicada no banco local após backup em `.local/backups/`. Smoke Meta e custos monetários seguem pendentes; envio real permanece desligado.
+
 ## 2026-10-23 — F02.2c5: respostas WhatsApp e confirmação vinculada
 
 - Migration 0028 cria fila durável com destinatário cifrado, prazo de 24 horas e ID Meta. Envio Cloud API fica desativado por padrão e requer chave, token e número configurados.

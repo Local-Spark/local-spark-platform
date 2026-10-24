@@ -162,6 +162,33 @@ def test_material_provider_requires_paired_credentials(settings, changes):
         Settings(_env_file=None, **{**settings.model_dump(), **changes})
 
 
+def test_meta_reply_requires_cloud_config_and_positive_message_cap(settings):
+    from cryptography.fernet import Fernet
+
+    base = {
+        **settings.model_dump(),
+        "meta_reply_enabled": True,
+        "meta_access_token": "test-token",
+        "meta_graph_version": "v23.0",
+        "meta_phone_number_id": "phone-unit",
+        "meta_daily_message_limit": 3,
+    }
+    with pytest.raises(ValidationError, match="Meta replies require"):
+        Settings(_env_file=None, **base)
+    cloud = {
+        **base,
+        "meta_webhook_mode": "cloud",
+        "meta_database_url": settings.database_url,
+        "meta_verify_token": "verify-unit",
+        "meta_app_secret": "app-unit",
+        "meta_waba_id": "waba-unit",
+        "meta_encryption_key": Fernet.generate_key().decode(),
+    }
+    with pytest.raises(ValidationError, match="Meta replies require"):
+        Settings(_env_file=None, **{**cloud, "meta_daily_message_limit": 0})
+    assert Settings(_env_file=None, **cloud).meta_daily_message_limit == 3
+
+
 @pytest.mark.parametrize("field", ["material_storage_endpoint", "material_storage_public_endpoint"])
 def test_material_endpoints_use_tls_outside_development(settings, field):
     base = {

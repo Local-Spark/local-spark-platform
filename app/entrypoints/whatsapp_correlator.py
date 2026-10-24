@@ -6,6 +6,7 @@ import logging
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.db.session import Database
+from app.services.whatsapp_delivery import process_receipts
 from app.services.whatsapp_routing import route_once
 
 logger = logging.getLogger("meu_braco_direito.whatsapp_correlator")
@@ -20,7 +21,10 @@ async def run_correlator() -> None:
     database = Database(settings, correlator=True)
     try:
         while True:
+            receipts = await process_receipts(database, settings)
             count = await route_once(database, settings)
+            if receipts:
+                logger.info("whatsapp.receipts_processed", extra={"count": receipts})
             if count:
                 logger.info("whatsapp.material_routed", extra={"count": count})
             await asyncio.sleep(2)

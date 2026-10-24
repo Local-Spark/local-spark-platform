@@ -9,7 +9,7 @@ from cryptography.fernet import Fernet
 from pydantic import SecretStr
 
 from app.services.auth import AuthError
-from app.services.whatsapp_replies import ClaimedReply, apply_inbound_command, dispatch_reply
+from app.services.whatsapp_replies import ClaimedReply, apply_inbound_command, claim_reply, dispatch_reply
 
 
 async def test_reply_dispatch_states(settings, monkeypatch):
@@ -29,6 +29,8 @@ async def test_reply_dispatch_states(settings, monkeypatch):
     claim = AsyncMock(return_value=reply)
     finish = AsyncMock()
     monkeypatch.setattr(module, "claim_reply", claim)
+    ack_claim = AsyncMock(return_value=None)
+    monkeypatch.setattr(module, "claim_ack", ack_claim)
     monkeypatch.setattr(module, "finish_reply", finish)
 
     async def case(status, payload):
@@ -47,6 +49,11 @@ async def test_reply_dispatch_states(settings, monkeypatch):
     async with httpx.AsyncClient() as http:
         assert await dispatch_reply(Mock(), cfg, http) is False
         assert await dispatch_reply(Mock(), cfg.model_copy(update={"meta_reply_enabled": False}), http) is False
+    ack_claim.return_value = ClaimedReply(reply.id, reply.recipient_ciphertext, "Confirmado", ack=True)
+    transport = httpx.MockTransport(lambda _: httpx.Response(200, json={"messages": [{"id": "wamid-ack"}]}))
+    async with httpx.AsyncClient(transport=transport) as http:
+        assert await dispatch_reply(Mock(), cfg, http) is True
+    assert finish.await_args.args[1].ack is True
 
 
 async def test_commands_require_unambiguous_prompt(settings, monkeypatch):
@@ -105,3 +112,36 @@ async def test_commands_require_unambiguous_prompt(settings, monkeypatch):
     ]
     assert await apply_inbound_command(settings, database, row, {"text": {"body": "Confirmar"}}) is True
     decide.assert_not_awaited()
+
+
+async def test_prompt_claim_defers_when_daily_budget_is_exhausted(settings, monkeypatch):
+    import app.services.whatsapp_replies as module
+
+    reply_id, tenant_id = uuid4(), uuid4()
+    result = Mock()
+    result.mappings.return_value.one_or_none.return_value = {
+        "id": reply_id,
+        "tenant_id": tenant_id,
+        "recipient_ciphertext": "encrypted",
+        "reply": "Question?",
+    }
+    session = AsyncMock()
+    session.execute.return_value = result
+
+    @asynccontextmanager
+    async def transaction():
+        yield session
+
+    @asynccontextmanager
+    async def sessions():
+        yield session
+
+    session.begin = transaction
+    database = Mock(sessions=sessions)
+    budget = AsyncMock(return_value=False)
+    defer = AsyncMock()
+    monkeypatch.setattr(module, "_within_daily_limit", budget)
+    monkeypatch.setattr(module, "_defer_to_tomorrow", defer)
+    assert await claim_reply(database, settings) is None
+    budget.assert_awaited_once_with(session, tenant_id, settings.meta_daily_message_limit)
+    defer.assert_awaited_once_with(session, reply_id, ack=False)

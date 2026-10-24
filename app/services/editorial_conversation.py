@@ -300,6 +300,8 @@ class EditorialConversationService:
                 .mappings()
                 .one()
             )
+            # The owner decision and any WhatsApp acknowledgment commit together.
+            await session.execute(text("SELECT public.enqueue_whatsapp_ack(:decision)"), {"decision": decision})
             await session.execute(
                 text("""INSERT INTO audit_events(tenant_id,actor_id,operation_id,action,resource_id)
               VALUES(:tenant,:actor,:decision,:action,:business)"""),

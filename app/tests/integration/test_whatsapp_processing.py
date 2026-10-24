@@ -5,18 +5,23 @@ from unittest.mock import AsyncMock, Mock
 from uuid import uuid4
 
 import httpx
+import pytest
 from cryptography.fernet import Fernet
 from pydantic import SecretStr
 from sqlalchemy import text
 from sqlalchemy.exc import ProgrammingError
 
 from app.adapters.material_media import FetchedMedia, MaterialError, MaterialStore
+from app.core.identity import Identity
 from app.db.session import Database
 from app.main import create_app
+from app.services.administration import review_whatsapp_reply, whatsapp_reply_issues
+from app.services.auth import AuthError
 from app.services.editorial_conversation import record_inbound_text
+from app.services.whatsapp_delivery import process_receipts
 from app.services.whatsapp_ingest import save_events, sender_hash
 from app.services.whatsapp_processing import MaterialClaim, MaterialProcessor, dispatch_materials, finish_dispatch
-from app.services.whatsapp_replies import dispatch_reply
+from app.services.whatsapp_replies import ClaimedReply, dispatch_reply, finish_reply
 from app.services.whatsapp_retention import claim_upload_intents, reconcile_uploads
 from app.services.whatsapp_routing import route_once
 from app.tests.unit.test_core import access_token
@@ -157,6 +162,7 @@ async def test_text_material_consent_library_and_revocation(admin, database, aut
                     "meta_graph_version": "v23.0",
                     "meta_phone_number_id": "123",
                     "meta_reply_enabled": True,
+                    "meta_daily_message_limit": 10,
                 }
             )
 
@@ -173,6 +179,27 @@ async def test_text_material_consent_library_and_revocation(admin, database, aut
                         text("SELECT state FROM editorial_whatsapp_replies WHERE id=:id"), {"id": decision["id"]}
                     )
                     == "accepted"
+                )
+            await save_events(
+                meta,
+                cfg,
+                [("receipt-delivered", "status", {"id": "wamid.test-prompt", "status": "delivered"})],
+            )
+            assert await process_receipts(router, cfg) == 1
+            await save_events(
+                meta,
+                cfg,
+                [("receipt-sent-late", "status", {"id": "wamid.test-prompt", "status": "sent"})],
+            )
+            assert await process_receipts(router, cfg) == 1
+            assert await process_receipts(router, cfg) == 0
+            async with admin.connect() as connection:
+                assert (
+                    await connection.scalar(
+                        text("SELECT delivery_state FROM editorial_whatsapp_replies WHERE id=:id"),
+                        {"id": decision["id"]},
+                    )
+                    == "delivered"
                 )
             await save_events(
                 meta,
@@ -202,6 +229,155 @@ async def test_text_material_consent_library_and_revocation(admin, database, aut
                 f"/api/v1/organizations/{tenant}/businesses/{business}/editorial-context", headers=owner
             )
             assert context.json()["facts"][0]["statement"] == "X-tudo: R$ 20,00 hoje"
+            async with admin.connect() as connection:
+                assert (
+                    await connection.scalar(
+                        text("SELECT ack_state FROM editorial_whatsapp_replies WHERE id=:id"),
+                        {"id": decision["id"]},
+                    )
+                    == "pending"
+                )
+            limited = send_cfg.model_copy(update={"meta_daily_message_limit": 1})
+            async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as graph:
+                assert await dispatch_reply(router, limited, graph) is False
+            async with admin.begin() as connection:
+                assert (
+                    await connection.scalar(
+                        text("SELECT ack_state FROM editorial_whatsapp_replies WHERE id=:id"),
+                        {"id": decision["id"]},
+                    )
+                    == "pending"
+                )
+                await connection.execute(
+                    text("UPDATE editorial_whatsapp_replies SET ack_next_attempt_at=now() WHERE id=:id"),
+                    {"id": decision["id"]},
+                )
+            async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as graph:
+                assert await dispatch_reply(router, limited, graph) is False
+            async with admin.begin() as connection:
+                assert (
+                    await connection.scalar(
+                        text("""SELECT count(*) FROM audit_events
+                      WHERE operation_id=:id AND action='whatsapp.ack_budget_deferred'"""),
+                        {"id": decision["id"]},
+                    )
+                    == 1
+                )
+                await connection.execute(
+                    text("UPDATE editorial_whatsapp_replies SET ack_next_attempt_at=now() WHERE id=:id"),
+                    {"id": decision["id"]},
+                )
+            async with httpx.AsyncClient(
+                transport=httpx.MockTransport(
+                    lambda _: httpx.Response(200, json={"messages": [{"id": "wamid.test-ack"}]})
+                )
+            ) as graph:
+                assert await dispatch_reply(router, send_cfg, graph) is True
+            await finish_reply(router, ClaimedReply(decision["id"], "", "", ack=True), "accepted", "wamid.duplicate")
+            async with admin.connect() as connection:
+                assert (
+                    await connection.scalar(
+                        text("SELECT ack_provider_message_id FROM editorial_whatsapp_replies WHERE id=:id"),
+                        {"id": decision["id"]},
+                    )
+                    == "wamid.test-ack"
+                )
+                assert (
+                    await connection.scalar(
+                        text("""SELECT count(*) FROM audit_events
+                      WHERE operation_id=:id AND action='whatsapp.ack_accepted'"""),
+                        {"id": decision["id"]},
+                    )
+                    == 1
+                )
+            await save_events(
+                meta,
+                cfg,
+                [
+                    (
+                        "receipt-ack-failed",
+                        "status",
+                        {"id": "wamid.test-ack", "status": "failed", "errors": [{"code": 131031}]},
+                    )
+                ],
+            )
+            assert await process_receipts(router, cfg) == 1
+            await save_events(
+                meta,
+                cfg,
+                [("unknown-receipt", "status", {"id": "wamid.unknown", "status": "sent"})],
+            )
+            assert await process_receipts(router, cfg) == 0
+            async with admin.begin() as connection:
+                await connection.execute(
+                    text("""UPDATE whatsapp_inbox SET received_at=now()-interval '3 minutes'
+                      WHERE dedupe_key='unknown-receipt'""")
+                )
+                await connection.execute(
+                    text("""INSERT INTO whatsapp_inbox(id,dedupe_key,event_kind,ciphertext)
+                      VALUES(:id,'broken-receipt','status','not-encrypted')"""),
+                    {"id": uuid4()},
+                )
+            assert await process_receipts(router, cfg) == 2
+            async with admin.connect() as connection:
+                assert (
+                    await connection.scalar(text("SELECT state FROM whatsapp_inbox WHERE dedupe_key='unknown-receipt'"))
+                    == "discarded"
+                )
+            async with admin.connect() as connection:
+                receipt_state = (
+                    await connection.execute(
+                        text("""SELECT ack_state,ack_delivery_state,ack_provider_error_code
+                          FROM editorial_whatsapp_replies WHERE id=:id"""),
+                        {"id": decision["id"]},
+                    )
+                ).one()
+                assert receipt_state == ("accepted", "failed", "131031")
+            async with admin.begin() as connection:
+                await connection.execute(
+                    text("INSERT INTO platform_staff(actor_id,active) VALUES(:actor,true)"),
+                    {"actor": seeded["a2"]},
+                )
+            issues = "/api/v1/admin/whatsapp-replies"
+            staff = {"Authorization": f"Bearer {access_token(cfg, seeded['a2'])}"}
+            assert (await client.get(issues, headers=owner)).status_code == 403
+            review = issues + f"/{decision['id']}/review"
+            assert (await client.post(review, headers=owner, json={"outcome": "investigating"})).status_code == 403
+            authenticate = app.state.identity_verifier.authenticate
+            app.state.identity_verifier.authenticate = AsyncMock(
+                return_value=Identity(seeded["a2"], cfg.jwt_issuer, str(seeded["a2"]), "Test")
+            )
+            listing = await client.get(issues, headers=staff)
+            assert listing.status_code == 200, listing.text
+            assert len(listing.json()["items"]) == 1
+            assert listing.json()["items"][0]["ack_provider_error_code"] == "131031"
+            assert number not in listing.text and "Confirma?" not in listing.text
+            assert (await client.post(review, headers=staff, json={"outcome": "investigating"})).status_code == 200
+            assert (await client.post(review, headers=staff, json={"outcome": "closed_no_retry"})).status_code == 200
+            assert (await client.post(review, headers=staff, json={"outcome": "retry"})).status_code == 422
+            assert (
+                await client.post(issues + f"/{uuid4()}/review", headers=staff, json={"outcome": "investigating"})
+            ).status_code == 404
+            assert (await client.get(issues, headers=staff)).json()["items"][0]["review_outcome"] == "closed_no_retry"
+            operator_database = Database(cfg)
+            try:
+                async with operator_database.transaction(seeded["t2"], seeded["a2"]) as session:
+                    assert (await whatsapp_reply_issues(session, seeded["a2"], tenant, 10))["items"][0][
+                        "id"
+                    ] == decision["id"]
+                    assert (await review_whatsapp_reply(session, seeded["a2"], decision["id"], "investigating"))[
+                        "review_outcome"
+                    ] == "investigating"
+                    with pytest.raises(AuthError, match="WHATSAPP_REPLY_NOT_FOUND"):
+                        await review_whatsapp_reply(session, seeded["a2"], uuid4(), "investigating")
+            finally:
+                await operator_database.close()
+            app.state.identity_verifier.authenticate = authenticate
+            async with admin.begin() as connection:
+                await connection.execute(
+                    text("UPDATE platform_staff SET active=false WHERE actor_id=:actor"),
+                    {"actor": seeded["a2"]},
+                )
             async with router.sessions() as session, session.begin():
                 await record_inbound_text(session, original, "Hoje o X-tudo está 20 reais", number, Fernet(key))
             async with admin.connect() as connection:
