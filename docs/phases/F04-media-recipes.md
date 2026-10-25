@@ -1,13 +1,14 @@
 # F04 — Artes, carrosséis e edição de vídeo
 
-Status: F04.1 implementada localmente em 25/10/2026; F04.2 e demais receitas planejadas.
+Status: F04.1 e primeira receita F04.2 implementadas localmente em 25/10/2026;
+F04.1b, F04.2b (qualidade do vídeo) e F04.3 ainda planejadas.
 Dependências: F02, F03.
 
 F04.1 consome apenas roteiro F03.3 aceito, contexto e material vigentes. Produz
 prévia JPEG privada de foto (1080×1350) ou story (1080×1920) com identidade de
 marca, foto real opcional, fato confirmado e convite genérico. O proprietário
 pede e abre a prévia em `/app/ideas`; isso não aprova uma publicação. F04.2
-amplia para vídeo curto com FFmpeg e legenda sincronizada; F05 mantém avatar
+acrescenta MP4 curto e texto de cena temporizado; F05 mantém avatar
 opcional. Edição direta e revisão iterativa do roteiro F03.3 permanecem como
 melhoria antes de ativação comercial.
 
@@ -44,6 +45,80 @@ arquivo de exemplo não representa envio pelo WhatsApp nem publicação.
   Testes usam PostgreSQL restrito, Temporal e armazenamento falsos, sem Meta/OpenAI
   pagos. A receita Pillow é determinística; medição de qualidade visual com
   comerciantes reais e revisão de template ainda são necessárias antes do piloto.
+
+## F04.1b — Qualidade da arte estática (planejada antes do piloto)
+
+- Montar amostra PT-BR por segmento, formatos, cores, comprimento de texto e
+  qualidade/proporção das fotos; dados de negócios reais só com autorização.
+  Avaliar em tela de celular legibilidade, recorte do produto, identidade visual,
+  preço/validade/CTA, fidelidade à foto e ausência de afirmação inventada.
+- Revisão humana com comerciantes da amostra registra defeitos, pedidos de
+  ajuste e aceite. Definir metas de qualidade e custo por arte antes de medir;
+  revisar templates versionados e repetir a avaliação. Bloquear o piloto se
+  preço, produto ou oferta estiverem incorretos, independentemente da média.
+- Permitir solicitar ajuste da peça e renderizar nova versão privada; a nova
+  versão perde qualquer aprovação anterior. A edição do texto do roteiro e a
+  nova versão factual pertencem à F03.3b, antes de renderizar novamente.
+
+## F04.2 — Primeiro vídeo curto (implementado localmente)
+
+- Roteiro `short_video` F03.3 aceito e ainda válido usa a mesma operação
+  idempotente, Temporal, lease/fencing, hash de fonte, armazenamento privado e
+  limpeza da F04.1. A migration 0032 distingue JPEG e MP4 e guarda duração.
+- FFmpeg gera MP4 H.264, 1080×1920, cerca de oito segundos, a partir de foto
+  autorizada, trecho inicial de clipe MP4/3GPP autorizado ou cartões de marca.
+  Fonte tipográfica incluída no worker cobre acentos PT-BR; versão do template
+  invalida renderizações anteriores com glifos ausentes.
+  O clipe é enquadrado no formato vertical e tem o áudio original removido.
+  Três cenas
+  exibem apresentação genérica, fato confirmado literalmente e CTA genérico;
+  texto permanece na tela pelo tempo da cena. O vídeo é **silencioso**: não há
+  voz sintetizada nem transcrição de fala para chamar esses textos de legenda
+  sincronizada ao áudio. Edição com seleção de trechos, cortes múltiplos e áudio
+  alinhado fica para uma evolução da receita.
+- Fonte limitada a 5 MiB (foto) ou 50 MiB (clipe), com dimensões de vídeo
+  verificadas antes do render; saída a 20 MiB,
+  até 90 s de processo FFmpeg, dois threads de encoder
+  e worker isolado da API. O arquivo só aparece depois de revalidar roteiro,
+  contexto, fato, plano e material de origem; o link assinado usa `video/mp4`. Fatos com validade
+  fazem a prévia expirar no fim do dia local. A web reproduz o MP4, sem ação de
+  publicar. Falhas recebem código estável e tentativas limitadas.
+- Render real com FFmpeg é verificado em Docker. Ainda faltam avaliação visual e
+  custo por peça com comerciantes, edição de múltiplos trechos e legendas alinhadas
+  à fala real antes de chamar a receita de vídeo completo comercial.
+
+## F04.2b — Qualidade criativa do vídeo (planejada antes do piloto)
+
+- Aproveitar as cenas do roteiro versionado F03.3b, o contexto de marca e os
+  materiais autorizados para escolher trechos e compor narrativa, ritmo,
+  tipografia e CTA adequados ao segmento. Preservar literalmente fatos
+  comerciais confirmados; novas alegações exigem confirmação do proprietário.
+- Evoluir a receita silenciosa para cortes e transições intencionais. Quando
+  houver fala autorizada, avaliar transcrição, edição de áudio e legendas
+  alinhadas à fala realmente presente no arquivo; música e voz só com direitos,
+  consentimento e custo medidos. Disponibilizar prévia versionada e pedido de
+  ajustes antes de qualquer aprovação de publicação.
+- Testar com corpus PT-BR e comerciantes consentidos, em celular, medindo
+  legibilidade, fidelidade ao produto, qualidade percebida, tempo de render,
+  custo e taxa de correções. Bloquear o piloto para erros factuais, cortes que
+  alterem o sentido ou qualidade abaixo dos critérios definidos na avaliação.
+
+## F04.3 — Percurso principal pelo WhatsApp (planejado)
+
+F04.3 encadeia material/fato confirmado → ideia/roteiro validado →
+prévia sem exigir que o cliente abra a web ou aceite manualmente o roteiro apenas
+para iniciar o render. A aceitação técnica para gerar uma **candidata** não é
+aprovação do proprietário para publicar. Guardas de fatos, direitos, consentimento,
+plano, quota, validade e proveniência continuam obrigatórios; dúvida pede
+esclarecimento pelo WhatsApp. Se houver várias candidatas, cada resposta deve
+referir-se à peça certa.
+
+F04.3 ensaia envio com adapter fake e eventos assinados localmente; o envio real
+usa o canal oficial após homologação Meta. Ambos usam outbox e estado de entrega,
+mantendo a web como alternativa. Falha/resultado incerto de envio não vira
+aprovação nem dispara reenvio inseguro. A decisão final sobre peça, legenda, destino e horário,
+inclusive comandos "Aprovar" e "Pedir ajustes", é contrato da F06. O comando
+"Confirmar" usado para preço/horário na F02 nunca autoriza publicação.
 
 ## Objetivo
 

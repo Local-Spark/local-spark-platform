@@ -17,14 +17,32 @@ JPEG privada com template determinístico, fato confirmado vigente e foto real
 opcional. A área cliente pede/abre a prévia, sem publicação. Temporal, render key,
 fencing, retries e limpeza de objetos expirados/excluídos protegem estado e
 retenção; o roteiro local `baseline-v1` não requer consentimento de IA externa.
-Ver [F04](phases/F04-media-recipes.md). F04.2 vídeo, F06 publicação, benchmark
-comercial e homologação Meta continuam pendentes.
+Ver [F04](phases/F04-media-recipes.md). Edição avançada de clipes, F06 publicação,
+benchmark comercial e homologação Meta continuam pendentes.
+
+25/10/2026 — A primeira receita F04.2 já renderiza MP4 H.264 privado a partir
+de foto ou trecho inicial de clipe autorizado e fato confirmado, com texto de
+cena temporizado e sem áudio. O cliente abre a prévia na web. Cortes múltiplos,
+legenda sincronizada
+à fala, avaliação visual e envio/aprovação pelo WhatsApp continuam pendentes.
+
+25/10/2026 — Jornada WhatsApp-first formalizada: F03.3b inclui edição e nova
+versão do roteiro com benchmark comercial; F04.1b mede/revisa a qualidade das
+artes com comerciantes consentidos. F04.2 já entrega o primeiro vídeo privado;
+F04.3 iniciará geração e envio da prévia pelo WhatsApp sem obrigar uso da web.
+F06 separa a aprovação explícita da peça final da confirmação de preço/horário
+e só então agenda/publica. F03.3b, F04.1b, F04.2b, F04.3 e F06 seguem planejadas;
+ver [fases](phases/README.md).
+Após a primeira receita F04.2, a ordem de implementação é F03.3b, F04.1b,
+F04.2b e F04.3; os três primeiros são gates de qualidade antes da automação da
+prévia.
 
 24/10/2026 — Sequência executável consolidada em [fases](phases/README.md):
 F02 recebe/guarda materiais localmente; F03.3 agora cria roteiro estruturado e
 revisão do proprietário a partir desses materiais e fatos confirmados. A avaliação
 de qualidade comercial e a edição direta de cenas continuam pendentes.
-F04.1 renderiza arte estática; F04.2 trata vídeo. F06 aprova/publica com adapter fake e F05 adiciona avatar sem
+F04.1 renderiza arte estática; F04.2 gera vídeo silencioso de foto ou clipe. F06
+aprova/publica com adapter fake e F05 adiciona avatar sem
 bloquear a publicação inicial. A conta Meta real fica para homologação externa,
 obrigatória antes de clientes reais, sem bloquear desenvolvimento e testes locais.
 

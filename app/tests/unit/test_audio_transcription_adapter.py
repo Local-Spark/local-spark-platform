@@ -134,6 +134,31 @@ async def test_store_bounded_image_download(settings, monkeypatch):
         await store.get_image("image")
 
 
+async def test_store_bounded_video_download(settings, monkeypatch):
+    from app.adapters.material_media import MAX_BYTES
+
+    with pytest.raises(MaterialError, match="MATERIAL_STORAGE_NOT_CONFIGURED"):
+        await MaterialStore(settings).get_video("video")
+    store = MaterialStore(settings.model_copy(update={"material_storage_bucket": "bucket"}))
+    client, body = Mock(), Mock()
+    body.read.return_value = b"mp4"
+    client.get_object.return_value = {"Body": body, "ContentLength": 3}
+    monkeypatch.setattr(store, "_client", lambda: client)
+    assert await store.get_video("video") == b"mp4"
+    assert body.read.call_args.args == (MAX_BYTES["video"] + 1,)
+    body.close.assert_called_once()
+    client.get_object.return_value["ContentLength"] = MAX_BYTES["video"] + 1
+    with pytest.raises(MaterialError, match="MEDIA_SIZE_EXCEEDED"):
+        await store.get_video("video")
+    client.get_object.return_value["ContentLength"] = 0
+    body.read.return_value = b"x" * (MAX_BYTES["video"] + 1)
+    with pytest.raises(MaterialError, match="MEDIA_SIZE_EXCEEDED"):
+        await store.get_video("video")
+    client.get_object.side_effect = RuntimeError("storage")
+    with pytest.raises(MaterialError, match="MATERIAL_STORAGE_UNAVAILABLE"):
+        await store.get_video("video")
+
+
 @pytest.mark.parametrize(
     "payload,expected",
     [

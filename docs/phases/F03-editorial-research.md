@@ -39,6 +39,25 @@ F04 deve usar esta estrutura para renderizar peça de foto/cartão com legenda e
 prévia; vídeo e avatar são incrementos posteriores. A passagem de F03.3 para F04
 não equivale a ativar geração automática para clientes reais.
 
+### F03.3b — Edição e avaliação comercial do roteiro (planejada antes do piloto)
+
+- Permitir corrigir cenas, texto na tela, fala e CTA na web; pedidos de ajuste
+  recebidos pelo WhatsApp, quando o fluxo F06 existir, usam o mesmo versionamento.
+  Preservar a origem dos materiais, IDs de fatos, validade, contexto e autor da
+  alteração em cada versão. Revalidar
+  afirmações comerciais após qualquer edição; texto livre editado não transforma
+  hipótese em fato confirmado.
+- Cada revisão recebe ID/hash próprios. Aceite de versão anterior não migra para
+  a nova, e aprovação de uma peça renderizada nunca migra para outra versão.
+  Concorrência, replay e pedido de ajuste durante render/agendamento deixam uma
+  única versão elegível; as demais não podem seguir para publicação.
+- Ampliar o conjunto PT-BR com negócios e materiais consentidos, incluindo
+  preço vencido, promoção ambígua, foto sem descrição e alegação inventada.
+  Comparar baseline e modelos em revisão humana, correções, abstenção, latência e
+  custo por roteiro aprovado; declarar critérios de aprovação antes da avaliação.
+  A ativação comercial exige evidência de qualidade e segurança factual, não só
+  testes automatizados ou aceite técnico da API.
+
 Seleção de modelo da F03.3 (24/10/2026): o padrão local `gpt-5-mini` permanece
 configurável para compatibilidade, mas [está marcado como deprecated na documentação
 oficial](https://developers.openai.com/api/docs/models/gpt-5-mini). Antes de escolher

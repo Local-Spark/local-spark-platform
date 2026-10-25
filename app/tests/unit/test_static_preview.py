@@ -6,13 +6,18 @@ from unittest.mock import MagicMock, patch
 import pytest
 from PIL import Image, ImageDraw, ImageFont
 
-from app.adapters.static_preview import PreviewRenderError, _fit, _ink, _lines, render_static_preview
+from app.adapters.static_preview import PreviewRenderError, _fit, _font, _ink, _lines, render_static_preview
 
 
 def _photo() -> bytes:
     buffer = io.BytesIO()
     Image.new("RGB", (80, 120), "#ffaa33").save(buffer, format="PNG")
     return buffer.getvalue()
+
+
+def test_bundled_font_has_portuguese_glyphs():
+    font = _font(48)
+    assert font.getmask("õ").size != font.getmask("□").size
 
 
 def test_static_recipe_is_deterministic_with_and_without_source():

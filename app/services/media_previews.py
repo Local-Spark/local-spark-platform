@@ -1,4 +1,4 @@
-"""Durable owner requests and fenced rendering of private static previews."""
+"""Durable owner requests and fenced rendering of private image/video previews."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import asyncio
 import hashlib
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime, time, timedelta
 from typing import Any
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
@@ -15,6 +15,7 @@ from sqlalchemy import text
 
 from app.adapters.material_media import MaterialError, MaterialStore
 from app.adapters.static_preview import TEMPLATE_VERSION, PreviewRenderError, render_static_preview
+from app.adapters.video_preview import VIDEO_DURATION_MS, VIDEO_TEMPLATE_VERSION, render_video_preview
 from app.core.config import Settings
 from app.db.session import Database
 from app.schemas.editorial_context import ContextContent
@@ -36,6 +37,8 @@ class RenderInputs:
     source_id: UUID | None
     fact_id: UUID
     render_key: str
+    expires_at: datetime | None = None
+    source_kind: str | None = None
 
 
 def _digest(value: object) -> str:
@@ -64,7 +67,7 @@ class MediaPreviewService:
         ):
             raise AuthError("PLAN_REQUIRED", 403)
         draft = ProposalDraft.model_validate(proposal["document"])
-        if draft.format not in {"photo", "story"}:
+        if draft.format not in {"photo", "story", "short_video"}:
             raise AuthError("PREVIEW_FORMAT_UNSUPPORTED", 409)
         facts = [scene for scene in draft.script if scene.role == "fact"]
         if len(facts) != 1 or len(facts[0].fact_ids) != 1:
@@ -100,6 +103,13 @@ class MediaPreviewService:
         fact = next((item for item in context.facts if item.id == facts[0].fact_ids[0]), None)
         if fact is None or (fact.valid_until is not None and fact.valid_until < today):
             raise AuthError("PREVIEW_FACT_EXPIRED", 409)
+        fact_expiry = (
+            datetime.combine(fact.valid_until + timedelta(days=1), time.min, ZoneInfo(profile["timezone"])).astimezone(
+                UTC
+            )
+            if fact.valid_until is not None
+            else None
+        )
         statement = fact.statement.rstrip(". ") + "."
         if statement != facts[0].on_screen_text:
             raise AuthError("PREVIEW_FACT_CHANGED", 409)
@@ -109,15 +119,23 @@ class MediaPreviewService:
         source_id = materials[0].source_asset_id if materials else None
         source_key = None
         source_hash = None
+        source_kind = None
         if source_id is not None:
             asset = (
                 (
                     await session.execute(
-                        text("""SELECT object_key,sha256 FROM whatsapp_material_assets
-                          WHERE id=:id AND tenant_id=:tenant AND business_id=:business AND kind='image'
-                            AND mime_type IN ('image/jpeg','image/png') AND delete_requested_at IS NULL
+                        text("""SELECT object_key,sha256,kind FROM whatsapp_material_assets
+                          WHERE id=:id AND tenant_id=:tenant AND business_id=:business
+                            AND ((kind='image' AND mime_type IN ('image/jpeg','image/png'))
+                              OR (:is_video AND kind='video' AND mime_type IN ('video/mp4','video/3gpp')))
+                            AND delete_requested_at IS NULL
                             AND expires_at>now()"""),
-                        {"id": source_id, "tenant": proposal["tenant_id"], "business": proposal["business_id"]},
+                        {
+                            "id": source_id,
+                            "tenant": proposal["tenant_id"],
+                            "business": proposal["business_id"],
+                            "is_video": draft.format == "short_video",
+                        },
                     )
                 )
                 .mappings()
@@ -131,6 +149,7 @@ class MediaPreviewService:
             ):
                 raise AuthError("PREVIEW_MATERIAL_NOT_READY", 409)
             source_key, source_hash = asset["object_key"], asset["sha256"]
+            source_kind = asset["kind"]
         render_key = _digest(
             {
                 "proposal": proposal["id"],
@@ -139,7 +158,9 @@ class MediaPreviewService:
                 "name": profile["name"],
                 "brand_color": profile["brand_color"],
                 "source_sha256": source_hash,
-                "template": TEMPLATE_VERSION,
+                "source_kind": source_kind,
+                "template": VIDEO_TEMPLATE_VERSION if draft.format == "short_video" else TEMPLATE_VERSION,
+                "recipe": "silent-captioned-video" if draft.format == "short_video" else "static-image",
             }
         )
         return RenderInputs(
@@ -152,6 +173,8 @@ class MediaPreviewService:
             source_id,
             fact.id,
             render_key,
+            min(proposal["expires_at"], fact_expiry) if fact_expiry is not None else proposal["expires_at"],
+            source_kind,
         )
 
     async def request(self, tenant: UUID, business: UUID, actor: UUID, payload: PreviewRequest) -> PreviewRead:
@@ -192,9 +215,9 @@ class MediaPreviewService:
                     await session.execute(
                         text("""INSERT INTO media_previews
                           (id,tenant_id,business_id,proposal_id,actor_id,operation_id,request_hash,
-                           render_key,template_version,context_version,source_asset_id,fact_ids,expires_at)
+                           render_key,template_version,context_version,source_asset_id,fact_ids,expires_at,mime_type)
                           VALUES(:id,:tenant,:business,:proposal,:actor,:operation,:hash,:key,:template,
-                            :version,:source,CAST(:facts AS jsonb),:expires)
+                            :version,:source,CAST(:facts AS jsonb),:expires,:mime)
                           ON CONFLICT DO NOTHING RETURNING *"""),
                         {
                             "id": uuid4(),
@@ -205,11 +228,12 @@ class MediaPreviewService:
                             "operation": payload.operation_id,
                             "hash": request_hash,
                             "key": inputs.render_key,
-                            "template": TEMPLATE_VERSION,
+                            "template": VIDEO_TEMPLATE_VERSION if inputs.format == "short_video" else TEMPLATE_VERSION,
                             "version": proposal["context_version"],
                             "source": inputs.source_id,
                             "facts": json.dumps([str(inputs.fact_id)]),
-                            "expires": proposal["expires_at"],
+                            "expires": inputs.expires_at or proposal["expires_at"],
+                            "mime": "video/mp4" if inputs.format == "short_video" else "image/jpeg",
                         },
                     )
                 )
@@ -249,6 +273,8 @@ class MediaPreviewService:
                         text("""SELECT p.* FROM media_previews p WHERE p.tenant_id=:tenant AND p.business_id=:business
                           AND p.expires_at>now() AND p.state<>'purging'
                           AND EXISTS(SELECT 1 FROM editorial_proposals e WHERE e.id=p.proposal_id)
+                          AND EXISTS(SELECT 1 FROM business_context_heads h WHERE h.tenant_id=p.tenant_id
+                            AND h.business_id=p.business_id AND h.version=p.context_version)
                           AND (p.source_asset_id IS NULL OR EXISTS(SELECT 1 FROM whatsapp_material_assets a
                             WHERE a.id=p.source_asset_id AND a.delete_requested_at IS NULL AND a.expires_at>now()))
                           ORDER BY p.created_at DESC,p.id DESC LIMIT 30"""),
@@ -263,17 +289,37 @@ class MediaPreviewService:
     async def file_key(self, tenant: UUID, business: UUID, actor: UUID, preview_id: UUID) -> str:
         async with self.database.transaction(tenant, actor) as session:
             await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
-            key = await session.scalar(
-                text("""SELECT p.object_key FROM media_previews p WHERE p.id=:id AND p.tenant_id=:tenant
+            row = (
+                (
+                    await session.execute(
+                        text("""SELECT p.* FROM media_previews p WHERE p.id=:id AND p.tenant_id=:tenant
                   AND p.business_id=:business AND p.state='completed' AND p.expires_at>now()
                   AND EXISTS(SELECT 1 FROM editorial_proposals e WHERE e.id=p.proposal_id)
                   AND (p.source_asset_id IS NULL OR EXISTS(SELECT 1 FROM whatsapp_material_assets a
                     WHERE a.id=p.source_asset_id AND a.delete_requested_at IS NULL AND a.expires_at>now()))"""),
-                {"id": preview_id, "tenant": tenant, "business": business},
+                        {"id": preview_id, "tenant": tenant, "business": business},
+                    )
+                )
+                .mappings()
+                .one_or_none()
             )
-            if not key:
+            if row is None or not row["object_key"]:
                 raise AuthError("PREVIEW_NOT_READY", 404)
-            return str(key)
+            proposal = (
+                (
+                    await session.execute(
+                        text("SELECT * FROM editorial_proposals WHERE id=:id"), {"id": row["proposal_id"]}
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+            try:
+                if proposal is None or (await self._inputs(session, proposal)).render_key != row["render_key"]:
+                    raise AuthError("PREVIEW_NOT_READY", 404)
+            except AuthError as exc:
+                raise AuthError("PREVIEW_NOT_READY", 404) from exc
+            return str(row["object_key"])
 
     async def _fail(self, preview_id: UUID, fence: int, code: str, retryable: bool) -> str:
         async with self.database.sessions() as session, session.begin():
@@ -331,24 +377,41 @@ class MediaPreviewService:
                 invalid_code = exc.code
         if invalid_code is not None:
             return await self._fail(preview_id, fence, invalid_code, False)
-        key = f"previews/{row['tenant_id']}/{row['business_id']}/{preview_id}/{row['render_key']}.jpg"
+        is_video = inputs.format == "short_video"
+        extension = "mp4" if is_video else "jpg"
+        key = f"previews/{row['tenant_id']}/{row['business_id']}/{preview_id}/{row['render_key']}.{extension}"
         try:
-            source = await self.store.get_image(inputs.source_key) if inputs.source_key else None
+            source = None
+            if inputs.source_key is not None:
+                source = (
+                    await self.store.get_video(inputs.source_key)
+                    if inputs.source_kind == "video"
+                    else await self.store.get_image(inputs.source_key)
+                )
             if source is not None and hashlib.sha256(source).hexdigest() != inputs.source_sha256:
                 raise MaterialError("MEDIA_CHECKSUM_MISMATCH")
-            media = await asyncio.to_thread(
-                render_static_preview,
-                business_name=inputs.business_name,
-                statement=inputs.statement,
-                brand_color=inputs.brand_color,
-                format=inputs.format,
-                source_image=source,
-            )
+            if is_video:
+                media = await render_video_preview(
+                    business_name=inputs.business_name,
+                    statement=inputs.statement,
+                    brand_color=inputs.brand_color,
+                    source_image=source if inputs.source_kind != "video" else None,
+                    source_video=source if inputs.source_kind == "video" else None,
+                )
+            else:
+                media = await asyncio.to_thread(
+                    render_static_preview,
+                    business_name=inputs.business_name,
+                    statement=inputs.statement,
+                    brand_color=inputs.brand_color,
+                    format=inputs.format,
+                    source_image=source,
+                )
             await self.store.put(key, media)
         except MaterialError as exc:
             return await self._fail(preview_id, fence, exc.code, exc.retryable)
         except PreviewRenderError as exc:
-            return await self._fail(preview_id, fence, exc.code, False)
+            return await self._fail(preview_id, fence, exc.code, exc.retryable)
         try:
             async with self.database.sessions() as session, session.begin():
                 current = (
@@ -366,14 +429,16 @@ class MediaPreviewService:
                     (
                         await session.execute(
                             text("""UPDATE media_previews SET state='completed',object_key=:key,sha256=:sha,
-                              width=1080,height=:height,dispatch_owner=NULL,dispatch_lease_until=NULL,updated_at=now()
+                              width=1080,height=:height,duration_ms=:duration,
+                              dispatch_owner=NULL,dispatch_lease_until=NULL,updated_at=now()
                               WHERE id=:id AND state='rendering' AND dispatch_fence=:fence RETURNING *"""),
                             {
                                 "id": preview_id,
                                 "fence": fence,
                                 "key": key,
                                 "sha": media.sha256,
-                                "height": 1920 if inputs.format == "story" else 1350,
+                                "height": 1920 if inputs.format in {"story", "short_video"} else 1350,
+                                "duration": VIDEO_DURATION_MS if is_video else None,
                             },
                         )
                     )

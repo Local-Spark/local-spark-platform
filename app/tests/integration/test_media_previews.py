@@ -3,7 +3,7 @@
 import hashlib
 import io
 import json
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -11,7 +11,7 @@ import pytest
 from PIL import Image
 from sqlalchemy import text
 
-from app.adapters.material_media import MaterialError
+from app.adapters.material_media import FetchedMedia, MaterialError
 from app.adapters.static_preview import PreviewRenderError
 from app.db.session import Database
 from app.schemas.media_previews import PreviewRequest
@@ -105,7 +105,7 @@ async def _accepted_case(admin, seeded):
     return tenant, business, actor, fact, proposal, document
 
 
-async def _attach_source(admin, tenant, business, proposal, document, media: bytes):
+async def _attach_source(admin, tenant, business, proposal, document, media: bytes, *, kind="image"):
     asset = uuid4()
     document["scene_plan"] = ["material", "fact", "cta"]
     document["script"].insert(
@@ -113,8 +113,8 @@ async def _attach_source(admin, tenant, business, proposal, document, media: byt
         {
             "role": "material",
             "visual": "source_material",
-            "on_screen_text": "Foto do lanche",
-            "voiceover": "Veja nosso lanche.",
+            "on_screen_text": "Material do negócio",
+            "voiceover": "Conheça nosso negócio.",
             "fact_ids": [],
             "source_asset_id": str(asset),
         },
@@ -123,12 +123,14 @@ async def _attach_source(admin, tenant, business, proposal, document, media: byt
         await conn.execute(
             text("""INSERT INTO whatsapp_material_assets
           (id,tenant_id,business_id,kind,ciphertext,object_key,mime_type,size_bytes,sha256)
-          VALUES(:id,:t,:b,'image','ciphertext',:key,'image/png',:size,:sha)"""),
+          VALUES(:id,:t,:b,:kind,'ciphertext',:key,:mime,:size,:sha)"""),
             {
                 "id": asset,
                 "t": tenant,
                 "b": business,
-                "key": f"materials/{asset}.png",
+                "key": f"materials/{asset}.{'mp4' if kind == 'video' else 'png'}",
+                "kind": kind,
+                "mime": "video/mp4" if kind == "video" else "image/png",
                 "size": len(media),
                 "sha": hashlib.sha256(media).hexdigest(),
             },
@@ -172,7 +174,7 @@ async def test_invalid_script_or_current_inputs_block_preview(admin, api, seeded
         elif change == "plan":
             await conn.execute(text("UPDATE billing_sponsorships SET revoked_at=now() WHERE tenant_id=:t"), params)
         elif change == "format":
-            document["format"] = "short_video"
+            document["format"] = "carousel"
         elif change == "no_fact":
             document["script"] = document["script"][1:]
         elif change == "context_head":
@@ -539,5 +541,103 @@ async def test_static_preview_owner_lifecycle_and_tenant_isolation(admin, api, d
         assert link.status_code == 200 and link.json()["url"] == "https://example.test/private"
         assert (await api.get(previews_url + f"/{uuid4()}/download-link", headers=owner)).status_code == 404
         assert await reconcile_stale_previews(worker) == 0
+        async with admin.begin() as conn:
+            await conn.execute(
+                text("""UPDATE business_profiles SET brand_color='#e65024'
+                  WHERE tenant_id=:tenant AND business_id=:business"""),
+                {"tenant": tenant, "business": business},
+            )
+        with pytest.raises(AuthError, match="PREVIEW_NOT_READY"):
+            await owner_service.file_key(tenant, business, actor, claim.id)
+        assert (await api.get(previews_url + f"/{claim.id}/download-link", headers=owner)).status_code == 404
+    finally:
+        await worker.close()
+
+
+async def test_short_video_preview_is_private_fenced_and_expires_with_offer(admin, api, seeded, settings, monkeypatch):
+    tenant, business, actor, fact, proposal, document = await _accepted_case(admin, seeded)
+    photo = io.BytesIO()
+    Image.new("RGB", (100, 100), "#ffbb33").save(photo, format="PNG")
+    asset = await _attach_source(admin, tenant, business, proposal, document, photo.getvalue())
+    document["format"] = "short_video"
+    async with admin.begin() as conn:
+        await conn.execute(
+            text("UPDATE editorial_proposals SET document=CAST(:doc AS jsonb) WHERE id=:id"),
+            {"id": proposal, "doc": json.dumps(document)},
+        )
+        await conn.execute(
+            text("""UPDATE business_context_versions SET document=jsonb_set(document,
+              '{facts,0,valid_until}',to_jsonb(CAST(:today AS text)))
+              WHERE tenant_id=:tenant AND business_id=:business AND version=1"""),
+            {"tenant": tenant, "business": business, "today": date.today().isoformat()},
+        )
+    owner = {"Authorization": f"Bearer {access_token(settings, actor)}"}
+    url = f"/api/v1/organizations/{tenant}/businesses/{business}/media-previews"
+    requested = await api.post(url, headers=owner, json={"operation_id": str(uuid4()), "proposal_id": str(proposal)})
+    assert requested.status_code == 202, requested.text
+    pending = requested.json()
+    assert pending["mime_type"] == "video/mp4" and pending["source_asset_id"] == str(asset)
+    assert datetime.fromisoformat(pending["expires_at"]) <= datetime.now(UTC) + timedelta(days=1)
+
+    worker = Database(settings, correlator=True)
+    try:
+        claim = (await claim_previews(worker, uuid4()))[0]
+        store = AsyncMock()
+        store.get_image.return_value = photo.getvalue()
+        video = FetchedMedia(b"mp4-preview", "video/mp4", hashlib.sha256(b"mp4-preview").hexdigest())
+        renderer = AsyncMock(return_value=video)
+        monkeypatch.setattr("app.services.media_previews.render_video_preview", renderer)
+        service = MediaPreviewService(settings, worker, store)
+        assert await service.render(claim.id, claim.fence) == "completed"
+        renderer.assert_awaited_once()
+        assert renderer.call_args.kwargs["source_image"] == photo.getvalue()
+        assert store.put.call_args.args[0].endswith(".mp4")
+        assert store.put.call_args.args[1] == video
+        assert (await api.get(url, headers=owner)).json()[0]["duration_ms"] == 8000
+        signed = AsyncMock(return_value="https://example.test/video")
+        monkeypatch.setattr("app.api.v1.media_previews.MaterialStore.signed_url", signed)
+        link = await api.get(url + f"/{claim.id}/download-link", headers=owner)
+        assert link.status_code == 200 and link.json()["url"].endswith("video")
+        assert signed.call_args.args[1] == "video/mp4"
+        async with admin.begin() as conn:
+            await conn.execute(
+                text("UPDATE media_previews SET expires_at=now()-interval '1 second' WHERE id=:id"),
+                {"id": claim.id},
+            )
+        assert (await api.get(url, headers=owner)).json() == []
+        assert (await api.get(url + f"/{claim.id}/download-link", headers=owner)).status_code == 404
+        assert await purge_expired_previews(worker, store, uuid4()) == 1
+        assert store.delete.call_args.args[0].endswith(".mp4")
+    finally:
+        await worker.close()
+
+
+async def test_short_video_uses_source_clip_without_its_audio(admin, api, seeded, settings, monkeypatch):
+    tenant, business, actor, _, proposal, document = await _accepted_case(admin, seeded)
+    document["format"] = "short_video"
+    source_bytes = b"source-video-contents"
+    await _attach_source(admin, tenant, business, proposal, document, source_bytes, kind="video")
+    async with admin.begin() as conn:
+        await conn.execute(
+            text("UPDATE editorial_proposals SET document=CAST(:doc AS jsonb) WHERE id=:id"),
+            {"id": proposal, "doc": json.dumps(document)},
+        )
+    owner = {"Authorization": f"Bearer {access_token(settings, actor)}"}
+    url = f"/api/v1/organizations/{tenant}/businesses/{business}/media-previews"
+    requested = await api.post(url, headers=owner, json={"operation_id": str(uuid4()), "proposal_id": str(proposal)})
+    assert requested.status_code == 202, requested.text
+    worker = Database(settings, correlator=True)
+    try:
+        claim = (await claim_previews(worker, uuid4()))[0]
+        store = AsyncMock()
+        store.get_video.return_value = source_bytes
+        rendered = FetchedMedia(b"mp4-preview", "video/mp4", hashlib.sha256(b"mp4-preview").hexdigest())
+        renderer = AsyncMock(return_value=rendered)
+        monkeypatch.setattr("app.services.media_previews.render_video_preview", renderer)
+        assert await MediaPreviewService(settings, worker, store).render(claim.id, claim.fence) == "completed"
+        store.get_video.assert_awaited_once()
+        store.get_image.assert_not_awaited()
+        assert renderer.call_args.kwargs["source_video"] == source_bytes
+        assert renderer.call_args.kwargs["source_image"] is None
     finally:
         await worker.close()

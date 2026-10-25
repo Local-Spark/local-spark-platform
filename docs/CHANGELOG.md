@@ -1,5 +1,25 @@
 # Registro de mudanças
 
+## 2026-10-25 — Ordem das próximas entregas após F04.2
+
+- Corrigido o status do índice: já existe prévia privada de vídeo curto, mas edição direta e publicação continuam pendentes.
+- Sequência explícita: F03.3b edição/versionamento e avaliação do roteiro; F04.1b qualidade visual da arte; F04.2b narrativa, edição e avaliação do vídeo; F04.3 geração e entrega da candidata pelo WhatsApp. Os gates criativos permanecem obrigatórios antes do piloto.
+- Atualização documental; nenhuma capacidade de produto foi ativada. Validação: `git diff --check`.
+
+## 2026-10-25 — F04.2: primeira prévia de vídeo curto
+
+- Roteiro `short_video` aceito gera MP4 H.264 privado, vertical e silencioso de aproximadamente oito segundos, com três cenas e fato confirmado em texto. Usa foto autorizada, o trecho inicial de um clipe autorizado sem áudio, ou apenas a identidade da marca.
+- O fluxo reutiliza pedido idempotente, worker Temporal, revalidação de fatos/materiais, link temporário e limpeza da F04.1. A migration 0032 registra tipo de mídia e duração; fonte de vídeo é limitada e inspecionada antes de renderizar.
+- Artes e vídeos passam a usar uma fonte PT-BR incluída no worker, com licença preservada; a versão dos dois templates sobe para invalidar prévias antigas que poderiam exibir acentos como quadrados.
+- Web reproduz o vídeo no card da ideia. Ainda faltam edição de trechos, fala/legenda alinhadas ao áudio, avaliação com negócios reais, envio pelo WhatsApp e publicação.
+- Validação: `make ci` com 535 testes backend e 100% de linhas/ramos; 188 testes web com 100% dos quatro critérios. Render real de foto e clipe no Docker, com H.264 vertical sem áudio; migration 0032 revertida/reaplicada no `_test` e aplicada localmente após backup verificado. Worker local reconstruído.
+
+## 2026-10-25 — Jornada WhatsApp e gates de qualidade especificados
+
+- F04.3 passa a orquestrar geração e envio de prévia no WhatsApp sem exigir a web; F06 registra aprovação explícita da peça final, separada da confirmação de fato da F02. A web continua como alternativa.
+- F03.3b detalha edição/versionamento de roteiro e avaliação PT-BR; F04.1b detalha avaliação visual com comerciantes consentidos, ajustes de template e bloqueio de erro factual antes do piloto.
+- Alteração somente de SDD; nenhuma API, envio, renderização ou publicação nova foi ativada. Validação documental: referências entre fases e `git diff --check`.
+
 ## 2026-10-25 — F04.1: prévia estática privada
 
 - Roteiro aceito gera arte JPEG de foto ou story com template de marca, foto real opcional, fato confirmado e CTA genérico. API do proprietário oferece pedido, estado e link temporário; a interface web mostra a prévia sem publicar.

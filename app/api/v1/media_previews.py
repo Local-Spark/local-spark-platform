@@ -1,4 +1,4 @@
-"""Owner requests and inspects private static previews; no publishing action."""
+"""Owner requests and inspects private image/video previews; no publishing action."""
 
 from uuid import UUID
 
@@ -36,4 +36,5 @@ async def download_link(
     tenant_id: UUID, business_id: UUID, preview_id: UUID, request: Request, actor: Actor
 ) -> dict[str, str]:
     key = await service(request).file_key(tenant_id, business_id, actor, preview_id)
-    return {"url": await MaterialStore(request.app.state.settings).signed_url(key, "image/jpeg")}
+    mime_type = "video/mp4" if key.endswith(".mp4") else "image/jpeg"
+    return {"url": await MaterialStore(request.app.state.settings).signed_url(key, mime_type)}

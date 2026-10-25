@@ -21,6 +21,14 @@ Exclusão/expiração de fonte ou roteiro ocultam a prévia e acionam limpeza
 assíncrona antes de remover o registro. Não existe aceite de peça, agenda ou
 publicação nesta fatia. Ver [F04](phases/F04-media-recipes.md).
 
+F04.2 local (25/10/2026): roteiro `short_video` aceito usa o mesmo fluxo
+durável para renderizar MP4 H.264 privado de 1080×1920 e oito segundos com foto
+ou trecho inicial de clipe autorizado e texto de cenas temporizado. O áudio
+original do clipe é removido; voz e legenda sincronizada com fala não são
+suportadas nesta primeira receita. A API informa tipo/duração; a web reproduz a
+prévia sem publicar. F04.3 continua responsável pela automação e envio no
+WhatsApp. Ver [F04](phases/F04-media-recipes.md).
+
 Sequência de entrega atual em [fases](phases/README.md): F03.3 transforma material
 F02 em roteiro de cenas com fontes e revisão local; falta avaliação de qualidade
 comercial. F04.1 renderiza a primeira peça estática e F06 exercita
@@ -28,6 +36,18 @@ aprovação/agendamento/publicação com adapter fake. F05/avatares não bloquei
 posts com foto/vídeo reais. Credenciais e homologação Meta são posteriores aos
 testes locais, mas obrigatórias antes de operar com clientes reais. Ideias F03.2a
 existem; qualidade comercial ainda não está aprovada.
+
+Percurso principal planejado: após receber material e confirmar separadamente
+fatos comerciais, F04.3 orquestra roteiro validado e prévia e os entrega pelo
+WhatsApp, sem exigir que o cliente entre na web ou aceite manualmente o roteiro
+para renderizar uma candidata. F06 colhe aprovação explícita da **peça final**
+com versão/hash, legenda, destino e horário antes de publicar; "Confirmar" da
+F02 não equivale a "Aprovar" da F06. Web continua alternativa. F03.3b entrega
+edição/versionamento e avaliação de roteiros; F04.1b avalia e melhora a qualidade
+visual das artes com amostra consentida; F04.2b evolui a narrativa, edição e
+qualidade dos vídeos. A ordem após F04.2 é F03.3b → F04.1b → F04.2b → F04.3.
+Esses gates são obrigatórios antes do piloto comercial e ainda não foram
+implementados.
 
 F02.2c6 diferencia resposta aceita pela Meta de recibo `sent`/`failed`/`delivered`/`read`, correlacionado pelo ID do provedor na inbox cifrada. Confirmação/descarte prepara uma resposta curta na transação da decisão; envio e recibo usam estados próprios. O dispatcher reserva tentativas sob teto diário por organização e bloqueio transacional; sem teto positivo, não habilita envio. Staff vê apenas metadados de falhas/incertezas e pode registrar revisão sem reenviar. O smoke externo, o valor monetário por mensagem e o opt-out explícito permanecem pendentes em [F02](phases/F02-whatsapp-ingestion.md).
 

@@ -3,18 +3,25 @@
 import hashlib
 import io
 import re
+from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont, ImageOps, UnidentifiedImageError
 
 from app.adapters.material_media import FetchedMedia
 
-TEMPLATE_VERSION = 1
+TEMPLATE_VERSION = 2
 Font = ImageFont.ImageFont | ImageFont.FreeTypeFont
+FONT_PATH = Path(__file__).parents[1] / "assets" / "DejaVuSans.ttf"
+
+
+def _font(size: int) -> ImageFont.FreeTypeFont:
+    """Use a bundled font so PT-BR accents render identically in worker and tests."""
+    return ImageFont.truetype(str(FONT_PATH), size=size)
 
 
 class PreviewRenderError(Exception):
-    def __init__(self, code: str) -> None:
-        self.code = code
+    def __init__(self, code: str, *, retryable: bool = False) -> None:
+        self.code, self.retryable = code, retryable
         super().__init__(code)
 
 
@@ -42,7 +49,7 @@ def _lines(draw: ImageDraw.ImageDraw, value: str, font: Font, width: int) -> lis
 
 def _fit(draw: ImageDraw.ImageDraw, value: str, width: int, height: int, start: int) -> tuple[list[str], Font, int]:
     for size in range(start, 27, -4):
-        font = ImageFont.load_default(size=size)
+        font = _font(size)
         lines = _lines(draw, value, font, width)
         leading = int(size * 1.2)
         if (
@@ -88,7 +95,7 @@ def render_static_preview(
     else:
         draw.rounded_rectangle((72, card_top + 30, 1008, fact_top - 26), radius=24, fill=brand_color)
         label = "O QUE FAZEMOS"
-        label_font = ImageFont.load_default(size=38)
+        label_font = _font(38)
         draw.text((112, card_top + 76), label, font=label_font, fill=_ink(brand_color))
 
     draw.rectangle((44, fact_top, 1036, card_bottom), fill="#ffffff")
@@ -96,9 +103,7 @@ def render_static_preview(
     lines, font, leading = _fit(draw, statement, 820, 300, 64)
     for index, line in enumerate(lines):
         draw.text((118, fact_top + 50 + index * leading), line, font=font, fill="#172036")
-    draw.text(
-        (86, card_bottom - 84), "Entre em contato para saber mais", font=ImageFont.load_default(size=31), fill="#4c5369"
-    )
+    draw.text((86, card_bottom - 84), "Entre em contato para saber mais", font=_font(31), fill="#4c5369")
     output = io.BytesIO()
     canvas.save(output, format="JPEG", quality=88, subsampling=0, optimize=True)
     data = output.getvalue()
