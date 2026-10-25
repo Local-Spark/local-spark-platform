@@ -19,6 +19,7 @@ from app.api.v1.billing import billing_router
 from app.api.v1.editorial_context import context_router
 from app.api.v1.editorial_conversation import conversation_router
 from app.api.v1.editorial_proposals import proposals_router
+from app.api.v1.media_previews import previews_router
 from app.api.v1.onboarding import onboarding_router
 from app.api.v1.phone_verification import phone_router
 from app.api.v1.reference import reference_router
@@ -93,6 +94,7 @@ def create_app(
     application.include_router(context_router)
     application.include_router(conversation_router)
     application.include_router(proposals_router)
+    application.include_router(previews_router)
 
     @application.middleware("http")
     async def diagnostics(request: Request, call_next):  # type: ignore[no-untyped-def]

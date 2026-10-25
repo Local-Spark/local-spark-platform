@@ -11,11 +11,14 @@ from app.core.logging import configure_logging
 from app.db.session import Database
 from app.services.audio_transcription import AudioTranscriptionService
 from app.services.editorial_proposals import EditorialProposalService
+from app.services.media_previews import MediaPreviewService
 from app.services.whatsapp_processing import MaterialProcessor
 from app.workflows.activities import FoundationActivities
 from app.workflows.editorial_activities import EditorialActivities
 from app.workflows.editorial_proposal import EditorialProposalWorkflow
 from app.workflows.foundation import BusinessCreatedWorkflow
+from app.workflows.media_activities import MediaPreviewActivities
+from app.workflows.media_preview import StaticPreviewWorkflow
 from app.workflows.whatsapp_activities import WhatsAppMaterialActivities
 from app.workflows.whatsapp_material import WhatsAppMaterialWorkflow
 
@@ -53,12 +56,18 @@ async def run_worker() -> None:
             if material_database
             else None
         )
+        media_activities = (
+            MediaPreviewActivities(MediaPreviewService(settings, material_database, MaterialStore(settings)))
+            if material_database
+            else None
+        )
         worker = Worker(
             client,
             task_queue=settings.temporal_task_queue,
             workflows=[BusinessCreatedWorkflow]
             + ([WhatsAppMaterialWorkflow] if material_activities else [])
-            + ([EditorialProposalWorkflow] if editorial_activities else []),
+            + ([EditorialProposalWorkflow] if editorial_activities else [])
+            + ([StaticPreviewWorkflow] if media_activities else []),
             activities=[FoundationActivities(database).record_business_created]
             + (
                 [
@@ -69,7 +78,8 @@ async def run_worker() -> None:
                 if material_activities
                 else []
             )
-            + ([editorial_activities.generate_editorial_proposal] if editorial_activities else []),
+            + ([editorial_activities.generate_editorial_proposal] if editorial_activities else [])
+            + ([media_activities.render_static_preview] if media_activities else []),
             max_concurrent_activities=4,
         )
         await worker.run()

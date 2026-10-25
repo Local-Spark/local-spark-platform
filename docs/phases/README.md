@@ -9,7 +9,7 @@ A v0 completa reúne F00–F08; concluir F00 não conclui o produto.
 | [F01](F01-identity-onboarding.md) | Identidade, onboarding, admin mínimo e base React | Código local; homologação externa/staging pendente |
 | [F02](F02-whatsapp-ingestion.md) | WhatsApp e biblioteca de materiais | Recebimento, vínculo, biblioteca, transcrição opcional e respostas limitadas implementados localmente até F02.2c6; Meta real pendente |
 | [F03](F03-editorial-research.md) | Pesquisa, temas e planejamento proativo | Contexto, ideia e roteiro revisável implementados localmente; benchmark comercial, edição, pesquisa e proatividade pendentes |
-| [F04](F04-media-recipes.md) | Artes, carrosséis e edição de vídeo | Planejada |
+| [F04](F04-media-recipes.md) | Artes, carrosséis e edição de vídeo | F04.1 estática local; vídeo e carrossel pendentes |
 | [F05](F05-avatar-generative-video.md) | Avatar, voz e cenas geradas | Planejada |
 | [F06](F06-instagram-publishing.md) | Aprovação, agenda e Instagram | Planejada |
 | [F07](F07-billing-reports.md) | Franquias, assinatura e relatórios | Contratação mínima na F01.5; restante pendente |
@@ -29,8 +29,9 @@ assinado, com vínculo do remetente e consentimento, e F03 sugere uma ideia inic
 sob pedido. Esses componentes passaram em testes locais com eventos e mídias
 sintéticos. A WABA restrita impede a homologação de mensagens reais; a geração de
 ideias ainda não passou no gate de qualidade comercial. F03.3 gera cenas com
-fontes e registra aceite/pedido de ajustes do proprietário; não há edição direta,
-render de peça nem publicação.
+fontes e registra aceite/pedido de ajustes do proprietário; F04.1 renderiza
+foto/story privada a partir do roteiro aceito. Ainda não há edição direta,
+vídeo ou publicação.
 
 **F03.3 local: material → roteiro revisável.** Usa
 o mesmo pipeline F02 com webhook assinado e servidor de mídia falsos nos testes,
@@ -42,7 +43,7 @@ Guarda versão do contexto e apresenta revisão no cliente. Comparar a saída da
 baseline e casos PT-BR ainda é gate pendente para ativação comercial.
 Os testes não exigem credenciais Meta reais ou gasto externo obrigatório.
 
-**Próxima entrega: F04.1** renderiza prévia de arte estática a partir do roteiro
+**F04.1 local** renderiza prévia de arte estática a partir do roteiro
 aceito, com fonte, template, arquivo privado e retry idempotente. F04.2 acrescenta
 vídeo curto com materiais reais e legendas;
 **F06** aprova, agenda e simula publicação usando adapter fake com aceite, atraso,

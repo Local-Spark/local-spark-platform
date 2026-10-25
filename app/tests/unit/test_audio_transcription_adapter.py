@@ -96,6 +96,44 @@ async def test_storage_download_is_bounded_and_closes_body(settings, monkeypatch
         await MaterialStore(settings).get_audio("key")
 
 
+async def test_store_bounded_image_download(settings, monkeypatch):
+    from unittest.mock import Mock
+
+    from pydantic import SecretStr
+
+    from app.adapters.material_media import MAX_BYTES, MaterialStore
+
+    store = MaterialStore(settings)
+    with pytest.raises(MaterialError, match="MATERIAL_STORAGE_NOT_CONFIGURED"):
+        await store.get_image("image")
+    configured = settings.model_copy(
+        update={
+            "material_storage_bucket": "bucket",
+            "material_storage_access_key": SecretStr("key"),
+            "material_storage_secret_key": SecretStr("secret"),
+        }
+    )
+    store = MaterialStore(configured)
+    client = Mock()
+    monkeypatch.setattr(store, "_client", lambda: client)
+    body = Mock()
+    body.read.return_value = b"image"
+    client.get_object.return_value = {"Body": body, "ContentLength": 5}
+    assert await store.get_image("image") == b"image"
+    body.close.assert_called_once()
+    assert body.read.call_args.args == (MAX_BYTES["image"] + 1,)
+    client.get_object.return_value["ContentLength"] = MAX_BYTES["image"] + 1
+    with pytest.raises(MaterialError, match="MEDIA_SIZE_EXCEEDED"):
+        await store.get_image("image")
+    client.get_object.return_value["ContentLength"] = 5
+    body.read.return_value = b"x" * (MAX_BYTES["image"] + 1)
+    with pytest.raises(MaterialError, match="MEDIA_SIZE_EXCEEDED"):
+        await store.get_image("image")
+    client.get_object.side_effect = RuntimeError("unavailable")
+    with pytest.raises(MaterialError, match="MATERIAL_STORAGE_UNAVAILABLE"):
+        await store.get_image("image")
+
+
 @pytest.mark.parametrize(
     "payload,expected",
     [

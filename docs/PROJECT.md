@@ -12,11 +12,19 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Atualizado: 23/10/2026. Nome adotado: Meu Braço Direito. Repositório principal: `local-spark-platform`.
 
+25/10/2026 — F04.1 implementada localmente: roteiro F03.3 aceito gera foto/story
+JPEG privada com template determinístico, fato confirmado vigente e foto real
+opcional. A área cliente pede/abre a prévia, sem publicação. Temporal, render key,
+fencing, retries e limpeza de objetos expirados/excluídos protegem estado e
+retenção; o roteiro local `baseline-v1` não requer consentimento de IA externa.
+Ver [F04](phases/F04-media-recipes.md). F04.2 vídeo, F06 publicação, benchmark
+comercial e homologação Meta continuam pendentes.
+
 24/10/2026 — Sequência executável consolidada em [fases](phases/README.md):
 F02 recebe/guarda materiais localmente; F03.3 agora cria roteiro estruturado e
 revisão do proprietário a partir desses materiais e fatos confirmados. A avaliação
 de qualidade comercial e a edição direta de cenas continuam pendentes.
-F04 renderiza, F06 aprova/publica com adapter fake e F05 adiciona avatar sem
+F04.1 renderiza arte estática; F04.2 trata vídeo. F06 aprova/publica com adapter fake e F05 adiciona avatar sem
 bloquear a publicação inicial. A conta Meta real fica para homologação externa,
 obrigatória antes de clientes reais, sem bloquear desenvolvimento e testes locais.
 

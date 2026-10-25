@@ -1,5 +1,12 @@
 # Registro de mudanças
 
+## 2026-10-25 — F04.1: prévia estática privada
+
+- Roteiro aceito gera arte JPEG de foto ou story com template de marca, foto real opcional, fato confirmado e CTA genérico. API do proprietário oferece pedido, estado e link temporário; a interface web mostra a prévia sem publicar.
+- Migration 0031 cria registro isolado por tenant, chave de render estável e estados duráveis. Temporal faz claim, retry até três vezes e fencing; o worker verifica hash da foto e revalida entradas após upload. Falhas e mudanças de contexto não criam entrega final duplicada.
+- Exclusão/expiração de roteiro ou foto oculta a prévia e agenda remoção do objeto, inclusive upload parcial; a linha só sai após o armazenamento confirmar. O roteiro local `baseline-v1` não exige consentimento para OpenAI.
+- Validação: `make ci` aprovado com 501 testes, 100% de linhas e ramos, Ruff e mypy; migration 0031 revertida/reaplicada no banco `_test` e aplicada localmente após backup verificado. Worker e dispatcher locais reconstruídos. Integração externa Meta e avaliação visual com comerciantes continuam pendentes. F04.2 acrescentará vídeo e legenda.
+
 ## 2026-10-24 — F03.3: roteiro estruturado e revisão local
 
 - Ideias passam a incluir até três cenas, fala, texto na tela e origem de cada fato/material; afirmações comerciais são montadas de fatos confirmados e vigentes, mesmo quando a ordem vem da IA.

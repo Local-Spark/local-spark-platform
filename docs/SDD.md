@@ -12,9 +12,18 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Versão 1.2, 23/10/2026. Resumo implementável e índice das especificações detalhadas.
 
+F04.1 local (25/10/2026): a proposta F03.3 `completed` e `accepted` pode gerar
+uma prévia estática JPEG (`photo`/`story`) após revalidar plano, versão do contexto,
+fato, fonte e consentimento de IA externa. A solicitação é idempotente por
+`operation_id` e `render_key` e o Temporal executa sob lease/fencing com até três
+tentativas. O objeto fica privado; o proprietário recebe apenas link temporário.
+Exclusão/expiração de fonte ou roteiro ocultam a prévia e acionam limpeza
+assíncrona antes de remover o registro. Não existe aceite de peça, agenda ou
+publicação nesta fatia. Ver [F04](phases/F04-media-recipes.md).
+
 Sequência de entrega atual em [fases](phases/README.md): F03.3 transforma material
 F02 em roteiro de cenas com fontes e revisão local; falta avaliação de qualidade
-comercial. F04 renderiza a primeira peça e F06 exercita
+comercial. F04.1 renderiza a primeira peça estática e F06 exercita
 aprovação/agendamento/publicação com adapter fake. F05/avatares não bloqueiam
 posts com foto/vídeo reais. Credenciais e homologação Meta são posteriores aos
 testes locais, mas obrigatórias antes de operar com clientes reais. Ideias F03.2a
