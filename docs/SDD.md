@@ -72,6 +72,13 @@ Esses gates são obrigatórios antes do piloto comercial; a edição técnica de
 F03.3b e a primeira revisão de template/avaliação sintética F04.1b já existem,
 sem aprovação de qualidade com negócios reais.
 
+F04.2b iniciou sua fatia técnica: MP4 privado v3 usa os textos de abertura/CTA
+do roteiro aceito, a foto real completa e dois cortes quando o clipe autorizado
+comporta. O proprietário pode pedir revisão privada e idempotente do ritmo,
+mantendo fato/roteiro e até quatro versões. Avaliação humana e custo real,
+edição avançada e sincronização de fala/legenda seguem pendentes; a receita
+continua sem áudio para evitar legenda falsa.
+
 F02.2c6 diferencia resposta aceita pela Meta de recibo `sent`/`failed`/`delivered`/`read`, correlacionado pelo ID do provedor na inbox cifrada. Confirmação/descarte prepara uma resposta curta na transação da decisão; envio e recibo usam estados próprios. O dispatcher reserva tentativas sob teto diário por organização e bloqueio transacional; sem teto positivo, não habilita envio. Staff vê apenas metadados de falhas/incertezas e pode registrar revisão sem reenviar. O smoke externo, o valor monetário por mensagem e o opt-out explícito permanecem pendentes em [F02](phases/F02-whatsapp-ingestion.md).
 
 F02.2c5 grava resposta cifrada na transação da decisão e só habilita envio Cloud

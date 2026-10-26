@@ -592,6 +592,8 @@ async def test_short_video_preview_is_private_fenced_and_expires_with_offer(admi
         assert await service.render(claim.id, claim.fence) == "completed"
         renderer.assert_awaited_once()
         assert renderer.call_args.kwargs["source_image"] == photo.getvalue()
+        assert renderer.call_args.kwargs["intro_text"] == "Material do negócio"
+        assert renderer.call_args.kwargs["cta_text"] == "Fale com o negócio"
         assert store.put.call_args.args[0].endswith(".mp4")
         assert store.put.call_args.args[1] == video
         assert (await api.get(url, headers=owner)).json()[0]["duration_ms"] == 8000
@@ -640,6 +642,24 @@ async def test_short_video_uses_source_clip_without_its_audio(admin, api, seeded
         store.get_image.assert_not_awaited()
         assert renderer.call_args.kwargs["source_video"] == source_bytes
         assert renderer.call_args.kwargs["source_image"] is None
+        assert renderer.call_args.kwargs["intro_text"] == "Material do negócio"
+        assert renderer.call_args.kwargs["cta_text"] == "Fale com o negócio"
+        assert renderer.call_args.kwargs["emphasis"] == "balanced"
+        adjusted = await api.post(
+            url,
+            headers=owner,
+            json={
+                "operation_id": str(uuid4()),
+                "proposal_id": str(proposal),
+                "parent_preview_id": requested.json()["id"],
+                "emphasis": "photo",
+            },
+        )
+        assert adjusted.status_code == 202, adjusted.text
+        assert adjusted.json()["revision"] == 2 and adjusted.json()["mime_type"] == "video/mp4"
+        claim = (await claim_previews(worker, uuid4()))[0]
+        assert await MediaPreviewService(settings, worker, store).render(claim.id, claim.fence) == "completed"
+        assert renderer.call_args.kwargs["emphasis"] == "photo"
     finally:
         await worker.close()
 

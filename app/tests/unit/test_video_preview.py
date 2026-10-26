@@ -45,6 +45,59 @@ def test_frames_use_authorized_photo_and_factual_caption(tmp_path):
     )
     with Image.open(tmp_path / "scene0.png") as overlay:
         assert overlay.mode == "RGBA" and overlay.getpixel((100, 500))[3] == 0
+    module._write_frames(
+        tmp_path,
+        business_name="Ana",
+        statement="Fato válido.",
+        brand_color="#e65024",
+        photo=None,
+        video_overlay=True,
+        closing_overlay=True,
+        intro_text="Mostre o atendimento",
+        cta_text="Converse com a Ana",
+    )
+    with Image.open(tmp_path / "scene2.png") as closing_overlay:
+        assert closing_overlay.mode == "RGBA" and closing_overlay.getpixel((100, 500))[3] == 0
+
+
+def test_wide_photo_preserves_both_product_edges_and_scene_text(tmp_path):
+    photo = Image.new("RGB", (900, 500), "#55aa44")
+    photo.paste("#e43b32", (0, 0, 100, 500))
+    photo.paste("#3159dc", (800, 0, 900, 500))
+    source = io.BytesIO()
+    photo.save(source, "PNG")
+    module._write_frames(
+        tmp_path,
+        business_name="Ana",
+        statement="Fato confirmado.",
+        brand_color="#e65024",
+        photo=source.getvalue(),
+        intro_text="Veja o preparo",
+        cta_text="Peça pelo WhatsApp",
+    )
+    with Image.open(tmp_path / "scene0.png") as opening:
+        assert opening.getpixel((15, 900)) == (228, 59, 50)
+        assert opening.getpixel((1065, 900)) == (49, 89, 220)
+        opening_bytes = opening.tobytes()
+    with Image.open(tmp_path / "scene1.png") as fact:
+        fact_bytes = fact.tobytes()
+    with Image.open(tmp_path / "scene2.png") as closing:
+        closing_bytes = closing.tobytes()
+    module._write_frames(
+        tmp_path,
+        business_name="Ana",
+        statement="Fato confirmado.",
+        brand_color="#e65024",
+        photo=source.getvalue(),
+        intro_text="Outro início",
+        cta_text="Outro convite",
+    )
+    with Image.open(tmp_path / "scene0.png") as opening:
+        assert opening.tobytes() != opening_bytes
+    with Image.open(tmp_path / "scene1.png") as fact:
+        assert fact.tobytes() == fact_bytes
+    with Image.open(tmp_path / "scene2.png") as closing:
+        assert closing.tobytes() != closing_bytes
 
 
 @pytest.mark.parametrize(
@@ -104,7 +157,7 @@ async def test_video_recipe_encodes_timed_mp4(monkeypatch):
 
 async def test_video_recipe_uses_bounded_source_clip_and_mutes_audio(monkeypatch):
     calls = []
-    probe = AsyncMock()
+    probe = AsyncMock(return_value=6.0)
     monkeypatch.setattr(module, "_probe_source_video", probe)
 
     async def spawn(*args, **_):
@@ -124,6 +177,60 @@ async def test_video_recipe_uses_bounded_source_clip_and_mutes_audio(monkeypatch
     probe.assert_awaited_once()
     assert "-an" in calls[0] and "-stream_loop" in calls[0]
     assert "overlay=0:0" in calls[0][calls[0].index("-filter_complex") + 1]
+    filters = calls[0][calls[0].index("-filter_complex") + 1]
+    assert "split=2" in filters and "trim=start=4.00:duration=2" in filters
+    assert "[clip2][3:v]overlay" in filters
+
+
+async def test_short_source_clip_uses_a_single_cut_and_brand_closing(monkeypatch):
+    calls = []
+    monkeypatch.setattr(module, "_probe_source_video", AsyncMock(return_value=2.0))
+
+    async def spawn(*args, **_):
+        calls.append(args)
+        with Image.open(Path(args[-1]).parent / "scene2.png") as closing:
+            assert closing.mode == "RGB"
+        return FakeProcess(Path(args[-1]), b"mp4-data")
+
+    monkeypatch.setattr(module.asyncio, "create_subprocess_exec", spawn)
+    await module.render_video_preview(
+        business_name="Ana",
+        statement="Fato válido.",
+        brand_color="#e65024",
+        source_image=None,
+        source_video=b"video-data",
+    )
+    filters = calls[0][calls[0].index("-filter_complex") + 1]
+    assert "split=2" not in filters and "[clip2]" not in filters
+
+
+@pytest.mark.parametrize(
+    ("emphasis", "opening", "fact", "source_duration", "second_cut"),
+    [("photo", 3, 3, 6.0, True), ("text", 1, 5, 5.0, True), ("photo", 3, 3, 5.0, False)],
+)
+async def test_video_adjustment_changes_scene_timing_and_second_cut(
+    monkeypatch, emphasis, opening, fact, source_duration, second_cut
+):
+    calls = []
+    monkeypatch.setattr(module, "_probe_source_video", AsyncMock(return_value=source_duration))
+
+    async def spawn(*args, **_):
+        calls.append(args)
+        return FakeProcess(Path(args[-1]), b"mp4-data")
+
+    monkeypatch.setattr(module.asyncio, "create_subprocess_exec", spawn)
+    await module.render_video_preview(
+        business_name="Ana",
+        statement="Fato válido.",
+        brand_color="#e65024",
+        source_image=None,
+        source_video=b"video-data",
+        emphasis=emphasis,
+    )
+    filters = calls[0][calls[0].index("-filter_complex") + 1]
+    assert f"trim=duration={opening}" in filters
+    assert f"fade=t=out:st={fact - 0.2}:d=0.2" in filters
+    assert ("split=2" in filters) is second_cut
 
 
 @pytest.mark.parametrize("video", [b"", b"x" * (50 * 1024 * 1024 + 1)])
@@ -151,9 +258,11 @@ async def test_video_recipe_rejects_two_sources():
 
 async def test_video_probe_accepts_bounded_dimensions(monkeypatch, tmp_path):
     process = Mock(returncode=0)
-    process.communicate = AsyncMock(return_value=(b'{"streams":[{"width":640,"height":480}]}', b""))
+    process.communicate = AsyncMock(
+        return_value=(b'{"streams":[{"width":640,"height":480}],"format":{"duration":"5.50"}}', b"")
+    )
     monkeypatch.setattr(module.asyncio, "create_subprocess_exec", AsyncMock(return_value=process))
-    await module._probe_source_video(tmp_path / "source.mp4")
+    assert await module._probe_source_video(tmp_path / "source.mp4") == 5.5
 
 
 @pytest.mark.parametrize(
@@ -162,12 +271,15 @@ async def test_video_probe_accepts_bounded_dimensions(monkeypatch, tmp_path):
         (b"not-json", 0),
         (b'{"streams":[]}', 0),
         (b'{"streams":[{}]}', 0),
-        (b'{"streams":[{"width":640,"height":480}]}', 1),
-        (b'{"streams":[{"width":"640","height":480}]}', 0),
-        (b'{"streams":[{"width":640,"height":"480"}]}', 0),
-        (b'{"streams":[{"width":0,"height":480}]}', 0),
-        (b'{"streams":[{"width":640,"height":0}]}', 0),
-        (json.dumps({"streams": [{"width": 5000, "height": 5000}]}).encode(), 0),
+        (b'{"streams":[{"width":640,"height":480}]}', 0),
+        (b'{"streams":[{"width":640,"height":480}],"format":{"duration":"5"}}', 1),
+        (b'{"streams":[{"width":"640","height":480}],"format":{"duration":"5"}}', 0),
+        (b'{"streams":[{"width":640,"height":"480"}],"format":{"duration":"5"}}', 0),
+        (b'{"streams":[{"width":0,"height":480}],"format":{"duration":"5"}}', 0),
+        (b'{"streams":[{"width":640,"height":0}],"format":{"duration":"5"}}', 0),
+        (b'{"streams":[{"width":640,"height":480}],"format":{"duration":"0.1"}}', 0),
+        (b'{"streams":[{"width":640,"height":480}],"format":{"duration":"nan"}}', 0),
+        (json.dumps({"streams": [{"width": 5000, "height": 5000}], "format": {"duration": "5"}}).encode(), 0),
     ],
 )
 async def test_video_probe_rejects_invalid_or_oversized_stream(monkeypatch, tmp_path, payload, returncode):

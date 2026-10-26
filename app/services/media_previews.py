@@ -7,7 +7,7 @@ import hashlib
 import json
 from dataclasses import dataclass
 from datetime import UTC, datetime, time, timedelta
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
@@ -39,7 +39,9 @@ class RenderInputs:
     render_key: str
     expires_at: datetime | None = None
     source_kind: str | None = None
-    emphasis: str = "balanced"
+    emphasis: Literal["balanced", "photo", "text"] = "balanced"
+    intro_text: str = "Conheça nosso trabalho"
+    cta_text: str = "Entre em contato para saber mais"
 
 
 def _digest(value: object) -> str:
@@ -56,7 +58,7 @@ class MediaPreviewService:
         session: Any,
         proposal: Any,
         *,
-        emphasis: str = "balanced",
+        emphasis: Literal["balanced", "photo", "text"] = "balanced",
         parent_preview_id: UUID | None = None,
         template_version: int | None = None,
     ) -> RenderInputs:
@@ -188,6 +190,13 @@ class MediaPreviewService:
             min(proposal["expires_at"], fact_expiry) if fact_expiry is not None else proposal["expires_at"],
             source_kind,
             emphasis,
+            next(
+                (scene.on_screen_text for scene in draft.script if scene.role == "material"), "Conheça nosso trabalho"
+            ),
+            next(
+                (scene.on_screen_text for scene in draft.script if scene.role == "cta"),
+                "Entre em contato para saber mais",
+            ),
         )
 
     async def request(self, tenant: UUID, business: UUID, actor: UUID, payload: PreviewRequest) -> PreviewRead:
@@ -230,6 +239,7 @@ class MediaPreviewService:
             if proposal is None:
                 raise AuthError("PROPOSAL_NOT_FOUND", 404)
             revision = 1
+            parent_mime: str | None = None
             if payload.parent_preview_id is not None:
                 parent = (
                     (
@@ -250,9 +260,10 @@ class MediaPreviewService:
                 if (
                     parent is None
                     or parent["state"] not in {"completed", "failed"}
-                    or parent["mime_type"] != "image/jpeg"
+                    or parent["mime_type"] not in {"image/jpeg", "video/mp4"}
                 ):
                     raise AuthError("PREVIEW_ADJUSTMENT_UNAVAILABLE", 409)
+                parent_mime = parent["mime_type"]
                 latest = await session.scalar(
                     text("""SELECT id FROM media_previews WHERE tenant_id=:tenant AND business_id=:business
                       AND proposal_id=:proposal ORDER BY created_at DESC,id DESC LIMIT 1"""),
@@ -275,7 +286,9 @@ class MediaPreviewService:
             inputs = await self._inputs(
                 session, proposal, emphasis=payload.emphasis, parent_preview_id=payload.parent_preview_id
             )
-            if payload.parent_preview_id is not None and inputs.format == "short_video":
+            if payload.parent_preview_id is not None and parent_mime != (
+                "video/mp4" if inputs.format == "short_video" else "image/jpeg"
+            ):
                 raise AuthError("PREVIEW_ADJUSTMENT_UNAVAILABLE", 409)
             row = (
                 (
@@ -487,6 +500,9 @@ class MediaPreviewService:
                     brand_color=inputs.brand_color,
                     source_image=source if inputs.source_kind != "video" else None,
                     source_video=source if inputs.source_kind == "video" else None,
+                    intro_text=inputs.intro_text,
+                    cta_text=inputs.cta_text,
+                    emphasis=inputs.emphasis,
                 )
             else:
                 media = await asyncio.to_thread(

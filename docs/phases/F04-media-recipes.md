@@ -1,8 +1,9 @@
 # F04 — Artes, carrosséis e edição de vídeo
 
 Status: F04.1 e primeira receita F04.2 implementadas localmente em 25/10/2026;
-F04.1b iniciada com template v4 e avaliação sintética. Revisão humana, ajustes
-da arte, F04.2b (qualidade do vídeo) e F04.3 continuam pendentes.
+F04.1b tem template v4, ajustes versionados e avaliador; F04.2b começou em
+26/10/2026 com narrativa, dois cortes e revisão de ritmo. Revisão consentida,
+medição de custo em staging, edição avançada do vídeo e F04.3 seguem pendentes.
 Dependências: F02, F03.
 
 F04.1 consome apenas roteiro F03.3 aceito, contexto e material vigentes. Produz
@@ -131,13 +132,38 @@ staging. Nenhuma dessas evidências externas foi produzida nesta entrega.
   custo por peça com comerciantes, edição de múltiplos trechos e legendas alinhadas
   à fala real antes de chamar a receita de vídeo completo comercial.
 
-## F04.2b — Qualidade criativa do vídeo (planejada antes do piloto)
+## F04.2b — Qualidade criativa do vídeo (primeira fatia técnica local)
+
+26/10/2026 — O template de vídeo v3 passa a usar o texto de abertura e CTA das
+cenas do roteiro aceito, sem alterar o texto do fato comercial confirmado. Uma
+foto real aparece inteira sobre um fundo desfocado. Para um clipe autorizado
+de pelo menos 4,5 segundos, o render seleciona o trecho inicial e um segundo
+trecho distinto para a abertura e o CTA; o fato fica em cartão legível entre
+eles. Clipes curtos continuam com um único trecho e CTA de marca. A saída segue
+MP4 vertical H.264, oito segundos, sem áudio, prévia privada e versionada pelo
+hash do documento/contexto/material/template, com a revalidação e o worker
+Temporal já existentes. Não há publicação nem envio automático nesta fatia.
+
+O proprietário agora pode pedir até três revisões privadas da mesma prévia de
+vídeo, mantendo roteiro, fatos e fonte. O controle de ritmo reutiliza a operação
+idempotente e o encadeamento de versões da arte: equilíbrio = 2/4/2 s; mais
+tempo de cena = 3/3/2 s; mais tempo para ler = 1/5/2 s. A API verifica que o
+pai é a última versão válida, pertence ao mesmo formato e permanece no mesmo
+roteiro/contexto. Uma falha permite retry com o mesmo ritmo; novas versões
+possuem `render_key` distinto e não substituem o arquivo anterior.
+
+Testes unitários e de integração cobrem a escolha de cenas, limites do clipe,
+retentativas/versão e fonte autorizada. Smoke FFmpeg com mídia sintética verifica
+dois cortes distintos, resolução 1080×1920, H.264 e duração 7,96 segundos;
+`make ci` passou com 580 testes e 100% de cobertura de linhas/ramos. A inspeção visual em celular,
+medição de custo por peça em staging e revisão consentida com negócios reais
+continuam sendo gates antes de considerar esta fase concluída.
 
 - Aproveitar as cenas do roteiro versionado F03.3b, o contexto de marca e os
   materiais autorizados para escolher trechos e compor narrativa, ritmo,
   tipografia e CTA adequados ao segmento. Preservar literalmente fatos
   comerciais confirmados; novas alegações exigem confirmação do proprietário.
-- Evoluir a receita silenciosa para cortes e transições intencionais. Quando
+- Evoluir a receita silenciosa para mais cortes e transições intencionais. Quando
   houver fala autorizada, avaliar transcrição, edição de áudio e legendas
   alinhadas à fala realmente presente no arquivo; música e voz só com direitos,
   consentimento e custo medidos. Disponibilizar prévia versionada e pedido de

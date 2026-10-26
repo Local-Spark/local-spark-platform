@@ -90,6 +90,11 @@ async def test_adjustment_parent_guard_under_concurrent_changes(
     session.scalar.return_value = parent_id if latest_is_parent else uuid4()
     service = MediaPreviewService(settings, database)
     monkeypatch.setattr(WhatsAppMaterialsService, "_require_owner", AsyncMock())
+    monkeypatch.setattr(
+        service,
+        "_inputs",
+        AsyncMock(return_value=RenderInputs("Test", "#6557ed", "photo", "Fato.", None, None, None, uuid4(), "a" * 64)),
+    )
     with pytest.raises(AuthError, match=code):
         await service.request(
             tenant,
@@ -102,7 +107,7 @@ async def test_adjustment_parent_guard_under_concurrent_changes(
 
 
 @pytest.mark.parametrize("format", ["photo", "short_video"])
-async def test_adjustment_serializes_parent_and_starts_only_a_static_revision(settings, monkeypatch, format):
+async def test_adjustment_serializes_parent_and_requires_matching_format(settings, monkeypatch, format):
     tenant, business, actor, proposal, operation, parent_id = [uuid4() for _ in range(6)]
     parent = {
         "id": parent_id,

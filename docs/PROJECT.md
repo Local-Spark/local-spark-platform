@@ -18,6 +18,14 @@ pontuação automatizada com gates por amostra, segmento e falha crítica. A
 homologação com comerciantes e o custo real em staging continuam pendentes.
 Ver [F04](phases/F04-media-recipes.md).
 
+26/10/2026 — F04.2b local: o vídeo privado usa abertura e CTA do roteiro aceito,
+preserva a foto inteira e escolhe dois trechos distintos de clipes autorizados
+suficientemente longos. O proprietário pode pedir uma nova versão com mais tempo
+de cena ou de leitura, até quatro versões da peça. O fato comercial continua
+literal e a receita muda para v3, sem alterar as prévias anteriores. Ainda
+faltam revisão visual consentida, custo de staging, edição avançada e eventual
+fala/legenda sincronizada antes do piloto; ver [F04](phases/F04-media-recipes.md).
+
 25/10/2026 — F04.1b iniciada: template estático v4 preserva a foto real inteira,
 melhora contraste e separa o texto factual em painel legível. Oito casos sintéticos
 PT-BR produzem artes e folha de contato para revisão; não são prova de qualidade

@@ -1,5 +1,26 @@
 # Registro de mudanças
 
+## 2026-10-26 — F04.2b: abertura, CTA e dois cortes na prévia de vídeo
+
+- Template de vídeo v3 usa textos do roteiro aceito para abertura e CTA, preserva
+  o fato confirmado literalmente e mostra a foto real inteira sobre fundo
+  desfocado. Clipes autorizados de pelo menos 4,5 segundos fornecem um trecho
+  inicial e um segundo trecho para o CTA; clipes curtos usam CTA de marca.
+- Saída permanece privada, vertical, H.264, oito segundos e sem áudio. O hash
+  versionado mantém as prévias anteriores imutáveis e exige novo render para a
+  receita v3. Não há envio/publicação nesta entrega.
+- O proprietário pode revisar o ritmo em até quatro versões privadas: equilíbrio
+  2/4/2 s, mais cena 3/3/2 s, mais leitura 1/5/2 s. A API exige última versão,
+  mesmo formato, roteiro/contexto vigente, operação idempotente e fonte válida;
+  falha pode repetir o mesmo ritmo. A web acompanha e reproduz cada versão.
+- Gates pendentes: avaliação com comerciantes consentidos e em celular, custo em
+  staging, edição avançada de clipes e eventual fala/legenda alinhadas ao arquivo real.
+- Validação: `make ci` com 580 testes e 100% de linhas/ramos; smoke FFmpeg no
+  worker com clipe sintético de três cores confirmou cortes distintos no início
+  e no CTA, inclusive com ritmo de mais cena, H.264 vertical sem áudio e duração
+  7,96 s. Prévia de foto sintética também renderizou. Nenhuma chamada paga ou
+  conteúdo de cliente foi usado.
+
 ## 2026-10-26 — F04.1b: ajustes visuais e gate de revisão humana
 
 - Foto/story podem gerar até quatro versões privadas ligadas à peça anterior, escolhendo equilíbrio, foto ou texto em destaque. Concorrência, replay idempotente e contexto/roteiro obsoleto são tratados no serviço; vídeo e mudança de fato não passam por esse fluxo.
