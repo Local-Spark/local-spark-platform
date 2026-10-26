@@ -6,6 +6,8 @@ from typing import cast
 from temporalio import workflow
 from temporalio.common import RetryPolicy
 
+from app.workflows.content_candidate import ContentCandidateWorkflow
+
 
 @workflow.defn
 class WhatsAppMaterialWorkflow:
@@ -39,6 +41,16 @@ class WhatsAppMaterialWorkflow:
                     )
                 except Exception:
                     pass  # The submitted state prevents a second paid call.
+                try:
+                    await workflow.execute_child_workflow(
+                        ContentCandidateWorkflow.run,
+                        event_id,
+                        id=f"content-candidate/{event_id}",
+                        task_queue=workflow.info().task_queue,
+                        retry_policy=RetryPolicy(maximum_attempts=3),
+                    )
+                except Exception:
+                    pass  # The failed child remains visible in Temporal; stored material is not rolled back.
             return result
         except Exception:
             return cast(

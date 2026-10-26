@@ -1,5 +1,206 @@
 # Registro de mudanças
 
+## 2026-10-26 — Kits por nicho e cadência vinculada ao plano
+
+- BL03 passa a prever cafeteria, manicure com agenda e personal trainer, cada
+  um com peças e gate de qualidade próprios. BL04 detalha edição opcional de
+  cor/fonte/logo com três prévias por receita e versão aplicada ao negócio.
+- Novo [SDD de planejamento](design/editorial-planning-and-evidence.md): plano
+  limita peças por formato/canal, F03 sugere ritmo explicável dentro da franquia,
+  cliente aceita/reduz/pausa e upgrade exige preço aceito. Preços/volumes
+  dependem da medição BL02, não de uma quantidade presumida.
+- Biblioteca publicável própria fica separada de padrões observados em
+  concorrentes e resultados agregados autorizados dos clientes. Pesquisa
+  automática depende de APIs/permissões reais; TikTok Research API não atende
+  uso comercial. Estado: especificação; sem backend de recomendação novo.
+- Validação: `git diff --check`; não houve mudança de código backend.
+
+## 2026-10-26 — UI da vitrine antecipada para BL01
+
+- A navegação visual dos kits começa em paralelo à produção do primeiro kit:
+  `/app/kits` na web simula Instagram, Facebook e TikTok com mídia fictícia
+  estática, pautas e exemplos de WhatsApp/cadência. A tela marca capa de vídeo
+  e demais peças como protótipo; não escolhe kit, publica ou consulta rede.
+- BL03 passa a completar a vitrine com catálogo e mídias finais de três kits,
+  após a prova de reaplicação BL02. Backend ainda não ganhou API ou catálogo.
+- Validação: revisão documental e `git diff --check`; testes web no changelog
+  do repositório frontend.
+
+## 2026-10-26 — Reordenação para a biblioteca de kits
+
+- Nova [trilha BL01–BL05](phases/BL-brand-library.md): kit mestre com dez posts,
+  story e reel + fontes editáveis; prova de reaplicação pelo pipeline real;
+  vitrine interna de três kits; escolha versionada; jornada WhatsApp com kit.
+- Limite corrigido para **zero ou uma imagem de referência do kit da mesma
+  receita/formato** por geração, além da mídia original do cliente quando houver.
+  Custo/qualidade são medidos por peça aceita antes de ampliar a vitrine.
+- O índice das fases substitui a ordem anterior que melhorava o template
+  universal antes de validar uma biblioteca reutilizável. Status: documentação
+  e critérios definidos; nenhum kit, UI ou adapter novo entregue nesta mudança.
+  Validação: `git diff --check`.
+
+## 2026-10-26 — Kit selecionado como referência da geração
+
+- A receita editável e um manifesto compacto do kit escolhido passam a orientar
+  o briefing de produção real. Exemplos visuais são selecionados por formato,
+  sem enviar os dez posts da vitrine a toda chamada nem copiar sua marca fictícia.
+- Definido eval controlado: sem kit, kit compacto, kit + referência visual e
+  composição local, com qualidade, tentativas/tokens e custo por peça aceita.
+  Menos erros e custo menor são hipóteses, não resultados comprovados.
+- Estado: especificação; nenhuma nova integração ou geração executada.
+  Validação: `git diff --check`.
+
+## 2026-10-26 — Correção: showroom reutiliza kits prontos
+
+- Corrigida a hipótese anterior de gerar dez pautas/posts com dados de cada
+  visitante. A biblioteca guarda campanhas demonstrativas criadas e revisadas
+  uma vez por versão/segmento, com marca fictícia e arquivos estáticos completos.
+- Instagram/Facebook/TikTok são **simuladores internos da nossa web**; nenhuma
+  conta pessoal é aberta ou lida nessa etapa. Abrir/comparar kits não chama IA;
+  custo de criação do catálogo é amortizado. Dados do negócio entram somente na
+  personalização/produção posteriores, com gate e custo próprios.
+- Estado: somente especificação. Validação: `git diff --check`.
+
+## 2026-10-26 — Showroom do futuro perfil na escolha do kit
+
+- Histórico da hipótese inicial, substituída pela correção acima: foi proposto
+  montar pautas e miniaturas por visitante. A experiência de comparação de
+  formatos permanece, mas os exemplos agora são ativos reutilizáveis.
+
+## 2026-10-26 — Biblioteca de identidade visual proposta
+
+- Novo [contrato de produto](design/brand-library.md): kit de marca sugerido,
+  três direções com prévias comparáveis e escolha/edição/aceite do cliente.
+  Separação entre kit do negócio, direção visual e receita de publicação.
+- F03/F04/F06 passam a prever kit e receitas versionados, com aprovação da peça
+  separada. A escolha de renderer será medida por qualidade, fidelidade e custo
+  por peça aceita; composição local com foto real concorre com edição por IA.
+- Estado: **somente especificação**. Nenhuma UI, tabela, integração ou peça
+  comercial foi criada nesta mudança. Validação: `git diff --check`.
+
+## 2026-10-26 — Eval de contexto completo para uma geração visual
+
+- Fixture sintético de cafeteria com dados atuais de onboarding/editoria e
+  campos futuros de marca, catálogo, concorrência, histórico, direitos e orçamento;
+  foto CC0 e logo fictício acompanham o caso. Inventário dos campos da web e
+  contrato de ferramentas de leitura em
+  [eval visual](evals/visual-context-eval-v1.md).
+- Runner offline valida fatos/mídia e cria briefing/planilha de revisão; modo
+  `--live` limita a uma chamada por execução e mede tokens/custo. Nove testes
+  verificam fatos vencidos, arte pronta, ausência de foto, isolamento por tenant,
+  instrução externa, consentimento, orçamento e cálculo. Nenhum cliente ou
+  banco foi alterado.
+- Primeira peça Flare/high custou US$ 0,060232; aparência melhor, texto literal
+  e fidelidade comercial reprovados. Scripts/eval são laboratório, não integração
+  de geração ao serviço de prévias.
+- Comparação exploratória com a mesma entrada: Flare/medium US$ 0,026272
+  (13,33 s) e Sunburst/high US$ 0,060232 (32,57 s). Medium pareceu próximo em
+  aparência nesta amostra, mas as três peças tiveram problema de texto literal
+  e não foram aprovadas para uso comercial.
+
+## 2026-10-26 — Medição direta de uma edição visual e impacto técnico
+
+- Após recarga da API, uma edição de foto CC0 com `gpt-image-2.5-flare`
+  retornou imagem em 19,56 s; 1.080 tokens de imagem de entrada, 189 de texto e
+  1.510 de imagem de saída correspondem a US$ 0,054885 nas tarifas Standard.
+  Arquivo e metadados ficam privados em `.local/evals/`.
+- [Ensaio](evals/ai-visual-spike-2026-10-26.md), PROJECT, F04 e
+  [plano criativo](design/creative-production-quality.md) agora distinguem custo
+  de uma chamada, custo por peça aceita e custo mensal. O plano registra quais
+  contratos atuais são reaproveitados e onde a camada criativa precisa mudar.
+  Código de produção não foi alterado nesta medição.
+
+## 2026-10-26 — Promessa de constância e iniciativa do produto
+
+- Produto definido pela entrega de conteúdo relevante que busque contatos e
+  clientes, com ou sem pedido diário do comerciante. Cliente não opera IA,
+  prompts, roteiro ou editor; prévia e aprovação continuam simples no WhatsApp.
+- Proatividade mínima de F03 movida para antes do piloto: cadência, pausa,
+  biblioteca/fatos vigentes, ausência de novo input, pergunta quando faltar
+  contexto e aprovação explícita. Pesquisa extensa de concorrentes permanece
+  posterior. Roadmap e plano criativo alinhados; nenhuma automação proativa nova
+  foi implementada por esta atualização documental.
+
+## 2026-10-26 — Geração visual por IA como percurso principal
+
+- SDD geral, F04 e plano criativo esclarecem a decisão: contexto, marca, material
+  e pedido do cliente viram briefing para modelo visual gerar/editar a peça
+  completa. Preservação de arte pronta e acabamento exato continuam disponíveis.
+- Estado honesto: integração de IA de imagem/vídeo no produto ainda não existe;
+  o ensaio externo não a implementou. Próxima fatia F04.1b integra adapter,
+  orçamento, prévia e avaliação; F04.2b/F05 tratam vídeo/avatar com gates próprios.
+  Nenhum código de produção foi alterado por esta decisão documental.
+
+## 2026-10-26 — Ensaio visual com IA e custo de referência
+
+- Foto de croissant CC0 gerou conceito de fotografia e post com IA, guardados
+  somente em `.local/evals/ai-visual-2026-10-26/`, ao lado do template v4.
+  [Registro](evals/ai-visual-spike-2026-10-26.md) separa melhora percebida,
+  risco de alterar produto/cenário e custo de referência de medição real.
+- Uma chamada à OpenAI Images API com a chave local recebeu 429
+  `credit_balance_exhausted`; não houve saída nem `usage`. A ferramenta de
+  imagem integrada não informou modelo/custo. Nenhum preço real por peça foi
+  inferido. Documentação apenas; código de produção e testes não mudaram.
+
+## 2026-10-26 — Plano de qualidade criativa
+
+- Diagnóstico no código: IA atual propõe texto/roteiro; Pillow e FFmpeg produzem
+  layouts e cenas fixas, com falhas observadas de duplicação e destaque do
+  produto. Nenhuma peça atual está aprovada para publicação comercial.
+- [Plano de produção](design/creative-production-quality.md) define rotas para
+  feed, story, carrossel, reel real, motion, geração visual e avatar; gate de
+  material autorizado, direção/kit de marca, avaliação em celular e custo por
+  peça aceita. F03/F04 passam a comparar edição de imagem por IA com a base
+  local antes da expansão; F05 continua opcional com orçamento/consentimento
+  próprios. Alteração documental; nenhuma integração visual paga foi chamada.
+
+## 2026-10-26 — Ensaio de editores locais e teto unitário
+
+- [Benchmark privado](evals/open-source-editors-2026-10-26.md): PhotoCraft CLI
+  v0.16.0 editou foto/arte; FilmCraft CLI v0.13.0 exportou MP4 H.264 de oito
+  segundos. Comparação local com a receita atual está em `.local/evals/`, fora
+  do Git. A falha de preenchimento RGBA no PhotoCraft exigiu inspeção visual e
+  correção. Nenhuma IA visual, publicação, autorização da proprietária ou custo
+  AWS foi testado.
+- SDD/PROJECT/F04 registram motores como candidatos opcionais, a necessidade
+  de classificar arte pronta e o limite de desenho de R$ 50 de custo mensal
+  total por cliente no plano de R$ 99. Franquia e viabilidade comercial dependem
+  de medir custo por peça aceita, revisão consentida e staging.
+
+## 2026-10-26 — Candidata automática e aprovação simulada
+
+- Workflow Temporal do material pede roteiro e prévia privada sem marcar o
+  roteiro como aceito; sem fato confirmado, registra pedido de esclarecimento.
+- Entrega simulada, decisão idempotente e publicação falsa vinculam proprietário,
+  candidata, hash, legenda, destino e horário. Sem aceite, nada é publicado;
+  contexto alterado e prazo vencido bloqueiam a ação. Resultado incerto do
+  dispatcher é retido para revisão, sem segunda publicação automática.
+- Cenários adicionais de cafeteria continuam sintéticos. A amostra pública do
+  [perfil indicado](evals/priscila-public-reference-2026-10-26.md) foi examinada
+  para orientar linguagem e avaliação visual, sem versionar nem modificar mídias
+  alheias e sem tratar dados públicos como fatos confirmados do negócio.
+  Avaliação humana com autorização e custo staging ainda não ocorreram. Meta
+  real, resposta a ambiguidade e ajuste automático pendentes.
+- Validação: migrações 0035/0036 em banco `_test`, integração de aprovação/RLS e
+  workflow simulado; 618 testes backend com 100% de linhas/ramos, Ruff e mypy
+  aprovados. O corpus editorial local passou 12 verificações de segurança, com
+  quatro casos que corretamente pedem confirmação; nove artes sintéticas foram
+  renderizadas sem chamadas pagas. Cinco vídeos sintéticos também foram
+  renderizados com FFmpeg no contêiner, todos aguardando revisão humana. Um
+  ensaio privado com duas mídias públicas
+  da cafeteria identificou texto duplicado em arte já pronta e pouco destaque
+  do produto em frame bruto; [registro visual](evals/priscila-public-reference-2026-10-26.md).
+
+## 2026-10-26 — Sequência orientada por qualidade
+
+- SDD geral, contexto vivo e roadmap alinhados: avaliação factual, criativa,
+  visual e de custo por receita precede sua automação/publicação comercial.
+  F04.3/F06 continuam testáveis localmente com Meta simulada; a homologação
+  externa permanece obrigatória antes de clientes reais.
+- O plano da v0 passa a colocar candidata pelo WhatsApp e aprovação/publicação
+  simulada antes de avatar e expansão de formatos. Escopo final da v0 preservado.
+  Mudança documental; nenhum gate comercial foi aprovado por esta revisão.
+
 ## 2026-10-26 — F04.2b: enquadramento integral e avaliação repetível do vídeo
 
 - Vídeo v4 preserva o clipe inteiro em retrato ou paisagem, com fundo desfocado.

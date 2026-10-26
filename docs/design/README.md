@@ -15,6 +15,11 @@ implementação; não representam serviços desenvolvidos ou capacidade comprova
 7. [Multi-tenancy: tabelas compartilhadas, RLS e evolução de capacidade](v0-tenancy.md).
 8. [Cobrança, checkout, confirmação e patrocínio — F01.5](billing.md).
 9. [Contexto do negócio, geração e custo por peça — F02–F07](business-context-and-generation.md).
+10. [Plano de qualidade criativa: fotos, stories, vídeos e avatar](creative-production-quality.md).
+11. [Eval de contexto completo: campos da web, tools, qualidade e custo](../evals/visual-context-eval-v1.md).
+12. [Biblioteca de identidade visual e formatos: escolha simples, receitas e avaliação](brand-library.md).
+13. [Trilha BL01–BL05: catálogo, prova de reaplicação, vitrine e escolha](../phases/BL-brand-library.md).
+14. [Cadência, limites dos planos e recomendações com evidência](editorial-planning-and-evidence.md).
 
 ## Decisão atual
 

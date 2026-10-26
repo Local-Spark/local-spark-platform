@@ -13,6 +13,8 @@ from app.core.logging import configure_logging
 from app.db.session import Database
 from app.entrypoints.worker import connect_temporal
 from app.services.audio_transcription import reconcile_stale_audio
+from app.services.content_deliveries import reconcile_publications
+from app.services.content_dispatch import dispatch_publications
 from app.services.editorial_dispatch import dispatch_proposals
 from app.services.editorial_proposals import reconcile_stale_proposals
 from app.services.media_dispatch import dispatch_previews, reconcile_stale_previews
@@ -43,6 +45,11 @@ async def run_dispatcher() -> None:
                 )
                 proposals = await dispatch_proposals(database, client, settings, owner)
                 previews = await dispatch_previews(database, client, settings, owner)
+                publications = (
+                    await dispatch_publications(database, client, settings, owner)
+                    if settings.meta_encryption_key
+                    else 0
+                )
                 if settings.meta_encryption_key:
                     await dispatch_reply(database, settings, http)
                 if count:
@@ -51,11 +58,15 @@ async def run_dispatcher() -> None:
                     logger.info("editorial.proposals_dispatched", extra={"count": proposals})
                 if previews:
                     logger.info("media.previews_dispatched", extra={"count": previews})
+                if publications:
+                    logger.info("content.publications_dispatched", extra={"count": publications})
                 if monotonic() - last_purge >= 10:
                     if settings.meta_encryption_key:
                         await reconcile_stale_audio(database)
                     await reconcile_stale_proposals(database)
                     await reconcile_stale_previews(database)
+                    if settings.meta_encryption_key:
+                        await reconcile_publications(database)
                     await purge_expired_previews(database, store, owner)
                     purged = await purge_once(database, store, owner) if settings.meta_encryption_key else 0
                     if purged:

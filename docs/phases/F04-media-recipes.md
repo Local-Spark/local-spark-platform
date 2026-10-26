@@ -1,5 +1,74 @@
 # F04 — Artes, carrosséis e edição de vídeo
 
+Ordem vigente: [BL01–BL05](BL-brand-library.md) valida primeiro um kit mestre
+e sua reaplicação num novo conteúdo antes de ampliar a biblioteca, automatizar
+ou declarar pronto o renderer atual. A referência do kit, quando necessária,
+é **uma única imagem da mesma receita/formato**; a foto/clipe do negócio é uma
+entrada separada. F04.1b/F04.2b continuam responsáveis pelo gate visual e de
+vídeo da peça real.
+
+Referência do kit na produção real (pendente): F04 recebe manifesto compacto da
+receita/estilo escolhidos e, quando a rota IA precisar, **no máximo uma imagem** da
+biblioteca pertinentes ao formato. O texto/logo fictícios são retirados das
+referências e a saída é verificada contra marca, produto e fatos reais. Comparar
+sem kit, manifesto, manifesto + referência e composição local no mesmo caso;
+registrar tokens, tentativas e custo **por peça aceita**. Ver
+[biblioteca visual](../design/brand-library.md#produção-e-custo).
+
+Showroom de escolha do kit (pendente): a equipe produz **uma vez por versão**
+dez exemplos, stories e reels com marca fictícia para cada kit. A web serve
+os arquivos prontos do catálogo; nenhuma renderização/IA visual é executada
+para o visitante que apenas compara kits. F04 só gera peças personalizadas após
+escolha, com fontes reais, orçamento e gate comercial próprios. Feed, stories e
+reels têm apresentações distintas no simulador interno; Facebook/TikTok seguem
+como visualizações demonstrativas até homologação. Ver
+[contrato do showroom](../design/brand-library.md#simulação-da-presença-futura).
+
+Decisão adicional (26/10/2026): uma [biblioteca de receitas originais](../design/brand-library.md)
+aplica o kit aprovado em formatos diferentes. Comparar no mesmo material e
+briefing uma composição local profissional com edição/geração visual por IA;
+escolher pelo gate de qualidade, fidelidade ao produto, preferência do dono e
+custo por peça aceita. Começar com uma receita foto/story e três direções,
+sem substituir uma saída ruim pelo template v4. Nenhuma rota passou ainda no
+gate comercial; biblioteca e roteador estão pendentes.
+
+Eval de 26/10/2026: um
+[perfil sintético preenchido](../evals/visual-context-eval-v1.md) e runner
+`scripts/evaluate_visual_context.py` montam um briefing a partir de foto CC0,
+logo fictício, marca, catálogo, preço vigente, histórico e padrões de formato.
+Uma chamada Flare/high gerou arte visualmente promissora por US$ 0,060232, mas
+alterou espaçamento literal do preço e pontuação do CTA e recriou a foto. A
+receita segue bloqueada para cliente; o eval não é adapter de produção nem prova
+de custo por peça aceita. F04 deve ligar ferramentas de contexto por tenant,
+validação de direitos, gasto por tentativa e checagem da saída ao fluxo atual.
+Flare/medium com a mesma entrada custou US$ 0,026272 e pareceu comparável nesta
+amostra; comparar IA para cena com tipografia/logo exatos por composição leve é
+o próximo teste de rota, sem retomar o template universal como peça final.
+
+Decisão refinada (26/10/2026): geração/edição visual por IA e composição local
+com kit/receita aprovados concorrem por qualidade, fidelidade e custo por peça
+aceita. A peça pode sair completa do modelo; OCR e revisão factual/visual decidem
+se texto, logo e produto estão corretos. Composição local deve ser uma receita
+original validada, não o template v4, que segue como baseline técnico; nunca
+usá-lo silenciosamente como substituto de uma geração ruim.
+Nenhum adapter de imagem/vídeo generativo está integrado ao produto hoje.
+[Contrato e sequência](../design/creative-production-quality.md).
+
+Ensaio IA de 26/10/2026: [comparação privada com foto CC0](../evals/ai-visual-spike-2026-10-26.md)
+mostrou direção visual mais forte que o template v4, mas recriou detalhes do
+produto/cenário. A ferramenta integrada não forneceu custo; após recarga, uma
+chamada direta de edição mediu US$ 0,054885 e 19,56 s. Não promover a receita
+até avaliar fidelidade, texto final e custo por peça aceita com material autorizado.
+
+Prioridade de qualidade (26/10/2026): seguir o
+[plano de produção criativa](../design/creative-production-quality.md). O
+renderer v4 permanece como baseline técnico, não receita comercial. A próxima
+fatia de F04.1b compara `preserve/compose` com edição de foto real por IA,
+após inspeção visual e briefing F03.3b; F04.2b usa clipe real, seleção de trechos
+relevantes, áudio/legenda e motion de foto. Executar benchmark com originais
+autorizados, API real do produto, avaliação do dono em celular e custo de todas
+as tentativas por peça aceita antes de promover qualquer receita.
+
 Status: F04.1 e primeira receita F04.2 implementadas localmente em 25/10/2026;
 F04.1b tem template v4, ajustes versionados e avaliador; F04.2b começou em
 26/10/2026 com narrativa, dois cortes e revisão de ritmo. O template de vídeo
@@ -20,6 +89,20 @@ Exemplo visual: [arte do Hot Dog da Ana](../assets/f04-hotdog-preview.jpg),
 renderizada pelo adapter F04.1b v4 com uma foto sintética usada somente para
 demonstração. Em uso real, a foto vem do material autorizado do negócio; este
 arquivo de exemplo não representa envio pelo WhatsApp nem publicação.
+
+Para a cafeteria sugerida como piloto, há uma
+[análise da amostra pública](../evals/priscila-public-reference-2026-10-26.md).
+As fotos reais observadas evidenciam que o produto precisa dominar a peça;
+as artes geométricas sintéticas atuais não passam por esse critério. A análise
+não substitui material autorizado, validação factual ou aceite da proprietária.
+
+O [ensaio privado de PhotoCraft/FilmCraft](../evals/open-source-editors-2026-10-26.md)
+comparou uma composição manual da mesma foto com o renderer v4 e exportou um
+vídeo de dois quadros. Demonstrou automação CLI e melhor destaque visual da
+torta nessa amostra, sem IA visual, revisão da cliente ou custo cloud medido.
+Experimentar esses motores atrás de adapter versionado; classificação
+`preserve`/`compose`, qualidade comercial e COGS <= R$ 50/cliente/mês continuam
+gates. Não ampliar o template atual como se fosse peça aprovada.
 
 ## F04.1 — Contrato implementado localmente
 
@@ -105,7 +188,11 @@ não incluir fotos, nomes, telefone ou texto do cliente nele.
 Pendências da F04.1b para piloto: coletar 20 peças consentidas de quatro
 segmentos, avaliar em celular com comerciantes, corrigir os achados e repetir a
 avaliação; medir p50/p95 de render, CPU, bytes, armazenamento e tráfego em
-staging. Nenhuma dessas evidências externas foi produzida nesta entrega.
+staging. A comparação local com a cafeteria indicou duas correções prioritárias:
+identificar arte já finalizada para não repetir chamada/logo, e oferecer foco
+de produto para fotos ou frames com muito espaço vazio sem recortar o alimento.
+Essas correções devem ser validadas com material bruto autorizado. Nenhuma
+evidência externa de aceite foi produzida nesta entrega.
 
 ## F04.2 — Primeiro vídeo curto (implementado localmente)
 
@@ -228,7 +315,18 @@ mas o piloto comercial aguarda os gates criativos e de custo.
   custo e taxa de correções. Bloquear o piloto para erros factuais, cortes que
   alterem o sentido ou qualidade abaixo dos critérios definidos na avaliação.
 
-## F04.3 — Percurso principal pelo WhatsApp (planejado)
+## F04.3 — Percurso principal pelo WhatsApp (fatia local em andamento)
+
+Em 26/10/2026, o workflow filho do material processado passou a pedir proposta
+editorial, aguardar a geração, solicitar prévia `candidate=true` e registrar
+entrega simulada por evento. A candidata é privada, versionada e não altera
+`review_state` do roteiro. O proprietário pode abrir o arquivo pela API e pela
+web de desenvolvimento. Sem fato atual, a simulação registra pedido de
+esclarecimento. A migração 0035 diferencia candidata da prévia de roteiro
+revisado; a 0036 guarda a entrega local. Repetir a mesma operação não cria outra
+prévia ou entrega. Material e consentimento são revalidados nas transições.
+Ainda faltam envio pelo WhatsApp oficial, recibo real, resposta orientadora a
+comandos ambíguos e homologação externa.
 
 F04.3 encadeia material/fato confirmado → ideia/roteiro validado →
 prévia sem exigir que o cliente abra a web ou aceite manualmente o roteiro apenas
@@ -238,9 +336,10 @@ plano, quota, validade e proveniência continuam obrigatórios; dúvida pede
 esclarecimento pelo WhatsApp. Se houver várias candidatas, cada resposta deve
 referir-se à peça certa.
 
-F04.3 ensaia envio com adapter fake e eventos assinados localmente; o envio real
-usa o canal oficial após homologação Meta. Ambos usam outbox e estado de entrega,
-mantendo a web como alternativa. Falha/resultado incerto de envio não vira
+F04.3 registra hoje uma entrega falsa durável, sem chamada de rede. O envio real
+usará o canal oficial e outbox após homologação Meta; recibo, retry e estado de
+entrega do provedor ainda precisam ser implementados e testados, mantendo a web
+como alternativa. Falha/resultado incerto de envio não vira
 aprovação nem dispara reenvio inseguro. A decisão final sobre peça, legenda, destino e horário,
 inclusive comandos "Aprovar" e "Pedir ajustes", é contrato da F06. O comando
 "Confirmar" usado para preço/horário na F02 nunca autoriza publicação.

@@ -15,6 +15,7 @@ from temporalio.exceptions import ApplicationError, WorkflowAlreadyStartedError
 from app.adapters.material_media import MaterialError, MaterialStore, MetaMediaClient
 from app.core.config import Settings
 from app.db.session import Database
+from app.services.content_deliveries import apply_candidate_command
 from app.services.editorial_conversation import record_inbound_text
 from app.services.whatsapp_replies import apply_inbound_command
 
@@ -215,11 +216,15 @@ class MaterialProcessor:
             text_body = content.get("body") if row["kind"] == "text" else content.get("caption", "")
             if not isinstance(text_body, str) or len(text_body) > 4096:
                 raise MaterialError("MATERIAL_INVALID")
-            is_command = (
-                await apply_inbound_command(self.settings, self.database, row, message)
-                if row["kind"] == "text"
-                else False
-            )
+            is_command = False
+            if row["kind"] == "text":
+                owner_database = Database(self.settings)
+                try:
+                    is_command = await apply_candidate_command(
+                        self.settings, owner_database, self.database, row, message
+                    ) or await apply_inbound_command(self.settings, self.database, row, message)
+                finally:
+                    await owner_database.close()
             object_key = mime_type = checksum = None
             upload_intent = None
             size_bytes = None

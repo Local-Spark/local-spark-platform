@@ -6,5 +6,6 @@
   {"id":"contabilidade-sem-foto","segment":"servicos","business_name":"Escritório Contábil Horizonte","statement":"Atendimento contábil para pequenos negócios.","brand_color":"#14605d","format":"photo","source_shape":"none"},
   {"id":"contabilidade-story-claro","segment":"servicos","business_name":"Contabilidade de Bairro","statement":"Orientação sobre abertura de empresas mediante agendamento.","brand_color":"#eeeeee","format":"story","source_shape":"none"},
   {"id":"roupas-foto-panorama","segment":"varejo","business_name":"Boutique das Flores","statement":"Vestidos de verão disponíveis na loja.","brand_color":"#70345a","format":"photo","source_shape":"panorama"},
-  {"id":"barbearia-story-escuro","segment":"beleza","business_name":"Barbearia do Centro","statement":"Corte masculino com horário marcado.","brand_color":"#202638","format":"story","source_shape":"landscape"}
+  {"id":"barbearia-story-escuro","segment":"beleza","business_name":"Barbearia do Centro","statement":"Corte masculino com horário marcado.","brand_color":"#202638","format":"story","source_shape":"landscape"},
+  {"id":"cafeteria-story-sintetico","segment":"alimentacao","business_name":"Cafeteria de Bairro","statement":"Café coado disponível.","brand_color":"#603f2b","format":"story","source_shape":"portrait"}
 ]

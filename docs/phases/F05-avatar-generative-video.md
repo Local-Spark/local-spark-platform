@@ -1,5 +1,11 @@
 # F05 — Avatar, voz e cenas geradas
 
+Decisão de 26/10/2026: [plano de qualidade criativa](../design/creative-production-quality.md)
+separa avatar/voz e cena generativa das receitas de foto real e vídeo editado.
+Sem benchmark de consentimento, qualidade PT-BR e custo por peça aceita, nenhuma
+dessas capacidades integra a franquia de R$ 99 ou a promessa do primeiro piloto.
+O uso em plano superior depende dos mesmos gates e de preço medido.
+
 Status: Planejada. Atualizado em 20/10/2026.
 Dependências: F01, F03, F04.
 

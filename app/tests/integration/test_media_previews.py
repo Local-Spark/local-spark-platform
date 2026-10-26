@@ -143,6 +143,47 @@ async def _attach_source(admin, tenant, business, proposal, document, media: byt
     return asset
 
 
+async def test_automatic_candidate_is_private_and_does_not_accept_script(admin, api, seeded, settings):
+    tenant, business, actor, _, proposal, _ = await _accepted_case(admin, seeded)
+    async with admin.begin() as conn:
+        await conn.execute(text("UPDATE editorial_proposals SET review_state=NULL WHERE id=:id"), {"id": proposal})
+    owner = {"Authorization": f"Bearer {access_token(settings, actor)}"}
+    path = f"/api/v1/organizations/{tenant}/businesses/{business}/media-previews"
+    payload = PreviewRequest(operation_id=uuid4(), proposal_id=proposal)
+    assert (await api.post(path, headers=owner, json=payload.model_dump(mode="json"))).json()[
+        "error_code"
+    ] == "PREVIEW_SCRIPT_NOT_ACCEPTED"
+    app_db = Database(settings)
+    worker_db = Database(settings, correlator=True)
+    try:
+        service = MediaPreviewService(settings, app_db)
+        candidate = await service.request_candidate(tenant, business, actor, payload)
+        assert candidate.candidate and candidate.state == "pending"
+        assert (await service.request_candidate(tenant, business, actor, payload)).id == candidate.id
+        assert any(item.id == candidate.id for item in await service.list(tenant, business, actor))
+        claim = (await claim_previews(worker_db, uuid4()))[0]
+        store = AsyncMock()
+        assert await MediaPreviewService(settings, worker_db, store).render(claim.id, claim.fence) == "completed"
+        assert await service.file_key(tenant, business, actor, candidate.id)
+        async with admin.begin() as conn:
+            state = await conn.scalar(
+                text("SELECT review_state FROM editorial_proposals WHERE id=:id"), {"id": proposal}
+            )
+        assert state is None
+        async with admin.begin() as conn:
+            await conn.execute(
+                text("UPDATE editorial_proposals SET review_state='changes_requested' WHERE id=:id"),
+                {"id": proposal},
+            )
+        assert all(item.id != candidate.id for item in await service.list(tenant, business, actor))
+        with pytest.raises(AuthError) as error:
+            await service.file_key(tenant, business, actor, candidate.id)
+        assert error.value.code == "PREVIEW_NOT_READY"
+    finally:
+        await worker_db.close()
+        await app_db.close()
+
+
 @pytest.mark.parametrize(
     "change,code",
     [

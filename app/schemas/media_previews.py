@@ -25,6 +25,7 @@ class PreviewRequest(BaseModel):
 class PreviewRead(BaseModel):
     id: UUID
     proposal_id: UUID
+    candidate: bool
     parent_preview_id: UUID | None
     emphasis: Literal["balanced", "photo", "text"]
     revision: int

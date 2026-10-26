@@ -1,5 +1,89 @@
 # SDD geral — Plataforma de conteúdo
 
+Ordem de implementação atualizada em 26/10/2026: a
+[trilha BL01–BL05](phases/BL-brand-library.md) começa pela UI exploratória em
+paralelo à produção de um kit completo e depois prova uma nova peça no mesmo
+estilo; seguem três kits na vitrine, escolha versionada e automação com WhatsApp. Em
+qualquer rota de IA, o briefing contém o manifesto e **zero ou uma imagem de
+referência do kit da mesma receita/formato**; material real do cliente é uma
+entrada distinta. A seleção da vitrine não faz geração por visitante.
+Roadmap anterior que priorizava ampliar o renderer universal fica substituído
+pela [sequência vigente](phases/README.md#sequência-executiva-até-a-v0-completa).
+
+O [planejamento explicável](design/editorial-planning-and-evidence.md) separa
+teto pago e cadência sugerida: cliente aprova o ritmo dentro da franquia, vê
+motivo e incerteza de cada recomendação, e só muda de plano com aceite de preço.
+Biblioteca publicável própria e referências observadas da concorrência são
+acervos distintos; não copiar material de terceiros para os kits.
+
+Na produção personalizada, F03/F04 resolvem a
+[versão aprovada do kit](design/brand-library.md#produção-e-custo) e usam suas
+receitas, regras de estilo e exemplos pertinentes junto ao contexto factual do
+negócio. A galeria inteira não acompanha cada pedido; imagens de referência
+podem aumentar tokens de entrada. A hipótese de menor custo depende de menos
+falhas/revisões e precisa de comparação controlada por **peça aceita**, além de
+impedir que a marca fictícia da vitrine apareça no conteúdo do cliente.
+
+O [showroom do kit visual](design/brand-library.md#simulação-da-presença-futura)
+carrega **arquivos pré-produzidos do catálogo**, iguais para todos os visitantes:
+dez posts por kit, stories, reels e exemplos de conversa ou dia sem mensagem,
+com marca fictícia. O simulador de Instagram/Facebook/TikTok fica **dentro da
+nossa web** e não acessa a conta pessoal do cliente. A seleção não chama IA
+visual nem exige materiais dele; F03 registra `kit_id/version`. Só a produção
+posterior com contexto real aciona F04 e seus custos/gates. A web já oferece
+uma simulação estática inicial; catálogo na API, kit final e seleção continuam
+pendentes.
+
+Atualização de produto (26/10/2026): [biblioteca de identidade e formatos](design/brand-library.md).
+O negócio que não tem kit visual vê até três kits prontos da nossa biblioteca,
+escolhe uma direção e pode editá-la depois. F03 persiste a escolha; F04
+aplica receitas versionadas e testa composição local contra geração/edição por IA
+para cada tipo de material, sob o mesmo gate de fidelidade e qualidade. Esta
+decisão de **roteamento por evidência** refina a prioridade anterior de IA visual
+para toda peça nova: IA permanece essencial onde cria valor, mas uma foto real
+boa com layout aprovado pode ser composta localmente se o resultado for aceito.
+Kit aprovado não aprova publicação; F06 pede aceite da peça final. Biblioteca e
+roteamento ainda não estão implementados.
+
+Promessa central reafirmada em 26/10/2026: **o cliente contrata uma presença
+digital útil e constante para atrair contatos e clientes, não acesso a um editor
+de IA**. A jornada principal funciona quando ele envia ideia/mídia pelo WhatsApp
+**e quando não envia nada novo**: contexto e materiais autorizados existentes,
+preferências, fatos vigentes e cadência geram proposta proativa; ele recebe uma
+prévia curta para aprovar/ajustar. Ausência de resposta não é aprovação. A
+qualidade da peça e sinais observáveis de interesse (contatos, cliques, visitas,
+mensagens quando disponíveis) orientam a melhoria; alcance não comprova venda.
+Proatividade mínima de F03 entra antes do primeiro piloto comercial, não depois
+do lançamento. Ver [F03](phases/F03-editorial-research.md) e
+[ordem atualizada](phases/README.md).
+
+Decisão de produto (26/10/2026): o percurso principal de novas peças deve usar
+**geração visual por IA**, com briefing automático de contexto/kit de marca,
+material autorizado, fato e CTA. F04 recebe a peça completa ou uma edição da
+fonte; valida texto e fidelidade, oferece revisão e usa compositor local apenas
+para acabamento/preservação. O produto ainda não implementa essa integração:
+OpenAI é usado só para sugestão/roteiro, enquanto Pillow/FFmpeg fazem as prévias.
+Vídeo generativo e avatar exigem orçamento e consentimento próprios. Ver
+[plano criativo](design/creative-production-quality.md).
+
+Ensaio de 26/10/2026: IA visual criou conceito privado a partir de foto CC0.
+A primeira chamada direta falhou por saldo; após recarga, medimos uma edição
+simples e um [eval de contexto completo](evals/visual-context-eval-v1.md) com
+perfil fictício, kit de marca, catálogo, foto, logo e fatos vigentes. O mock
+recupera esses dados antes de uma chamada de imagem; as ferramentas de leitura,
+o kit e o adapter ainda não estão integrados ao produto. Uma imagem visualmente
+boa não comprovou texto exato, fidelidade a produto real ou custo por peça
+aceita. [Evidência inicial](evals/ai-visual-spike-2026-10-26.md).
+
+Decisão de qualidade em 26/10/2026: as prévias Pillow/FFmpeg são demonstrações
+técnicas e não satisfazem o padrão de publicação. A IA atual gera texto, não
+imagem/vídeo visualmente novos. A sequência prioriza inspeção visual da fonte,
+kit de marca, briefing versionado e comparação de edição local com IA visual
+antes de ampliar formatos ou prometer frequência diária. F04 só libera uma
+receita após aprovação humana e custo por peça aceita medido dentro do teto
+mensal; F05/avatar tem gate próprio. Contratos e ordem em
+[plano de qualidade criativa](design/creative-production-quality.md).
+
 22/10/2026 — Produto renomeado para **Meu Braço Direito**. Diretórios e remotos
 Git permanecem `local-spark-platform`/`local-spark-web`; os pacotes, Compose,
 variáveis `MEU_BRACO_DIREITO_`, bancos e roles usam os identificadores novos.
@@ -11,6 +95,40 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 
 Versão 1.2, 23/10/2026. Resumo implementável e índice das especificações detalhadas.
+
+Decisão experimental em 26/10/2026: PhotoCraft e FilmCraft foram testados
+localmente como motores opcionais de edição; o primeiro montou uma story privada
+e o segundo exportou MP4 vertical. Nenhuma IA visual foi chamada e o resultado
+não passou por revisão da proprietária. A receita F04 deve classificar arte já
+finalizada, escolher composição por material/contexto e validar visualmente a
+saída. O uso de editores locais é candidato, não troca de motor aprovada. Meta
+de negócio para plano de R$ 99: custo mensal total por cliente <= R$ 50,
+incluindo cobrança, mensageria, IA, render, infraestrutura, retentativas,
+impostos, aquisição amortizada e atendimento atribuído;
+franquias só após medição real. Ver
+[ensaio e limites](evals/open-source-editors-2026-10-26.md).
+
+F04.3/F06 locais (26/10/2026): evento WhatsApp processado e vinculado inicia
+workflow Temporal que pede roteiro, aguarda proposta, pede prévia candidata sem
+aceite artificial do roteiro e a entrega em uma caixa simulada. Falta de fato
+confirmado gera pedido de esclarecimento. A decisão final do proprietário na
+API ou por comando `Aprovar`/`Pedir ajustes` está vinculada à candidata única;
+aprovação guarda hash da arte, legenda, destino e horário e é revalidada antes
+de uma publicação **falsa**. Replay/tenant/RLS e resultado incerto do dispatcher
+são parte do contrato. Nenhuma chamada real de WhatsApp ou Instagram é feita;
+ambiguidade de comandos e ajuste solicitado ainda precisam resposta orientadora
+e nova versão. A web em desenvolvimento mostra o simulador. Esta fatia técnica
+não fecha os gates de qualidade/custo nem autoriza uso comercial.
+
+Decisão de sequência em 26/10/2026: qualidade factual, criativa e visual de cada
+receita é gate anterior à sua automação/publicação comercial. A prioridade atual
+é concluir as avaliações e correções de F03.3b/F04.1b/F04.2b com negócios
+consentidos e custo medido; depois F04.3 entrega a candidata no WhatsApp e F06
+exercita aprovação/publicação com adapter fake. F05 e os demais formatos podem
+vir após o primeiro percurso validado, sem reduzir o padrão de qualidade de
+nenhuma receita ativada. A restrição da conta Meta não bloqueia desenvolvimento
+local; WhatsApp e Instagram reais exigem homologação antes de clientes reais.
+Ver [ordem e gates atuais](phases/README.md#qualidade-por-etapa-e-dependência-da-meta).
 
 F04.1b em andamento (26/10/2026): ajuste visual de foto/story cria versão
 privada vinculada à anterior, sem editar fato ou roteiro, com até quatro versões

@@ -14,12 +14,15 @@ from scripts import evaluate_editorial as editorial_eval
 async def test_script_eval_baseline_and_review_sheet(settings, monkeypatch, tmp_path):
     monkeypatch.setattr(editorial_eval, "Settings", lambda: settings)
     report = await editorial_eval.evaluate(False)
-    assert len(report["cases"]) == 10
+    cases = json.loads(editorial_eval.CASES.read_text())
+    assert len(report["cases"]) == len(cases)
     assert report["release_decision"] == "blocked_pending_semantic_review_and_staging"
     assert all(item["baseline_storyboard_valid"] and item["human_review"] == "pending" for item in report["cases"])
-    assert sum(item["status"] == "needs_confirmed_fact" for item in report["cases"]) == 3
+    assert sum(item["status"] == "needs_confirmed_fact" for item in report["cases"]) == sum(
+        not case["facts"] for case in cases
+    )
     assert all(item["safe"] for item in report["cases"])
-    case = json.loads(editorial_eval.CASES.read_text())[0]
+    case = cases[0]
     data, _ = editorial_eval.inputs(case)
     draft = EditorialProposalService._baseline(data)
     wrong_fact = draft.script[0].model_copy(update={"voiceover": "Resultado garantido."})
@@ -30,7 +33,7 @@ async def test_script_eval_baseline_and_review_sheet(settings, monkeypatch, tmp_
     editorial_eval.write_review_sheet(report, target)
     with target.open() as file:
         rows = list(csv.DictReader(file))
-    assert len(rows) == 10
+    assert len(rows) == len(cases)
     assert all(row["candidate"] == "baseline-v1" and not row["factual_error"] for row in rows)
 
 

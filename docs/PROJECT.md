@@ -1,5 +1,92 @@
 # Contexto vivo do projeto
 
+26/10/2026 — [Cadência e planos](design/editorial-planning-and-evidence.md):
+o plano limita volume por formato/canal, a plataforma sugere frequência dentro
+da franquia e explica por que, e o cliente aceita/reduz/pausa. Faixas e preços
+dependem do custo por peça aceita (BL02). Biblioteca cresce por três nichos
+iniciais — cafeteria, manicure e personal — e por padrões de referência
+auditáveis, sem copiar mídia/legenda de concorrentes. Pesquisa automática só
+usa fontes/escopos aprovados; dados de clientes não vazam entre tenants.
+
+26/10/2026 — **Nova ordem de entrega:** [BL01–BL05](phases/BL-brand-library.md)
+antecipa a UI exploratória junto com um kit mestre completo, prova de reaplicação com no máximo **uma
+imagem de referência do kit da mesma receita/formato**, vitrine interna de
+três kits, escolha versionada e só então automação comercial por WhatsApp.
+O código existente de F02–F06 continua base; as prévias Pillow/FFmpeg atuais
+não viram kits aprovados. A mudança de ordem está no
+[índice das fases](phases/README.md). A web já tem uma primeira vitrine estática
+com três canais e mídia fictícia; o kit completo e seu catálogo ainda não existem.
+
+26/10/2026 — O kit escolhido também será **referência da produção real**:
+receita editável, tokens visuais e **no máximo uma referência do kit** entram no
+briefing com fatos/mídia do cliente. Evitar enviar toda a galeria ou copiar a
+marca fictícia da vitrine. A economia esperada vem de menos erros/revisões e da
+composição local quando aprovada, não de supor que referências reduzem o preço
+de cada chamada. Avaliar sem kit, kit compacto, kit + referência e composição
+local no mesmo caso; medir custo por peça aceita. Ver
+[biblioteca visual](design/brand-library.md#produção-e-custo).
+
+26/10/2026 — Correção do showroom: a escolha exibe **kits de campanha do
+catálogo, pré-produzidos uma vez por nós**, com marca fictícia (por exemplo,
+“Meu Braço Direito”), dez posts, stories, reels e exemplos de conversa/proposta
+sem mensagem. O cliente compara os formatos em simuladores de Instagram,
+Facebook e TikTok **dentro da nossa plataforma**; nada é lido ou publicado nas
+contas pessoais. Abrir o catálogo serve arquivos prontos, sem geração visual
+por visitante. Só após a escolha há adaptação e geração com dados reais,
+avaliadas e cobradas no custo da operação. Ver [biblioteca visual](design/brand-library.md).
+
+26/10/2026 — Clientes sem identidade visual poderão escolher um
+[kit pronto da biblioteca](design/brand-library.md), sem fornecer fotos, logo ou
+cores para visualizar as opções. Depois da seleção, o negócio pode adaptar
+detalhes do kit. F03 registra a escolha versionada; F04 compara composição
+profissional local e IA visual com conteúdo real; F06 conserva aprovação
+separada para cada peça. Existe uma simulação inicial na web; catálogo, mídia
+final e escolha ainda não foram implementados.
+
+26/10/2026 — Eval [contexto completo antes da geração visual](evals/visual-context-eval-v1.md):
+fixture de cafeteria **fictícia** preenche dados de onboarding/contexto atuais e
+campos propostos de kit visual, catálogo, canais, histórico e concorrência. Um
+runner local recupera apenas dados vigentes/autorizados, bloqueia casos sem
+evidência e pode fazer uma chamada paga de imagem com foto CC0 e logo sintético.
+A primeira geração Flare/high custou US$ 0,060232 e falhou em texto literal e
+fidelidade comercial. Com a mesma entrada, Flare/medium custou US$ 0,026272
+e manteve aparência promissora nesta amostra; Sunburst/high custou US$ 0,060232.
+As três saídas ainda precisam de acabamento exato e avaliação real. Não houve alteração da conta/DB de cliente nem integração
+dessas ferramentas ao produto; a web só tem uma exploração estática inicial.
+
+26/10/2026 — Definição de negócio: Meu Braço Direito é um operador de conteúdo
+assistido por IA para pequenos negócios. O cliente não precisa dominar prompts,
+modelos ou ferramentas; pode enviar material/ideia ou passar um dia sem enviar.
+O sistema usa o contexto confirmado e o acervo autorizado para propor peças
+proativamente na cadência contratada, pede aprovação simples por WhatsApp e
+acompanha sinais de interesse. Proatividade mínima é requisito do primeiro
+piloto; pesquisa ampla de concorrentes continua expansão. Não prometer aumento
+de faturamento sem medição causal. Ver [F03](phases/F03-editorial-research.md).
+
+26/10/2026 — Produto reafirmado como **IA visual primeiro**: intenção/material
+do WhatsApp + contexto e marca do negócio + fatos/CTA confirmados alimentam
+diretamente modelo de imagem/vídeo para nova peça; prévia, revisão e aprovação
+seguem no pipeline existente. Hoje isso é especificação, não feature pronta:
+IA integrada só gera texto/roteiro e Pillow/FFmpeg montam o arquivo. Próxima
+entrega é adapter de imagem/edição IA com custo e qualidade medidos; vídeo e
+avatar seguem gates próprios. Ver [plano](design/creative-production-quality.md).
+
+26/10/2026 — Ensaio visual privado com foto CC0 de croissant: a edição com IA
+produziu um conceito visualmente superior ao template v4. A primeira chamada
+à API direta falhou por falta de saldo; após a recarga, uma edição com
+`gpt-image-2.5-flare` consumiu 2.779 tokens totais em 19,56 s e custou
+US$ 0,054885 pelas tarifas Standard. A imagem recriou detalhes do produto e
+cenário; não é peça aprovada nem custo mensal validado. O adapter visual ainda
+não está integrado ao produto. Ver [registro do ensaio](evals/ai-visual-spike-2026-10-26.md).
+
+26/10/2026 — A qualidade das prévias atuais foi considerada inadequada para
+publicação: IA está restrita a ideia/roteiro; Pillow/FFmpeg desenham um layout
+universal e vídeo silencioso, sem entendimento visual suficiente do material.
+Prioridade imediata: [plano de produção criativa](design/creative-production-quality.md)
+com classificação da fonte, kit de marca progressivo, briefing, edição de imagem
+com IA em benchmark controlado, vídeo real com corte/áudio/legenda, gates humanos
+e custo por peça aceita. Nenhuma receita visual atual está aprovada para cliente.
+
 22/10/2026 — Produto renomeado para **Meu Braço Direito**. Diretórios e remotos
 Git permanecem `local-spark-platform`/`local-spark-web`; os pacotes, Compose,
 variáveis `MEU_BRACO_DIREITO_`, bancos e roles usam os identificadores novos.
@@ -9,8 +96,37 @@ as chaves Stripe de checkouts anteriores. Contas existentes conservam suas senha
 as senhas de exemplo abaixo valem para instalações novas. Instruções e exceções
 de compatibilidade em [renomeação do produto](product-rename.md).
 
+26/10/2026 — Ensaio privado de PhotoCraft CLI e FilmCraft CLI mostrou edição
+local automatizável, mas também confirmou que a direção criativa, a escolha de
+material bruto versus arte pronta e a revisão da saída determinam a qualidade.
+Nenhuma IA visual foi usada no ensaio; não houve validação comercial ou custo
+AWS. O plano de R$ 99 passa a ter como restrição de desenho custo mensal total
+por cliente de no máximo R$ 50, a verificar em staging com franquias e
+retentativas limitadas. Ver [benchmark dos editores](evals/open-source-editors-2026-10-26.md).
+
 
 Atualizado: 23/10/2026. Nome adotado: Meu Braço Direito. Repositório principal: `local-spark-platform`.
+
+26/10/2026 — Fatia local F04.3/F06: após processar material, Temporal pode pedir
+roteiro com fato confirmado, criar prévia privada marcada como candidata e
+registrar uma entrega simulada. Uma decisão explícita do proprietário vincula
+hash da arte, legenda, destino Instagram e horário; o dispatcher só registra
+publicação **falsa** se esses dados ainda forem válidos. A web de desenvolvimento
+exibe candidatas e decisões. Não há envio real ao WhatsApp nem Instagram; pedido
+de ajustes ainda não gera nova versão automaticamente. Uma
+[amostra pública do perfil](evals/priscila-public-reference-2026-10-26.md)
+`priscilasilveiracafeteria` foi consultada para orientar a avaliação criativa;
+não recebemos fotos próprias autorizadas nem aceite da proprietária. Os casos
+adicionais de cafeteria permanecem sintéticos e não são fatos confirmados do
+negócio dela. Gates humanos/custo das etapas 1–2 e homologação Meta continuam
+abertos.
+
+26/10/2026 — Decisão de produto: não antecipar publicação de peças sem qualidade
+comercial comprovada. Concluir avaliação factual/criativa/visual e custo de cada
+receita escolhida para o piloto antes de habilitar sua automação em F04.3/F06.
+Continuar a implementação local com Meta simulada; homologar WhatsApp/Instagram
+reais antes de atender clientes. Avatar e outros formatos mantêm o escopo da v0,
+mas não são dependências do primeiro percurso aprovado. Ver [fases](phases/README.md).
 
 26/10/2026 — F04.1b ganhou ajustes visuais versionados de foto/story, privados e
 idempotentes, na API e na área do cliente. Avaliação humana consentida agora tem

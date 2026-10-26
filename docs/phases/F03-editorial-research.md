@@ -1,5 +1,67 @@
 # F03 — Pesquisa, temas e planejamento proativo
 
+Ordem vigente: [BL01–BL05](BL-brand-library.md) produz e valida o kit antes de
+acelerar a automação editorial. A escolha de F03 vem após a vitrine BL03 e
+registra a versão imutável do kit em BL04. Proatividade sem novo material usa
+o mesmo kit e só entra no piloto após a reaplicação visual BL02.
+
+Após o cliente escolher um kit, F03 inclui `kit_id/version` e a receita
+compatível no briefing editorial real. O serviço resolve as regras visuais do
+catálogo e seleciona apenas exemplos pertinentes; o modelo não interpreta um
+ID de kit isolado. Fatos comerciais vigentes e mídia autorizada continuam vindo
+do negócio, nunca dos exemplos fictícios da vitrine.
+
+Showroom de escolha do kit (UI inicial entregue; catálogo/seleção pendentes): as dez pautas e os exemplos de conversa
+são produzidos uma vez pela equipe com **marca e materiais de demonstração**.
+F03 não monta pautas com fatos/mídia do visitante para abrir a vitrine; apenas
+recomenda kits existentes por segmento e registra `kit_id/version` escolhido.
+Depois, o planejamento editorial real usa fatos vigentes do negócio. Ver
+[biblioteca visual](../design/brand-library.md).
+
+Decisão adicional (26/10/2026): F03 deve permitir ao proprietário escolher e
+aprovar um [kit visual pronto](../design/brand-library.md) entre até três
+direções recomendadas por segmento, mostradas em exemplos fictícios de
+feed/story/reel. Capturar marca existente opcionalmente **após a escolha**,
+guardar versão/autor/direitos e usar apenas kit aprovado no briefing real. É
+uma fatia pendente de F03, ligada ao gate visual F04.1b; não substitui fatos
+comerciais confirmados nem exige onboarding longo.
+
+Eval de contexto completo (26/10/2026):
+[caso fictício e inventário da web](../evals/visual-context-eval-v1.md) mapeiam
+campos já persistidos e campos faltantes para kit visual, catálogo/SKU,
+preferências de estilo, histórico de publicação e concorrência. O cliente não
+deve preencher tudo antes de começar; enriquecimento progressivo por web ou
+WhatsApp, com confirmação/versionamento, alimenta briefing compacto. O script
+de avaliação usa mock de leituras, sem criar tabelas, rotas ou formulário.
+Pesquisa/observações externas continuam hipóteses; só códigos de padrão
+permitidos entram no briefing, sem executar instruções de concorrentes.
+
+Decisão de produto (26/10/2026): o negócio paga por **conteúdo relevante e
+regular sem precisar pedir diariamente**. Proatividade mínima é parte do
+primeiro piloto, não uma expansão pós-lançamento. Dois gatilhos alimentam o
+mesmo briefing/roteiro F03.3 e as mesmas prévias F04: (a) ideia, pergunta ou
+mídia recebida pelo WhatsApp; (b) horário de planejamento da cadência escolhida,
+mesmo sem novo envio. O segundo usa apenas fatos vigentes, preferências e
+materiais de biblioteca com direito de uso; pede uma foto ou confirmação quando
+esses elementos não bastarem. O cliente pode pausar, alterar frequência e
+aprovar/ajustar a proposta no WhatsApp; silêncio não aprova publicação.
+
+O [contrato de cadência e evidência](../design/editorial-planning-and-evidence.md)
+fixa a separação: o plano limita quantidade/formatos; F03 sugere um ritmo
+**dentro** desse limite e explica objetivo, evidência, incerteza e revisão.
+Sem histórico da conta, dia/hora são hipóteses operacionais. A IA não aumenta
+plano ou volume, e referências de concorrentes não são tratadas como causa de
+vendas. A biblioteca de padrões por nicho/região entra em pesquisa avançada,
+depois de validar fontes permitidas e ganho frente ao baseline.
+
+Fatia mínima antes do piloto: agenda por tenant/negócio e fuso, limite por plano,
+deduplicação de tema/peça, checagem de fatos/validades/direitos e teto de gasto,
+uma candidata privada sem novo input, mensagem de revisão e pausa/retomada.
+Comparar com conteúdo iniciado pelo cliente em qualidade, taxa de aceite e
+contatos observáveis. Pesquisa de concorrentes por raio, campanhas sazonais
+complexas e otimização por métricas ficam em fatias posteriores; não bloqueiam
+essa utilidade central.
+
 Status: Em implementação; F03.1, F03.2a e partes de F03.2c entregues localmente. F03.3 tem roteiro, edição versionada e revisão local, ainda sem benchmark comercial.
 Dependências: F01, F02.
 

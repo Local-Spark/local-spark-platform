@@ -205,16 +205,20 @@ de drift. Publicação de infraestrutura paga é uma etapa concreta posterior ao
 | --- | --- | --- |
 | M0 | Repos, Compose, auth, tenancy/RLS, inbox/outbox e Temporal | Queda/restart não perde comando nem cruza tenant |
 | M1 | WhatsApp, biblioteca, áudio/texto e briefing | Material agrupado, fatos ambíguos confirmados e trace por operação |
-| M2 | Imagem, carrossel, motion e edição de vídeo | Receitas reais, previews imutáveis, legendas sincronizadas e custo registrado |
-| M3 | Avatar/voz do cliente e cenas geradas | Consentimento, revogação, identidade validada e orçamento funcional |
-| M4 | Instagram: imagem/carrossel/Reels/Stories elegíveis | Permissões reais, publicação confirmada, timeout e reauth tratados |
-| M5 | Pesquisa, referências locais e planejamento proativo sem material novo | Fontes e políticas, raio, temas, prévia contextual, opt-in, aprovação e expiração sem publicar |
+| M2 | Qualidade das primeiras receitas de arte e vídeo com material real autorizado | Peças imutáveis; revisão factual/criativa/visual com comerciantes, aceite, correções e custo por peça medido antes de habilitar cada receita no piloto |
+| M3 | Candidata pelo WhatsApp e aprovação/publicação simulada | Cliente recebe uma versão específica sem depender da web; aceite explícito, pedido de ajuste, falha, timeout e recibo não geram postagem indevida |
+| M4 | WhatsApp e Instagram oficiais para as receitas aprovadas | Permissões, mídia, estados externos e publicação confirmada por smoke real antes de atender clientes; timeout e reauth tratados |
+| M5 | Demais formatos, avatar/voz/cenas geradas e planejamento proativo | Cada nova receita passa por gate próprio de qualidade, direitos e custo; pesquisa tem fontes/políticas, opt-in, aprovação e expiração sem publicar |
 | M6 | Franquias, assinatura, concessão e relatório | Saldo concorrente correto, custo real, término transparente e métricas reproduzíveis |
 | M7 | Console, segurança, recovery, carga e replay | Equipe resolve falhas sem editar DB; SLO comprovado na carga declarada |
 
-Spikes de API/qualidade acontecem durante M0/M1, não depois de implementar todo o
-produto. Os marcos são sequência de engenharia, não proposta de cortar o escopo
-da v0. Só declarar v0 completa após M0–M7, ou registrar explicitamente alteração de escopo.
+Spikes de API/qualidade começam cedo e acompanham cada receita; a indisponibilidade
+temporária da conta Meta não bloqueia os testes locais de M2/M3. O adapter falso
+precisa representar os estados relevantes do provedor, mas não substitui a
+homologação externa de M4. Os marcos são sequência de engenharia, não proposta
+de cortar o escopo da v0. Só declarar v0 completa após M0–M7, ou registrar
+explicitamente alteração de escopo. É possível validar um piloto com as receitas
+que passaram pelos seus gates antes de concluir todos os formatos e o avatar.
 
 ## 6. Definition of Done da v0
 

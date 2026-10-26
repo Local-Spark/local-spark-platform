@@ -49,8 +49,8 @@ async def test_material_worker_registers_activities_and_closes_both_pools(settin
     constructor = MagicMock(return_value=execution)
     monkeypatch.setattr(worker, "Worker", constructor)
     await worker.run_worker()
-    assert len(constructor.call_args.kwargs["workflows"]) == 4
-    assert len(constructor.call_args.kwargs["activities"]) == 6
+    assert len(constructor.call_args.kwargs["workflows"]) == 6
+    assert len(constructor.call_args.kwargs["activities"]) == 13
     assert database.close.await_count == 2
 
 
@@ -92,11 +92,13 @@ async def test_whatsapp_dispatcher_disabled_and_loop_shutdown(settings, monkeypa
     monkeypatch.setattr(dispatcher, "dispatch_materials", dispatch)
     monkeypatch.setattr(dispatcher, "dispatch_proposals", AsyncMock(return_value=1))
     monkeypatch.setattr(dispatcher, "dispatch_previews", AsyncMock(return_value=1))
+    monkeypatch.setattr(dispatcher, "dispatch_publications", AsyncMock(return_value=1))
     purge = AsyncMock(return_value=1)
     monkeypatch.setattr(dispatcher, "purge_once", purge)
     monkeypatch.setattr(dispatcher, "reconcile_stale_audio", AsyncMock(return_value=0))
     monkeypatch.setattr(dispatcher, "reconcile_stale_proposals", AsyncMock(return_value=0))
     monkeypatch.setattr(dispatcher, "reconcile_stale_previews", AsyncMock(return_value=0))
+    monkeypatch.setattr(dispatcher, "reconcile_publications", AsyncMock(return_value=0))
     monkeypatch.setattr(dispatcher, "purge_expired_previews", AsyncMock(return_value=0))
     monkeypatch.setattr(dispatcher.asyncio, "sleep", AsyncMock())
     with pytest.raises(asyncio.CancelledError):
@@ -118,10 +120,12 @@ async def test_whatsapp_dispatcher_empty_purge_is_quiet(settings, monkeypatch):
     monkeypatch.setattr(dispatcher, "dispatch_materials", AsyncMock(side_effect=[0, asyncio.CancelledError()]))
     monkeypatch.setattr(dispatcher, "dispatch_proposals", AsyncMock(return_value=0))
     monkeypatch.setattr(dispatcher, "dispatch_previews", AsyncMock(return_value=0))
+    monkeypatch.setattr(dispatcher, "dispatch_publications", AsyncMock(return_value=0))
     monkeypatch.setattr(dispatcher, "purge_once", AsyncMock(return_value=0))
     monkeypatch.setattr(dispatcher, "reconcile_stale_audio", AsyncMock(return_value=0))
     monkeypatch.setattr(dispatcher, "reconcile_stale_proposals", AsyncMock(return_value=0))
     monkeypatch.setattr(dispatcher, "reconcile_stale_previews", AsyncMock(return_value=0))
+    monkeypatch.setattr(dispatcher, "reconcile_publications", AsyncMock(return_value=0))
     monkeypatch.setattr(dispatcher, "purge_expired_previews", AsyncMock(return_value=0))
     monkeypatch.setattr(dispatcher.asyncio, "sleep", AsyncMock())
     with pytest.raises(asyncio.CancelledError):

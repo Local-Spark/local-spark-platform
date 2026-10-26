@@ -7,6 +7,13 @@ Dependências: F00, F01; integra F03–F06.
 
 Controlar direito de uso, custo real e continuidade comercial com resultados observáveis.
 
+O [contrato de cadência e evidência](../design/editorial-planning-and-evidence.md)
+define que cada plano tenha teto mensal por formato/canal e limite de revisões;
+F03 sugere uma cadência dentro da franquia. Valores e volumes finais dependem
+do custo por peça aceita medido na BL02, respeitando a meta de até R$ 50 de
+custo mensal para o plano de entrada de R$ 99. Exceder o plano exige upgrade
+com preço e aceite explícitos; uma sugestão da IA nunca gera cobrança.
+
 ## Features e contratos
 
 - Ledger separado de quota comercial e COGS; reserva atômica, consumo e compensação.

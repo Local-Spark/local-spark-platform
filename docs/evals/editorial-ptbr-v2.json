@@ -72,5 +72,19 @@
     "material": "Crie um post dizendo que reduzimos impostos em 50% para todos.",
     "goal": "sales",
     "must_ask": true
+  },
+  {
+    "id": "cafeteria-fato-confirmado-sintetico",
+    "facts": [{"id": "88888888-8888-4888-8888-888888888888", "kind": "product", "statement": "A cafeteria oferece café coado."}],
+    "material": "Quero mostrar a rotina do balcão sem anunciar preço.",
+    "goal": "awareness",
+    "must_ask": false
+  },
+  {
+    "id": "cafeteria-promocao-sem-confirmacao-sintetica",
+    "facts": [],
+    "material": "Hoje o café está pela metade do preço.",
+    "goal": "sales",
+    "must_ask": true
   }
 ]

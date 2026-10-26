@@ -1,12 +1,26 @@
 # F06 — Aprovação, agenda e Instagram
 
-Status: Planejada. Atualizado em 25/10/2026.
+Status: Fatia local em andamento. Atualizado em 26/10/2026.
 Dependências: F01 e F04, incluindo a entrega da prévia por WhatsApp em F04.3.
 F05 é necessária somente para peças com avatar.
 
 ## Objetivo
 
 Publicar versões efetivamente aprovadas em contas profissionais elegíveis, com rastreabilidade por destino.
+
+Em 26/10/2026, a migração 0036 e o serviço local guardam candidata entregue,
+identidade vinculada, decisão idempotente, hash da arte, legenda, destino
+Instagram e horário. A API do proprietário e os comandos recebidos no fluxo
+WhatsApp podem aprovar ou registrar pedido de ajustes de uma candidata única;
+sem decisão a fila de publicação fica vazia. O dispatcher Temporal publica
+somente um recibo `fake-instagram/<id>` em development/testing/staging e nunca
+chama Meta. Mudança/expiração de contexto, roteiro, fonte ou prévia bloqueia a
+decisão ou o envio; lease vencido vira `unknown`, sem retry cego. A web de
+desenvolvimento mostra o simulador e o estado. A publicação falsa é proibida em
+production. Pedido de ajustes ainda não cria nova versão; comandos ambíguos
+são ignorados sem publicação e precisam uma resposta de orientação. Cancelamento,
+recibo/erro Meta, reconciliação real e expurgo do conteúdo/telefone cifrado das
+entregas após o prazo de retenção permanecem pendentes antes do piloto.
 
 ## Features e contratos
 

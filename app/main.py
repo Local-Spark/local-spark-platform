@@ -16,6 +16,7 @@ from app.adapters.twilio_verify import TwilioVerify
 from app.api.v1.api import api_router
 from app.api.v1.auth import auth_router
 from app.api.v1.billing import billing_router
+from app.api.v1.content_deliveries import deliveries_router
 from app.api.v1.editorial_context import context_router
 from app.api.v1.editorial_conversation import conversation_router
 from app.api.v1.editorial_proposals import proposals_router
@@ -95,6 +96,7 @@ def create_app(
     application.include_router(conversation_router)
     application.include_router(proposals_router)
     application.include_router(previews_router)
+    application.include_router(deliveries_router)
 
     @application.middleware("http")
     async def diagnostics(request: Request, call_next):  # type: ignore[no-untyped-def]

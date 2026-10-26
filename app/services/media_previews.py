@@ -61,8 +61,13 @@ class MediaPreviewService:
         emphasis: Literal["balanced", "photo", "text"] = "balanced",
         parent_preview_id: UUID | None = None,
         template_version: int | None = None,
+        candidate: bool = False,
     ) -> RenderInputs:
-        if proposal["state"] != "completed" or proposal["review_state"] != "accepted" or proposal["document"] is None:
+        if (
+            proposal["state"] != "completed"
+            or proposal["document"] is None
+            or (proposal["review_state"] is not None if candidate else proposal["review_state"] != "accepted")
+        ):
             raise AuthError("PREVIEW_SCRIPT_NOT_ACCEPTED", 409)
         if proposal["expires_at"] <= datetime.now(proposal["expires_at"].tzinfo):
             raise AuthError("PREVIEW_SCRIPT_EXPIRED", 409)
@@ -174,6 +179,7 @@ class MediaPreviewService:
                 "template": template_version
                 or (VIDEO_TEMPLATE_VERSION if draft.format == "short_video" else TEMPLATE_VERSION),
                 "recipe": "silent-captioned-video" if draft.format == "short_video" else "static-image",
+                **({"candidate": True} if candidate else {}),
                 **({"emphasis": emphasis, "parent_preview_id": parent_preview_id} if parent_preview_id else {}),
             }
         )
@@ -200,8 +206,20 @@ class MediaPreviewService:
         )
 
     async def request(self, tenant: UUID, business: UUID, actor: UUID, payload: PreviewRequest) -> PreviewRead:
+        return await self._request(tenant, business, actor, payload, candidate=False)
+
+    async def request_candidate(
+        self, tenant: UUID, business: UUID, actor: UUID, payload: PreviewRequest
+    ) -> PreviewRead:
+        """Internal orchestration only; the public route always calls request()."""
+        return await self._request(tenant, business, actor, payload, candidate=True)
+
+    async def _request(
+        self, tenant: UUID, business: UUID, actor: UUID, payload: PreviewRequest, *, candidate: bool
+    ) -> PreviewRead:
         request_hash = _digest(
             {"proposal_id": payload.proposal_id}
+            | ({"candidate": True} if candidate else {})
             | (
                 {"parent_preview_id": payload.parent_preview_id, "emphasis": payload.emphasis}
                 if payload.parent_preview_id
@@ -284,7 +302,11 @@ class MediaPreviewService:
                     raise AuthError("PREVIEW_INPUT_CHANGED", 409)
                 revision = parent["revision"] + 1
             inputs = await self._inputs(
-                session, proposal, emphasis=payload.emphasis, parent_preview_id=payload.parent_preview_id
+                session,
+                proposal,
+                emphasis=payload.emphasis,
+                parent_preview_id=payload.parent_preview_id,
+                candidate=candidate,
             )
             if payload.parent_preview_id is not None and parent_mime != (
                 "video/mp4" if inputs.format == "short_video" else "image/jpeg"
@@ -297,10 +319,10 @@ class MediaPreviewService:
                           (id,tenant_id,business_id,proposal_id,actor_id,operation_id,request_hash,
                            render_key,template_version,context_version,script_version,
                            source_asset_id,fact_ids,expires_at,mime_type,
-                           parent_preview_id,emphasis,revision)
+                           parent_preview_id,emphasis,revision,candidate)
                           VALUES(:id,:tenant,:business,:proposal,:actor,:operation,:hash,:key,:template,
                             :version,:script_version,:source,CAST(:facts AS jsonb),:expires,:mime,
-                            :parent,:emphasis,:revision)
+                            :parent,:emphasis,:revision,:candidate)
                           ON CONFLICT DO NOTHING RETURNING *"""),
                         {
                             "id": uuid4(),
@@ -321,6 +343,7 @@ class MediaPreviewService:
                             "parent": payload.parent_preview_id,
                             "emphasis": payload.emphasis,
                             "revision": revision,
+                            "candidate": candidate,
                         },
                     )
                 )
@@ -360,7 +383,9 @@ class MediaPreviewService:
                         text("""SELECT p.* FROM media_previews p WHERE p.tenant_id=:tenant AND p.business_id=:business
                           AND p.expires_at>now() AND p.state<>'purging'
                           AND EXISTS(SELECT 1 FROM editorial_proposals e WHERE e.id=p.proposal_id
-                            AND e.script_version=p.script_version AND e.review_state='accepted')
+                            AND e.script_version=p.script_version
+                            AND ((p.candidate AND e.review_state IS NULL)
+                              OR (NOT p.candidate AND e.review_state='accepted')))
                           AND EXISTS(SELECT 1 FROM business_context_heads h WHERE h.tenant_id=p.tenant_id
                             AND h.business_id=p.business_id AND h.version=p.context_version)
                           AND (p.source_asset_id IS NULL OR EXISTS(SELECT 1 FROM whatsapp_material_assets a
@@ -412,6 +437,7 @@ class MediaPreviewService:
                             emphasis=row["emphasis"],
                             parent_preview_id=row["parent_preview_id"],
                             template_version=row["template_version"],
+                            candidate=row["candidate"],
                         )
                     ).render_key
                     != row["render_key"]
@@ -471,7 +497,11 @@ class MediaPreviewService:
                 if proposal is None:
                     raise AuthError("PROPOSAL_NOT_FOUND", 404)
                 inputs = await self._inputs(
-                    session, proposal, emphasis=row["emphasis"], parent_preview_id=row["parent_preview_id"]
+                    session,
+                    proposal,
+                    emphasis=row["emphasis"],
+                    parent_preview_id=row["parent_preview_id"],
+                    candidate=row["candidate"],
                 )
                 expected_template = VIDEO_TEMPLATE_VERSION if inputs.format == "short_video" else TEMPLATE_VERSION
                 if row["template_version"] != expected_template or inputs.render_key != row["render_key"]:
@@ -534,7 +564,11 @@ class MediaPreviewService:
                     current is None
                     or (
                         await self._inputs(
-                            session, current, emphasis=row["emphasis"], parent_preview_id=row["parent_preview_id"]
+                            session,
+                            current,
+                            emphasis=row["emphasis"],
+                            parent_preview_id=row["parent_preview_id"],
+                            candidate=row["candidate"],
                         )
                     ).render_key
                     != row["render_key"]

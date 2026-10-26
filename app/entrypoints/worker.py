@@ -14,6 +14,9 @@ from app.services.editorial_proposals import EditorialProposalService
 from app.services.media_previews import MediaPreviewService
 from app.services.whatsapp_processing import MaterialProcessor
 from app.workflows.activities import FoundationActivities
+from app.workflows.content_activities import ContentCandidateActivities
+from app.workflows.content_candidate import ContentCandidateWorkflow
+from app.workflows.content_publication import FakeContentPublicationWorkflow
 from app.workflows.editorial_activities import EditorialActivities
 from app.workflows.editorial_proposal import EditorialProposalWorkflow
 from app.workflows.foundation import BusinessCreatedWorkflow
@@ -61,13 +64,19 @@ async def run_worker() -> None:
             if material_database
             else None
         )
+        content_activities = (
+            ContentCandidateActivities(settings, database, material_database)
+            if material_database and settings.meta_encryption_key
+            else None
+        )
         worker = Worker(
             client,
             task_queue=settings.temporal_task_queue,
             workflows=[BusinessCreatedWorkflow]
             + ([WhatsAppMaterialWorkflow] if material_activities else [])
             + ([EditorialProposalWorkflow] if editorial_activities else [])
-            + ([StaticPreviewWorkflow] if media_activities else []),
+            + ([StaticPreviewWorkflow] if media_activities else [])
+            + ([ContentCandidateWorkflow, FakeContentPublicationWorkflow] if content_activities else []),
             activities=[FoundationActivities(database).record_business_created]
             + (
                 [
@@ -79,7 +88,20 @@ async def run_worker() -> None:
                 else []
             )
             + ([editorial_activities.generate_editorial_proposal] if editorial_activities else [])
-            + ([media_activities.render_static_preview] if media_activities else []),
+            + ([media_activities.render_static_preview] if media_activities else [])
+            + (
+                [
+                    content_activities.request_candidate_proposal,
+                    content_activities.candidate_proposal_state,
+                    content_activities.request_candidate_preview,
+                    content_activities.candidate_preview_state,
+                    content_activities.deliver_candidate_clarification,
+                    content_activities.deliver_candidate_preview,
+                    content_activities.publish_fake_content,
+                ]
+                if content_activities
+                else []
+            ),
             max_concurrent_activities=4,
         )
         await worker.run()
