@@ -2,8 +2,10 @@
 
 Status: F04.1 e primeira receita F04.2 implementadas localmente em 25/10/2026;
 F04.1b tem template v4, ajustes versionados e avaliador; F04.2b começou em
-26/10/2026 com narrativa, dois cortes e revisão de ritmo. Revisão consentida,
-medição de custo em staging, edição avançada do vídeo e F04.3 seguem pendentes.
+26/10/2026 com narrativa, dois cortes e revisão de ritmo. O template de vídeo
+v4 conserva o clipe inteiro e há benchmark sintético e gate de revisão humana.
+Revisão consentida, medição de custo em staging, seleção semântica de trechos e
+F04.3 seguem pendentes.
 Dependências: F02, F03.
 
 F04.1 consome apenas roteiro F03.3 aceito, contexto e material vigentes. Produz
@@ -86,7 +88,7 @@ Fatia técnica de 26/10/2026: `POST /media-previews` aceita `parent_preview_id` 
 privada e imutável vinculada à anterior, com chave de render distinta, operação
 idempotente, auditoria, limite de quatro versões e bloqueio de concorrência pelo
 roteiro. O cliente escolhe composição na web e pode refazer uma tentativa que
-falhou. A API impede ajuste de vídeo, roteiro ou contexto obsoleto, pai que não
+falhou. A API impede ajuste de roteiro ou contexto obsoleto, pai que não
 seja a versão mais recente e alteração do texto factual por essa via. O aceite
 do roteiro não é aceite da peça; F06 deverá vincular aprovação ao ID/hash exato
 da versão final e invalidá-la quando houver ajuste posterior. Editar o texto
@@ -132,7 +134,7 @@ staging. Nenhuma dessas evidências externas foi produzida nesta entrega.
   custo por peça com comerciantes, edição de múltiplos trechos e legendas alinhadas
   à fala real antes de chamar a receita de vídeo completo comercial.
 
-## F04.2b — Qualidade criativa do vídeo (primeira fatia técnica local)
+## F04.2b — Qualidade criativa do vídeo (em andamento)
 
 26/10/2026 — O template de vídeo v3 passa a usar o texto de abertura e CTA das
 cenas do roteiro aceito, sem alterar o texto do fato comercial confirmado. Uma
@@ -158,6 +160,59 @@ dois cortes distintos, resolução 1080×1920, H.264 e duração 7,96 segundos;
 `make ci` passou com 580 testes e 100% de cobertura de linhas/ramos. A inspeção visual em celular,
 medição de custo por peça em staging e revisão consentida com negócios reais
 continuam sendo gates antes de considerar esta fase concluída.
+
+Fatia técnica seguinte em 26/10/2026: o template v4 mostra o **quadro inteiro**
+do clipe em ambos os cortes, centralizado sobre cópia desfocada para preencher
+1080×1920. Isto evita perder produto/serviço nas bordas de vídeos horizontais.
+O áudio continua removido, e a mudança de versão força novo `render_key` sem
+alterar os arquivos v3. Smoke com clipe horizontal sintético verifica pixels das
+duas bordas, duração, codec e dimensões da saída. A escolha dos trechos ainda é
+temporal (início e trecho posterior), sem análise semântica de onde está o
+produto; isso permanece pendente para a edição avançada.
+
+`docs/evals/video-ptbr-v1.json` contém quatro cenários **sintéticos** (clipe
+horizontal longo, clipe vertical curto, foto quadrada e ausência de mídia).
+`scripts/evaluate_video.py` renderiza MP4s e uma folha de contato com três
+instantes por caso, e registra bytes, tempo de parede e CPU por render em
+`.local/evals/video/`. Rodar no worker com FFmpeg e volume privado; esses números
+servem de baseline técnico, não de custo AWS ou qualidade comercial. O CSV
+gerado é apenas um rascunho sem consentimento e não pode aprovar piloto.
+
+Execução local, com o worker já construído:
+
+```sh
+mkdir -p .local/evals/video
+docker compose run --rm --no-deps -T --user "$(id -u):$(id -g)" \
+  -e PYTHONPATH=/src \
+  -v "$PWD/scripts:/src/scripts:ro" \
+  -v "$PWD/docs/evals:/src/docs/evals:ro" \
+  -v "$PWD/.local:/src/.local" \
+  worker python scripts/evaluate_video.py
+```
+
+O benchmark não chama Meta, OpenAI nem publica qualquer peça.
+
+Critérios de entrada **pré-definidos** para a revisão comercial de vídeo:
+
+- Ao menos 20 peças de negócios com autorização, quatro segmentos, no mínimo
+  cinco fotos e cinco clipes. Revisar todas em celular e registrar consentimento,
+  hash exato e único da peça, origem, segmento e avaliador em CSV privado.
+- Em pelo menos 90% das peças, legibilidade, visibilidade do assunto e coerência
+  dos cortes recebem todas nota ≥ 4/5. Pelo menos 80% são aceitas sem ajuste.
+  Um único erro crítico de fato, preço, produto, autorização ou material
+  enganoso bloqueia o piloto. Contabilizar rejeições por segmento e fonte.
+- `python scripts/score_video_reviews.py <csv-privado>` calcula esses gates
+  usando o cabeçalho em `docs/evals/video-human-review-template.csv`.
+  Não guardar mídia, nomes ou telefone nesse CSV; guardá-lo fora do Git.
+- Medir p50/p95 de tempo, CPU e bytes sob carga representativa em staging,
+  mais armazenamento, tráfego, retrabalho e custo real por peça antes de
+  definir um teto de COGS. O corpus sintético não substitui essa medição.
+
+F04.2b permanece **em andamento**: além dos gates externos, falta escolher
+trechos por relevância sem alterar fatos, avaliar texto/ritmo com comerciantes
+e decidir se fala e legenda sincronizadas agregam valor com custo e direito de
+uso aceitáveis. F04.3 pode ser construída e testada localmente antes da Meta,
+mas o piloto comercial aguarda os gates criativos e de custo.
 
 - Aproveitar as cenas do roteiro versionado F03.3b, o contexto de marca e os
   materiais autorizados para escolher trechos e compor narrativa, ritmo,

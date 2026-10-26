@@ -79,6 +79,13 @@ mantendo fato/roteiro e até quatro versões. Avaliação humana e custo real,
 edição avançada e sincronização de fala/legenda seguem pendentes; a receita
 continua sem áudio para evitar legenda falsa.
 
+F04.2b avançou tecnicamente para vídeo v4 (26/10/2026): quadros horizontais e
+verticais aparecem inteiros sobre fundo desfocado, sem cortar o assunto nas
+bordas. Quatro casos sintéticos PT-BR e um avaliador de CSV consentido medem
+qualidade no celular e separam resultado técnico de gate comercial. O worker
+registra tempo, CPU e bytes locais, mas custo real em staging, revisão com
+comerciantes e escolha semântica de trechos continuam pendentes. Ver [F04](phases/F04-media-recipes.md).
+
 F02.2c6 diferencia resposta aceita pela Meta de recibo `sent`/`failed`/`delivered`/`read`, correlacionado pelo ID do provedor na inbox cifrada. Confirmação/descarte prepara uma resposta curta na transação da decisão; envio e recibo usam estados próprios. O dispatcher reserva tentativas sob teto diário por organização e bloqueio transacional; sem teto positivo, não habilita envio. Staff vê apenas metadados de falhas/incertezas e pode registrar revisão sem reenviar. O smoke externo, o valor monetário por mensagem e o opt-out explícito permanecem pendentes em [F02](phases/F02-whatsapp-ingestion.md).
 
 F02.2c5 grava resposta cifrada na transação da decisão e só habilita envio Cloud

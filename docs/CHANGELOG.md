@@ -1,5 +1,24 @@
 # Registro de mudanças
 
+## 2026-10-26 — F04.2b: enquadramento integral e avaliação repetível do vídeo
+
+- Vídeo v4 preserva o clipe inteiro em retrato ou paisagem, com fundo desfocado.
+  `render_key` versionado mantém prévias v3 imutáveis. Smoke FFmpeg com vídeo
+  horizontal sintético confirmou bordas vermelha/azul, H.264 1080×1920 e 7,96 s.
+  Em clipe vertical, as faixas superior e inferior da fonte permanecem visíveis
+  fora dos painéis de título e CTA.
+- Quatro cenários sintéticos PT-BR geram MP4s, folha de contato, hashes e
+  medidas de render. Nesta execução local, tempo de parede foi 3,7–10,3 s,
+  CPU acumulada 16,9–33,2 s e saída 63–79 KiB. São arquivos simples e custos
+  locais; não extrapolar para mídia real, carga concorrente ou custo AWS.
+- Avaliador de revisão consentida exige 20 peças, quatro segmentos, cinco fotos
+  e cinco clipes, revisão em celular, ≥90% de legibilidade/visibilidade/cortes,
+  ≥80% de aceite sem ajuste e zero falha crítica. Nenhum material real foi
+  avaliado; gate comercial permanece fechado. Seleção semântica de trechos e
+  medição p50/p95/COGS em staging ainda faltam.
+- Validação: testes do renderizador e avaliador, benchmark real no worker e
+  `make ci` com 589 testes, Ruff/mypy e 100% de linhas e ramos.
+
 ## 2026-10-26 — F04.2b: abertura, CTA e dois cortes na prévia de vídeo
 
 - Template de vídeo v3 usa textos do roteiro aceito para abertura e CTA, preserva

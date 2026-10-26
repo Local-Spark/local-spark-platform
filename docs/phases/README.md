@@ -9,7 +9,7 @@ A v0 completa reúne F00–F08; concluir F00 não conclui o produto.
 | [F01](F01-identity-onboarding.md) | Identidade, onboarding, admin mínimo e base React | Código local; homologação externa/staging pendente |
 | [F02](F02-whatsapp-ingestion.md) | WhatsApp e biblioteca de materiais | Recebimento, vínculo, biblioteca, transcrição opcional e respostas limitadas implementados localmente até F02.2c6; Meta real pendente |
 | [F03](F03-editorial-research.md) | Pesquisa, temas e planejamento proativo | Contexto, ideia e edição versionada de roteiro locais; benchmark F03.3b, pesquisa e proatividade pendentes |
-| [F04](F04-media-recipes.md) | Artes, vídeo e prévia pelo WhatsApp | F04.1 estática e primeira receita F04.2 vídeo locais; F04.1b tem template v4, ajuste visual versionado e avaliador; F04.2b tem narrativa/cortes v3 e revisão de ritmo; revisão real/staging e F04.3 pendentes |
+| [F04](F04-media-recipes.md) | Artes, vídeo e prévia pelo WhatsApp | F04.1 estática e primeira receita F04.2 vídeo locais; F04.1b tem template v4, ajuste visual versionado e avaliador; F04.2b tem narrativa/cortes, vídeo v4 com quadro inteiro, revisão de ritmo e benchmark sintético; revisão real/staging e F04.3 pendentes |
 | [F05](F05-avatar-generative-video.md) | Avatar, voz e cenas geradas | Planejada |
 | [F06](F06-instagram-publishing.md) | Aprovação, agenda e Instagram | Planejada |
 | [F07](F07-billing-reports.md) | Franquias, assinatura e relatórios | Contratação mínima na F01.5; restante pendente |
@@ -37,7 +37,7 @@ publicação.
 **Próximas entregas, sem saltar os gates de qualidade:** F03.3b (editar,
 versionar e avaliar roteiros) tem edição técnica local; F04.1b (evoluir e
 validar as artes com negócios consentidos) tem template v4 e avaliador; F04.2b
-iniciou narrativa, cortes e revisão de ritmo, mas precisa validar qualidade e custo. Em seguida,
+iniciou narrativa, cortes, enquadramento integral e benchmark sintético, mas precisa validar qualidade e custo reais. Em seguida,
 F04.3 gerará e entregará candidatas pelo WhatsApp. F04.2 entregou somente a
 primeira receita técnica de vídeo; esses gates criativos antecedem o piloto.
 

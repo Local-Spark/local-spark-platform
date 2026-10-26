@@ -26,6 +26,13 @@ literal e a receita muda para v3, sem alterar as prévias anteriores. Ainda
 faltam revisão visual consentida, custo de staging, edição avançada e eventual
 fala/legenda sincronizada antes do piloto; ver [F04](phases/F04-media-recipes.md).
 
+26/10/2026 — Próxima fatia F04.2b: vídeo v4 preserva todo o quadro de clipes,
+inclusive horizontais, sobre fundo desfocado. Corpus e avaliador de vídeo
+separam benchmark sintético de aprovação comercial; tempo/CPU/bytes locais
+podem ser medidos no worker, mas COGS de staging e revisão de 20 peças reais
+consentidas ainda faltam. Seleção semântica de trechos também permanece
+pendente. Ver [F04](phases/F04-media-recipes.md).
+
 25/10/2026 — F04.1b iniciada: template estático v4 preserva a foto real inteira,
 melhora contraste e separa o texto factual em painel legível. Oito casos sintéticos
 PT-BR produzem artes e folha de contato para revisão; não são prova de qualidade

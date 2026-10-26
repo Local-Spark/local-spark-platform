@@ -1,0 +1,1 @@
+case_id,segment,source_kind,consent_ref,artifact_sha256,mobile_review_yes_no,legibility_1_to_5,subject_visible_1_to_5,cut_coherence_1_to_5,fact_exact_yes_no,critical_error_yes_no,accepted_yes_no,reviewer_role,reviewed_at

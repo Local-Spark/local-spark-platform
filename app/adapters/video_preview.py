@@ -15,7 +15,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageOps, UnidentifiedImageError
 from app.adapters.material_media import FetchedMedia
 from app.adapters.static_preview import PreviewRenderError, _fit, _ink
 
-VIDEO_TEMPLATE_VERSION = 3
+VIDEO_TEMPLATE_VERSION = 4
 VIDEO_WIDTH = 1080
 VIDEO_HEIGHT = 1920
 VIDEO_DURATIONS = (2, 4, 2)
@@ -220,13 +220,23 @@ async def render_video_preview(
             )
         filters = []
         if source_video is not None:
-            prepared = "[0:v]fps=24,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1"
+            # Keep the complete source frame visible. A low-resolution blurred copy
+            # fills the canvas without replacing or cropping the owner's footage.
+            filters.extend(
+                [
+                    "[0:v]fps=24,split=2[background_source][foreground_source]",
+                    "[background_source]scale=540:960:force_original_aspect_ratio=increase,"
+                    "crop=540:960,boxblur=12:1,scale=1080:1920,setsar=1[background]",
+                    "[foreground_source]scale=1080:1400:force_original_aspect_ratio=decrease,setsar=1[foreground]",
+                    "[background][foreground]overlay=(W-w)/2:160+(1400-h)/2:shortest=1[prepared]",
+                ]
+            )
             if second_cut is None:
-                filters.append(f"{prepared},trim=duration={durations[0]},setpts=PTS-STARTPTS[clip0]")
+                filters.append(f"[prepared]trim=duration={durations[0]},setpts=PTS-STARTPTS[clip0]")
             else:
                 filters.extend(
                     [
-                        f"{prepared},split=2[raw0][raw2]",
+                        "[prepared]split=2[raw0][raw2]",
                         f"[raw0]trim=duration={durations[0]},setpts=PTS-STARTPTS[clip0]",
                         f"[raw2]trim=start={second_cut:.2f}:duration={durations[2]},setpts=PTS-STARTPTS[clip2]",
                     ]

@@ -178,6 +178,8 @@ async def test_video_recipe_uses_bounded_source_clip_and_mutes_audio(monkeypatch
     assert "-an" in calls[0] and "-stream_loop" in calls[0]
     assert "overlay=0:0" in calls[0][calls[0].index("-filter_complex") + 1]
     filters = calls[0][calls[0].index("-filter_complex") + 1]
+    assert "[foreground_source]scale=1080:1400:force_original_aspect_ratio=decrease" in filters
+    assert "[background][foreground]overlay=(W-w)/2:160+(1400-h)/2" in filters
     assert "split=2" in filters and "trim=start=4.00:duration=2" in filters
     assert "[clip2][3:v]overlay" in filters
 
@@ -201,7 +203,7 @@ async def test_short_source_clip_uses_a_single_cut_and_brand_closing(monkeypatch
         source_video=b"video-data",
     )
     filters = calls[0][calls[0].index("-filter_complex") + 1]
-    assert "split=2" not in filters and "[clip2]" not in filters
+    assert "[prepared]split=2" not in filters and "[clip2]" not in filters
 
 
 @pytest.mark.parametrize(
@@ -230,7 +232,7 @@ async def test_video_adjustment_changes_scene_timing_and_second_cut(
     filters = calls[0][calls[0].index("-filter_complex") + 1]
     assert f"trim=duration={opening}" in filters
     assert f"fade=t=out:st={fact - 0.2}:d=0.2" in filters
-    assert ("split=2" in filters) is second_cut
+    assert ("[prepared]split=2" in filters) is second_cut
 
 
 @pytest.mark.parametrize("video", [b"", b"x" * (50 * 1024 * 1024 + 1)])

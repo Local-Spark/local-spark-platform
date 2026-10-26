@@ -1,0 +1,6 @@
+[
+  {"id":"lanche-clipe-paisagem","segment":"alimentacao","business_name":"Hot Dog da Ana","statement":"X-tudo por R$ 20,00 hoje.","intro_text":"Veja o preparo","cta_text":"Peça pelo WhatsApp","brand_color":"#e65024","source_shape":"landscape_clip","source_seconds":6},
+  {"id":"manicure-clipe-retrato-curto","segment":"beleza","business_name":"Ateliê da Bia","statement":"Agenda aberta hoje às 15h.","intro_text":"Veja as unhas","cta_text":"Agende seu horário","brand_color":"#c9578b","source_shape":"portrait_clip","source_seconds":3},
+  {"id":"contador-foto-quadrada","segment":"servicos","business_name":"Contabilidade de Bairro","statement":"Atendimento mediante agendamento.","intro_text":"Organize seu negócio","cta_text":"Converse com a equipe","brand_color":"#14605d","source_shape":"square_photo"},
+  {"id":"loja-sem-material","segment":"varejo","business_name":"Boutique das Flores","statement":"Vestidos de verão disponíveis na loja.","intro_text":"Conheça a coleção","cta_text":"Visite a loja","brand_color":"#70345a","source_shape":"none"}
+]
