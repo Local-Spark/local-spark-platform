@@ -8,8 +8,8 @@ A v0 completa reúne F00–F08; concluir F00 não conclui o produto.
 | [F00](F00-foundation.md) | Fundação executável | Concluída localmente |
 | [F01](F01-identity-onboarding.md) | Identidade, onboarding, admin mínimo e base React | Código local; homologação externa/staging pendente |
 | [F02](F02-whatsapp-ingestion.md) | WhatsApp e biblioteca de materiais | Recebimento, vínculo, biblioteca, transcrição opcional e respostas limitadas implementados localmente até F02.2c6; Meta real pendente |
-| [F03](F03-editorial-research.md) | Pesquisa, temas e planejamento proativo | Contexto, ideia e roteiro revisável implementados localmente; F03.3b edição/benchmark, pesquisa e proatividade pendentes |
-| [F04](F04-media-recipes.md) | Artes, vídeo e prévia pelo WhatsApp | F04.1 estática e primeira receita F04.2 vídeo locais; F04.1b, F04.2b qualidade e F04.3 WhatsApp pendentes |
+| [F03](F03-editorial-research.md) | Pesquisa, temas e planejamento proativo | Contexto, ideia e edição versionada de roteiro locais; benchmark F03.3b, pesquisa e proatividade pendentes |
+| [F04](F04-media-recipes.md) | Artes, vídeo e prévia pelo WhatsApp | F04.1 estática e primeira receita F04.2 vídeo locais; F04.1b iniciada com template v4/eval sintético, revisão real pendente; F04.2b e F04.3 pendentes |
 | [F05](F05-avatar-generative-video.md) | Avatar, voz e cenas geradas | Planejada |
 | [F06](F06-instagram-publishing.md) | Aprovação, agenda e Instagram | Planejada |
 | [F07](F07-billing-reports.md) | Franquias, assinatura e relatórios | Contratação mínima na F01.5; restante pendente |
@@ -31,11 +31,13 @@ sintéticos. A WABA restrita impede a homologação de mensagens reais; a geraç
 ideias ainda não passou no gate de qualidade comercial. F03.3 gera cenas com
 fontes e registra aceite/pedido de ajustes do proprietário; F04.1 renderiza
 foto/story privada a partir do roteiro aceito; F04.2 acrescenta a primeira
-prévia privada de vídeo curto. Ainda não há edição direta nem publicação.
+prévia privada de vídeo curto. F03.3b já permite editar o roteiro; ainda não há
+publicação.
 
 **Próximas entregas, sem saltar os gates de qualidade:** F03.3b (editar,
-versionar e avaliar roteiros), F04.1b (evoluir e validar as artes com negócios
-consentidos), F04.2b (qualidade criativa do vídeo), então F04.3 (gerar e
+versionar e avaliar roteiros) tem edição técnica local; F04.1b (evoluir e
+validar as artes com negócios consentidos) começou com template v4 e eval
+sintético; F04.2b (qualidade criativa do vídeo), então F04.3 (gerar e
 entregar candidatas pelo WhatsApp). F04.2 entregou somente a primeira receita
 técnica de vídeo; esses gates criativos antecedem o piloto.
 

@@ -1,6 +1,6 @@
 # F03 — Pesquisa, temas e planejamento proativo
 
-Status: Em implementação; F03.1, F03.2a e partes de F03.2c entregues localmente. F03.3 tem roteiro e revisão local, ainda sem benchmark comercial.
+Status: Em implementação; F03.1, F03.2a e partes de F03.2c entregues localmente. F03.3 tem roteiro, edição versionada e revisão local, ainda sem benchmark comercial.
 Dependências: F01, F02.
 
 Entrega local F03.3: roteiro estruturado de até três cenas a partir do
@@ -31,15 +31,15 @@ por bloqueio de linha, auditada e isolada por tenant. Aceitar o roteiro não é
 autorizar produção ou publicação. A ausência de fato confirmado continua bloqueando
 o pedido antes da chamada paga; fatos vencidos são excluídos do contexto.
 
-Gaps: edição direta de cenas e ciclo automático de nova versão após pedido de
-ajustes ainda não existem; o proprietário pode alterar fatos e solicitar novo
+Gaps: a edição direta existe na web; o pedido de ajustes ainda não cria
+automaticamente uma nova versão. O proprietário pode alterar fatos e solicitar novo
 roteiro. Não há leitura visual da imagem, avaliação humana em lote nem benchmark
 PT-BR que libere qualidade comercial. O teste Meta externo aguarda WABA liberada.
-F04 deve usar esta estrutura para renderizar peça de foto/cartão com legenda e
-prévia; vídeo e avatar são incrementos posteriores. A passagem de F03.3 para F04
+F04.1 e a primeira receita F04.2 já usam esta estrutura para prévias privadas
+de imagem e vídeo silencioso; qualidade visual, voz e avatar são incrementos posteriores. A passagem de F03.3 para F04
 não equivale a ativar geração automática para clientes reais.
 
-### F03.3b — Edição e avaliação comercial do roteiro (planejada antes do piloto)
+### F03.3b — Edição e avaliação comercial do roteiro (edição local entregue; avaliação pendente)
 
 - Permitir corrigir cenas, texto na tela, fala e CTA na web; pedidos de ajuste
   recebidos pelo WhatsApp, quando o fluxo F06 existir, usam o mesmo versionamento.
@@ -57,6 +57,39 @@ não equivale a ativar geração automática para clientes reais.
   custo por roteiro aprovado; declarar critérios de aprovação antes da avaliação.
   A ativação comercial exige evidência de qualidade e segurança factual, não só
   testes automatizados ou aceite técnico da API.
+
+Entrega local de 25/10/2026: `POST/GET .../editorial-proposals/{id}/script-versions`
+permite ao proprietário editar título, direção, texto na tela e fala das cenas,
+mantendo formato, ordem, fonte de material, IDs de fatos e texto factual exato.
+O POST exige `expected_version` e `operation_id`: faz bloqueio de linha,
+idempotência, compare-and-swap e auditoria no mesmo commit; cada versão guarda
+documento, hash, contexto, fonte, autor e estado de revisão. Padrões explícitos
+de preço, percentual, prazo, desconto, promoção, gratuidade e garantia novos
+sem correspondência no fato confirmado são recusados. Esse filtro não detecta
+toda alegação inventada; revisão humana e benchmark permanecem necessários.
+Edição revalida contexto/fato vigente, zera o aceite
+anterior e torna prévias de versões antigas inelegíveis para leitura e novo uso.
+Revisão se vincula à versão corrente; operação de revisão de versão anterior não
+pode ser reaproveitada. A web mostra o histórico e permite editar/revisar a nova
+versão. Ainda falta a avaliação humana com amostra consentida, a comparação de
+modelos e a edição via WhatsApp quando F06 existir. O gate comercial permanece
+fechado.
+
+Critérios antes do piloto: revisar às cegas roteiros dos mesmos casos PT-BR entre
+baseline e modelos candidatos; contar erro factual, utilidade, correções até
+aceite, abstenção, latência e custo por roteiro aceito. Qualquer publicação
+com afirmação comercial inventada reprova o lote; a escolha do modelo exige
+resultado humano documentado e aprovação do responsável de produto. Testes
+sintéticos cobrem o contrato técnico, mas não substituem essa avaliação.
+
+O conjunto sintético `docs/evals/editorial-ptbr-v2.json` preserva os cinco casos
+v1 e acrescenta foto sem descrição, preço vencido em áudio, horário sem fato,
+alegação médica e promessa contábil. `uv run python -m scripts.evaluate_editorial`
+gera relatório local e planilha `.review.csv` para notas humanas. Por padrão,
+`--live` limita a cinco chamadas pagas; `--max-live-cases` exige escolha explícita
+para aumentar até doze. O relatório mede validade estrutural/proveniência do
+roteiro e mantém `human_review=pending`; zero erro semântico só poderá ser
+declarado depois de pontuar a planilha e coletar amostras consentidas.
 
 Seleção de modelo da F03.3 (24/10/2026): o padrão local `gpt-5-mini` permanece
 configurável para compatibilidade, mas [está marcado como deprecated na documentação

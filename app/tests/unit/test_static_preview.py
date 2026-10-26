@@ -6,7 +6,15 @@ from unittest.mock import MagicMock, patch
 import pytest
 from PIL import Image, ImageDraw, ImageFont
 
-from app.adapters.static_preview import PreviewRenderError, _fit, _font, _ink, _lines, render_static_preview
+from app.adapters.static_preview import (
+    TEMPLATE_VERSION,
+    PreviewRenderError,
+    _fit,
+    _font,
+    _ink,
+    _lines,
+    render_static_preview,
+)
 
 
 def _photo() -> bytes:
@@ -35,8 +43,39 @@ def test_static_recipe_is_deterministic_with_and_without_source():
     story = render_static_preview(**{**inputs, "format": "story", "brand_color": "#ffffff"}, source_image=None)
     with Image.open(io.BytesIO(story.data)) as picture:
         assert picture.size == (1080, 1920)
-    assert _ink("#ffffff") == "#172036"
+    assert _ink("#ffffff") == "#182137"
     assert _ink("#000000") == "#ffffff"
+    assert _ink("#777777") == "#ffffff"
+    assert _ink("#bbbbbb") == "#182137"
+    assert TEMPLATE_VERSION == 4
+
+
+@pytest.mark.parametrize("dimensions", [(900, 120), (120, 900)])
+def test_source_ends_remain_visible_at_extreme_aspect_ratios(dimensions):
+    source = Image.new("RGB", dimensions, "#22bb44")
+    source_draw = ImageDraw.Draw(source)
+    width, height = dimensions
+    if width > height:
+        source_draw.rectangle((0, 0, width // 4, height), fill="#dd2222")
+        source_draw.rectangle((3 * width // 4, 0, width, height), fill="#2222dd")
+    else:
+        source_draw.rectangle((0, 0, width, height // 4), fill="#dd2222")
+        source_draw.rectangle((0, 3 * height // 4, width, height), fill="#2222dd")
+    source_bytes = io.BytesIO()
+    source.save(source_bytes, "PNG")
+    preview = render_static_preview(
+        business_name="Ateliê Ana",
+        statement="Manicure clássica disponível.",
+        brand_color="#6557ed",
+        format="photo",
+        source_image=source_bytes.getvalue(),
+    )
+    with Image.open(io.BytesIO(preview.data)) as picture:
+        sample_points = ((120, 539), (960, 539)) if width > height else ((540, 260), (540, 820))
+        first, last = (picture.getpixel(point) for point in sample_points)
+        assert first[0] > first[1] * 2 and first[0] > first[2] * 2
+        assert last[2] > last[0] * 2 and last[2] > last[1] * 2
+        assert min(picture.getpixel((300, 990))) > 245  # factual copy stays on an opaque card
 
 
 @pytest.mark.parametrize(

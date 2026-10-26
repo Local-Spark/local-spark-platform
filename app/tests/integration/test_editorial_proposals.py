@@ -3,7 +3,7 @@
 import asyncio
 import json
 from unittest.mock import AsyncMock
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from cryptography.fernet import Fernet
@@ -13,7 +13,7 @@ from sqlalchemy import text
 from app.adapters.editorial_ai import EditorialProviderError
 from app.core.identity import Identity
 from app.db.session import Database
-from app.schemas.editorial_proposals import ProposalDraft, ProposalRequest, ScriptReview
+from app.schemas.editorial_proposals import ProposalDraft, ProposalRequest, ScriptEdit, ScriptReview
 from app.services.administration import editorial_operation_events, editorial_operations, editorial_usage_today
 from app.services.auth import AuthError
 from app.services.business import AccessDenied
@@ -205,6 +205,354 @@ async def test_baseline_request_consent_replay_and_rls(admin, api, database, see
         "accepted": False,
         "provider_enabled": False,
     }
+
+
+async def test_script_edit_versions_replay_review_and_preview_fence(admin, api, database, seeded, settings):
+    business = await _business(admin, seeded)
+    tenant, actor = seeded["t1"], seeded["a1"]
+    base = f"/api/v1/organizations/{tenant}/businesses/{business}"
+    owner = {"Authorization": f"Bearer {access_token(settings, actor)}"}
+    viewer = {"Authorization": f"Bearer {access_token(settings, seeded['viewer'])}"}
+    fact_id = uuid4()
+    context = await api.put(
+        base + "/editorial-context",
+        headers=owner,
+        json={
+            "expected_version": 0,
+            "operation_id": str(uuid4()),
+            "facts": [
+                {
+                    "id": str(fact_id),
+                    "kind": "product",
+                    "statement": "Cachorro-quente artesanal",
+                    "source_detail": "Informado pelo dono",
+                }
+            ],
+            "preferences": {"goal": "sales", "avoided_topics": []},
+        },
+    )
+    assert context.status_code == 200, context.text
+    proposals_url = base + "/editorial-proposals"
+    requested = await api.post(proposals_url, headers=owner, json={"operation_id": str(uuid4())})
+    assert requested.status_code == 202, requested.text
+    worker = Database(settings, correlator=True)
+    try:
+        claims = await claim_proposals(worker, uuid4())
+        assert len(claims) == 1
+        await finish_proposal_dispatch(worker, claims[0], True)
+        assert await EditorialProposalService(settings, worker).run(claims[0].id) == "completed"
+    finally:
+        await worker.close()
+    original = (await api.get(proposals_url, headers=owner)).json()[0]
+    proposal_id = UUID(original["id"])
+    service = EditorialProposalService(settings, database)
+    versions_url = proposals_url + f"/{original['id']}/script-versions"
+    assert (await api.get(versions_url, headers=viewer)).status_code == 403
+    assert (await api.get(proposals_url + f"/{uuid4()}/script-versions", headers=owner)).status_code == 404
+    history = (await api.get(versions_url, headers=owner)).json()
+    assert [item["version"] for item in history] == [1]
+    assert history[0]["document"] == original["document"]
+    assert [item.version for item in await service.script_versions(tenant, business, actor, proposal_id)] == [1]
+    with pytest.raises(AuthError, match="PROPOSAL_NOT_FOUND"):
+        await service.script_versions(tenant, business, actor, uuid4())
+    review_url = proposals_url + f"/{original['id']}/script-review"
+    prior_review = str(uuid4())
+    assert (
+        await api.post(review_url, headers=owner, json={"operation_id": prior_review, "decision": "accepted"})
+    ).status_code == 200
+    doc = original["document"]
+    assert doc is not None
+    edited_scenes = [dict(scene) for scene in doc["script"]]
+    cta = next(scene for scene in edited_scenes if scene["role"] == "cta")
+    cta["on_screen_text"] = "Converse com a gente pelo WhatsApp"
+    cta["voiceover"] = "Chame a gente para saber mais."
+    edit = {
+        "operation_id": str(uuid4()),
+        "expected_version": 1,
+        "title": "Conheça nosso cachorro-quente",
+        "angle": "Mostre o lanche artesanal aos clientes.",
+        "script": edited_scenes,
+    }
+    assert (await api.post(versions_url, headers=viewer, json=edit)).status_code == 403
+    with pytest.raises(AuthError, match="PROPOSAL_NOT_FOUND"):
+        await service.edit_script(tenant, business, actor, uuid4(), ScriptEdit.model_validate(edit))
+    assert (await api.post(proposals_url + f"/{uuid4()}/script-versions", headers=owner, json=edit)).status_code == 404
+    pending = await api.post(proposals_url, headers=owner, json={"operation_id": str(uuid4())})
+    assert pending.status_code == 202
+    pending_versions = proposals_url + f"/{pending.json()['id']}/script-versions"
+    assert (await api.get(pending_versions, headers=owner)).json() == []
+    assert await service.script_versions(tenant, business, actor, UUID(pending.json()["id"])) == []
+    assert (await api.post(pending_versions, headers=owner, json=edit)).json()["error_code"] == "SCRIPT_NOT_READY"
+    with pytest.raises(AuthError, match="SCRIPT_NOT_READY"):
+        await service.edit_script(tenant, business, actor, UUID(pending.json()["id"]), ScriptEdit.model_validate(edit))
+    altered_provenance = [dict(scene) for scene in edited_scenes]
+    altered_provenance[0]["fact_ids"] = []
+    assert (
+        await api.post(
+            versions_url, headers=owner, json={**edit, "operation_id": str(uuid4()), "script": altered_provenance}
+        )
+    ).json()["error_code"] == "SCRIPT_PROVENANCE_CHANGED"
+    with pytest.raises(AuthError, match="SCRIPT_PROVENANCE_CHANGED"):
+        await service.edit_script(
+            tenant,
+            business,
+            actor,
+            proposal_id,
+            ScriptEdit.model_validate({**edit, "operation_id": str(uuid4()), "script": altered_provenance}),
+        )
+    unsupported = await api.post(
+        versions_url,
+        headers=owner,
+        json={**edit, "operation_id": str(uuid4()), "title": "Promoção de R$ 5 hoje"},
+    )
+    assert unsupported.status_code == 409 and unsupported.json()["error_code"] == "SCRIPT_UNCONFIRMED_CLAIM"
+    with pytest.raises(AuthError, match="SCRIPT_UNCONFIRMED_CLAIM"):
+        await service.edit_script(
+            tenant,
+            business,
+            actor,
+            proposal_id,
+            ScriptEdit.model_validate({**edit, "operation_id": str(uuid4()), "title": "Promoção de R$ 5 hoje"}),
+        )
+    unchanged = await api.post(
+        versions_url,
+        headers=owner,
+        json={
+            **edit,
+            "operation_id": str(uuid4()),
+            "title": doc["title"],
+            "angle": doc["angle"],
+            "script": doc["script"],
+        },
+    )
+    assert unchanged.status_code == 409 and unchanged.json()["error_code"] == "SCRIPT_UNCHANGED"
+    with pytest.raises(AuthError, match="SCRIPT_UNCHANGED"):
+        await service.edit_script(
+            tenant,
+            business,
+            actor,
+            proposal_id,
+            ScriptEdit.model_validate(
+                {
+                    **edit,
+                    "operation_id": str(uuid4()),
+                    "title": doc["title"],
+                    "angle": doc["angle"],
+                    "script": doc["script"],
+                }
+            ),
+        )
+    async with admin.begin() as connection:
+        await connection.execute(
+            text("UPDATE editorial_proposals SET expires_at=now()-interval '1 day' WHERE id=:id"),
+            {"id": original["id"]},
+        )
+    assert (await api.post(versions_url, headers=owner, json=edit)).json()["error_code"] == "SCRIPT_NOT_READY"
+    with pytest.raises(AuthError, match="SCRIPT_NOT_READY"):
+        await service.edit_script(tenant, business, actor, proposal_id, ScriptEdit.model_validate(edit))
+    async with admin.begin() as connection:
+        await connection.execute(
+            text("UPDATE editorial_proposals SET expires_at=now()+interval '30 days' WHERE id=:id"),
+            {"id": original["id"]},
+        )
+    async with admin.begin() as connection:
+        await connection.execute(
+            text("UPDATE business_context_heads SET version=2 WHERE tenant_id=:tenant AND business_id=:business"),
+            {"tenant": tenant, "business": business},
+        )
+    with pytest.raises(AuthError, match="SCRIPT_CONTEXT_CHANGED"):
+        await service.edit_script(tenant, business, actor, proposal_id, ScriptEdit.model_validate(edit))
+    async with admin.begin() as connection:
+        await connection.execute(
+            text("UPDATE business_context_heads SET version=1 WHERE tenant_id=:tenant AND business_id=:business"),
+            {"tenant": tenant, "business": business},
+        )
+        context_row = (
+            (
+                await connection.execute(
+                    text("SELECT * FROM business_context_versions WHERE tenant_id=:tenant AND business_id=:business"),
+                    {"tenant": tenant, "business": business},
+                )
+            )
+            .mappings()
+            .one()
+        )
+        await connection.execute(
+            text("DELETE FROM business_context_versions WHERE tenant_id=:tenant AND business_id=:business"),
+            {"tenant": tenant, "business": business},
+        )
+    with pytest.raises(AuthError, match="SCRIPT_CONTEXT_CHANGED"):
+        await service.edit_script(tenant, business, actor, proposal_id, ScriptEdit.model_validate(edit))
+    async with admin.begin() as connection:
+        await connection.execute(
+            text("""INSERT INTO business_context_versions
+              (tenant_id,business_id,version,operation_id,actor_id,request_hash,document)
+              VALUES(:tenant,:business,:version,:operation,:actor,:hash,CAST(:document AS jsonb))"""),
+            {
+                "tenant": tenant,
+                "business": business,
+                "version": 1,
+                "operation": context_row["operation_id"],
+                "actor": actor,
+                "hash": context_row["request_hash"],
+                "document": json.dumps(context_row["document"]),
+            },
+        )
+        await connection.execute(
+            text("""UPDATE business_context_versions SET document=jsonb_set(document,'{facts}','[]'::jsonb)
+              WHERE tenant_id=:tenant AND business_id=:business"""),
+            {"tenant": tenant, "business": business},
+        )
+    with pytest.raises(AuthError, match="SCRIPT_FACT_EXPIRED"):
+        await service.edit_script(tenant, business, actor, proposal_id, ScriptEdit.model_validate(edit))
+    async with admin.begin() as connection:
+        await connection.execute(
+            text("""UPDATE business_context_versions SET document=jsonb_set(
+              CAST(:document AS jsonb),'{facts,0,valid_until}',to_jsonb((CURRENT_DATE-1)::text))
+              WHERE tenant_id=:tenant AND business_id=:business"""),
+            {"tenant": tenant, "business": business, "document": json.dumps(context_row["document"])},
+        )
+    with pytest.raises(AuthError, match="SCRIPT_FACT_EXPIRED"):
+        await service.edit_script(tenant, business, actor, proposal_id, ScriptEdit.model_validate(edit))
+    async with admin.begin() as connection:
+        await connection.execute(
+            text("""UPDATE business_context_versions SET document=CAST(:document AS jsonb)
+              WHERE tenant_id=:tenant AND business_id=:business"""),
+            {"tenant": tenant, "business": business, "document": json.dumps(context_row["document"])},
+        )
+    changed = await api.post(versions_url, headers=owner, json=edit)
+    assert changed.status_code == 200, changed.text
+    assert changed.json()["version"] == 2
+    assert (
+        await service.edit_script(tenant, business, actor, proposal_id, ScriptEdit.model_validate(edit))
+    ).version == 2
+    with pytest.raises(AuthError, match="SCRIPT_OPERATION_CONFLICT"):
+        await service.edit_script(tenant, business, actor, UUID(pending.json()["id"]), ScriptEdit.model_validate(edit))
+    assert (await api.post(versions_url, headers=owner, json=edit)).json() == changed.json()
+    assert (await api.post(versions_url, headers=owner, json={**edit, "title": "Outra versão"})).json()[
+        "error_code"
+    ] == "SCRIPT_OPERATION_CONFLICT"
+    assert (await api.post(versions_url, headers=owner, json={**edit, "operation_id": str(uuid4())})).json()[
+        "error_code"
+    ] == "SCRIPT_VERSION_CONFLICT"
+    with pytest.raises(AuthError, match="SCRIPT_VERSION_CONFLICT"):
+        await service.edit_script(
+            tenant,
+            business,
+            actor,
+            proposal_id,
+            ScriptEdit.model_validate({**edit, "operation_id": str(uuid4())}),
+        )
+    current = next(
+        item for item in (await api.get(proposals_url, headers=owner)).json() if item["id"] == original["id"]
+    )
+    assert current["script_version"] == 2 and current["review_state"] is None
+    history = (await api.get(versions_url, headers=owner)).json()
+    assert [item["version"] for item in history] == [1, 2]
+    assert [item.version for item in await service.script_versions(tenant, business, actor, proposal_id)] == [1, 2]
+    assert history[0]["review_state"] == "accepted"
+    assert history[1]["review_state"] is None
+    assert (
+        await api.post(review_url, headers=owner, json={"operation_id": prior_review, "decision": "accepted"})
+    ).json()["error_code"] == "PROPOSAL_OPERATION_CONFLICT"
+    with pytest.raises(AuthError, match="PROPOSAL_OPERATION_CONFLICT"):
+        await service.review_script(
+            tenant,
+            business,
+            actor,
+            proposal_id,
+            ScriptReview(operation_id=UUID(prior_review), decision="accepted"),
+        )
+    fact_changed = [dict(scene) for scene in edited_scenes]
+    next(scene for scene in fact_changed if scene["role"] == "fact")["on_screen_text"] = "Preço R$ 5"
+    assert (
+        await api.post(
+            versions_url,
+            headers=owner,
+            json={**edit, "operation_id": str(uuid4()), "expected_version": 2, "script": fact_changed},
+        )
+    ).json()["error_code"] == "SCRIPT_FACT_CHANGED"
+    with pytest.raises(AuthError, match="SCRIPT_FACT_CHANGED"):
+        await service.edit_script(
+            tenant,
+            business,
+            actor,
+            proposal_id,
+            ScriptEdit.model_validate(
+                {**edit, "operation_id": str(uuid4()), "expected_version": 2, "script": fact_changed}
+            ),
+        )
+    assert (
+        await api.post(review_url, headers=owner, json={"operation_id": str(uuid4()), "decision": "accepted"})
+    ).status_code == 200
+    assert (await api.get(versions_url, headers=owner)).json()[1]["review_state"] == "accepted"
+    preview_url = base + "/media-previews"
+    preview = await api.post(
+        preview_url,
+        headers=owner,
+        json={"operation_id": str(uuid4()), "proposal_id": original["id"]},
+    )
+    assert preview.status_code == 202, preview.text
+    assert len((await api.get(preview_url, headers=owner)).json()) == 1
+    newer_scenes = [dict(scene) for scene in edited_scenes]
+    next(scene for scene in newer_scenes if scene["role"] == "cta")["voiceover"] = "Entre em contato com a gente."
+    third = await api.post(
+        versions_url,
+        headers=owner,
+        json={**edit, "operation_id": str(uuid4()), "expected_version": 2, "script": newer_scenes},
+    )
+    assert third.status_code == 200, third.text
+    assert (await api.get(preview_url, headers=owner)).json() == []
+    assert (
+        await api.post(review_url, headers=owner, json={"operation_id": str(uuid4()), "decision": "accepted"})
+    ).status_code == 200
+    assert (await api.get(preview_url, headers=owner)).json() == []
+    final_scenes = [dict(scene) for scene in newer_scenes]
+    next(scene for scene in final_scenes if scene["role"] == "cta")["voiceover"] = "Envie uma mensagem para saber mais."
+    final_edit = ScriptEdit.model_validate(
+        {**edit, "operation_id": str(uuid4()), "expected_version": 3, "script": final_scenes}
+    )
+    assert (await service.edit_script(tenant, business, actor, proposal_id, final_edit)).version == 4
+    assert [item.version for item in await service.script_versions(tenant, business, actor, proposal_id)] == [
+        1,
+        2,
+        3,
+        4,
+    ]
+    alternatives = []
+    for phrase in ("Escreva para saber mais.", "Pergunte sobre este trabalho."):
+        scenes = [scene.model_copy() for scene in final_edit.script]
+        scenes[-1] = scenes[-1].model_copy(update={"voiceover": phrase})
+        alternatives.append(
+            ScriptEdit(
+                operation_id=uuid4(),
+                expected_version=4,
+                title=final_edit.title,
+                angle=final_edit.angle,
+                script=scenes,
+            )
+        )
+    raced = await asyncio.gather(
+        *(service.edit_script(tenant, business, actor, proposal_id, candidate) for candidate in alternatives),
+        return_exceptions=True,
+    )
+    assert sum(getattr(result, "version", None) == 5 for result in raced) == 1
+    assert sum(isinstance(result, AuthError) and result.code == "SCRIPT_VERSION_CONFLICT" for result in raced) == 1
+    head = (await service.script_versions(tenant, business, actor, proposal_id))[-1]
+    replay_scenes = [scene.model_copy() for scene in head.document.script]
+    replay_scenes[-1] = replay_scenes[-1].model_copy(update={"voiceover": "Fale com a equipe agora."})
+    replay = ScriptEdit(
+        operation_id=uuid4(),
+        expected_version=5,
+        title=head.document.title,
+        angle=head.document.angle,
+        script=replay_scenes,
+    )
+    repeated = await asyncio.gather(
+        service.edit_script(tenant, business, actor, proposal_id, replay),
+        service.edit_script(tenant, business, actor, proposal_id, replay),
+    )
+    assert [item.version for item in repeated] == [6, 6]
 
 
 async def test_paid_reservation_budget_invalid_fact_and_uncertain(admin, seeded, settings):

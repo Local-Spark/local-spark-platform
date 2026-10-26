@@ -10,7 +10,9 @@ from app.schemas.editorial_proposals import (
     EditorialAIStatus,
     ProposalRead,
     ProposalRequest,
+    ScriptEdit,
     ScriptReview,
+    ScriptVersionRead,
 )
 from app.services.editorial_proposals import EditorialProposalService
 
@@ -55,3 +57,17 @@ async def review_script(
     tenant_id: UUID, business_id: UUID, proposal_id: UUID, body: ScriptReview, request: Request, actor: Actor
 ) -> ProposalRead:
     return await service(request).review_script(tenant_id, business_id, actor, proposal_id, body)
+
+
+@proposals_router.post("/{proposal_id}/script-versions", response_model=ScriptVersionRead)
+async def edit_script(
+    tenant_id: UUID, business_id: UUID, proposal_id: UUID, body: ScriptEdit, request: Request, actor: Actor
+) -> ScriptVersionRead:
+    return await service(request).edit_script(tenant_id, business_id, actor, proposal_id, body)
+
+
+@proposals_router.get("/{proposal_id}/script-versions", response_model=list[ScriptVersionRead])
+async def list_script_versions(
+    tenant_id: UUID, business_id: UUID, proposal_id: UUID, request: Request, actor: Actor
+) -> list[ScriptVersionRead]:
+    return await service(request).script_versions(tenant_id, business_id, actor, proposal_id)

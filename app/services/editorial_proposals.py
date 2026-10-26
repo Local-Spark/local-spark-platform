@@ -9,6 +9,7 @@ import re
 from datetime import UTC, datetime
 from typing import Any, Literal
 from uuid import UUID, uuid4
+from zoneinfo import ZoneInfo
 
 from cryptography.fernet import Fernet, InvalidToken
 from sqlalchemy import text
@@ -17,7 +18,15 @@ from app.adapters.editorial_ai import EditorialProviderError, OpenAIEditorialPro
 from app.core.config import Settings
 from app.db.session import Database
 from app.schemas.editorial_context import ContextContent
-from app.schemas.editorial_proposals import ProposalDraft, ProposalRead, ProposalRequest, ScriptReview, ScriptScene
+from app.schemas.editorial_proposals import (
+    ProposalDraft,
+    ProposalRead,
+    ProposalRequest,
+    ScriptEdit,
+    ScriptReview,
+    ScriptScene,
+    ScriptVersionRead,
+)
 from app.services.auth import AuthError
 from app.services.whatsapp_materials import WhatsAppMaterialsService
 
@@ -39,6 +48,25 @@ def _access_sql() -> str:
       UNION ALL
       SELECT 1 FROM billing_accounts b WHERE b.tenant_id=:tenant AND b.livemode=:live
         AND b.status='active' AND NOT b.blocked AND b.paid_until>now())"""
+
+
+def _script_digest(value: object) -> str:
+    return hashlib.sha256(json.dumps(value, sort_keys=True, default=str, ensure_ascii=False).encode()).hexdigest()
+
+
+_COMMERCIAL_CLAIM = re.compile(
+    r"(?i)(?:r\$\s*\d+(?:[.,]\d+)?|\b\d+(?:[.,]\d+)?\s*(?:%|reais|horas?|dias?|h)\b|"
+    r"\b(?:gr[aá]tis|gratuit[oa]s?|desconto|promo[cç][aã]o|garantid[oa]s?|hoje|amanh[aã])\b)"
+)
+
+
+def _has_unconfirmed_claim(body: ScriptEdit, confirmed_statement: str) -> bool:
+    allowed = {match.group().casefold() for match in _COMMERCIAL_CLAIM.finditer(confirmed_statement)}
+    copy = [body.title, body.angle]
+    copy.extend(
+        value for scene in body.script if scene.role != "fact" for value in (scene.on_screen_text, scene.voiceover)
+    )
+    return any(match.group().casefold() not in allowed for value in copy for match in _COMMERCIAL_CLAIM.finditer(value))
 
 
 async def _audit(session: Any, row: Any, action: str) -> None:
@@ -192,6 +220,204 @@ class EditorialProposalService:
             )
             return [_present(row) for row in rows]
 
+    async def edit_script(
+        self, tenant: UUID, business: UUID, actor: UUID, proposal_id: UUID, body: ScriptEdit
+    ) -> ScriptVersionRead:
+        request_hash = _script_digest(body.model_dump(mode="json"))
+        async with self.database.transaction(tenant, actor) as session:
+            await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
+            row = (
+                (
+                    await session.execute(
+                        text("""SELECT * FROM editorial_proposals WHERE id=:id
+                          AND tenant_id=:tenant AND business_id=:business FOR UPDATE"""),
+                        {"id": proposal_id, "tenant": tenant, "business": business},
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+            if row is None:
+                raise AuthError("PROPOSAL_NOT_FOUND", 404)
+            await session.execute(
+                text("SELECT pg_advisory_xact_lock(hashtextextended(:key,0))"),
+                {"key": f"{tenant}:{business}:{body.operation_id}"},
+            )
+            existing = (
+                (
+                    await session.execute(
+                        text("""SELECT * FROM editorial_script_versions WHERE tenant_id=:tenant
+                          AND business_id=:business AND operation_id=:operation"""),
+                        {"tenant": tenant, "business": business, "operation": body.operation_id},
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+            if existing is not None:
+                if existing["request_hash"] != request_hash or existing["proposal_id"] != proposal_id:
+                    raise AuthError("SCRIPT_OPERATION_CONFLICT", 409)
+                return ScriptVersionRead.model_validate(existing)
+            if row["script_version"] != body.expected_version:
+                raise AuthError("SCRIPT_VERSION_CONFLICT", 409)
+            if row["state"] != "completed" or row["document"] is None or row["expires_at"] <= datetime.now(UTC):
+                raise AuthError("SCRIPT_NOT_READY", 409)
+            original = ProposalDraft.model_validate(row["document"])
+            if len(original.script) != len(body.script) or any(
+                (before.role, before.visual, before.fact_ids, before.source_asset_id)
+                != (after.role, after.visual, after.fact_ids, after.source_asset_id)
+                for before, after in zip(original.script, body.script, strict=True)
+            ):
+                raise AuthError("SCRIPT_PROVENANCE_CHANGED", 409)
+            head = await session.scalar(
+                text("""SELECT version FROM business_context_heads
+                  WHERE tenant_id=:tenant AND business_id=:business"""),
+                {"tenant": tenant, "business": business},
+            )
+            if head != row["context_version"]:
+                raise AuthError("SCRIPT_CONTEXT_CHANGED", 409)
+            context_doc = await session.scalar(
+                text("""SELECT document FROM business_context_versions WHERE tenant_id=:tenant
+                  AND business_id=:business AND version=:version"""),
+                {"tenant": tenant, "business": business, "version": head},
+            )
+            timezone = await session.scalar(
+                text("SELECT timezone FROM businesses WHERE tenant_id=:tenant AND id=:business"),
+                {"tenant": tenant, "business": business},
+            )
+            if context_doc is None:
+                raise AuthError("SCRIPT_CONTEXT_CHANGED", 409)
+            context = ContextContent.model_validate(context_doc)
+            today = datetime.now(ZoneInfo(timezone)).date()
+            fact_scene = next(scene for scene in body.script if scene.role == "fact")
+            fact = next((item for item in context.facts if item.id in fact_scene.fact_ids), None)
+            if fact is None or (fact.valid_until is not None and fact.valid_until < today):
+                raise AuthError("SCRIPT_FACT_EXPIRED", 409)
+            statement = fact.statement.rstrip(". ") + "."
+            if fact_scene.on_screen_text != statement or fact_scene.voiceover != statement:
+                raise AuthError("SCRIPT_FACT_CHANGED", 409)
+            if _has_unconfirmed_claim(body, statement):
+                raise AuthError("SCRIPT_UNCONFIRMED_CLAIM", 409)
+            document = original.model_copy(
+                update={"title": body.title, "angle": body.angle, "script": body.script}
+            ).model_dump(mode="json")
+            original_hash = _script_digest(row["document"])
+            document_hash = _script_digest(document)
+            if document_hash == original_hash:
+                raise AuthError("SCRIPT_UNCHANGED", 409)
+            await session.execute(
+                text("""INSERT INTO editorial_script_versions
+                  (proposal_id,tenant_id,business_id,version,document,document_hash,
+                   context_version,source_asset_id,actor_id,review_state,review_operation_id,review_hash)
+                  VALUES(:proposal,:tenant,:business,:version,CAST(:document AS jsonb),:hash,
+                   :context,:source,:actor,:review_state,:review_operation,:review_hash)
+                  ON CONFLICT(proposal_id,version) DO NOTHING"""),
+                {
+                    "proposal": proposal_id,
+                    "tenant": tenant,
+                    "business": business,
+                    "version": row["script_version"],
+                    "document": json.dumps(row["document"], ensure_ascii=False),
+                    "hash": original_hash,
+                    "context": head,
+                    "source": row["source_asset_id"],
+                    "actor": row["reviewed_by"] or row["actor_id"],
+                    "review_state": row["review_state"],
+                    "review_operation": row["review_operation_id"],
+                    "review_hash": row["review_hash"],
+                },
+            )
+            next_version = row["script_version"] + 1
+            result = (
+                (
+                    await session.execute(
+                        text("""INSERT INTO editorial_script_versions
+                          (proposal_id,tenant_id,business_id,version,document,document_hash,
+                           context_version,source_asset_id,actor_id,operation_id,request_hash)
+                          VALUES(:proposal,:tenant,:business,:version,CAST(:document AS jsonb),:hash,
+                           :context,:source,:actor,:operation,:request_hash) RETURNING *"""),
+                        {
+                            "proposal": proposal_id,
+                            "tenant": tenant,
+                            "business": business,
+                            "version": next_version,
+                            "document": json.dumps(document, ensure_ascii=False),
+                            "hash": document_hash,
+                            "context": head,
+                            "source": row["source_asset_id"],
+                            "actor": actor,
+                            "operation": body.operation_id,
+                            "request_hash": request_hash,
+                        },
+                    )
+                )
+                .mappings()
+                .one()
+            )
+            await session.execute(
+                text("""UPDATE editorial_proposals SET document=CAST(:document AS jsonb),
+                  script_version=:version,review_state=NULL,review_note=NULL,
+                  review_operation_id=NULL,review_hash=NULL,reviewed_at=NULL,reviewed_by=NULL,
+                  updated_at=now() WHERE id=:proposal"""),
+                {
+                    "document": json.dumps(document, ensure_ascii=False),
+                    "version": next_version,
+                    "proposal": proposal_id,
+                },
+            )
+            await _audit(session, {**row, "actor_id": actor, "id": body.operation_id}, "editorial.script_edited")
+            return ScriptVersionRead.model_validate(result)
+
+    async def script_versions(
+        self, tenant: UUID, business: UUID, actor: UUID, proposal_id: UUID
+    ) -> builtins.list[ScriptVersionRead]:
+        async with self.database.transaction(tenant, actor) as session:
+            await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
+            row = (
+                (
+                    await session.execute(
+                        text("""SELECT * FROM editorial_proposals WHERE id=:id
+                          AND tenant_id=:tenant AND business_id=:business"""),
+                        {"id": proposal_id, "tenant": tenant, "business": business},
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+            if row is None:
+                raise AuthError("PROPOSAL_NOT_FOUND", 404)
+            versions = (
+                (
+                    await session.execute(
+                        text("""SELECT * FROM editorial_script_versions WHERE tenant_id=:tenant
+                          AND business_id=:business AND proposal_id=:proposal ORDER BY version"""),
+                        {"tenant": tenant, "business": business, "proposal": proposal_id},
+                    )
+                )
+                .mappings()
+                .all()
+            )
+            if versions:
+                return [ScriptVersionRead.model_validate(item) for item in versions]
+            if row["document"] is None:
+                return []
+            return [
+                ScriptVersionRead.model_validate(
+                    {
+                        "proposal_id": proposal_id,
+                        "version": row["script_version"],
+                        "document": row["document"],
+                        "document_hash": _script_digest(row["document"]),
+                        "context_version": row["context_version"],
+                        "source_asset_id": row["source_asset_id"],
+                        "actor_id": row["reviewed_by"] or row["actor_id"],
+                        "operation_id": None,
+                        "review_state": row["review_state"],
+                        "created_at": row["created_at"],
+                    }
+                )
+            ]
+
     async def review_script(
         self, tenant: UUID, business: UUID, actor: UUID, proposal_id: UUID, body: ScriptReview
     ) -> ProposalRead:
@@ -232,6 +458,13 @@ class EditorialProposalService:
             )
             if used_operation:
                 raise AuthError("PROPOSAL_OPERATION_CONFLICT", 409)
+            historical_operation = await session.scalar(
+                text("""SELECT 1 FROM editorial_script_versions WHERE tenant_id=:tenant
+                  AND business_id=:business AND review_operation_id=:operation"""),
+                {"tenant": tenant, "business": business, "operation": body.operation_id},
+            )
+            if historical_operation:
+                raise AuthError("PROPOSAL_OPERATION_CONFLICT", 409)
             result = (
                 (
                     await session.execute(
@@ -250,6 +483,18 @@ class EditorialProposalService:
                 )
                 .mappings()
                 .one()
+            )
+            await session.execute(
+                text("""UPDATE editorial_script_versions SET review_state=:decision,
+                  review_operation_id=:operation,review_hash=:digest
+                  WHERE proposal_id=:proposal AND version=:version"""),
+                {
+                    "decision": body.decision,
+                    "operation": body.operation_id,
+                    "digest": digest,
+                    "proposal": proposal_id,
+                    "version": row["script_version"],
+                },
             )
             await _audit(session, result, "editorial.script_reviewed")
             return _present(result)

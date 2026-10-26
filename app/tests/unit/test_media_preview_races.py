@@ -38,7 +38,12 @@ async def test_concurrent_operation_conflict_is_detected_after_insert_race(setti
     tenant, business, actor, proposal, operation = [uuid4() for _ in range(5)]
     row = {"operation_id": operation, "request_hash": "another-hash"}
     database, _ = _database(
-        [None, {"context_version": 1, "expires_at": datetime.now(UTC) + timedelta(days=1)}, None, row]
+        [
+            None,
+            {"context_version": 1, "script_version": 1, "expires_at": datetime.now(UTC) + timedelta(days=1)},
+            None,
+            row,
+        ]
     )
     service = MediaPreviewService(settings, database)
     monkeypatch.setattr(WhatsAppMaterialsService, "_require_owner", AsyncMock())

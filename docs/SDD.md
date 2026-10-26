@@ -12,6 +12,13 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Versão 1.2, 23/10/2026. Resumo implementável e índice das especificações detalhadas.
 
+F04.1b em andamento (25/10/2026): template estático v4 conserva a foto inteira,
+usa fundo desfocado apenas como preenchimento e fato em painel opaco; contraste
+da marca é calculado. Corpus sintético PT-BR, folha de contato e CSV de revisão
+permitem comparar versões localmente. O gate de 20 peças consentidas, revisão
+com comerciantes, custo em staging e ajuste visual versionado ainda não passou.
+Nenhuma peça está aprovada para publicação por essa mudança. Ver [F04](phases/F04-media-recipes.md).
+
 F04.1 local (25/10/2026): a proposta F03.3 `completed` e `accepted` pode gerar
 uma prévia estática JPEG (`photo`/`story`) após revalidar plano, versão do contexto,
 fato, fonte e consentimento de IA externa. A solicitação é idempotente por
@@ -28,6 +35,15 @@ original do clipe é removido; voz e legenda sincronizada com fala não são
 suportadas nesta primeira receita. A API informa tipo/duração; a web reproduz a
 prévia sem publicar. F04.3 continua responsável pela automação e envio no
 WhatsApp. Ver [F04](phases/F04-media-recipes.md).
+
+F03.3b local (25/10/2026): edição de roteiro pelo proprietário usa operação
+idempotente, versão esperada e documentos append-only sob RLS. O serviço mantém
+proveniência de cenas e fato confirmado vigente, bloqueia padrões explícitos
+de preço/promoção/garantia sem confirmação e zera o aceite ao editar. Cada prévia carrega a
+versão do roteiro; a API deixa de listar/abrir versões antigas. A avaliação
+humana de utilidade, clareza e custo por roteiro aceito ainda não passou pelo
+gate de piloto. Há dez casos sintéticos e planilha de avaliação para iniciar
+esse processo, sem afirmar qualidade comercial. Ver [F03](phases/F03-editorial-research.md).
 
 Sequência de entrega atual em [fases](phases/README.md): F03.3 transforma material
 F02 em roteiro de cenas com fontes e revisão local; falta avaliação de qualidade
@@ -46,8 +62,9 @@ F02 não equivale a "Aprovar" da F06. Web continua alternativa. F03.3b entrega
 edição/versionamento e avaliação de roteiros; F04.1b avalia e melhora a qualidade
 visual das artes com amostra consentida; F04.2b evolui a narrativa, edição e
 qualidade dos vídeos. A ordem após F04.2 é F03.3b → F04.1b → F04.2b → F04.3.
-Esses gates são obrigatórios antes do piloto comercial e ainda não foram
-implementados.
+Esses gates são obrigatórios antes do piloto comercial; a edição técnica de
+F03.3b e a primeira revisão de template/avaliação sintética F04.1b já existem,
+sem aprovação de qualidade com negócios reais.
 
 F02.2c6 diferencia resposta aceita pela Meta de recibo `sent`/`failed`/`delivered`/`read`, correlacionado pelo ID do provedor na inbox cifrada. Confirmação/descarte prepara uma resposta curta na transação da decisão; envio e recibo usam estados próprios. O dispatcher reserva tentativas sob teto diário por organização e bloqueio transacional; sem teto positivo, não habilita envio. Staff vê apenas metadados de falhas/incertezas e pode registrar revisão sem reenviar. O smoke externo, o valor monetário por mensagem e o opt-out explícito permanecem pendentes em [F02](phases/F02-whatsapp-ingestion.md).
 

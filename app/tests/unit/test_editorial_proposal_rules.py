@@ -2,11 +2,12 @@
 
 from uuid import uuid4
 
+import pytest
 from cryptography.fernet import Fernet
 from pydantic import SecretStr
 
-from app.schemas.editorial_proposals import ProposalDraft
-from app.services.editorial_proposals import EditorialProposalService
+from app.schemas.editorial_proposals import ProposalDraft, ScriptEdit, ScriptScene
+from app.services.editorial_proposals import EditorialProposalService, _has_unconfirmed_claim
 
 
 def _data(kind=None, facts=None, topics=None):
@@ -17,6 +18,36 @@ def _data(kind=None, facts=None, topics=None):
         "material_kind": kind,
         "context_version": 0,
     }
+
+
+def test_script_edit_requires_factual_scene_and_rejects_new_commercial_claims():
+    fact_id = uuid4()
+    fact = ScriptScene(
+        role="fact",
+        visual="brand_card",
+        on_screen_text="X-tudo por R$ 20.",
+        voiceover="X-tudo por R$ 20.",
+        fact_ids=[fact_id],
+    )
+    cta = ScriptScene(
+        role="cta",
+        visual="brand_card",
+        on_screen_text="Fale conosco",
+        voiceover="Chame a gente.",
+        fact_ids=[],
+    )
+    edit = ScriptEdit(
+        operation_id=uuid4(),
+        expected_version=1,
+        title="Conheça nosso X-tudo",
+        angle="Mostre o lanche aos clientes.",
+        script=[fact, cta],
+    )
+    assert not _has_unconfirmed_claim(edit, "X-tudo por R$ 20.")
+    assert not _has_unconfirmed_claim(edit.model_copy(update={"title": "X-tudo por R$ 20"}), "X-tudo por R$ 20.")
+    assert _has_unconfirmed_claim(edit.model_copy(update={"title": "Hoje tem X-tudo por R$ 10"}), "X-tudo por R$ 20.")
+    with pytest.raises(ValueError, match="exactly one fact"):
+        ScriptEdit(operation_id=uuid4(), expected_version=1, title=edit.title, angle=edit.angle, script=[cta, cta])
 
 
 def test_baseline_formats_and_claim_guard(settings, fake_database):

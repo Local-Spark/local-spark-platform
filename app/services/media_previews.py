@@ -154,6 +154,7 @@ class MediaPreviewService:
             {
                 "proposal": proposal["id"],
                 "document": proposal["document"],
+                "script_version": proposal["script_version"],
                 "context_version": proposal["context_version"],
                 "name": profile["name"],
                 "brand_color": profile["brand_color"],
@@ -215,9 +216,10 @@ class MediaPreviewService:
                     await session.execute(
                         text("""INSERT INTO media_previews
                           (id,tenant_id,business_id,proposal_id,actor_id,operation_id,request_hash,
-                           render_key,template_version,context_version,source_asset_id,fact_ids,expires_at,mime_type)
+                           render_key,template_version,context_version,script_version,
+                           source_asset_id,fact_ids,expires_at,mime_type)
                           VALUES(:id,:tenant,:business,:proposal,:actor,:operation,:hash,:key,:template,
-                            :version,:source,CAST(:facts AS jsonb),:expires,:mime)
+                            :version,:script_version,:source,CAST(:facts AS jsonb),:expires,:mime)
                           ON CONFLICT DO NOTHING RETURNING *"""),
                         {
                             "id": uuid4(),
@@ -230,6 +232,7 @@ class MediaPreviewService:
                             "key": inputs.render_key,
                             "template": VIDEO_TEMPLATE_VERSION if inputs.format == "short_video" else TEMPLATE_VERSION,
                             "version": proposal["context_version"],
+                            "script_version": proposal["script_version"],
                             "source": inputs.source_id,
                             "facts": json.dumps([str(inputs.fact_id)]),
                             "expires": inputs.expires_at or proposal["expires_at"],
@@ -272,7 +275,8 @@ class MediaPreviewService:
                     await session.execute(
                         text("""SELECT p.* FROM media_previews p WHERE p.tenant_id=:tenant AND p.business_id=:business
                           AND p.expires_at>now() AND p.state<>'purging'
-                          AND EXISTS(SELECT 1 FROM editorial_proposals e WHERE e.id=p.proposal_id)
+                          AND EXISTS(SELECT 1 FROM editorial_proposals e WHERE e.id=p.proposal_id
+                            AND e.script_version=p.script_version AND e.review_state='accepted')
                           AND EXISTS(SELECT 1 FROM business_context_heads h WHERE h.tenant_id=p.tenant_id
                             AND h.business_id=p.business_id AND h.version=p.context_version)
                           AND (p.source_asset_id IS NULL OR EXISTS(SELECT 1 FROM whatsapp_material_assets a

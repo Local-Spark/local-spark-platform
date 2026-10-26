@@ -12,7 +12,7 @@ from PIL import Image
 from sqlalchemy import text
 
 from app.adapters.material_media import FetchedMedia, MaterialError
-from app.adapters.static_preview import PreviewRenderError
+from app.adapters.static_preview import TEMPLATE_VERSION, PreviewRenderError
 from app.db.session import Database
 from app.schemas.media_previews import PreviewRequest
 from app.services.auth import AuthError
@@ -532,6 +532,7 @@ async def test_static_preview_owner_lifecycle_and_tenant_isolation(admin, api, d
         assert await service._fail(claim.id, claim.fence, "STALE", False) == "skipped"
         completed = (await api.get(previews_url, headers=owner)).json()[0]
         assert completed["state"] == "completed" and completed["width"] == 1080
+        assert completed["template_version"] == TEMPLATE_VERSION
         assert (await owner_service.file_key(tenant, business, actor, claim.id)).endswith(".jpg")
         assert (await api.get(previews_url + f"/{claim.id}/download-link", headers=viewer)).status_code == 403
         monkeypatch.setattr(

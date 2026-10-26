@@ -12,6 +12,12 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Atualizado: 23/10/2026. Nome adotado: Meu Braço Direito. Repositório principal: `local-spark-platform`.
 
+25/10/2026 — F04.1b iniciada: template estático v4 preserva a foto real inteira,
+melhora contraste e separa o texto factual em painel legível. Oito casos sintéticos
+PT-BR produzem artes e folha de contato para revisão; não são prova de qualidade
+comercial. Antes do piloto ainda faltam revisão consentida com comerciantes,
+ajuste visual versionado e medição de custo em staging. Ver [F04](phases/F04-media-recipes.md).
+
 25/10/2026 — F04.1 implementada localmente: roteiro F03.3 aceito gera foto/story
 JPEG privada com template determinístico, fato confirmado vigente e foto real
 opcional. A área cliente pede/abre a prévia, sem publicação. Temporal, render key,
@@ -26,12 +32,21 @@ cena temporizado e sem áudio. O cliente abre a prévia na web. Cortes múltiplo
 legenda sincronizada
 à fala, avaliação visual e envio/aprovação pelo WhatsApp continuam pendentes.
 
+25/10/2026 — F03.3b iniciou a edição versionada do roteiro: proprietário pode
+ajustar título, direção e cenas sem trocar a origem dos fatos/materiais. Cada
+versão tem hash, autor e revisão própria; editar remove o aceite vigente e
+invalida prévias da versão anterior. A avaliação criativa PT-BR com negócios
+consentidos ainda é obrigatória antes de uso comercial. O conjunto sintético
+v2 de dez cenários e a planilha de revisão humana estão prontos; nenhuma
+comparação nova de modelos foi executada nesta entrega.
+
 25/10/2026 — Jornada WhatsApp-first formalizada: F03.3b inclui edição e nova
 versão do roteiro com benchmark comercial; F04.1b mede/revisa a qualidade das
 artes com comerciantes consentidos. F04.2 já entrega o primeiro vídeo privado;
 F04.3 iniciará geração e envio da prévia pelo WhatsApp sem obrigar uso da web.
 F06 separa a aprovação explícita da peça final da confirmação de preço/horário
-e só então agenda/publica. F03.3b, F04.1b, F04.2b, F04.3 e F06 seguem planejadas;
+e só então agenda/publica. A avaliação comercial F03.3b, a revisão humana
+F04.1b, F04.2b, F04.3 e F06 seguem pendentes;
 ver [fases](phases/README.md).
 Após a primeira receita F04.2, a ordem de implementação é F03.3b, F04.1b,
 F04.2b e F04.3; os três primeiros são gates de qualidade antes da automação da

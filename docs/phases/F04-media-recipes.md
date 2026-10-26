@@ -1,7 +1,8 @@
 # F04 — Artes, carrosséis e edição de vídeo
 
 Status: F04.1 e primeira receita F04.2 implementadas localmente em 25/10/2026;
-F04.1b, F04.2b (qualidade do vídeo) e F04.3 ainda planejadas.
+F04.1b iniciada com template v4 e avaliação sintética. Revisão humana, ajustes
+da arte, F04.2b (qualidade do vídeo) e F04.3 continuam pendentes.
 Dependências: F02, F03.
 
 F04.1 consome apenas roteiro F03.3 aceito, contexto e material vigentes. Produz
@@ -9,11 +10,11 @@ prévia JPEG privada de foto (1080×1350) ou story (1080×1920) com identidade d
 marca, foto real opcional, fato confirmado e convite genérico. O proprietário
 pede e abre a prévia em `/app/ideas`; isso não aprova uma publicação. F04.2
 acrescenta MP4 curto e texto de cena temporizado; F05 mantém avatar
-opcional. Edição direta e revisão iterativa do roteiro F03.3 permanecem como
-melhoria antes de ativação comercial.
+opcional. A edição versionada do roteiro F03.3b já existe; avaliação criativa
+com negócios reais permanece obrigatória antes de ativação comercial.
 
 Exemplo visual: [arte do Hot Dog da Ana](../assets/f04-hotdog-preview.jpg),
-renderizada pelo adapter F04.1 com uma foto sintética usada somente para
+renderizada pelo adapter F04.1b v4 com uma foto sintética usada somente para
 demonstração. Em uso real, a foto vem do material autorizado do negócio; este
 arquivo de exemplo não representa envio pelo WhatsApp nem publicação.
 
@@ -46,19 +47,43 @@ arquivo de exemplo não representa envio pelo WhatsApp nem publicação.
   pagos. A receita Pillow é determinística; medição de qualidade visual com
   comerciantes reais e revisão de template ainda são necessárias antes do piloto.
 
-## F04.1b — Qualidade da arte estática (planejada antes do piloto)
+## F04.1b — Qualidade da arte estática (em andamento)
 
-- Montar amostra PT-BR por segmento, formatos, cores, comprimento de texto e
-  qualidade/proporção das fotos; dados de negócios reais só com autorização.
-  Avaliar em tela de celular legibilidade, recorte do produto, identidade visual,
-  preço/validade/CTA, fidelidade à foto e ausência de afirmação inventada.
-- Revisão humana com comerciantes da amostra registra defeitos, pedidos de
-  ajuste e aceite. Definir metas de qualidade e custo por arte antes de medir;
-  revisar templates versionados e repetir a avaliação. Bloquear o piloto se
-  preço, produto ou oferta estiverem incorretos, independentemente da média.
-- Permitir solicitar ajuste da peça e renderizar nova versão privada; a nova
-  versão perde qualquer aprovação anterior. A edição do texto do roteiro e a
-  nova versão factual pertencem à F03.3b, antes de renderizar novamente.
+Primeira fatia técnica em 25/10/2026: o template estático v4 preserva a foto
+inteira em enquadramentos retrato, paisagem e panorâmico, usa o recorte apenas
+para um fundo desfocado e separa o fato em painel opaco. A marca aparece fora
+da foto; cor clara/escura recebe contraste calculado pela luminância relativa.
+Arte sem foto usa composição geométrica, sem representar um produto inexistente.
+O `render_key` inclui `TEMPLATE_VERSION=4`, mantendo cada versão de arquivo
+privada e imutável. Testes cobrem as bordas da foto, contraste, texto longo,
+determinismo e limites de mídia. O template anterior não é alterado em disco.
+
+O corpus sintético versionado em `docs/evals/static-art-ptbr-v1.json` cobre
+quatro segmentos, foto ausente/quadrada/retrato/paisagem/panorâmica, cores
+claras/escuras e foto/story. `python scripts/evaluate_static_art.py` gera
+artes, folha de contato, bytes/latência e CSV de revisão em `.local/evals/static-art/`.
+Esses oito casos são **teste técnico**, não aprovação de qualidade comercial.
+
+Critérios de entrada para o piloto, definidos antes da avaliação humana:
+
+- Em amostra consentida de ao menos 20 peças, com comerciantes de ao menos
+  quatro segmentos e ambos formatos, 90% das peças devem receber nota >= 4/5
+  de legibilidade e de visibilidade do produto/serviço; pelo menos 80% devem
+  ser aceitas sem ajuste. Avaliação em tela de celular; registrar tamanho de
+  amostra e rejeições por segmento, sem ocultar casos difíceis na média.
+- Zero erro crítico de preço, produto, oferta, validade, permissão de uso da
+  foto ou afirmação inventada. Um único erro crítico bloqueia o piloto até
+  correção e nova avaliação do caso. A transcrição factual do banco é a fonte;
+  revisão visual humana confere a peça final.
+- Registrar p50/p95 de tempo de render, bytes, CPU e custo real de armazenamento
+  e tráfego em staging antes de fixar teto de COGS por peça. A receita local não
+  chama API paga; custo de infraestrutura ainda não foi medido. O resultado
+  sintético não substitui essa medição.
+
+Pendências desta fase: amostra real autorizada e revisão com comerciantes,
+correções de template por feedback e fluxo de pedir ajuste visual que cria
+outra versão privada sem herdar aprovação anterior. Editar o texto factual ou
+o roteiro usa a F03.3b e exige novo aceite antes de renderizar.
 
 ## F04.2 — Primeiro vídeo curto (implementado localmente)
 

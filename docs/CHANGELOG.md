@@ -1,5 +1,27 @@
 # Registro de mudanças
 
+## 2026-10-25 — F04.1b: primeira revisão da arte estática
+
+- Template v4 preserva fotos inteiras, mostra fundo desfocado nas faixas vazias,
+  aplica contraste conforme a cor da marca e mantém preço/fato em painel opaco.
+  O hash da receita muda; arquivos antigos continuam imutáveis.
+- Corpus sintético de oito cenários e `scripts/evaluate_static_art.py` geram folha
+  de contato, medidas de bytes/latência e formulário de revisão humana local.
+  Não houve uso de dados de clientes nem chamada a provedor pago.
+- Revisão com comerciantes consentidos, ajuste visual versionado e custo real
+  em staging continuam pendentes; esta entrega não libera piloto comercial.
+- Validação: `make ci` com 545 testes e 100% de linhas/ramos, Ruff e mypy;
+  oito imagens e folha de contato geradas localmente sem dados reais. Worker
+  local reconstruído para usar o template v4 nas novas prévias.
+
+## 2026-10-25 — F03.3b: edição versionada do roteiro
+
+- A API grava histórico, hash, autor, contexto, fonte e revisão por versão; edição é idempotente e usa versão esperada. Testes concorrentes confirmam uma única versão vencedora e replay da mesma operação. Fato e proveniência não mudam silenciosamente; padrões explícitos de preço/promoção/garantia sem fato confirmado são recusados.
+- Uma edição exige novo aceite. Prévia criada para versão anterior deixa de aparecer e não pode ser reaberta; renderizações em curso revalidam a versão.
+- Migration 0033 adiciona histórico e versão de roteiro às prévias. Avaliação PT-BR com material consentido e comparação de modelos seguem pendentes antes de liberar clientes reais.
+- O eval sintético v2 contém dez cenários e produz planilha para revisão humana; o modo live mantém limite explícito de chamadas. Execução baseline: 10/10 storyboards válidos estruturalmente, com 3 casos sem fato confirmado corretamente abstidos. Ainda não mede utilidade real.
+- Validação: `make ci` com 539 testes, 100% de linhas e ramos, Ruff e mypy; migration 0033 revertida/reaplicada no `_test` e aplicada à base local após backup verificado. Worker local reconstruído. Nenhuma chamada à Meta/OpenAI foi necessária.
+
 ## 2026-10-25 — Ordem das próximas entregas após F04.2
 
 - Corrigido o status do índice: já existe prévia privada de vídeo curto, mas edição direta e publicação continuam pendentes.

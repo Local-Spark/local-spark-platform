@@ -49,6 +49,37 @@ class ProposalRead(BaseModel):
     expires_at: datetime
     review_state: Literal["accepted", "changes_requested"] | None = None
     review_note: str | None = None
+    script_version: int = 1
+
+
+class ScriptEdit(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    operation_id: UUID
+    expected_version: int = Field(ge=1)
+    title: str = Field(min_length=4, max_length=120)
+    angle: str = Field(min_length=8, max_length=300)
+    script: list[ScriptScene] = Field(min_length=2, max_length=3)
+
+    @model_validator(mode="after")
+    def require_factual_story(self):  # type: ignore[no-untyped-def]
+        roles = [scene.role for scene in self.script]
+        if roles.count("fact") != 1 or roles.count("cta") != 1 or roles.count("material") > 1:
+            raise ValueError("A script needs exactly one fact and one CTA scene")
+        return self
+
+
+class ScriptVersionRead(BaseModel):
+    proposal_id: UUID
+    version: int
+    document: ProposalDraft
+    document_hash: str
+    context_version: int
+    source_asset_id: UUID | None
+    actor_id: UUID
+    operation_id: UUID | None
+    review_state: Literal["accepted", "changes_requested"] | None
+    created_at: datetime
 
 
 class ScriptReview(BaseModel):
