@@ -90,12 +90,20 @@ def _source_photo(source_image: bytes, size: tuple[int, int]) -> Image.Image:
 
 
 def render_static_preview(
-    *, business_name: str, statement: str, brand_color: str, format: str, source_image: bytes | None
+    *,
+    business_name: str,
+    statement: str,
+    brand_color: str,
+    format: str,
+    source_image: bytes | None,
+    emphasis: str = "balanced",
 ) -> FetchedMedia:
     if format not in {"photo", "story"}:
         raise PreviewRenderError("PREVIEW_FORMAT_UNSUPPORTED")
     if not re.fullmatch(r"#[0-9a-fA-F]{6}", brand_color):
         raise PreviewRenderError("PREVIEW_BRAND_INVALID")
+    if emphasis not in {"balanced", "photo", "text"}:
+        raise PreviewRenderError("PREVIEW_EMPHASIS_UNSUPPORTED")
     height = 1920 if format == "story" else 1350
     canvas = Image.new("RGB", (1080, height), PAPER)
     draw = ImageDraw.Draw(canvas)
@@ -108,7 +116,10 @@ def render_static_preview(
     visual_box = (56, 205, 1024, height - 477)
     draw.rounded_rectangle(visual_box, radius=36, fill="#e9e8e5")
     if source_image is not None:
-        photo = _source_photo(source_image, (visual_box[2] - visual_box[0] - 56, visual_box[3] - visual_box[1] - 56))
+        inset = 12 if emphasis == "photo" else 28
+        photo = _source_photo(
+            source_image, (visual_box[2] - visual_box[0] - 2 * inset, visual_box[3] - visual_box[1] - 2 * inset)
+        )
         backdrop = ImageOps.fit(photo, (912, height - 738)).filter(ImageFilter.GaussianBlur(24))
         canvas.paste(backdrop, (84, 233))
         x = (1080 - photo.width) // 2
@@ -125,13 +136,16 @@ def render_static_preview(
 
     # A separate opaque fact panel keeps price and offer legible on every photo.
     fact_top = height - 492
-    draw.rounded_rectangle((56, fact_top, 1024, height - 52), radius=32, fill="#ffffff")
+    text_focus = emphasis == "text"
+    panel_fill = INK if text_focus else "#ffffff"
+    panel_ink = "#ffffff" if text_focus else INK
+    draw.rounded_rectangle((56, fact_top, 1024, height - 52), radius=32, fill=panel_fill)
     draw.rounded_rectangle((92, fact_top + 38, 106, fact_top + 96), radius=7, fill=brand_color)
-    draw.text((134, fact_top + 43), "CONFIRA", font=_font(29), fill=INK)
+    draw.text((134, fact_top + 43), "CONFIRA", font=_font(29), fill=panel_ink)
     lines, font, leading = _fit(draw, statement, 826, 225, 64)
-    _draw_lines(draw, lines, font, leading, 92, fact_top + 122, INK)
-    draw.line((92, height - 137, 988, height - 137), fill="#e5e5e9", width=2)
-    draw.text((92, height - 114), "Saiba mais", font=_font(30), fill=INK)
+    _draw_lines(draw, lines, font, leading, 92, fact_top + 122, panel_ink)
+    draw.line((92, height - 137, 988, height - 137), fill="#777d8b" if text_focus else "#e5e5e9", width=2)
+    draw.text((92, height - 114), "Saiba mais", font=_font(30), fill=panel_ink)
     draw.ellipse((927, height - 112, 967, height - 72), fill=brand_color)
 
     output = io.BytesIO()

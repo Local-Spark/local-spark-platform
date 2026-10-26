@@ -80,10 +80,29 @@ Critérios de entrada para o piloto, definidos antes da avaliação humana:
   chama API paga; custo de infraestrutura ainda não foi medido. O resultado
   sintético não substitui essa medição.
 
-Pendências desta fase: amostra real autorizada e revisão com comerciantes,
-correções de template por feedback e fluxo de pedir ajuste visual que cria
-outra versão privada sem herdar aprovação anterior. Editar o texto factual ou
-o roteiro usa a F03.3b e exige novo aceite antes de renderizar.
+Fatia técnica de 26/10/2026: `POST /media-previews` aceita `parent_preview_id` e
+`emphasis=photo|text|balanced` para foto/story. Cada ajuste cria uma nova versão
+privada e imutável vinculada à anterior, com chave de render distinta, operação
+idempotente, auditoria, limite de quatro versões e bloqueio de concorrência pelo
+roteiro. O cliente escolhe composição na web e pode refazer uma tentativa que
+falhou. A API impede ajuste de vídeo, roteiro ou contexto obsoleto, pai que não
+seja a versão mais recente e alteração do texto factual por essa via. O aceite
+do roteiro não é aceite da peça; F06 deverá vincular aprovação ao ID/hash exato
+da versão final e invalidá-la quando houver ajuste posterior. Editar o texto
+factual ou roteiro continua sendo F03.3b e exige novo aceite.
+
+Use [o cabeçalho de revisão](../evals/static-art-human-review-template.csv)
+para preparar o CSV privado. `python scripts/score_static_art_reviews.py <csv-privado>` calcula os gates
+acima a partir de avaliações humanas com consentimento, segmento, formato,
+hash da peça, notas e decisão. O resultado exibe amostra e rejeições por
+segmento, sem nomes ou peças. O corpus sintético não possui essa proveniência
+e não pode passar por aprovação comercial. Guardar CSV apenas em área privada;
+não incluir fotos, nomes, telefone ou texto do cliente nele.
+
+Pendências da F04.1b para piloto: coletar 20 peças consentidas de quatro
+segmentos, avaliar em celular com comerciantes, corrigir os achados e repetir a
+avaliação; medir p50/p95 de render, CPU, bytes, armazenamento e tráfego em
+staging. Nenhuma dessas evidências externas foi produzida nesta entrega.
 
 ## F04.2 — Primeiro vídeo curto (implementado localmente)
 

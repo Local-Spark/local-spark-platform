@@ -12,6 +12,12 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Versão 1.2, 23/10/2026. Resumo implementável e índice das especificações detalhadas.
 
+F04.1b em andamento (26/10/2026): ajuste visual de foto/story cria versão
+privada vinculada à anterior, sem editar fato ou roteiro, com até quatro versões
+e controle de concorrência. A web solicita e acompanha o ajuste. Um avaliador
+de revisões humanas consentidas calcula os gates do piloto; ainda faltam
+amostra real e medição de custo em staging. Ver [F04](phases/F04-media-recipes.md).
+
 F04.1b em andamento (25/10/2026): template estático v4 conserva a foto inteira,
 usa fundo desfocado apenas como preenchimento e fato em painel opaco; contraste
 da marca é calculado. Corpus sintético PT-BR, folha de contato e CSV de revisão

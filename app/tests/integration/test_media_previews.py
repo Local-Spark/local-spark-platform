@@ -642,3 +642,192 @@ async def test_short_video_uses_source_clip_without_its_audio(admin, api, seeded
         assert renderer.call_args.kwargs["source_image"] is None
     finally:
         await worker.close()
+
+
+async def test_static_adjustments_are_private_versioned_and_idempotent(admin, api, seeded, settings, monkeypatch):
+    tenant, business, actor, _, proposal, _ = await _accepted_case(admin, seeded)
+    owner = {"Authorization": f"Bearer {access_token(settings, actor)}"}
+    url = f"/api/v1/organizations/{tenant}/businesses/{business}/media-previews"
+    base = (
+        await api.post(url, headers=owner, json={"operation_id": str(uuid4()), "proposal_id": str(proposal)})
+    ).json()
+    assert base["revision"] == 1 and base["emphasis"] == "balanced" and base["parent_preview_id"] is None
+    with_parent = {"proposal_id": str(proposal), "parent_preview_id": base["id"], "emphasis": "photo"}
+    assert (await api.post(url, headers=owner, json={**with_parent, "operation_id": str(uuid4())})).json()[
+        "error_code"
+    ] == "PREVIEW_ADJUSTMENT_UNAVAILABLE"
+    assert (
+        await api.post(
+            url, headers=owner, json={"operation_id": str(uuid4()), "proposal_id": str(proposal), "emphasis": "text"}
+        )
+    ).status_code == 422
+    worker = Database(settings, correlator=True)
+    try:
+        store = AsyncMock()
+        service = MediaPreviewService(settings, worker, store)
+        first_claim = (await claim_previews(worker, uuid4()))[0]
+        assert await service.render(first_claim.id, first_claim.fence) == "completed"
+        operation = str(uuid4())
+        adjusted = await api.post(url, headers=owner, json={**with_parent, "operation_id": operation})
+        assert adjusted.status_code == 202, adjusted.text
+        result = adjusted.json()
+        assert result["revision"] == 2 and result["parent_preview_id"] == base["id"]
+        assert result["emphasis"] == "photo" and result["id"] != base["id"]
+        assert (await api.post(url, headers=owner, json={**with_parent, "operation_id": operation})).json() == result
+        conflict = await api.post(
+            url, headers=owner, json={**with_parent, "operation_id": operation, "emphasis": "text"}
+        )
+        assert conflict.status_code == 409 and conflict.json()["error_code"] == "PREVIEW_OPERATION_CONFLICT"
+        stale = await api.post(
+            url, headers=owner, json={**with_parent, "operation_id": str(uuid4()), "emphasis": "text"}
+        )
+        assert stale.status_code == 409 and stale.json()["error_code"] == "PREVIEW_ADJUSTMENT_CONFLICT"
+        second_claim = (await claim_previews(worker, uuid4()))[0]
+        assert await service.render(second_claim.id, second_claim.fence) == "completed"
+        assert store.put.call_args.args[0].endswith(".jpg")
+        assert (await api.get(url, headers=owner)).json()[0]["id"] == result["id"]
+        assert await service.file_key(tenant, business, actor, first_claim.id)
+        assert await service.file_key(tenant, business, actor, second_claim.id)
+        third = await api.post(
+            url,
+            headers=owner,
+            json={
+                "operation_id": str(uuid4()),
+                "proposal_id": str(proposal),
+                "parent_preview_id": result["id"],
+                "emphasis": "text",
+            },
+        )
+        assert third.status_code == 202 and third.json()["revision"] == 3
+        assert third.json()["parent_preview_id"] == result["id"]
+    finally:
+        await worker.close()
+
+
+async def test_static_adjustment_rejects_same_emphasis_and_video(admin, api, seeded, settings):
+    tenant, business, actor, _, proposal, document = await _accepted_case(admin, seeded)
+    owner = {"Authorization": f"Bearer {access_token(settings, actor)}"}
+    url = f"/api/v1/organizations/{tenant}/businesses/{business}/media-previews"
+    base = (
+        await api.post(url, headers=owner, json={"operation_id": str(uuid4()), "proposal_id": str(proposal)})
+    ).json()
+    async with admin.begin() as conn:
+        await conn.execute(
+            text("UPDATE media_previews SET state='completed',object_key='private/test.jpg' WHERE id=:id"),
+            {"id": base["id"]},
+        )
+    same = await api.post(
+        url,
+        headers=owner,
+        json={
+            "operation_id": str(uuid4()),
+            "proposal_id": str(proposal),
+            "parent_preview_id": base["id"],
+            "emphasis": "balanced",
+        },
+    )
+    assert same.status_code == 409 and same.json()["error_code"] == "PREVIEW_ADJUSTMENT_CONFLICT"
+    document["format"] = "short_video"
+    async with admin.begin() as conn:
+        await conn.execute(
+            text("UPDATE editorial_proposals SET document=CAST(:doc AS jsonb) WHERE id=:id"),
+            {"id": proposal, "doc": json.dumps(document)},
+        )
+    unavailable = await api.post(
+        url,
+        headers=owner,
+        json={
+            "operation_id": str(uuid4()),
+            "proposal_id": str(proposal),
+            "parent_preview_id": base["id"],
+            "emphasis": "photo",
+        },
+    )
+    assert unavailable.status_code == 409 and unavailable.json()["error_code"] == "PREVIEW_ADJUSTMENT_UNAVAILABLE"
+    document["format"] = "photo"
+    async with admin.begin() as conn:
+        await conn.execute(
+            text("UPDATE editorial_proposals SET document=CAST(:doc AS jsonb) WHERE id=:id"),
+            {"id": proposal, "doc": json.dumps(document)},
+        )
+        await conn.execute(
+            text("UPDATE media_previews SET state='failed',object_key=NULL WHERE id=:id"), {"id": base["id"]}
+        )
+    wrong_retry = await api.post(
+        url,
+        headers=owner,
+        json={
+            "operation_id": str(uuid4()),
+            "proposal_id": str(proposal),
+            "parent_preview_id": base["id"],
+            "emphasis": "photo",
+        },
+    )
+    assert wrong_retry.status_code == 409 and wrong_retry.json()["error_code"] == "PREVIEW_ADJUSTMENT_CONFLICT"
+    parent = base
+    for emphasis in ("balanced", "photo", "text"):
+        retried = await api.post(
+            url,
+            headers=owner,
+            json={
+                "operation_id": str(uuid4()),
+                "proposal_id": str(proposal),
+                "parent_preview_id": parent["id"],
+                "emphasis": emphasis,
+            },
+        )
+        assert retried.status_code == 202, retried.text
+        parent = retried.json()
+        async with admin.begin() as conn:
+            await conn.execute(
+                text("UPDATE media_previews SET state='completed',object_key='private/test.jpg' WHERE id=:id"),
+                {"id": parent["id"]},
+            )
+    assert parent["revision"] == 4
+    limit = await api.post(
+        url,
+        headers=owner,
+        json={
+            "operation_id": str(uuid4()),
+            "proposal_id": str(proposal),
+            "parent_preview_id": parent["id"],
+            "emphasis": "photo",
+        },
+    )
+    assert limit.status_code == 409 and limit.json()["error_code"] == "PREVIEW_ADJUSTMENT_LIMIT"
+
+
+@pytest.mark.parametrize("changed_version", ["script", "context"])
+async def test_static_adjustment_rejects_a_parent_from_an_old_version(admin, api, seeded, settings, changed_version):
+    tenant, business, actor, _, proposal, _ = await _accepted_case(admin, seeded)
+    owner = {"Authorization": f"Bearer {access_token(settings, actor)}"}
+    url = f"/api/v1/organizations/{tenant}/businesses/{business}/media-previews"
+    base = (
+        await api.post(url, headers=owner, json={"operation_id": str(uuid4()), "proposal_id": str(proposal)})
+    ).json()
+    async with admin.begin() as conn:
+        await conn.execute(
+            text("UPDATE media_previews SET state='completed',object_key='private/test.jpg' WHERE id=:id"),
+            {"id": base["id"]},
+        )
+        if changed_version == "script":
+            await conn.execute(
+                text("UPDATE editorial_proposals SET script_version=script_version+1 WHERE id=:id"), {"id": proposal}
+            )
+        else:
+            await conn.execute(
+                text("UPDATE editorial_proposals SET context_version=context_version+1 WHERE id=:id"),
+                {"id": proposal},
+            )
+    result = await api.post(
+        url,
+        headers=owner,
+        json={
+            "operation_id": str(uuid4()),
+            "proposal_id": str(proposal),
+            "parent_preview_id": base["id"],
+            "emphasis": "photo",
+        },
+    )
+    assert result.status_code == 409
+    assert result.json()["error_code"] == "PREVIEW_INPUT_CHANGED"

@@ -12,6 +12,12 @@ de compatibilidade em [renomeação do produto](product-rename.md).
 
 Atualizado: 23/10/2026. Nome adotado: Meu Braço Direito. Repositório principal: `local-spark-platform`.
 
+26/10/2026 — F04.1b ganhou ajustes visuais versionados de foto/story, privados e
+idempotentes, na API e na área do cliente. Avaliação humana consentida agora tem
+pontuação automatizada com gates por amostra, segmento e falha crítica. A
+homologação com comerciantes e o custo real em staging continuam pendentes.
+Ver [F04](phases/F04-media-recipes.md).
+
 25/10/2026 — F04.1b iniciada: template estático v4 preserva a foto real inteira,
 melhora contraste e separa o texto factual em painel legível. Oito casos sintéticos
 PT-BR produzem artes e folha de contato para revisão; não são prova de qualidade

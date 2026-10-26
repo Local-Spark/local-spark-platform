@@ -1,5 +1,11 @@
 # Registro de mudanças
 
+## 2026-10-26 — F04.1b: ajustes visuais e gate de revisão humana
+
+- Foto/story podem gerar até quatro versões privadas ligadas à peça anterior, escolhendo equilíbrio, foto ou texto em destaque. Concorrência, replay idempotente e contexto/roteiro obsoleto são tratados no serviço; vídeo e mudança de fato não passam por esse fluxo.
+- A avaliação de peças reais consentidas recebe CSV privado e calcula todos os gates de amostra, segmentos, formatos, legibilidade, aceitação e erro crítico, sem confundir o corpus sintético com homologação.
+- A revisão com comerciantes e a medição real de COGS em staging ainda são gates externos antes do piloto. Validação: `make ci` com 571 testes, 100% de linhas e ramos; migração 0034 aplicada ao desenvolvimento após backup e ciclo downgrade/upgrade aprovado no banco `_test`.
+
 ## 2026-10-25 — F04.1b: primeira revisão da arte estática
 
 - Template v4 preserva fotos inteiras, mostra fundo desfocado nas faixas vazias,

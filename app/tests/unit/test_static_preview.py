@@ -50,6 +50,26 @@ def test_static_recipe_is_deterministic_with_and_without_source():
     assert TEMPLATE_VERSION == 4
 
 
+def test_visual_adjustments_keep_the_same_fact_and_source():
+    values = dict(
+        business_name="Ateliê Ana",
+        statement="Manicure clássica disponível.",
+        brand_color="#6557ed",
+        format="photo",
+        source_image=_photo(),
+    )
+    balanced = render_static_preview(**values)
+    photo = render_static_preview(**values, emphasis="photo")
+    text = render_static_preview(**values, emphasis="text")
+    assert len({balanced.sha256, photo.sha256, text.sha256}) == 3
+    with Image.open(io.BytesIO(text.data)) as picture:
+        assert max(picture.getpixel((300, 1000))) < 80
+    with Image.open(io.BytesIO(photo.data)) as picture:
+        assert picture.getpixel((540, 400))[0] > 100
+    with pytest.raises(PreviewRenderError, match="PREVIEW_EMPHASIS_UNSUPPORTED"):
+        render_static_preview(**values, emphasis="invented")
+
+
 @pytest.mark.parametrize("dimensions", [(900, 120), (120, 900)])
 def test_source_ends_remain_visible_at_extreme_aspect_ratios(dimensions):
     source = Image.new("RGB", dimensions, "#22bb44")
