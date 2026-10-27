@@ -169,9 +169,10 @@ Registrar gate final no CHANGELOG ao concluir a entrega.
 Cadastro manual e fotos estão integrados localmente na API e na web. `make ci`
 passou com **806 testes** e **100% de cobertura de linhas/ramos**; a web passou
 **293 testes** com **100% nos quatro critérios**, build e jornada Chromium em
-desktop/celular usando APIs simuladas. As migrações 0039/0040 foram aplicadas e
-verificadas somente no banco `_test`; a base de desenvolvimento ainda precisa
-de `alembic upgrade head` e reinício da API. O bucket local está configurado no
+desktop/celular usando APIs simuladas. Em 27/10, após erro de consulta por banco
+na versão 0037, as migrações 0038–0040 foram aplicadas ao desenvolvimento. O
+catálogo do negócio informado foi consultado pelo serviço usando a role restrita
+e RLS; API pronta e cobrança reconstruída. O bucket local está configurado no
 `.env` de desenvolvimento. Um smoke com imagem sintética verificou upload,
 leitura, URL temporária e remoção apenas do objeto de teste.
 

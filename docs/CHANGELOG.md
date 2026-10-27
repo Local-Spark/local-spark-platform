@@ -1,5 +1,16 @@
 # Registro de mudanças
 
+## 2026-10-27 — Correção local da consulta ao acervo
+
+- A consulta do catálogo falhava com 500 porque o banco de desenvolvimento
+  ainda estava na migração `0037_brand_kits`. Após pausar a cobrança, aplicadas
+  as migrações `0038`–`0040` previamente aprovadas; `0038` preserva os eventos
+  na auditoria financeira antes de retirar a outbox sem consumidor.
+- Cobrança reconstruída e reiniciada. Confirmados head `0040`, existência das
+  tabelas, API `/health/ready` e leitura do catálogo do negócio informado pelo
+  serviço com a role restrita e RLS, sem expor seu conteúdo. A resposta HTTP
+  autenticada deve ser verificada novamente na sessão do cliente.
+
 ## 2026-10-27 — BL03.1/BL03.2: acervo opcional do negócio
 
 - Produtos, serviços, promoções com validade e fotos privadas dos itens ou do
