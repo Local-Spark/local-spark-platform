@@ -21,6 +21,7 @@ logger = logging.getLogger("meu_braco_direito.relay")
 class ClaimedEvent:
     event: BusinessEvent
     fencing_token: int
+    event_type: str = "business.created"
 
 
 async def claim_events(database: Database, owner_id: UUID, limit: int = 20) -> list[ClaimedEvent]:
@@ -39,7 +40,7 @@ async def claim_events(database: Database, owner_id: UUID, limit: int = 20) -> l
             lease_until=clock_timestamp()+interval '60 seconds',
             fencing_token=e.fencing_token+1, attempts=e.attempts+1
           FROM candidates c WHERE e.id=c.id
-          RETURNING e.id,e.tenant_id,e.payload,e.fencing_token
+          RETURNING e.id,e.tenant_id,e.event_type,e.payload,e.fencing_token
         """),
                     {"limit": limit, "owner": owner_id},
                 )
@@ -55,6 +56,7 @@ async def claim_events(database: Database, owner_id: UUID, limit: int = 20) -> l
                     **row["payload"],
                 ),
                 row["fencing_token"],
+                row["event_type"],
             )
             for row in rows
         ]
@@ -82,10 +84,18 @@ async def dispatch_once(database: Database, client: Client, settings: Settings, 
         event = item.event
         success = True
         try:
+            workflow_type = {
+                "business.created": "BusinessCreatedWorkflow",
+                "brand_kit.changed": "BrandKitChangedWorkflow",
+            }[item.event_type]
+            workflow_id = {
+                "business.created": "business-created",
+                "brand_kit.changed": "brand-kit-changed",
+            }[item.event_type]
             await client.start_workflow(
-                "BusinessCreatedWorkflow",
+                workflow_type,
                 event,
-                id=f"business-created/{event.tenant_id}/{event.event_id}",
+                id=f"{workflow_id}/{event.tenant_id}/{event.event_id}",
                 task_queue=settings.temporal_task_queue,
                 id_reuse_policy=WorkflowIDReusePolicy.REJECT_DUPLICATE,
                 rpc_timeout=timedelta(seconds=5),

@@ -42,6 +42,7 @@ class ProposalRead(BaseModel):
     id: UUID
     state: Literal["pending", "dispatching", "submitted", "completed", "rejected", "budget_exceeded", "uncertain"]
     context_version: int
+    brand_kit_version: int | None = None
     source_asset_id: UUID | None
     document: ProposalDraft | None
     error_code: str | None

@@ -16,18 +16,20 @@ peça nova.
 - F03: fatos/preferências, ideia e roteiro versionado com edição local.
   Pesquisa ampla, qualidade comercial e sugestão proativa ainda pendem.
 - F04/F06: prévias estáticas/vídeo locais e candidata/aprovação/publicação
-  **simuladas**. O pipeline do produto ainda não usa um kit aplicado,
-  acervo estruturado ou geração visual por IA integrada.
+  **simuladas**. F03 já congela o kit confirmado em novas propostas; F04 ainda
+  não o aplica à mídia, nem usa acervo estruturado ou IA visual integrada.
 - BL01: um kit fictício de cafeteria e simuladores públicos/cliente locais.
   Ver a vitrine não é escolher ou editar o kit.
+- BL02: seleção e edição guiada do kit na área autenticada, logo privado,
+  prévias ampliáveis, rascunho/confirmado e histórico por negócio locais.
 
 ## Próximas entregas em ordem
 
 | Ordem | Fase | Entrega demonstrável | Estado |
 | --- | --- | --- | --- |
 | 1 | [BL01](BL-brand-library.md#bl01--kit-piloto-e-vitrine-local) | Kit piloto de cafeteria, dez posts, stories, reel e vitrine. | Técnica local pronta; revisão comercial/direitos pendente. |
-| 2 | [BL02](BL-brand-library.md#bl02--escolher-e-editar-o-kit-piloto-para-um-negócio) | Dono seleciona o kit e ajusta cores, fontes, logo, textos e composição guiada de feed/story/capa vertical; vê e confirma prévias versionadas. | **Próxima fase de implementação.** |
-| 3 | [BL03](BL-brand-library.md#bl03--acervo-progressivo-em-sobre-meu-negócio) | Dentro de “Sobre meu negócio”, cadastrar opcionalmente produtos/serviços e fotos reais do espaço; dado privado, confirmado e versionado. | Planejada. |
+| 2 | [BL02](BL-brand-library.md#bl02--escolher-e-editar-o-kit-piloto-para-um-negócio) | Dono seleciona o kit e ajusta cores, fontes, logo, textos e composição guiada de feed/story/capa vertical; vê e confirma prévias versionadas. | Implementada localmente; gate comercial do kit segue pendente. |
+| 3 | [BL03](BL-brand-library.md#bl03--acervo-progressivo-em-sobre-meu-negócio) | Dentro de “Sobre meu negócio”, cadastrar opcionalmente produtos/serviços e fotos reais do espaço; dado privado, confirmado e versionado. | **Próxima fase de implementação.** |
 | 4 | [BL04](BL-brand-library.md#bl04--recuperar-contexto-e-produzir-uma-peça-nova) | Áudio/texto livre resolve o item e fontes automaticamente; IA visual/receita gera nova peça com kit aplicado; medir fidelidade, aceite e custo completo. | Planejada; ensaio sintético isolado não encerra o gate. |
 | 5 | [BL05](BL-brand-library.md#bl05--jornada-completa-local-ajuste-e-proatividade-mínima) | WhatsApp simulado e proposta sem mensagem percorrem prévia, ajuste, aprovação e publicação falsa com as mesmas regras. | Contratos F02/F04/F06 parciais já existem; integração pendente. |
 | 6 | [BL06](BL-brand-library.md#bl06--ampliar-a-biblioteca-e-servir-o-catálogo-em-escala) | Kits de manicure e personal, catálogo público versionado em objetos/CDN e revisões por nicho. | Planejada após prova de reaplicação. |

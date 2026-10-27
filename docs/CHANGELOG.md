@@ -1,5 +1,28 @@
 # Registro de mudanças
 
+## 2026-10-27 — BL02 API de kit aplicado e snapshot F03
+
+- Catálogo derivado do manifesto `cafe-pausas/v1`, com fotos limpas de origem
+  para o editor e gate `public_demo`: seleção local/teste; produção somente
+  após status aprovado. API owner-only salva rascunhos, confirma, mostra
+  histórico e valida cores, fontes, textos e composição por formato.
+- Versões imutáveis usam CAS (`expected_version`), replay exato por
+  `operation_id`, RLS por tenant, audit e outbox `brand_kit.changed` entregue
+  a workflow/activity idempotente. F03 copia versão e documento confirmado na
+  criação da proposta, sem trocar estilo em execução tardia.
+- Logo privado com autorização de uso, validação PNG/JPEG/WebP, dimensões,
+  limite de corpo HTTP antes de parse, normalização sem EXIF e URL temporária.
+  Intent e lease protegem upload concorrente; reconciliação de pendência é
+  owner-scoped. Varredura global fica para F08 após desenho de permissão.
+- Backend integrado ao editor web BL02. Uma peça visual nova que use o
+  kit, revisão de qualidade comercial e homologação da Meta pertencem às
+  próximas fases. Migração `0037_brand_kits` aplicada no banco local; relay e
+  worker reconstruídos para reconhecer o novo evento. A imagem Docker inclui
+  somente o manifesto do kit, com leitura do catálogo verificada sem rede.
+- Validação final: `make ci` passou (Ruff, formatação, mypy e **718 testes**, com
+  **100% de cobertura de linhas e ramos**); web com 220 testes e 100% de
+  cobertura, build e duas jornadas Chromium desktop/mobile aprovadas.
+
 ## 2026-10-27 — Roadmap BL reorganizado em torno do primeiro conteúdo personalizado
 
 - A ordem vigente agora é BL01 vitrine piloto local, BL02 escolha e edição

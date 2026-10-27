@@ -10,20 +10,41 @@ a numeração BL02/BL03/BL04/BL04.5 usada em registros de 26/10. Ver
 [trilha BL](phases/BL-brand-library.md) e
 [índice executivo](phases/README.md).
 
+**Implementação BL02 (27/10/2026):** a API owner-only de kit por negócio expõe
+catálogo, estado, rascunho, confirmação e histórico sob
+`/api/v1/organizations/{tenant_id}/businesses/{business_id}/brand-kit`.
+`expected_version` faz compare-and-swap; `operation_id` retorna a resposta
+original no replay e rejeita payload divergente. Documento aplicado fica em
+versões imutáveis com RLS por tenant, audit e evento outbox processado pelo
+Temporal. A versão pública do manifesto continua imutável. A seleção do kit
+`public_demo` só é habilitada em desenvolvimento/teste; produção exige status
+`approved` após gate de direitos e qualidade. Upload de logo autoriza apenas
+PNG/JPEG/WebP normalizado para PNG privado, limite de 2 MiB de origem e 3 MB
+no corpo HTTP; exige confirmação de direito e devolve URL temporária. Intents
+pendentes antigos são reconciliados pelo proprietário, por negócio, ao novo
+upload ou por rota explícita; uma varredura global fica para F08 com política
+RLS própria. Não há aprovação de publicação nessa API.
+
+F03 congela `brand_kit_version` e o documento confirmado quando cria uma
+proposta nova; o worker lê esse snapshot, inclusive paleta, fontes, composição,
+frase de marca e CTA. Alterar o kit depois não reescreve proposta anterior.
+BL04 ainda precisa reaplicar o kit na peça visual nova; a prévia da BL02 é local
+na web e não representa aprovação comercial da receita.
+
 A biblioteca atual é um pacote local versionado copiado para a web. O kit
 de cafeteria inclui três artes 4:5 com texto incorporado no JPEG e origem
-fictícia rastreada. O acervo BL03 guarda produto/serviço, foto autorizada,
-preço e validade com RLS, versão, idempotência e armazenamento privado.
+fictícia rastreada. O acervo planejado em BL03 guardará produto/serviço,
+foto autorizada, preço e validade com RLS, versão, idempotência e armazenamento privado.
 Cadastro opcional não bloqueia pedidos de conteúdo. Fatos livres atuais não
 substituem esse acervo; F03/BL04 recupera automaticamente itens ativos
 pertinentes de texto ou áudio livre e F04 usa suas fontes visuais.
 
-O acervo é recuperado automaticamente de mensagem ou áudio livre: F03
-identifica o produto/serviço citado e consulta itens/fotos autorizados daquele
-negócio, sem exigir escolha manual. F04 recebe foto do produto e, quando a
-peça pretende mostrar o local físico, foto real do ambiente como base da
-edição. Referências e versões entram no snapshot; fidelidade visual e fatos
-vigentes são revalidados antes da aprovação.
+Na BL04, o acervo será recuperado automaticamente de mensagem ou áudio livre:
+F03 identificará o produto/serviço citado e consultará itens/fotos autorizados
+daquele negócio, sem exigir escolha manual. F04 receberá foto do produto e,
+quando a peça pretender mostrar o local físico, foto real do ambiente como
+base da edição. Referências e versões entrarão no snapshot; fidelidade visual
+e fatos vigentes serão revalidados antes da aprovação.
 
 26/10/2026 — O kit público inclui seis cenários de entrada para mostrar a
 diferença entre mensagem, material de origem e proposta. A vitrine é fictícia
@@ -65,8 +86,8 @@ visual nem exige materiais dele; F03 registra `kit_id/version`. Só a produção
 posterior com contexto real aciona F04 e seus custos/gates. O primeiro kit
 fictício agora tem manifesto, dez posts, dois stories e reel MP4, servidos como
 arquivos versionados na web. `/kits` é público e `/app/kits` mantém a mesma
-vitrine para clientes. A API de catálogo, escolha por negócio e gates
-comerciais continuam pendentes. Onboarding/checkout não são bloqueados por
+vitrine para clientes. A API de catálogo e escolha por negócio está implementada localmente; o gate
+comercial bloqueia o kit `public_demo` em produção. Onboarding/checkout não são bloqueados por
 plano; a API autorizará produção/publicação por capacidade contratada.
 
 Atualização de produto (26/10/2026): [biblioteca de identidade e formatos](design/brand-library.md).
@@ -79,8 +100,9 @@ para cada tipo de material, sob o mesmo gate de fidelidade e qualidade. Esta
 decisão de **roteamento por evidência** refina a prioridade anterior de IA visual
 para toda peça nova: IA permanece essencial onde cria valor, mas uma foto real
 boa com layout aprovado pode ser composta localmente se o resultado for aceito.
-Kit aprovado não aprova publicação; F06 pede aceite da peça final. Biblioteca e
-roteamento ainda não estão integrados ao pipeline real; a vitrine piloto existe.
+Kit aprovado não aprova publicação; F06 pede aceite da peça final. A escolha
+está integrada ao briefing F03; aplicação visual e roteamento de receitas em
+F04 continuam pendentes, além da validação comercial.
 
 Promessa central reafirmada em 26/10/2026: **o cliente contrata uma presença
 digital útil e constante para atrair contatos e clientes, não acesso a um editor

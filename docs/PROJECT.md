@@ -1,9 +1,12 @@
 # Contexto vivo do projeto
 
-27/10/2026 — **Próximo passo: BL02, escolher e editar o kit piloto.** A vitrine
-do café já existe, mas ainda não salva escolha nem oferece edição. O editor
-guiado permitirá ajustar cores, fontes, logo, textos e composição de feed,
-story e capa vertical, com prévia antes de confirmar. Em seguida, BL03 coloca
+27/10/2026 — **BL02 implementada localmente.** A API grava, versiona e confirma a
+escolha do kit por negócio, com edição guiada de cores, fontes, logo, textos e
+composição de feed, story e capa vertical. A web oferece edição, comparação,
+prévia ampliada, rascunho, confirmação e histórico integrados à API.
+O kit piloto permanece `public_demo`: pode ser testado localmente,
+mas não pode ser aplicado comercialmente em produção até aprovação de direitos
+e qualidade. Em seguida, BL03 coloca
 o acervo progressivo e opcional dentro de “Sobre meu negócio”; BL04 usa kit e
 acervo para uma peça nova, avaliada por fidelidade, qualidade e custo por
 peça aceita; BL05 fecha a jornada local com WhatsApp simulado e proatividade;

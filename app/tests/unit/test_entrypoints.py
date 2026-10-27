@@ -49,8 +49,12 @@ async def test_material_worker_registers_activities_and_closes_both_pools(settin
     constructor = MagicMock(return_value=execution)
     monkeypatch.setattr(worker, "Worker", constructor)
     await worker.run_worker()
-    assert len(constructor.call_args.kwargs["workflows"]) == 6
-    assert len(constructor.call_args.kwargs["activities"]) == 13
+    assert len(constructor.call_args.kwargs["workflows"]) == 7
+    assert worker.BrandKitChangedWorkflow in constructor.call_args.kwargs["workflows"]
+    assert len(constructor.call_args.kwargs["activities"]) == 14
+    assert any(
+        activity.__name__ == "record_brand_kit_changed" for activity in constructor.call_args.kwargs["activities"]
+    )
     assert database.close.await_count == 2
 
 
@@ -67,8 +71,12 @@ async def test_worker_does_not_register_material_activity_without_cipher_key(set
     constructor = MagicMock(return_value=execution)
     monkeypatch.setattr(worker, "Worker", constructor)
     await worker.run_worker()
-    assert len(constructor.call_args.kwargs["workflows"]) == 3
-    assert len(constructor.call_args.kwargs["activities"]) == 3
+    assert len(constructor.call_args.kwargs["workflows"]) == 4
+    assert worker.BrandKitChangedWorkflow in constructor.call_args.kwargs["workflows"]
+    assert len(constructor.call_args.kwargs["activities"]) == 4
+    assert any(
+        activity.__name__ == "record_brand_kit_changed" for activity in constructor.call_args.kwargs["activities"]
+    )
     assert database.close.await_count == 2
 
 

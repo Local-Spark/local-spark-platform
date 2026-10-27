@@ -17,6 +17,7 @@ from sqlalchemy import text
 from app.adapters.editorial_ai import EditorialProviderError, OpenAIEditorialProvider
 from app.core.config import Settings
 from app.db.session import Database
+from app.schemas.brand_kits import BrandKitOverrides
 from app.schemas.editorial_context import ContextContent
 from app.schemas.editorial_proposals import (
     ProposalDraft,
@@ -28,6 +29,7 @@ from app.schemas.editorial_proposals import (
     ScriptVersionRead,
 )
 from app.services.auth import AuthError
+from app.services.brand_kits import kit_commercially_available
 from app.services.whatsapp_materials import WhatsAppMaterialsService
 
 
@@ -164,13 +166,30 @@ class EditorialProposalService:
                 )
                 or 0
             )
+            kit = (
+                (
+                    await session.execute(
+                        text("""SELECT v.version,v.document FROM business_brand_kit_heads h
+                          JOIN business_brand_kit_versions v ON v.tenant_id=h.tenant_id
+                            AND v.business_id=h.business_id AND v.version=h.confirmed_version
+                          WHERE h.tenant_id=:tenant AND h.business_id=:business"""),
+                        {"tenant": tenant, "business": business},
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+            if kit is not None and self.settings.environment == "production" and not kit_commercially_available():
+                raise AuthError("BRAND_KIT_NOT_APPROVED", 409)
             proposal = uuid4()
             row = (
                 (
                     await session.execute(
                         text("""INSERT INTO editorial_proposals
-              (id,tenant_id,business_id,actor_id,operation_id,request_hash,context_version,source_asset_id)
-              VALUES(:id,:tenant,:business,:actor,:operation,:digest,:version,:source)
+              (id,tenant_id,business_id,actor_id,operation_id,request_hash,context_version,source_asset_id,
+               brand_kit_version,brand_kit_document)
+              VALUES(:id,:tenant,:business,:actor,:operation,:digest,:version,:source,:kit_version,
+                     CAST(:kit_document AS jsonb))
               ON CONFLICT(tenant_id,business_id,operation_id) DO NOTHING RETURNING *"""),
                         {
                             "id": proposal,
@@ -181,6 +200,10 @@ class EditorialProposalService:
                             "digest": digest,
                             "version": version,
                             "source": payload.source_asset_id,
+                            "kit_version": kit["version"] if kit is not None else None,
+                            "kit_document": (
+                                json.dumps(kit["document"], ensure_ascii=False) if kit is not None else None
+                            ),
                         },
                     )
                 )
@@ -583,6 +606,24 @@ class EditorialProposalService:
             "source_asset_id": str(row["source_asset_id"]) if row["source_asset_id"] else None,
             "context_version": row["context_version"],
         }
+        kit_document = row.get("brand_kit_document")
+        if kit_document is not None:
+            if self.settings.environment == "production" and not kit_commercially_available():
+                return None
+            overrides = BrandKitOverrides.model_validate(kit_document["overrides"])
+            data["brand_kit"] = {
+                "kit_id": kit_document["kit_id"],
+                "kit_version": kit_document["kit_version"],
+                "applied_version": row["brand_kit_version"],
+                "brand_name": overrides.brand_name,
+                "tagline": overrides.tagline,
+                "cta": overrides.cta,
+                "logo_asset_id": str(overrides.logo_asset_id) if overrides.logo_asset_id else None,
+                "palette": overrides.palette.model_dump(),
+                "heading_font": overrides.heading_font,
+                "body_font": overrides.body_font,
+                "formats": overrides.formats.model_dump(),
+            }
         return data, {fact.id for fact in facts}
 
     @staticmethod

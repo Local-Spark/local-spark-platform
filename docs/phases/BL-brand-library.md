@@ -18,7 +18,7 @@ também pode iniciar uma proposta dentro da cadência aceita.
 | Entrega | Estado em 27/10/2026 |
 | --- | --- |
 | Vitrine de um kit de cafeteria em `/kits` e `/app/kits` | Implementada localmente com 10 posts, 2 stories, reel e 6 cenários fictícios; revisão criativa e de direitos antes de uso comercial. |
-| Selecionar ou editar o kit para um negócio | Não implementado; a vitrine atual apenas permite explorar. |
+| Selecionar ou editar o kit para um negócio | BL02 implementada localmente na API e web; editor guiado, prévia ampliada, rascunho, confirmação, histórico e logo privado. |
 | Acervo estruturado de produtos, serviços e fotos do local | Não implementado; hoje há fatos livres e materiais temporários do WhatsApp. |
 | IA visual usando kit + acervo no pipeline do produto | Não implementada; há ensaios isolados de IA e prévias locais com Pillow/FFmpeg. |
 | Aprovação/publicação reais pelas contas Meta | Não homologadas; o fluxo local usa adapters falsos. |
@@ -44,7 +44,7 @@ Cada fase entra em fatias revisáveis, mantendo API e web integradas:
 | Fatia | Resultado que podemos demonstrar |
 | --- | --- |
 | BL02.1 | Seleção e versão do kit por negócio na API; `/app/kits` mostra a escolha salva e permite trocar. |
-| BL02.2 | Editor guiado das três composições, cores, fontes, logo e textos permitidos, com prévias fiéis e opção de restaurar o padrão. |
+| BL02.2 | Editor guiado das três composições, cores, fontes, logo e textos permitidos, com simulação fiel às escolhas e opção de restaurar o padrão. |
 | BL02.3 | Confirmação, histórico de versões, isolamento por tenant, concorrência e ligação da versão vigente ao briefing F03. |
 | BL03.1 | CRUD privado e versionado de produtos/serviços, incluindo preço e validade, dentro de “Sobre meu negócio”. |
 | BL03.2 | Upload privado, fotos dos itens e álbum do espaço, direitos, revisão e promoção consentida de mídia WhatsApp. |
@@ -68,11 +68,12 @@ clipe recebido. O preço de R$ 18 é fictício.
 
 **Pendente para selo comercial:** revisão visual com comerciantes, licenças,
 direitos e aplicabilidade das receitas. O manifesto continua `public_demo`.
-A vitrine não oferece escolha, edição ou autorização de postagem.
+A vitrine pública permanece exploratória; escolha e edição ficam na área
+autenticada da BL02. Nenhuma das duas autoriza postagem.
 
 ### BL02 — Escolher e editar o kit piloto para um negócio
 
-**Próxima fase de código.** Na rota existente `/app/kits`, o proprietário
+**Implementada localmente.** Na rota existente `/app/kits`, o proprietário
 escolhe `kit_id/version` e cria uma versão **aplicada ao seu negócio**. O
 editor é guiado para quem não domina edição: trocar cores, fontes licenciadas,
 logo, textos permitidos, enquadramento da imagem e **composição de cada
@@ -90,10 +91,42 @@ briefings. Mudanças posteriores não alteram peças antigas nem herdam sua
 aprovação. API e web distinguem claramente `rascunho` de `confirmado`.
 Assinatura e permissões de produção continuam na API.
 
+**Contrato backend em 27/10:** o manifesto `cafe-pausas/v1` fornece fotos
+de origem sem texto fictício incorporado, fontes licenciadas, layouts e
+posições disponíveis. A API de kit é do proprietário e separa `draft` de
+`confirmed`; cada mutação pede `operation_id` e `expected_version` e gera
+versão imutável, audit e outbox tipado. `public_demo` é selecionável só em
+ambiente local/teste. Logos entram em armazenamento privado por tenant/negócio,
+com validação de formato/dimensões/direitos, URL temporária e intent de upload
+recuperável pelo proprietário. Falhas de upload não criam logo pronto;
+pendências antigas são limpas em novo upload ou por `POST /logo/reconcile` do
+mesmo dono. A limpeza global periódica permanece F08 e exigirá desenho de
+permissão específico, sem acesso irrestrito entre tenants. F03 guarda no pedido
+novo o kit confirmado e o documento exato vigente naquele momento; execução
+tardia não resolve a versão atual. A seleção ainda não aciona F04 nem publica.
+
 **Aceite:** dono escolhe o kit de cafeteria, muda ao menos um layout de cada
-formato, vê prévias responsivas fiéis ao arquivo que a receita produzirá,
+formato, vê simulações responsivas das composições e dos tokens configurados,
 confirma e retorna para editar sem perder a versão. Outro tenant não lê nem
 muda essa escolha. Seleção não consome geração paga nem publica nada.
+As prévias podem ser ampliadas no celular e usam fotos fictícias limpas do
+kit. A paridade com o arquivo de produção será avaliada em BL04, quando F04
+passar a aplicar o kit à mídia real; esta simulação não encerra esse gate.
+
+**Teste manual local:** iniciar a API pelo debug habitual e abrir
+`http://localhost:5173/app/kits` com uma conta proprietária. Alterar nome,
+cores/fontes e a composição de cada formato; ampliar a prévia e comparar com
+o padrão. Salvar rascunho, sair da tela e voltar para conferir a persistência;
+então usar **Usar este kit** e conferir a versão em uso e o histórico. Logo
+PNG/JPEG/WebP de até 2 MiB é opcional e pede confirmação de direito. A
+migração `0037_brand_kits` é necessária; o teste não exige credenciais Meta
+nem chamadas de IA. Mudar um rascunho não troca o kit já confirmado.
+
+**Validação da entrega local:** `make ci` com 718 testes e 100% de cobertura
+de linhas/ramos na plataforma; 220 testes web com 100% nos quatro critérios,
+build e duas jornadas de navegador desktop/mobile aprovados. Migração 0037
+aplicada no banco de desenvolvimento, relay/worker atualizados e manifesto
+verificado dentro da imagem Docker. Próxima implementação: BL03.
 
 ### BL03 — Acervo progressivo em “Sobre meu negócio”
 

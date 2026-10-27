@@ -15,6 +15,23 @@
     "body": "DejaVu Sans",
     "source": "fonts/LICENSE.txt"
   },
+  "editor": {
+    "preview_sources": {
+      "feed": "assets/croissant.jpg",
+      "story": "assets/window-pause.jpg",
+      "reel_cover": "assets/morning-pastries.jpg"
+    },
+    "fonts": [
+      "DejaVu Serif",
+      "DejaVu Sans"
+    ],
+    "layouts": {
+      "feed": ["photo_focus", "offer_focus"],
+      "story": ["photo_focus", "text_focus"],
+      "reel_cover": ["photo_focus", "text_focus"]
+    },
+    "image_positions": ["center", "top", "bottom"]
+  },
   "rights": {
     "scope": "fictional_public_demo",
     "owner": "Meu Braço Direito",

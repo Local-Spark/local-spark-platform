@@ -19,7 +19,7 @@ from app.workflows.content_candidate import ContentCandidateWorkflow
 from app.workflows.content_publication import FakeContentPublicationWorkflow
 from app.workflows.editorial_activities import EditorialActivities
 from app.workflows.editorial_proposal import EditorialProposalWorkflow
-from app.workflows.foundation import BusinessCreatedWorkflow
+from app.workflows.foundation import BrandKitChangedWorkflow, BusinessCreatedWorkflow
 from app.workflows.media_activities import MediaPreviewActivities
 from app.workflows.media_preview import StaticPreviewWorkflow
 from app.workflows.whatsapp_activities import WhatsAppMaterialActivities
@@ -72,12 +72,15 @@ async def run_worker() -> None:
         worker = Worker(
             client,
             task_queue=settings.temporal_task_queue,
-            workflows=[BusinessCreatedWorkflow]
+            workflows=[BusinessCreatedWorkflow, BrandKitChangedWorkflow]
             + ([WhatsAppMaterialWorkflow] if material_activities else [])
             + ([EditorialProposalWorkflow] if editorial_activities else [])
             + ([StaticPreviewWorkflow] if media_activities else [])
             + ([ContentCandidateWorkflow, FakeContentPublicationWorkflow] if content_activities else []),
-            activities=[FoundationActivities(database).record_business_created]
+            activities=[
+                FoundationActivities(database).record_business_created,
+                FoundationActivities(database).record_brand_kit_changed,
+            ]
             + (
                 [
                     material_activities.process_whatsapp_material,

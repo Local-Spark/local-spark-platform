@@ -1,8 +1,9 @@
 # Biblioteca de identidade visual e formatos
 
-Atualizado em 27/10/2026. Estado: **primeiro kit demonstrativo local e receita
-de foto implementados; escolha, edição guiada e aplicação no pipeline pendentes**. A web
-serve a vitrine pública e autenticada do kit `cafe-pausas/v1`. Complementa o [plano criativo](creative-production-quality.md) e
+Atualizado em 27/10/2026. Estado: **kit demonstrativo, escolha e edição guiada
+implementados localmente; aplicação na mídia e validação comercial pendentes**.
+A web serve a vitrine pública e o editor autenticado do kit `cafe-pausas/v1`.
+Novas propostas F03 congelam a versão confirmada. Complementa o [plano criativo](creative-production-quality.md) e
 o [eval de contexto](../evals/visual-context-eval-v1.md).
 
 ## Problema e decisão

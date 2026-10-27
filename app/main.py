@@ -16,6 +16,7 @@ from app.adapters.twilio_verify import TwilioVerify
 from app.api.v1.api import api_router
 from app.api.v1.auth import auth_router
 from app.api.v1.billing import billing_router
+from app.api.v1.brand_kits import brand_kits_router
 from app.api.v1.content_deliveries import deliveries_router
 from app.api.v1.editorial_context import context_router
 from app.api.v1.editorial_conversation import conversation_router
@@ -85,6 +86,7 @@ def create_app(
     application.include_router(api_router)
     application.include_router(onboarding_router)
     application.include_router(auth_router)
+    application.include_router(brand_kits_router)
     application.include_router(reference_router)
     application.include_router(billing_router)
     application.include_router(staff_router)

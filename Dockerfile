@@ -15,6 +15,7 @@ FROM runtime-base AS media-worker
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
 COPY --from=build /src/.venv /src/.venv
 COPY app ./app
+COPY catalog/kits/cafe-pausas/v1/manifest.json ./catalog/kits/cafe-pausas/v1/manifest.json
 COPY alembic.ini ./
 COPY migrations ./migrations
 USER 10001
@@ -24,6 +25,7 @@ CMD ["uvicorn", "app.main:create_app", "--factory", "--host", "0.0.0.0", "--port
 FROM runtime-base AS app
 COPY --from=build /src/.venv /src/.venv
 COPY app ./app
+COPY catalog/kits/cafe-pausas/v1/manifest.json ./catalog/kits/cafe-pausas/v1/manifest.json
 COPY alembic.ini ./
 COPY migrations ./migrations
 USER 10001
