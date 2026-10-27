@@ -51,6 +51,12 @@ cobertura de testes. O piloto não exige avatar do cliente (decisão P15).
 O produto continua sendo operado e melhorado após a conclusão desse escopo.
 Não prometer datas ou percentuais de prontidão sem medir gates e dependências.
 
+O [plano de vídeo real e voz](video-real-and-voice.md) detalha roteiro sob pedido
+ou proativo, gravação de mãos/produto/ambiente, preservação do original, edição
+leve e motion. A entrega de voz sintética continua F05 após o piloto (P15), com
+pesquisa isolada possível antes. Foto e story são a oferta inicial decidida; vídeo
+e suas franquias/preço permanecem em definição.
+
 ## Foto ou vídeo: contrato já especificado
 
 O plano define formatos/quantidades habilitados; a plataforma recomenda a peça

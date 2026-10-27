@@ -16,6 +16,12 @@ resultados observáveis. Também deve propor conteúdo quando o cliente não env
 material novo, dentro da cadência aceita e da franquia. A rotina não exige saber
 usar editor, escrever prompt ou conhecer modelos de IA.
 
+Para vídeo, priorizar a hipótese de orientação de gravação e material real do
+negócio: cliente pode solicitar roteiro ou recebê-lo como sugestão consentida.
+Original, edição leve e motion são receitas futuras a validar. Vídeo e sua
+franquia não integram automaticamente a oferta inicial. Voz sintética é opcional
+e posterior ao primeiro piloto; ver [plano de vídeo real](design/video-real-and-voice.md).
+
 A web complementa configuração, consentimentos, acervo, kits e revisão. O cliente
 pode ver uma vitrine pública com posts, stories e reel fictícios em simuladores
 de Instagram, Facebook e TikTok dentro da nossa plataforma. São arquivos
@@ -96,7 +102,7 @@ A [sequência até produção e expansão](design/delivery-roadmap-2026-10-27.md
 reúne BL03–BL06, homologação Meta, franquias, AWS, piloto, pesquisa, avatar e
 multicanal. Importar fotos de cardápio/tabela de serviços está previsto como
 BL03.3: preencher fichas automaticamente como rascunho e conferir ambiguidades;
-o proprietário aprovou cadastro manual e fotos, agora implementados localmente. Jev é o primeiro candidato à interpretação local; um ensaio real com 30 mensagens fictícias de desenvolvimento apresentou um erro, e é insuficiente para homologação. Motion continua candidato, sem integração.
+o proprietário aprovou cadastro manual e fotos, agora implementados localmente. Jev é o primeiro candidato à interpretação local; a [comparação sintética com OpenAI](evals/intent-comparison-2026-10-27.md) identificou erros e saídas incompletas, sem homologar produção ou conversa real. Motion continua candidato, sem integração.
 
 ## Decisões técnicas e limites de IA
 

@@ -1,0 +1,11 @@
+{
+  "version": "intent-conversation-v1",
+  "synthetic": true,
+  "purpose": "Artificial history supplied in one prompt to both existing stateless adapters; does not test production memory or WhatsApp.",
+  "cases": [
+    {"id": "history-photo", "turns": ["Quero divulgar o Dog da Casa.", "Faça uma foto, por favor."], "candidates": [{"kind": "product", "name": "Dog da Casa"}], "expected": ["content_request", "selected", "photo"], "expected_candidate": "Dog da Casa"},
+    {"id": "history-story", "turns": ["Gostaria de divulgar Unhas em gel.", "Pode ser um story?"], "candidates": [{"kind": "service", "name": "Unhas em gel"}], "expected": ["content_request", "selected", "story"], "expected_candidate": "Unhas em gel"},
+    {"id": "history-switch", "turns": ["Pensei em divulgar o Dog da Casa.", "Mudei de ideia: faça uma foto do X-Tudo."], "candidates": [{"kind": "product", "name": "Dog da Casa"}, {"kind": "product", "name": "X-Tudo"}], "expected": ["content_request", "selected", "photo"], "expected_candidate": "X-Tudo"},
+    {"id": "history-ambiguous", "turns": ["Tenho Dog da Casa e X-Tudo.", "Quero divulgar um deles com um story."], "candidates": [{"kind": "product", "name": "Dog da Casa"}, {"kind": "product", "name": "X-Tudo"}], "expected": ["content_request", "clarify", null], "expected_candidate": null}
+  ]
+}

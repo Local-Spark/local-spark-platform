@@ -14,7 +14,10 @@ O worker pode usar o **Jev como primeiro candidato** em desenvolvimento/teste,
 desligado por padrão. O proprietário autoriza separadamente o envio de texto e
 nomes de candidatos à TypeSafe. Uma operação durável reserva orçamento por tenant
 antes da chamada; o acesso, origem e snapshot são revalidados, e uma resposta
-incerta não é repetida automaticamente. Um esclarecimento fica registrado no
+incerta não é repetida automaticamente. Recusa de orçamento antes da submissão
+tem estado próprio: a retomada usa verificação no ledger e operação atômica; o
+workflow aguarda em intervalos de uma hora, por até sete dias, revalidando a
+origem e o acesso. Estados `uncertain` antigos não são reclassificados. Um esclarecimento fica registrado no
 adaptador local simulado, sem afirmar envio real pelo WhatsApp. A configuração
 requer `TYPESAFE_API_KEY`, `MEU_BRACO_DIREITO_INTENT_AI_MODE=jev`, chave de
 criptografia e orçamento diário positivo `MEU_BRACO_DIREITO_INTENT_AI_DAILY_BUDGET_USD_MICROS`.
@@ -54,7 +57,14 @@ Para a avaliação inicial, o usuário autorizou até **US$ 1 no total para cham
 
 ## Avaliação do Jev
 
-Jev é o primeiro candidato para classificação curta, necessidade de esclarecimento e sugestão de formato; não é gerador de imagem e não decide permissões, consentimento, fatos ou limite de gasto. Um corpus PT-BR sintético com gabarito e casos de ambiguidade/negação compara baseline e modelo pinado, taxa de acerto, abstenções, latência e custo; medir erros críticos separadamente. O ensaio é offline por padrão, sem dados de clientes. A chamada real exige chave local, teto explícito e execução deliberada. Um ensaio exploratório com 30 casos de desenvolvimento teve um erro; a amostra não comprova precisão nem aprova o modelo comercialmente. Ver [eval Jev](../evals/jev-intent-ptbr-v1.md).
+Jev é o primeiro candidato para classificação curta, necessidade de esclarecimento e sugestão de formato; não é gerador de imagem e não decide permissões, consentimento, fatos ou limite de gasto. Um corpus PT-BR sintético com gabarito e casos de ambiguidade/negação compara baseline e modelos, taxa de acerto, abstenções, latência e custo. A [comparação Jev/OpenAI](../evals/intent-comparison-2026-10-27.md) aponta erros em ambos e saídas incompletas da OpenAI; não é holdout independente nem teste da memória do WhatsApp. O ensaio é offline por padrão, sem dados de clientes. A amostra não aprova uso comercial.
+
+**Pendências da validação:** o runtime consulta nomes/aliases por correspondência
+lexical e processa eventos isolados; não há memória de conversa validada. Os caminhos
+de conversa e de conteúdo precisam coordenar uma única resposta por evento antes
+do envio real. Circuit breaker/rate limit de provedor e capacidade em escala ainda
+não foram homologados. A reserva de custo conhecida mantém o máximo diário, mesmo
+após sucesso; avaliar liquidação segura para não limitar o throughput indevidamente.
 
 ## O que não encerra a fase
 

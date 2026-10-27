@@ -8,6 +8,7 @@ import pytest
 from app.services.auth import AuthError
 from app.services.creative_catalog_resolution import (
     CatalogIntent,
+    CatalogInterpreterBudgetBlocked,
     CatalogInterpreterUnavailable,
     resolve_catalog_context,
 )
@@ -99,6 +100,8 @@ async def test_abstentions_and_invalid_selections_do_not_produce_snapshots(setup
 
 
 async def test_unavailable_and_catalog_changed_are_not_resolved(setup):
+    blocked = SimpleNamespace(interpret=AsyncMock(side_effect=CatalogInterpreterBudgetBlocked()))
+    assert (await _resolve(setup, blocked)).status == "budget_blocked"
     unavailable = SimpleNamespace(interpret=AsyncMock(side_effect=CatalogInterpreterUnavailable()))
     assert (await _resolve(setup, unavailable)).status == "interpreter_unavailable"
     setup.snapshot.side_effect = AuthError("COLLECTION_CONTEXT_CHANGED", 409)

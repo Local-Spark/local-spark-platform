@@ -71,10 +71,27 @@ class CatalogInterpretation:
 class OpenAICatalogIntentProvider:
     """No retries, no automatic wiring, no provider-side idempotency assumed."""
 
-    def __init__(self, key: SecretStr, model: str, *, transport: httpx.AsyncBaseTransport | None = None) -> None:
-        if not key.get_secret_value().strip() or not model.strip() or len(model) > 80:
+    def __init__(
+        self,
+        key: SecretStr,
+        model: str,
+        *,
+        transport: httpx.AsyncBaseTransport | None = None,
+        reasoning_effort: Literal["none", "low"] = "low",
+        max_output_tokens: int = 320,
+    ) -> None:
+        if (
+            not key.get_secret_value().strip()
+            or not model.strip()
+            or len(model) > 80
+            or reasoning_effort not in {"none", "low"}
+            or type(max_output_tokens) is not int
+            or not 1 <= max_output_tokens <= 1024
+        ):
             raise CatalogInterpretationError("CATALOG_INTERPRETER_DISABLED")
         self._key, self._model, self._transport = key, model, transport
+        self._reasoning_effort = reasoning_effort
+        self._max_output_tokens = max_output_tokens
 
     async def interpret(
         self, message: str, candidates: list[dict[str, str]], eligible_formats: list[str], request_id: UUID
@@ -93,8 +110,9 @@ class OpenAICatalogIntentProvider:
         body = {
             "model": self._model,
             "store": False,
-            "max_output_tokens": 320,
-            "reasoning": {"effort": "low"},
+            "service_tier": "default",
+            "max_output_tokens": self._max_output_tokens,
+            "reasoning": {"effort": self._reasoning_effort},
             "tools": [],
             "text": {"format": FORMAT},
             "input": [

@@ -235,6 +235,12 @@ percurso principal. F03 pede material quando um dia sem input não tiver
 fonte suficiente. Plano limita quantidade/formato; recomendação de cadência
 não altera cobrança automaticamente.
 
+Pedido de roteiro para gravação pelo cliente e sugestão proativa de captação
+devem integrar a jornada simulada conforme [vídeo real e voz](../design/video-real-and-voice.md).
+Vídeo e sua franquia dependem de decisão comercial; não estão incluídos por padrão
+na oferta inicial de R$ 99. Nenhuma sugestão substitui envio de material, aprovação
+da peça ou liberação da receita de vídeo.
+
 **Aceite local:** rodar casos texto, áudio, foto, vídeo e dia sem mensagem
 com o mesmo fluxo, incluindo correção, rejeição, repetição de webhook,
 mudança de fato antes da aprovação e limite de custo. Medir qualidade, taxa

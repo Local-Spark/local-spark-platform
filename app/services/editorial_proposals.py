@@ -171,6 +171,21 @@ class EditorialProposalService:
         digest = hashlib.sha256(identity.encode()).hexdigest()
         async with self.database.transaction(tenant, actor) as session:
             await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
+            if payload.source_asset_id is not None:
+                await session.execute(
+                    text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 44))"),
+                    {"key": f"candidate-source:{tenant}:{business}:{payload.source_asset_id}"},
+                )
+                if briefing_id is None and payload.operation_id == uuid5(
+                    NAMESPACE_URL, f"candidate-proposal:{payload.source_asset_id}"
+                ):
+                    already_requires = await session.scalar(
+                        text("""SELECT 1 FROM editorial_briefings WHERE tenant_id=:tenant
+                          AND business_id=:business AND source_asset_id=:source"""),
+                        {"tenant": tenant, "business": business, "source": payload.source_asset_id},
+                    )
+                    if already_requires:
+                        raise AuthError("BRIEFING_REQUIRED", 409)
             existing = (
                 (
                     await session.execute(

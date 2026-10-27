@@ -1,5 +1,6 @@
 """Briefing revocation, source integrity and stale-state failures; no database/network."""
 
+import hashlib
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
@@ -8,10 +9,10 @@ from uuid import uuid4
 import pytest
 from pydantic import SecretStr
 
-from app.schemas.editorial_proposals import ProposalRead
+from app.schemas.editorial_proposals import ProposalRead, ScriptReview
 from app.services.auth import AuthError
 from app.services.editorial_briefings import EditorialBriefingService
-from app.services.editorial_proposals import EditorialProposalService
+from app.services.editorial_proposals import EditorialProposalService, _catalog_fact
 
 
 def mapped(row):
@@ -74,6 +75,37 @@ async def test_prepare_rejects_snapshot_changed_during_interpretation(settings, 
     )
     result = await service.prepare(tenant, business, actor, source, operation)
     assert result.id == briefing and result.state == "needs_clarification"
+
+
+@pytest.mark.parametrize("source_changed", [True, False])
+async def test_budget_replay_returns_current_state_when_another_transition_won(
+    settings, ids, monkeypatch, source_changed
+):
+    tenant, business, actor, source, operation = ids
+    briefing = uuid4()
+    digest = hashlib.sha256(f"{tenant}:{business}:{actor}:{source}".encode()).hexdigest()
+    row = {
+        "id": briefing,
+        "state": "budget_blocked",
+        "request_hash": digest,
+        "operation_id": operation,
+        "source_digest": "old" if source_changed else "current",
+    }
+
+    async def execute(statement, params=None):
+        result = mapped(None)
+        if "SELECT id,state,request_hash,operation_id,source_digest" in str(statement):
+            result.mappings.return_value.one.return_value = row
+        return result
+
+    session = SimpleNamespace(execute=AsyncMock(side_effect=execute), scalar=AsyncMock(side_effect=[None, "submitted"]))
+    interpreter = SimpleNamespace(interpret=AsyncMock())
+    service = EditorialBriefingService(settings, MemoryDatabase(session), interpreter)
+    monkeypatch.setattr(service, "_source", AsyncMock(return_value="message"))
+    monkeypatch.setattr(service, "_source_digest", lambda _: "current")
+    result = await service.prepare(tenant, business, actor, source, operation)
+    assert result.id == briefing and result.state == "submitted"
+    interpreter.interpret.assert_not_awaited()
 
 
 async def test_read_valid_denies_revoked_or_missing_source(settings, ids, monkeypatch):
@@ -242,3 +274,93 @@ async def test_proposal_inputs_reject_unavailable_or_inconsistent_briefing(
     monkeypatch.setattr(EditorialBriefingService, "read_valid", AsyncMock(return_value=(status, snapshot)))
     service = EditorialProposalService(settings, MagicMock(), owner_database=owner)
     assert await service._inputs(session, context_row(ids)) is None
+
+
+@pytest.mark.parametrize("briefing_id,environment", [(None, "testing"), (uuid4(), "production")])
+async def test_review_denies_missing_briefing_and_restricted_environment(
+    settings, ids, monkeypatch, briefing_id, environment
+):
+    tenant, business, actor, proposal, operation = ids
+    row = {
+        "review_operation_id": None,
+        "review_state": None,
+        "state": "completed",
+        "document": {"script": [{}]},
+        "briefing_required": True,
+        "briefing_id": briefing_id,
+    }
+    session = SimpleNamespace(execute=AsyncMock(return_value=mapped(row)))
+    service = EditorialProposalService(
+        settings.model_copy(update={"environment": environment}), MemoryDatabase(session)
+    )
+    monkeypatch.setattr("app.services.whatsapp_materials.WhatsAppMaterialsService._require_owner", AsyncMock())
+    with pytest.raises(AuthError, match="SCRIPT_CONTEXT_CHANGED"):
+        await service.review_script(
+            tenant, business, actor, proposal, ScriptReview(operation_id=operation, decision="accepted")
+        )
+    assert session.execute.await_count == 1
+
+
+async def test_review_accepts_only_after_prepared_briefing_is_revalidated(settings, ids, monkeypatch):
+    tenant, business, actor, proposal, operation = ids
+    briefing = uuid4()
+    row = {
+        "review_operation_id": None,
+        "review_state": None,
+        "state": "completed",
+        "document": {"script": [{}]},
+        "briefing_required": True,
+        "briefing_id": briefing,
+        "script_version": 1,
+    }
+    result = MagicMock()
+    result.mappings.return_value.one.return_value = {"tenant_id": tenant, "actor_id": actor, "business_id": business}
+
+    async def execute(statement, params=None):
+        return mapped(row) if "SELECT * FROM editorial_proposals WHERE id" in str(statement) else result
+
+    session = SimpleNamespace(execute=AsyncMock(side_effect=execute), scalar=AsyncMock(return_value=None))
+    service = EditorialProposalService(settings, MemoryDatabase(session))
+    monkeypatch.setattr("app.services.whatsapp_materials.WhatsAppMaterialsService._require_owner", AsyncMock())
+    read = AsyncMock(return_value=("prepared", {"offering": {}}))
+    monkeypatch.setattr(EditorialBriefingService, "read_valid", read)
+    marker = object()
+    monkeypatch.setattr("app.services.editorial_proposals._present", lambda _: marker)
+    reviewed = await service.review_script(
+        tenant, business, actor, proposal, ScriptReview(operation_id=operation, decision="accepted")
+    )
+    assert reviewed is marker
+    read.assert_awaited_once_with(session, tenant, business, actor, briefing)
+
+
+@pytest.mark.parametrize("case", ["unsupported_format", "unsafe_name", "colliding_fact"])
+async def test_briefing_inputs_fail_closed_on_unusable_sources(settings, ids, monkeypatch, case):
+    item_id = uuid4()
+    snapshot = {
+        "offering": {
+            "id": str(item_id),
+            "version": 1,
+            "name": "Croissant",
+            "kind": "product",
+            "price": {"status": "not_set"},
+        }
+    }
+    context = confirmed_context()
+    if case == "unsafe_name":
+        snapshot["offering"]["name"] = "Promoção hoje"
+    elif case == "colliding_fact":
+        context["facts"][0]["id"] = _catalog_fact(snapshot)["id"]
+    session = SimpleNamespace(scalar=AsyncMock(return_value=context))
+    owner_session = SimpleNamespace(
+        scalar=AsyncMock(return_value="short_video" if case == "unsupported_format" else "photo")
+    )
+    owner = MemoryDatabase(owner_session)
+    monkeypatch.setattr(EditorialBriefingService, "read_valid", AsyncMock(return_value=("prepared", snapshot)))
+    service = EditorialProposalService(settings, MagicMock(), owner_database=owner)
+    result = await service._inputs(session, context_row(ids))
+    if case == "unsafe_name":
+        assert result is not None
+        assert len(result[0]["confirmed_facts"]) == 1
+        assert result[0]["confirmed_facts"][0]["statement"] == "Croissant"
+    else:
+        assert result is None

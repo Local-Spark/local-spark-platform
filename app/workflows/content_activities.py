@@ -65,6 +65,21 @@ class ContentCandidateActivities:
             ):
                 return "skipped"
         briefing_id = None
+        if self.interpreter is None and self.settings.intent_ai_mode != "jev":
+            # Never downgrade an event that entered the briefing flow when the
+            # provider is disabled while its workflow is waiting.
+            async with self.app_database.transaction(row["tenant_id"], row["actor_id"]) as owner_session:
+                already_requires_briefing = await owner_session.scalar(
+                    text("""SELECT state FROM editorial_briefings WHERE tenant_id=:tenant
+                      AND business_id=:business AND source_asset_id=:source"""),
+                    {"tenant": row["tenant_id"], "business": row["business_id"], "source": event},
+                )
+            if already_requires_briefing:
+                return (
+                    "briefing_budget_blocked"
+                    if already_requires_briefing == "budget_blocked"
+                    else "briefing_unavailable"
+                )
         if self.interpreter is not None or self.settings.intent_ai_mode == "jev":
             interpreter = self.interpreter
             if interpreter is None:
@@ -91,6 +106,8 @@ class ContentCandidateActivities:
                 return "skipped"
             if briefing.state == "submitted":
                 return "briefing_pending"
+            if briefing.state == "budget_blocked":
+                return "briefing_budget_blocked"
             if briefing.state != "prepared":
                 return (
                     "briefing_needs_clarification"

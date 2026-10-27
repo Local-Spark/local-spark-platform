@@ -48,6 +48,10 @@ class DatabaseStub:
     async def sessions(self):
         yield self.session
 
+    @asynccontextmanager
+    async def transaction(self, *_args):
+        yield self.session
+
 
 def activities(settings):
     key = Fernet.generate_key()
@@ -80,6 +84,26 @@ async def test_candidate_proposal_skips_absent_commands_and_rejected_inputs(sett
     assert await adapter.request_candidate_proposal(str(event)) == str(proposal_id)
     request.side_effect = AuthError("EDITORIAL_BLOCKED", 409)
     assert await adapter.request_candidate_proposal(str(event)) == "skipped"
+
+
+@pytest.mark.parametrize(
+    "state,expected", [("budget_blocked", "briefing_budget_blocked"), ("uncertain", "briefing_unavailable")]
+)
+async def test_disabled_interpreter_never_falls_back_for_an_existing_briefing(settings, monkeypatch, state, expected):
+    adapter, worker, cipher = activities(settings)
+    event = uuid4()
+    worker.session.row = {
+        "kind": "text",
+        "ciphertext": cipher.encrypt(b"Mensagem").decode(),
+        "tenant_id": uuid4(),
+        "business_id": uuid4(),
+        "actor_id": uuid4(),
+    }
+    worker.session.value = state
+    request = AsyncMock()
+    monkeypatch.setattr(content_activities.EditorialProposalService, "request", request)
+    assert await adapter.request_candidate_proposal(str(event)) == expected
+    request.assert_not_awaited()
 
 
 @pytest.mark.parametrize(

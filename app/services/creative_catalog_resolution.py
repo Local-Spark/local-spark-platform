@@ -36,6 +36,10 @@ class CatalogInterpreterUnavailable(Exception):
     """A provider was unavailable; this does not imply a business decision."""
 
 
+class CatalogInterpreterBudgetBlocked(CatalogInterpreterUnavailable):
+    """A paid request was denied before submission and may be retried safely."""
+
+
 @dataclass(frozen=True)
 class CatalogResolution:
     status: Literal[
@@ -47,6 +51,7 @@ class CatalogResolution:
         "none",
         "clarify",
         "interpreter_unavailable",
+        "budget_blocked",
         "invalid_decision",
         "context_changed",
     ]
@@ -89,6 +94,8 @@ async def resolve_catalog_context(
     # source photos, prices, storage paths, tenant identifiers or credentials.
     try:
         intent = await interpreter.interpret(bounded_message, [choice.copy() for choice in choices])
+    except CatalogInterpreterBudgetBlocked:
+        return CatalogResolution("budget_blocked")
     except CatalogInterpreterUnavailable:
         return CatalogResolution("interpreter_unavailable")
     if not isinstance(intent, CatalogIntent):

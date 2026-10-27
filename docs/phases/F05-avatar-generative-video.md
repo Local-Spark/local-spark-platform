@@ -7,6 +7,12 @@ que primeiro valida imagens, vídeos com material real, aprovação/publicação
 custo. As receitas e contratos de avatar abaixo descrevem a evolução completa,
 não uma integração já entregue nem obrigação do primeiro piloto.
 
+Voz pode ser usada em vídeo gravado pelo próprio cliente sem avatar. A hipótese
+de modelo aberto, consentimento e benchmark com narração real e APIs comerciais
+está em [vídeo real e voz](../design/video-real-and-voice.md). Não há repositório
+de suposta engenharia reversa identificado ou selecionado. A pesquisa isolada pode
+acontecer antes do piloto; oferta comercial de identidade sintética permanece F05.
+
 Decisão de 26/10/2026: [plano de qualidade criativa](../design/creative-production-quality.md)
 separa avatar/voz e cena generativa das receitas de foto real e vídeo editado.
 Sem benchmark de consentimento, qualidade PT-BR e custo por peça aceita, nenhuma

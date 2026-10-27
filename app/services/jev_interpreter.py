@@ -10,7 +10,11 @@ from app.adapters.jev_intent_ai import JevIntentError, JevIntentProvider
 from app.core.config import Settings
 from app.db.session import Database
 from app.services.auth import AuthError
-from app.services.creative_catalog_resolution import CatalogIntent, CatalogInterpreterUnavailable
+from app.services.creative_catalog_resolution import (
+    CatalogIntent,
+    CatalogInterpreterBudgetBlocked,
+    CatalogInterpreterUnavailable,
+)
 from app.services.intent_usage import finish_intent, reserve_intent
 from app.services.plan_capabilities import INITIAL_PLAN_INTENT_FORMATS
 
@@ -69,7 +73,9 @@ class BudgetedJevInterpreter:
                 )
                 if not created:
                     raise AuthError("INTENT_ALREADY_SUBMITTED", 409)
-        except AuthError:
+        except AuthError as exc:
+            if exc.code in {"INTENT_BUDGET_DISABLED", "INTENT_BUDGET_EXCEEDED"}:
+                raise CatalogInterpreterBudgetBlocked() from None
             raise CatalogInterpreterUnavailable() from None
         # No lock or database transaction is held during the request; no retry.
         try:

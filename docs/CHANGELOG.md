@@ -1,5 +1,17 @@
 # Registro de mudanças
 
+## 2026-10-27 — BL04.1: comparação e recuperação de orçamento
+
+- Jev reconhece pedidos explícitos de divulgação nos critérios sem promover preços e horários isolados a publicações. Teste real do adapter reconheceu o caso anterior; a [comparação Jev/OpenAI](evals/intent-comparison-2026-10-27.md) documenta outros erros e seis respostas OpenAI incompletas no recorte comparável.
+- Orçamento recusado antes da submissão gera `budget_blocked`; retomada serializada exige ausência de tentativa no ledger, revalida origem/acesso e usa espera Temporal limitada. Resultado incerto continua sem reenvio; desabilitar o interpretador não faz fallback legado para eventos que já exigem briefing. Migração aditiva 0044.
+- Avaliação real apenas com fixtures sintéticas; teto autorizado US$ 1, custo superior conservador estimado US$ 0,0172870085, incluindo uma reserva de chamada incerta. Não é fatura nem custo mensal. O runner é offline por padrão e não repete casos já submetidos entre journals.
+- Validação: `make ci` passou com 1.113 testes e 100% de linhas/ramos no backend, incluindo PostgreSQL `_test` e Temporal; Ruff e mypy aprovados. Downgrade e reaplicação da 0044 testados no `_test`. Migração 0044 aplicada ao banco local de desenvolvimento e nova instância respondeu 200 em readiness e OpenAPI; reiniciar a API de debug para carregar o novo head. Sem homologação comercial, Meta ou teste de conversa com memória.
+
+## 2026-10-27 — Proposta de vídeo real e voz opcional
+
+- Registrado [plano de vídeo real e voz](design/video-real-and-voice.md): roteiro sob pedido ou proativo, gravação guiada de mãos, produtos e espaço, original, edição leve ou motion, preview e aprovação por peça.
+- Clonagem de voz permanece F05 após piloto; pesquisa técnica autorizada separadamente, avaliando modelo, pesos, licença, consentimento, qualidade e custo. O projeto citado pelo sócio não foi identificado. Vídeo, quantidade e preço ainda não compõem automaticamente o plano inicial.
+
 ## 2026-10-27 — BL04.1: candidato Jev no worker local
 
 - Interpretador Jev opcional e pinado, com autorização específica TypeSafe por negócio, reserva diária por tenant, identificador idempotente e tratamento conservador de resultado incerto; sem chamada paga nos testes.

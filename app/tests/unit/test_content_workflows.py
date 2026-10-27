@@ -1,5 +1,6 @@
 """Candidate and fake-publication workflows keep IO in activities."""
 
+from datetime import timedelta
 from unittest.mock import AsyncMock
 
 import pytest
@@ -64,6 +65,27 @@ async def test_briefing_workflow_handles_uncertainty_and_bounded_waits(monkeypat
     assert await content_candidate.ContentCandidateWorkflow().run("event-id") == expected
     if expected == "clarification_delivered":
         assert execute.await_args_list[-1].args == ("deliver_briefing_clarification", "event-id")
+
+
+@pytest.mark.parametrize(
+    "outcomes,patched,expected,sleeps",
+    [
+        (["briefing_budget_blocked", "briefing_budget_blocked", "briefing_pending", "skipped"], True, "skipped", 3),
+        (["briefing_budget_blocked"] * 169, True, "briefing_budget_timeout", 168),
+        (["briefing_budget_blocked"], False, "briefing_budget_blocked", 0),
+        (["briefing_budget_blocked", "briefing_unavailable"], True, "briefing_unavailable", 1),
+    ],
+)
+async def test_budget_wait_is_bounded_deterministic_and_never_retries_uncertain(
+    monkeypatch, outcomes, patched, expected, sleeps
+):
+    execute, sleep = AsyncMock(side_effect=outcomes), AsyncMock()
+    monkeypatch.setattr(content_candidate.workflow, "execute_activity", execute)
+    monkeypatch.setattr(content_candidate.workflow, "sleep", sleep)
+    monkeypatch.setattr(content_candidate.workflow, "patched", lambda _: patched)
+    assert await content_candidate.ContentCandidateWorkflow().run("event-id") == expected
+    assert sleep.await_count == sleeps
+    assert all(call.args == (timedelta(hours=1),) for call in sleep.await_args_list)
 
 
 async def test_fake_publication_workflow_delegates(monkeypatch):

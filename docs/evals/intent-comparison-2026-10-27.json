@@ -1,0 +1,2929 @@
+{
+  "version": "bl041-intent-comparison-v1",
+  "date": "2026-10-27",
+  "synthetic": true,
+  "independent_holdout": false,
+  "scope": "Direct adapter comparison with single messages and concatenated synthetic histories; no WhatsApp memory or production workflow.",
+  "budget_usd": "1",
+  "cumulative_upper_usd": "0.0172870085",
+  "note": "Costs are conservative estimates, include a full reserve for the first unknown response, and are not an invoice. No raw prompts or API keys are recorded here; token usage counts are included.",
+  "runs": [
+    {
+      "status": "uncertain",
+      "model_aliases": {
+        "jev": "jev-1.14.0",
+        "openai": "gpt-6-luna"
+      },
+      "stopped_at": {
+        "provider": "openai",
+        "case": "story"
+      },
+      "providers": {
+        "jev": {
+          "rows": [
+            {
+              "id": "foto",
+              "kind": "catalog_adapter",
+              "expected": [
+                "content_request",
+                "selected",
+                "photo"
+              ],
+              "actual": [
+                "content_request",
+                "selected",
+                "photo"
+              ],
+              "checks": {
+                "intent": true,
+                "decision": true,
+                "format": true,
+                "candidate": true
+              },
+              "joint_correct": true,
+              "latency_ms": 342.912,
+              "input_tokens": 756,
+              "output_tokens": 139
+            },
+            {
+              "id": "story",
+              "kind": "catalog_adapter",
+              "expected": [
+                "content_request",
+                "selected",
+                "story"
+              ],
+              "actual": [
+                "content_request",
+                "selected",
+                "story"
+              ],
+              "checks": {
+                "intent": true,
+                "decision": true,
+                "format": true,
+                "candidate": true
+              },
+              "joint_correct": true,
+              "latency_ms": 233.473,
+              "input_tokens": 759,
+              "output_tokens": 139
+            }
+          ]
+        },
+        "openai": {
+          "rows": [
+            {
+              "id": "foto",
+              "kind": "catalog_adapter",
+              "expected": [
+                "content_request",
+                "selected",
+                "photo"
+              ],
+              "actual": [
+                "content_request",
+                "selected",
+                "photo"
+              ],
+              "checks": {
+                "intent": true,
+                "decision": true,
+                "format": true,
+                "candidate": true
+              },
+              "joint_correct": true,
+              "latency_ms": 5214.525,
+              "input_tokens": 253,
+              "output_tokens": 94
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "uncertain",
+      "offset": 2,
+      "model_aliases": {
+        "jev": "jev-1.14.0",
+        "openai": "gpt-6-luna"
+      },
+      "stopped_at": {
+        "provider": "openai",
+        "case": "video"
+      },
+      "last_error": {
+        "code": "CATALOG_INTERPRETER_INVALID",
+        "http_status": 200,
+        "provider_status": "incomplete",
+        "reason": "max_output_tokens",
+        "usage": {
+          "input_tokens": 253,
+          "output_tokens": 320
+        }
+      },
+      "costs": {
+        "known_estimated_upper_usd": "0.0002425395",
+        "uncertain_reserved_usd": "0",
+        "incurred_upper_usd": "0.0002425395"
+      },
+      "prior_incurred_upper_usd": "0.0091261175",
+      "providers": {
+        "jev": {
+          "rows": [
+            {
+              "id": "video",
+              "kind": "catalog_adapter",
+              "expected": [
+                "content_request",
+                "clarify",
+                null
+              ],
+              "actual": [
+                "content_request",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true,
+                "decision": true,
+                "format": true,
+                "candidate": true
+              },
+              "joint_correct": true,
+              "latency_ms": 445.328,
+              "input_tokens": 756,
+              "output_tokens": 139
+            }
+          ]
+        },
+        "openai": {
+          "rows": []
+        }
+      }
+    },
+    {
+      "status": "uncertain",
+      "offset": 3,
+      "model_aliases": {
+        "jev": "jev-1.14.0",
+        "openai": "gpt-6-luna"
+      },
+      "provider_settings": {
+        "openai": {
+          "reasoning_effort": "none",
+          "max_output_tokens": 320,
+          "service_tier": "default",
+          "store": false
+        },
+        "jev": {
+          "model": "jev-1.14.0"
+        }
+      },
+      "stopped_at": {
+        "provider": "openai",
+        "case": "price"
+      },
+      "last_error": {
+        "code": "CATALOG_INTERPRETER_INVALID",
+        "http_status": 200,
+        "provider_status": "incomplete",
+        "reason": "max_output_tokens",
+        "usage": {
+          "input_tokens": 253,
+          "output_tokens": 320
+        }
+      },
+      "costs": {
+        "known_estimated_upper_usd": "0.0002425815",
+        "uncertain_reserved_usd": "0",
+        "incurred_upper_usd": "0.0002425815"
+      },
+      "prior_incurred_upper_usd": "0.0093686570",
+      "providers": {
+        "jev": {
+          "rows": [
+            {
+              "id": "price",
+              "kind": "catalog_adapter",
+              "expected": [
+                "price",
+                "selected",
+                null
+              ],
+              "actual": [
+                "price",
+                "selected",
+                null
+              ],
+              "checks": {
+                "intent": true,
+                "decision": true,
+                "format": true,
+                "candidate": true
+              },
+              "joint_correct": true,
+              "latency_ms": 646.543,
+              "input_tokens": 757,
+              "output_tokens": 140
+            }
+          ]
+        },
+        "openai": {
+          "rows": []
+        }
+      }
+    },
+    {
+      "status": "uncertain",
+      "offset": 4,
+      "model_aliases": {
+        "jev": "jev-1.14.0",
+        "openai": "gpt-6-luna"
+      },
+      "provider_settings": {
+        "openai": {
+          "reasoning_effort": "none",
+          "max_output_tokens": 1024,
+          "service_tier": "default",
+          "store": false
+        },
+        "jev": {
+          "model": "jev-1.14.0"
+        }
+      },
+      "stopped_at": {
+        "provider": "openai",
+        "case": "history-photo"
+      },
+      "last_error": {
+        "code": "CATALOG_INTERPRETER_INVALID",
+        "http_status": 200,
+        "provider_status": "incomplete",
+        "reason": "max_output_tokens",
+        "usage": {
+          "input_tokens": 269,
+          "output_tokens": 1024
+        }
+      },
+      "costs": {
+        "known_estimated_upper_usd": "0.0008785505",
+        "uncertain_reserved_usd": "0",
+        "incurred_upper_usd": "0.0008785505"
+      },
+      "prior_incurred_upper_usd": "0.0096112385",
+      "providers": {
+        "jev": {
+          "rows": [
+            {
+              "id": "question",
+              "kind": "catalog_adapter",
+              "expected": [
+                "question",
+                "clarify",
+                null
+              ],
+              "actual": [
+                "question",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true,
+                "decision": true,
+                "format": true,
+                "candidate": true
+              },
+              "joint_correct": true,
+              "latency_ms": 260.473,
+              "input_tokens": 681,
+              "output_tokens": 129
+            },
+            {
+              "id": "offer",
+              "kind": "catalog_adapter",
+              "expected": [
+                "content_request",
+                "selected",
+                null
+              ],
+              "actual": [
+                "content_request",
+                "selected",
+                null
+              ],
+              "checks": {
+                "intent": true,
+                "decision": true,
+                "format": true,
+                "candidate": true
+              },
+              "joint_correct": true,
+              "latency_ms": 213.969,
+              "input_tokens": 755,
+              "output_tokens": 141
+            },
+            {
+              "id": "greeting",
+              "kind": "catalog_adapter",
+              "expected": [
+                "other",
+                "clarify",
+                null
+              ],
+              "actual": [
+                "other",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true,
+                "decision": true,
+                "format": true,
+                "candidate": true
+              },
+              "joint_correct": true,
+              "latency_ms": 250.073,
+              "input_tokens": 680,
+              "output_tokens": 129
+            },
+            {
+              "id": "history-photo",
+              "kind": "synthetic_history",
+              "expected": [
+                "content_request",
+                "selected",
+                "photo"
+              ],
+              "actual": [
+                "content_request",
+                "selected",
+                "photo"
+              ],
+              "checks": {
+                "intent": true,
+                "decision": true,
+                "format": true,
+                "candidate": true
+              },
+              "joint_correct": true,
+              "latency_ms": 219.735,
+              "input_tokens": 773,
+              "output_tokens": 139
+            }
+          ]
+        },
+        "openai": {
+          "rows": [
+            {
+              "id": "question",
+              "kind": "catalog_adapter",
+              "expected": [
+                "question",
+                "clarify",
+                null
+              ],
+              "actual": [
+                "question",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true,
+                "decision": false,
+                "format": true,
+                "candidate": true
+              },
+              "joint_correct": false,
+              "latency_ms": 2033.127,
+              "input_tokens": 210,
+              "output_tokens": 36
+            },
+            {
+              "id": "offer",
+              "kind": "catalog_adapter",
+              "expected": [
+                "content_request",
+                "selected",
+                null
+              ],
+              "actual": [
+                "content_request",
+                "selected",
+                "photo"
+              ],
+              "checks": {
+                "intent": true,
+                "decision": true,
+                "format": false,
+                "candidate": true
+              },
+              "joint_correct": false,
+              "latency_ms": 2245.333,
+              "input_tokens": 252,
+              "output_tokens": 52
+            },
+            {
+              "id": "greeting",
+              "kind": "catalog_adapter",
+              "expected": [
+                "other",
+                "clarify",
+                null
+              ],
+              "actual": [
+                "other",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true,
+                "decision": false,
+                "format": true,
+                "candidate": true
+              },
+              "joint_correct": false,
+              "latency_ms": 1811.576,
+              "input_tokens": 208,
+              "output_tokens": 30
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "completed",
+      "offset": 8,
+      "model_aliases": {
+        "jev": "jev-1.14.0",
+        "openai": "gpt-6-luna"
+      },
+      "provider_settings": {
+        "openai": {
+          "reasoning_effort": "none",
+          "max_output_tokens": 1024,
+          "service_tier": "default",
+          "store": false
+        },
+        "jev": {
+          "model": "jev-1.14.0"
+        }
+      },
+      "costs": {
+        "known_estimated_upper_usd": "0.0003050895",
+        "uncertain_reserved_usd": "0",
+        "incurred_upper_usd": "0.0003050895"
+      },
+      "prior_incurred_upper_usd": "0.0104897890",
+      "providers": {
+        "jev": {
+          "rows": [
+            {
+              "id": "history-story",
+              "kind": "synthetic_history",
+              "expected": [
+                "content_request",
+                "selected",
+                "story"
+              ],
+              "actual": [
+                "content_request",
+                "selected",
+                "story"
+              ],
+              "checks": {
+                "intent": true,
+                "decision": true,
+                "format": true,
+                "candidate": true
+              },
+              "joint_correct": true,
+              "latency_ms": 298.542,
+              "input_tokens": 776,
+              "output_tokens": 139
+            },
+            {
+              "id": "history-switch",
+              "kind": "synthetic_history",
+              "expected": [
+                "content_request",
+                "selected",
+                "photo"
+              ],
+              "actual": [
+                "content_request",
+                "selected",
+                "photo"
+              ],
+              "checks": {
+                "intent": true,
+                "decision": true,
+                "format": true,
+                "candidate": true
+              },
+              "joint_correct": true,
+              "latency_ms": 239.088,
+              "input_tokens": 856,
+              "output_tokens": 148
+            },
+            {
+              "id": "history-ambiguous",
+              "kind": "synthetic_history",
+              "expected": [
+                "content_request",
+                "clarify",
+                null
+              ],
+              "actual": [
+                "content_request",
+                "clarify",
+                "story"
+              ],
+              "checks": {
+                "intent": true,
+                "decision": true,
+                "format": false,
+                "candidate": true
+              },
+              "joint_correct": false,
+              "latency_ms": 226.728,
+              "input_tokens": 849,
+              "output_tokens": 147
+            }
+          ],
+          "cases": 3,
+          "correct": 2,
+          "input_tokens": 2481,
+          "output_tokens": 434,
+          "estimated_max_usd": "0.000104202"
+        },
+        "openai": {
+          "rows": [
+            {
+              "id": "history-story",
+              "kind": "synthetic_history",
+              "expected": [
+                "content_request",
+                "selected",
+                "story"
+              ],
+              "actual": [
+                "content_request",
+                "selected",
+                "story"
+              ],
+              "checks": {
+                "intent": true,
+                "decision": true,
+                "format": true,
+                "candidate": true
+              },
+              "joint_correct": true,
+              "latency_ms": 2053.815,
+              "input_tokens": 269,
+              "output_tokens": 53
+            },
+            {
+              "id": "history-switch",
+              "kind": "synthetic_history",
+              "expected": [
+                "content_request",
+                "selected",
+                "photo"
+              ],
+              "actual": [
+                "content_request",
+                "selected",
+                "photo"
+              ],
+              "checks": {
+                "intent": true,
+                "decision": true,
+                "format": true,
+                "candidate": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1698.635,
+              "input_tokens": 319,
+              "output_tokens": 55
+            },
+            {
+              "id": "history-ambiguous",
+              "kind": "synthetic_history",
+              "expected": [
+                "content_request",
+                "clarify",
+                null
+              ],
+              "actual": [
+                "content_request",
+                "clarify",
+                "story"
+              ],
+              "checks": {
+                "intent": true,
+                "decision": true,
+                "format": false,
+                "candidate": true
+              },
+              "joint_correct": false,
+              "latency_ms": 1905.019,
+              "input_tokens": 313,
+              "output_tokens": 32
+            }
+          ],
+          "cases": 3,
+          "correct": 2,
+          "input_tokens": 901,
+          "output_tokens": 140,
+          "estimated_max_usd": "0.0002008875"
+        }
+      }
+    },
+    {
+      "status": "uncertain",
+      "offset": 11,
+      "model_aliases": {
+        "jev": "jev-1.14.0",
+        "openai": "gpt-6-luna"
+      },
+      "provider_settings": {
+        "openai": {
+          "reasoning_effort": "none",
+          "max_output_tokens": 1024,
+          "service_tier": "default",
+          "store": false
+        },
+        "jev": {
+          "model": "jev-1.14.0"
+        }
+      },
+      "stopped_at": {
+        "provider": "openai",
+        "case": "intent-other-03"
+      },
+      "last_error": {
+        "code": "CATALOG_INTERPRETER_INVALID",
+        "http_status": 200,
+        "provider_status": "incomplete",
+        "reason": "max_output_tokens",
+        "usage": {
+          "input_tokens": 207,
+          "output_tokens": 1024
+        }
+      },
+      "costs": {
+        "known_estimated_upper_usd": "0.0015247630",
+        "uncertain_reserved_usd": "0",
+        "incurred_upper_usd": "0.0015247630"
+      },
+      "prior_incurred_upper_usd": "0.0107948785",
+      "providers": {
+        "jev": {
+          "rows": [
+            {
+              "id": "intent-availability-01",
+              "kind": "intent_only",
+              "expected": [
+                "availability",
+                null,
+                null
+              ],
+              "actual": [
+                "availability",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 360.163,
+              "input_tokens": 685,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-content_request-01",
+              "kind": "intent_only",
+              "expected": [
+                "content_request",
+                null,
+                null
+              ],
+              "actual": [
+                "content_request",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 244.761,
+              "input_tokens": 686,
+              "output_tokens": 130
+            },
+            {
+              "id": "intent-other-01",
+              "kind": "intent_only",
+              "expected": [
+                "other",
+                null,
+                null
+              ],
+              "actual": [
+                "other",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 262.096,
+              "input_tokens": 680,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-price-01",
+              "kind": "intent_only",
+              "expected": [
+                "price",
+                null,
+                null
+              ],
+              "actual": [
+                "price",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 210.74,
+              "input_tokens": 686,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-question-01",
+              "kind": "intent_only",
+              "expected": [
+                "question",
+                null,
+                null
+              ],
+              "actual": [
+                "question",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 203.818,
+              "input_tokens": 682,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-availability-02",
+              "kind": "intent_only",
+              "expected": [
+                "availability",
+                null,
+                null
+              ],
+              "actual": [
+                "availability",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 233.782,
+              "input_tokens": 687,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-content_request-02",
+              "kind": "intent_only",
+              "expected": [
+                "content_request",
+                null,
+                null
+              ],
+              "actual": [
+                "content_request",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 246.951,
+              "input_tokens": 685,
+              "output_tokens": 128
+            },
+            {
+              "id": "intent-other-02",
+              "kind": "intent_only",
+              "expected": [
+                "other",
+                null,
+                null
+              ],
+              "actual": [
+                "other",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 256.987,
+              "input_tokens": 681,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-price-02",
+              "kind": "intent_only",
+              "expected": [
+                "price",
+                null,
+                null
+              ],
+              "actual": [
+                "price",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 232.0,
+              "input_tokens": 686,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-question-02",
+              "kind": "intent_only",
+              "expected": [
+                "question",
+                null,
+                null
+              ],
+              "actual": [
+                "other",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": false
+              },
+              "joint_correct": false,
+              "latency_ms": 254.077,
+              "input_tokens": 684,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-availability-03",
+              "kind": "intent_only",
+              "expected": [
+                "availability",
+                null,
+                null
+              ],
+              "actual": [
+                "availability",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 250.506,
+              "input_tokens": 685,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-content_request-03",
+              "kind": "intent_only",
+              "expected": [
+                "content_request",
+                null,
+                null
+              ],
+              "actual": [
+                "content_request",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 254.409,
+              "input_tokens": 683,
+              "output_tokens": 128
+            },
+            {
+              "id": "intent-other-03",
+              "kind": "intent_only",
+              "expected": [
+                "other",
+                null,
+                null
+              ],
+              "actual": [
+                "other",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 220.985,
+              "input_tokens": 679,
+              "output_tokens": 129
+            }
+          ]
+        },
+        "openai": {
+          "rows": [
+            {
+              "id": "intent-availability-01",
+              "kind": "intent_only",
+              "expected": [
+                "availability",
+                null,
+                null
+              ],
+              "actual": [
+                "other",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": false
+              },
+              "joint_correct": false,
+              "latency_ms": 1474.545,
+              "input_tokens": 212,
+              "output_tokens": 31
+            },
+            {
+              "id": "intent-content_request-01",
+              "kind": "intent_only",
+              "expected": [
+                "content_request",
+                null,
+                null
+              ],
+              "actual": [
+                "content_request",
+                "none",
+                "photo"
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1746.111,
+              "input_tokens": 214,
+              "output_tokens": 31
+            },
+            {
+              "id": "intent-other-01",
+              "kind": "intent_only",
+              "expected": [
+                "other",
+                null,
+                null
+              ],
+              "actual": [
+                "other",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 2243.909,
+              "input_tokens": 208,
+              "output_tokens": 33
+            },
+            {
+              "id": "intent-price-01",
+              "kind": "intent_only",
+              "expected": [
+                "price",
+                null,
+                null
+              ],
+              "actual": [
+                "price",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 2112.526,
+              "input_tokens": 212,
+              "output_tokens": 32
+            },
+            {
+              "id": "intent-question-01",
+              "kind": "intent_only",
+              "expected": [
+                "question",
+                null,
+                null
+              ],
+              "actual": [
+                "question",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 2088.317,
+              "input_tokens": 211,
+              "output_tokens": 33
+            },
+            {
+              "id": "intent-availability-02",
+              "kind": "intent_only",
+              "expected": [
+                "availability",
+                null,
+                null
+              ],
+              "actual": [
+                "other",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": false
+              },
+              "joint_correct": false,
+              "latency_ms": 1694.732,
+              "input_tokens": 213,
+              "output_tokens": 32
+            },
+            {
+              "id": "intent-content_request-02",
+              "kind": "intent_only",
+              "expected": [
+                "content_request",
+                null,
+                null
+              ],
+              "actual": [
+                "content_request",
+                "none",
+                "story"
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1495.825,
+              "input_tokens": 214,
+              "output_tokens": 34
+            },
+            {
+              "id": "intent-other-02",
+              "kind": "intent_only",
+              "expected": [
+                "other",
+                null,
+                null
+              ],
+              "actual": [
+                "other",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1220.99,
+              "input_tokens": 208,
+              "output_tokens": 32
+            },
+            {
+              "id": "intent-price-02",
+              "kind": "intent_only",
+              "expected": [
+                "price",
+                null,
+                null
+              ],
+              "actual": [
+                "price",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1569.577,
+              "input_tokens": 214,
+              "output_tokens": 30
+            },
+            {
+              "id": "intent-question-02",
+              "kind": "intent_only",
+              "expected": [
+                "question",
+                null,
+                null
+              ],
+              "actual": [
+                "question",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1417.012,
+              "input_tokens": 213,
+              "output_tokens": 30
+            },
+            {
+              "id": "intent-availability-03",
+              "kind": "intent_only",
+              "expected": [
+                "availability",
+                null,
+                null
+              ],
+              "actual": [
+                "other",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": false
+              },
+              "joint_correct": false,
+              "latency_ms": 1151.881,
+              "input_tokens": 212,
+              "output_tokens": 31
+            },
+            {
+              "id": "intent-content_request-03",
+              "kind": "intent_only",
+              "expected": [
+                "content_request",
+                null,
+                null
+              ],
+              "actual": [
+                "content_request",
+                "none",
+                "story"
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1274.672,
+              "input_tokens": 212,
+              "output_tokens": 33
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "uncertain",
+      "offset": 24,
+      "model_aliases": {
+        "jev": "jev-1.14.0",
+        "openai": "gpt-6-luna"
+      },
+      "provider_settings": {
+        "openai": {
+          "reasoning_effort": "none",
+          "max_output_tokens": 1024,
+          "service_tier": "default",
+          "store": false
+        },
+        "jev": {
+          "model": "jev-1.14.0"
+        }
+      },
+      "stopped_at": {
+        "provider": "openai",
+        "case": "intent-availability-04"
+      },
+      "last_error": {
+        "code": "CATALOG_INTERPRETER_INVALID",
+        "http_status": 200,
+        "provider_status": "incomplete",
+        "reason": "max_output_tokens",
+        "usage": {
+          "input_tokens": 213,
+          "output_tokens": 1024
+        }
+      },
+      "costs": {
+        "known_estimated_upper_usd": "0.0007717590",
+        "uncertain_reserved_usd": "0",
+        "incurred_upper_usd": "0.0007717590"
+      },
+      "prior_incurred_upper_usd": "0.0123196415",
+      "providers": {
+        "jev": {
+          "rows": [
+            {
+              "id": "intent-price-03",
+              "kind": "intent_only",
+              "expected": [
+                "price",
+                null,
+                null
+              ],
+              "actual": [
+                "price",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 339.031,
+              "input_tokens": 684,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-question-03",
+              "kind": "intent_only",
+              "expected": [
+                "question",
+                null,
+                null
+              ],
+              "actual": [
+                "question",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 215.823,
+              "input_tokens": 681,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-availability-04",
+              "kind": "intent_only",
+              "expected": [
+                "availability",
+                null,
+                null
+              ],
+              "actual": [
+                "availability",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 284.517,
+              "input_tokens": 687,
+              "output_tokens": 129
+            }
+          ]
+        },
+        "openai": {
+          "rows": [
+            {
+              "id": "intent-price-03",
+              "kind": "intent_only",
+              "expected": [
+                "price",
+                null,
+                null
+              ],
+              "actual": [
+                "price",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1392.099,
+              "input_tokens": 211,
+              "output_tokens": 34
+            },
+            {
+              "id": "intent-question-03",
+              "kind": "intent_only",
+              "expected": [
+                "question",
+                null,
+                null
+              ],
+              "actual": [
+                "question",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1152.475,
+              "input_tokens": 210,
+              "output_tokens": 30
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "uncertain",
+      "offset": 27,
+      "model_aliases": {
+        "jev": "jev-1.14.0",
+        "openai": "gpt-6-luna"
+      },
+      "provider_settings": {
+        "openai": {
+          "reasoning_effort": "none",
+          "max_output_tokens": 1024,
+          "service_tier": "default",
+          "store": false
+        },
+        "jev": {
+          "model": "jev-1.14.0"
+        }
+      },
+      "stopped_at": {
+        "provider": "openai",
+        "case": "intent-other-05"
+      },
+      "last_error": {
+        "code": "CATALOG_INTERPRETER_INVALID",
+        "http_status": 200,
+        "provider_status": "incomplete",
+        "reason": "max_output_tokens",
+        "usage": {
+          "input_tokens": 210,
+          "output_tokens": 1024
+        }
+      },
+      "costs": {
+        "known_estimated_upper_usd": "0.0010727735",
+        "uncertain_reserved_usd": "0",
+        "incurred_upper_usd": "0.0010727735"
+      },
+      "prior_incurred_upper_usd": "0.0130914005",
+      "providers": {
+        "jev": {
+          "rows": [
+            {
+              "id": "intent-content_request-04",
+              "kind": "intent_only",
+              "expected": [
+                "content_request",
+                null,
+                null
+              ],
+              "actual": [
+                "content_request",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 250.102,
+              "input_tokens": 682,
+              "output_tokens": 130
+            },
+            {
+              "id": "intent-other-04",
+              "kind": "intent_only",
+              "expected": [
+                "other",
+                null,
+                null
+              ],
+              "actual": [
+                "availability",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": false
+              },
+              "joint_correct": false,
+              "latency_ms": 218.628,
+              "input_tokens": 682,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-price-04",
+              "kind": "intent_only",
+              "expected": [
+                "price",
+                null,
+                null
+              ],
+              "actual": [
+                "price",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 266.733,
+              "input_tokens": 688,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-question-04",
+              "kind": "intent_only",
+              "expected": [
+                "question",
+                null,
+                null
+              ],
+              "actual": [
+                "question",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 206.941,
+              "input_tokens": 681,
+              "output_tokens": 130
+            },
+            {
+              "id": "intent-availability-05",
+              "kind": "intent_only",
+              "expected": [
+                "availability",
+                null,
+                null
+              ],
+              "actual": [
+                "availability",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 362.311,
+              "input_tokens": 685,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-content_request-05",
+              "kind": "intent_only",
+              "expected": [
+                "content_request",
+                null,
+                null
+              ],
+              "actual": [
+                "content_request",
+                "none",
+                "photo"
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 213.764,
+              "input_tokens": 684,
+              "output_tokens": 128
+            },
+            {
+              "id": "intent-other-05",
+              "kind": "intent_only",
+              "expected": [
+                "other",
+                null,
+                null
+              ],
+              "actual": [
+                "other",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 265.036,
+              "input_tokens": 681,
+              "output_tokens": 129
+            }
+          ]
+        },
+        "openai": {
+          "rows": [
+            {
+              "id": "intent-content_request-04",
+              "kind": "intent_only",
+              "expected": [
+                "content_request",
+                null,
+                null
+              ],
+              "actual": [
+                "content_request",
+                "none",
+                "photo"
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1283.177,
+              "input_tokens": 211,
+              "output_tokens": 31
+            },
+            {
+              "id": "intent-other-04",
+              "kind": "intent_only",
+              "expected": [
+                "other",
+                null,
+                null
+              ],
+              "actual": [
+                "other",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1600.94,
+              "input_tokens": 211,
+              "output_tokens": 34
+            },
+            {
+              "id": "intent-price-04",
+              "kind": "intent_only",
+              "expected": [
+                "price",
+                null,
+                null
+              ],
+              "actual": [
+                "price",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1664.13,
+              "input_tokens": 214,
+              "output_tokens": 32
+            },
+            {
+              "id": "intent-question-04",
+              "kind": "intent_only",
+              "expected": [
+                "question",
+                null,
+                null
+              ],
+              "actual": [
+                "question",
+                "clarify",
+                "story"
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1454.37,
+              "input_tokens": 210,
+              "output_tokens": 31
+            },
+            {
+              "id": "intent-availability-05",
+              "kind": "intent_only",
+              "expected": [
+                "availability",
+                null,
+                null
+              ],
+              "actual": [
+                "availability",
+                "none",
+                "story"
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1172.645,
+              "input_tokens": 212,
+              "output_tokens": 30
+            },
+            {
+              "id": "intent-content_request-05",
+              "kind": "intent_only",
+              "expected": [
+                "content_request",
+                null,
+                null
+              ],
+              "actual": [
+                "content_request",
+                "none",
+                "photo"
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1259.245,
+              "input_tokens": 213,
+              "output_tokens": 33
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "uncertain",
+      "offset": 34,
+      "model_aliases": {
+        "jev": "jev-1.14.0",
+        "openai": "gpt-6-luna"
+      },
+      "provider_settings": {
+        "openai": {
+          "reasoning_effort": "none",
+          "max_output_tokens": 1024,
+          "service_tier": "default",
+          "store": false
+        },
+        "jev": {
+          "model": "jev-1.14.0"
+        }
+      },
+      "stopped_at": {
+        "provider": "openai",
+        "case": "intent-other-06"
+      },
+      "last_error": {
+        "code": "CATALOG_INTERPRETER_INVALID",
+        "http_status": 200,
+        "provider_status": "incomplete",
+        "reason": "max_output_tokens",
+        "usage": {
+          "input_tokens": 209,
+          "output_tokens": 1024
+        }
+      },
+      "costs": {
+        "known_estimated_upper_usd": "0.0009226310",
+        "uncertain_reserved_usd": "0",
+        "incurred_upper_usd": "0.0009226310"
+      },
+      "prior_incurred_upper_usd": "0.0141641740",
+      "providers": {
+        "jev": {
+          "rows": [
+            {
+              "id": "intent-price-05",
+              "kind": "intent_only",
+              "expected": [
+                "price",
+                null,
+                null
+              ],
+              "actual": [
+                "price",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 262.815,
+              "input_tokens": 689,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-question-05",
+              "kind": "intent_only",
+              "expected": [
+                "question",
+                null,
+                null
+              ],
+              "actual": [
+                "question",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 237.433,
+              "input_tokens": 682,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-availability-06",
+              "kind": "intent_only",
+              "expected": [
+                "availability",
+                null,
+                null
+              ],
+              "actual": [
+                "availability",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 241.189,
+              "input_tokens": 684,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-content_request-06",
+              "kind": "intent_only",
+              "expected": [
+                "content_request",
+                null,
+                null
+              ],
+              "actual": [
+                "content_request",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 217.615,
+              "input_tokens": 683,
+              "output_tokens": 130
+            },
+            {
+              "id": "intent-other-06",
+              "kind": "intent_only",
+              "expected": [
+                "other",
+                null,
+                null
+              ],
+              "actual": [
+                "other",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 249.149,
+              "input_tokens": 680,
+              "output_tokens": 129
+            }
+          ]
+        },
+        "openai": {
+          "rows": [
+            {
+              "id": "intent-price-05",
+              "kind": "intent_only",
+              "expected": [
+                "price",
+                null,
+                null
+              ],
+              "actual": [
+                "price",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1572.909,
+              "input_tokens": 215,
+              "output_tokens": 33
+            },
+            {
+              "id": "intent-question-05",
+              "kind": "intent_only",
+              "expected": [
+                "question",
+                null,
+                null
+              ],
+              "actual": [
+                "question",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1102.488,
+              "input_tokens": 211,
+              "output_tokens": 30
+            },
+            {
+              "id": "intent-availability-06",
+              "kind": "intent_only",
+              "expected": [
+                "availability",
+                null,
+                null
+              ],
+              "actual": [
+                "availability",
+                "none",
+                "story"
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1648.68,
+              "input_tokens": 211,
+              "output_tokens": 32
+            },
+            {
+              "id": "intent-content_request-06",
+              "kind": "intent_only",
+              "expected": [
+                "content_request",
+                null,
+                null
+              ],
+              "actual": [
+                "content_request",
+                "none",
+                "story"
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1075.496,
+              "input_tokens": 212,
+              "output_tokens": 33
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "uncertain",
+      "offset": 39,
+      "model_aliases": {
+        "jev": "jev-1.14.0",
+        "openai": "gpt-6-luna"
+      },
+      "provider_settings": {
+        "openai": {
+          "reasoning_effort": "none",
+          "max_output_tokens": 1024,
+          "service_tier": "default",
+          "store": false
+        },
+        "jev": {
+          "model": "jev-1.14.0"
+        }
+      },
+      "stopped_at": {
+        "provider": "openai",
+        "case": "intent-price-08"
+      },
+      "last_error": {
+        "code": "CATALOG_INTERPRETER_INVALID",
+        "http_status": 200,
+        "provider_status": "incomplete",
+        "reason": "max_output_tokens",
+        "usage": {
+          "input_tokens": 212,
+          "output_tokens": 1024
+        }
+      },
+      "costs": {
+        "known_estimated_upper_usd": "0.0013713320",
+        "uncertain_reserved_usd": "0",
+        "incurred_upper_usd": "0.0013713320"
+      },
+      "prior_incurred_upper_usd": "0.0150868050",
+      "providers": {
+        "jev": {
+          "rows": [
+            {
+              "id": "intent-price-06",
+              "kind": "intent_only",
+              "expected": [
+                "price",
+                null,
+                null
+              ],
+              "actual": [
+                "price",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 286.046,
+              "input_tokens": 684,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-question-06",
+              "kind": "intent_only",
+              "expected": [
+                "question",
+                null,
+                null
+              ],
+              "actual": [
+                "question",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 240.074,
+              "input_tokens": 680,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-availability-07",
+              "kind": "intent_only",
+              "expected": [
+                "availability",
+                null,
+                null
+              ],
+              "actual": [
+                "availability",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 233.777,
+              "input_tokens": 682,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-content_request-07",
+              "kind": "intent_only",
+              "expected": [
+                "content_request",
+                null,
+                null
+              ],
+              "actual": [
+                "content_request",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 237.126,
+              "input_tokens": 689,
+              "output_tokens": 130
+            },
+            {
+              "id": "intent-other-07",
+              "kind": "intent_only",
+              "expected": [
+                "other",
+                null,
+                null
+              ],
+              "actual": [
+                "other",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 272.383,
+              "input_tokens": 681,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-price-07",
+              "kind": "intent_only",
+              "expected": [
+                "price",
+                null,
+                null
+              ],
+              "actual": [
+                "price",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 224.738,
+              "input_tokens": 688,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-question-07",
+              "kind": "intent_only",
+              "expected": [
+                "question",
+                null,
+                null
+              ],
+              "actual": [
+                "question",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 241.245,
+              "input_tokens": 681,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-availability-08",
+              "kind": "intent_only",
+              "expected": [
+                "availability",
+                null,
+                null
+              ],
+              "actual": [
+                "availability",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 217.29,
+              "input_tokens": 686,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-content_request-08",
+              "kind": "intent_only",
+              "expected": [
+                "content_request",
+                null,
+                null
+              ],
+              "actual": [
+                "content_request",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 235.579,
+              "input_tokens": 687,
+              "output_tokens": 128
+            },
+            {
+              "id": "intent-other-08",
+              "kind": "intent_only",
+              "expected": [
+                "other",
+                null,
+                null
+              ],
+              "actual": [
+                "other",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 286.467,
+              "input_tokens": 679,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-price-08",
+              "kind": "intent_only",
+              "expected": [
+                "price",
+                null,
+                null
+              ],
+              "actual": [
+                "price",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 223.07,
+              "input_tokens": 684,
+              "output_tokens": 129
+            }
+          ]
+        },
+        "openai": {
+          "rows": [
+            {
+              "id": "intent-price-06",
+              "kind": "intent_only",
+              "expected": [
+                "price",
+                null,
+                null
+              ],
+              "actual": [
+                "price",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1152.99,
+              "input_tokens": 213,
+              "output_tokens": 33
+            },
+            {
+              "id": "intent-question-06",
+              "kind": "intent_only",
+              "expected": [
+                "question",
+                null,
+                null
+              ],
+              "actual": [
+                "question",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1390.497,
+              "input_tokens": 209,
+              "output_tokens": 33
+            },
+            {
+              "id": "intent-availability-07",
+              "kind": "intent_only",
+              "expected": [
+                "availability",
+                null,
+                null
+              ],
+              "actual": [
+                "availability",
+                "none",
+                "story"
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1093.084,
+              "input_tokens": 211,
+              "output_tokens": 32
+            },
+            {
+              "id": "intent-content_request-07",
+              "kind": "intent_only",
+              "expected": [
+                "content_request",
+                null,
+                null
+              ],
+              "actual": [
+                "content_request",
+                "none",
+                "photo"
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1080.908,
+              "input_tokens": 217,
+              "output_tokens": 31
+            },
+            {
+              "id": "intent-other-07",
+              "kind": "intent_only",
+              "expected": [
+                "other",
+                null,
+                null
+              ],
+              "actual": [
+                "other",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1092.541,
+              "input_tokens": 209,
+              "output_tokens": 30
+            },
+            {
+              "id": "intent-price-07",
+              "kind": "intent_only",
+              "expected": [
+                "price",
+                null,
+                null
+              ],
+              "actual": [
+                "price",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1548.449,
+              "input_tokens": 215,
+              "output_tokens": 30
+            },
+            {
+              "id": "intent-question-07",
+              "kind": "intent_only",
+              "expected": [
+                "question",
+                null,
+                null
+              ],
+              "actual": [
+                "question",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1636.56,
+              "input_tokens": 210,
+              "output_tokens": 31
+            },
+            {
+              "id": "intent-availability-08",
+              "kind": "intent_only",
+              "expected": [
+                "availability",
+                null,
+                null
+              ],
+              "actual": [
+                "availability",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1278.663,
+              "input_tokens": 213,
+              "output_tokens": 30
+            },
+            {
+              "id": "intent-content_request-08",
+              "kind": "intent_only",
+              "expected": [
+                "content_request",
+                null,
+                null
+              ],
+              "actual": [
+                "availability",
+                "none",
+                "story"
+              ],
+              "checks": {
+                "intent": false
+              },
+              "joint_correct": false,
+              "latency_ms": 1383.412,
+              "input_tokens": 215,
+              "output_tokens": 32
+            },
+            {
+              "id": "intent-other-08",
+              "kind": "intent_only",
+              "expected": [
+                "other",
+                null,
+                null
+              ],
+              "actual": [
+                "other",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1418.677,
+              "input_tokens": 208,
+              "output_tokens": 30
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "completed",
+      "offset": 50,
+      "model_aliases": {
+        "jev": "jev-1.14.0",
+        "openai": "gpt-6-luna"
+      },
+      "provider_settings": {
+        "openai": {
+          "reasoning_effort": "none",
+          "max_output_tokens": 1024,
+          "service_tier": "default",
+          "store": false
+        },
+        "jev": {
+          "model": "jev-1.14.0"
+        }
+      },
+      "costs": {
+        "known_estimated_upper_usd": "0.0008288715",
+        "uncertain_reserved_usd": "0",
+        "incurred_upper_usd": "0.0008288715"
+      },
+      "prior_incurred_upper_usd": "0.0164581370",
+      "providers": {
+        "jev": {
+          "rows": [
+            {
+              "id": "intent-question-08",
+              "kind": "intent_only",
+              "expected": [
+                "question",
+                null,
+                null
+              ],
+              "actual": [
+                "question",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 242.25,
+              "input_tokens": 684,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-availability-09",
+              "kind": "intent_only",
+              "expected": [
+                "availability",
+                null,
+                null
+              ],
+              "actual": [
+                "availability",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 235.529,
+              "input_tokens": 685,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-content_request-09",
+              "kind": "intent_only",
+              "expected": [
+                "content_request",
+                null,
+                null
+              ],
+              "actual": [
+                "content_request",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 219.856,
+              "input_tokens": 685,
+              "output_tokens": 130
+            },
+            {
+              "id": "intent-other-09",
+              "kind": "intent_only",
+              "expected": [
+                "other",
+                null,
+                null
+              ],
+              "actual": [
+                "other",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 257.397,
+              "input_tokens": 686,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-price-09",
+              "kind": "intent_only",
+              "expected": [
+                "price",
+                null,
+                null
+              ],
+              "actual": [
+                "price",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 265.928,
+              "input_tokens": 682,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-question-09",
+              "kind": "intent_only",
+              "expected": [
+                "question",
+                null,
+                null
+              ],
+              "actual": [
+                "question",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 259.301,
+              "input_tokens": 684,
+              "output_tokens": 127
+            },
+            {
+              "id": "intent-availability-10",
+              "kind": "intent_only",
+              "expected": [
+                "availability",
+                null,
+                null
+              ],
+              "actual": [
+                "availability",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 264.4,
+              "input_tokens": 685,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-content_request-10",
+              "kind": "intent_only",
+              "expected": [
+                "content_request",
+                null,
+                null
+              ],
+              "actual": [
+                "content_request",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 227.689,
+              "input_tokens": 683,
+              "output_tokens": 128
+            },
+            {
+              "id": "intent-other-10",
+              "kind": "intent_only",
+              "expected": [
+                "other",
+                null,
+                null
+              ],
+              "actual": [
+                "price",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": false
+              },
+              "joint_correct": false,
+              "latency_ms": 230.971,
+              "input_tokens": 684,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-price-10",
+              "kind": "intent_only",
+              "expected": [
+                "price",
+                null,
+                null
+              ],
+              "actual": [
+                "price",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 228.063,
+              "input_tokens": 687,
+              "output_tokens": 129
+            },
+            {
+              "id": "intent-question-10",
+              "kind": "intent_only",
+              "expected": [
+                "question",
+                null,
+                null
+              ],
+              "actual": [
+                "content_request",
+                "clarify",
+                null
+              ],
+              "checks": {
+                "intent": false
+              },
+              "joint_correct": false,
+              "latency_ms": 225.849,
+              "input_tokens": 682,
+              "output_tokens": 130
+            }
+          ],
+          "cases": 11,
+          "correct": 9,
+          "input_tokens": 7527,
+          "output_tokens": 1418,
+          "estimated_max_usd": "0.000316134"
+        },
+        "openai": {
+          "rows": [
+            {
+              "id": "intent-question-08",
+              "kind": "intent_only",
+              "expected": [
+                "question",
+                null,
+                null
+              ],
+              "actual": [
+                "question",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1308.107,
+              "input_tokens": 212,
+              "output_tokens": 32
+            },
+            {
+              "id": "intent-availability-09",
+              "kind": "intent_only",
+              "expected": [
+                "availability",
+                null,
+                null
+              ],
+              "actual": [
+                "availability",
+                "none",
+                "story"
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1139.975,
+              "input_tokens": 214,
+              "output_tokens": 30
+            },
+            {
+              "id": "intent-content_request-09",
+              "kind": "intent_only",
+              "expected": [
+                "content_request",
+                null,
+                null
+              ],
+              "actual": [
+                "content_request",
+                "none",
+                "photo"
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1328.506,
+              "input_tokens": 213,
+              "output_tokens": 34
+            },
+            {
+              "id": "intent-other-09",
+              "kind": "intent_only",
+              "expected": [
+                "other",
+                null,
+                null
+              ],
+              "actual": [
+                "other",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1163.263,
+              "input_tokens": 213,
+              "output_tokens": 30
+            },
+            {
+              "id": "intent-price-09",
+              "kind": "intent_only",
+              "expected": [
+                "price",
+                null,
+                null
+              ],
+              "actual": [
+                "price",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1319.57,
+              "input_tokens": 210,
+              "output_tokens": 33
+            },
+            {
+              "id": "intent-question-09",
+              "kind": "intent_only",
+              "expected": [
+                "question",
+                null,
+                null
+              ],
+              "actual": [
+                "question",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1230.749,
+              "input_tokens": 213,
+              "output_tokens": 30
+            },
+            {
+              "id": "intent-availability-10",
+              "kind": "intent_only",
+              "expected": [
+                "availability",
+                null,
+                null
+              ],
+              "actual": [
+                "other",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": false
+              },
+              "joint_correct": false,
+              "latency_ms": 1050.783,
+              "input_tokens": 213,
+              "output_tokens": 30
+            },
+            {
+              "id": "intent-content_request-10",
+              "kind": "intent_only",
+              "expected": [
+                "content_request",
+                null,
+                null
+              ],
+              "actual": [
+                "content_request",
+                "none",
+                "story"
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1293.948,
+              "input_tokens": 212,
+              "output_tokens": 32
+            },
+            {
+              "id": "intent-other-10",
+              "kind": "intent_only",
+              "expected": [
+                "other",
+                null,
+                null
+              ],
+              "actual": [
+                "price",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": false
+              },
+              "joint_correct": false,
+              "latency_ms": 1358.777,
+              "input_tokens": 212,
+              "output_tokens": 32
+            },
+            {
+              "id": "intent-price-10",
+              "kind": "intent_only",
+              "expected": [
+                "price",
+                null,
+                null
+              ],
+              "actual": [
+                "price",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": true
+              },
+              "joint_correct": true,
+              "latency_ms": 1229.474,
+              "input_tokens": 214,
+              "output_tokens": 30
+            },
+            {
+              "id": "intent-question-10",
+              "kind": "intent_only",
+              "expected": [
+                "question",
+                null,
+                null
+              ],
+              "actual": [
+                "content_request",
+                "none",
+                null
+              ],
+              "checks": {
+                "intent": false
+              },
+              "joint_correct": false,
+              "latency_ms": 1481.016,
+              "input_tokens": 211,
+              "output_tokens": 35
+            }
+          ],
+          "cases": 11,
+          "correct": 8,
+          "input_tokens": 2337,
+          "output_tokens": 348,
+          "estimated_max_usd": "0.0005127375"
+        }
+      }
+    }
+  ]
+}

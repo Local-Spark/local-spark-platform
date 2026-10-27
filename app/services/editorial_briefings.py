@@ -91,6 +91,10 @@ class EditorialBriefingService:
         digest = hashlib.sha256(f"{tenant}:{business}:{actor}:{source}".encode()).hexdigest()
         params = {"tenant": tenant, "business": business, "actor": actor, "source": source, "operation": operation}
         async with self.database.transaction(tenant, actor) as session:
+            await session.execute(
+                text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 44))"),
+                {"key": f"candidate-source:{tenant}:{business}:{source}"},
+            )
             message = await self._source(session, tenant, business, actor, source)
             row = (
                 (
@@ -109,7 +113,7 @@ class EditorialBriefingService:
                 row = (
                     (
                         await session.execute(
-                            text("""SELECT id,state,request_hash,operation_id FROM editorial_briefings
+                            text("""SELECT id,state,request_hash,operation_id,source_digest FROM editorial_briefings
                               WHERE tenant_id=:tenant AND business_id=:business
                                 AND (source_asset_id=:source OR operation_id=:operation)"""),
                             params,
@@ -120,7 +124,56 @@ class EditorialBriefingService:
                 )
                 if row["request_hash"] != digest or row["operation_id"] != operation:
                     raise AuthError("BRIEFING_OPERATION_CONFLICT", 409)
-                if row["state"] == "submitted":
+                if row["state"] == "budget_blocked":
+                    if row["source_digest"] != self._source_digest(message):
+                        changed = await session.scalar(
+                            text("""UPDATE editorial_briefings SET state='needs_clarification',updated_at=now()
+                              WHERE id=:id AND state='budget_blocked' RETURNING id"""),
+                            {"id": row["id"]},
+                        )
+                        if changed is not None:
+                            await session.execute(
+                                text("""INSERT INTO audit_events(tenant_id,actor_id,operation_id,action,resource_id)
+                                  VALUES(:tenant,:actor,:audit_operation,'editorial.briefing_source_changed',:business)"""),
+                                {**params, "audit_operation": uuid4()},
+                            )
+                            return BriefingResult(row["id"], "needs_clarification")
+                    else:
+                        resumed = await session.scalar(
+                            text("""UPDATE editorial_briefings SET state='submitted',updated_at=now()
+                              WHERE id=:id AND state='budget_blocked' AND NOT EXISTS (
+                                SELECT 1 FROM editorial_intent_usage u
+                                WHERE u.tenant_id=:tenant AND u.operation_id=:operation)
+                              RETURNING id"""),
+                            {**params, "id": row["id"]},
+                        )
+                        if resumed is not None:
+                            briefing_id = row["id"]
+                            await session.execute(
+                                text("""INSERT INTO audit_events(tenant_id,actor_id,operation_id,action,resource_id)
+                                  VALUES(:tenant,:actor,:audit_operation,'editorial.briefing_budget_replayed',:business)"""),
+                                {**params, "audit_operation": uuid4()},
+                            )
+                        else:
+                            current = await session.scalar(
+                                text("""SELECT state FROM editorial_briefings WHERE id=:id"""), {"id": row["id"]}
+                            )
+                            if current == "budget_blocked":
+                                await session.execute(
+                                    text("""UPDATE editorial_briefings SET state='uncertain',updated_at=now()
+                                      WHERE id=:id AND state='budget_blocked' AND EXISTS (
+                                        SELECT 1 FROM editorial_intent_usage u WHERE u.tenant_id=:tenant
+                                          AND u.operation_id=:operation)"""),
+                                    {**params, "id": row["id"]},
+                                )
+                                return BriefingResult(row["id"], "uncertain")
+                            return BriefingResult(row["id"], current)
+                    if row["source_digest"] != self._source_digest(message):
+                        current = await session.scalar(
+                            text("SELECT state FROM editorial_briefings WHERE id=:id"), {"id": row["id"]}
+                        )
+                        return BriefingResult(row["id"], current)
+                elif row["state"] == "submitted":
                     stale = await session.scalar(
                         text("""UPDATE editorial_briefings SET state='uncertain',updated_at=now()
                         WHERE id=:id AND state='submitted' AND updated_at<now()-interval '5 minutes' RETURNING id"""),
@@ -128,8 +181,11 @@ class EditorialBriefingService:
                     )
                     if stale is not None:
                         return BriefingResult(row["id"], "uncertain")
-                return BriefingResult(row["id"], row["state"])
-            briefing_id = row["id"]
+                    return BriefingResult(row["id"], row["state"])
+                else:
+                    return BriefingResult(row["id"], row["state"])
+            else:
+                briefing_id = row["id"]
             await session.execute(
                 text("""INSERT INTO audit_events(tenant_id,actor_id,operation_id,action,resource_id)
                   VALUES(:tenant,:actor,:operation,'editorial.briefing_submitted',:business) ON CONFLICT DO NOTHING"""),
@@ -157,6 +213,8 @@ class EditorialBriefingService:
                 if result.status == "resolved" and result.intent in {None, "content_request"}:
                     snapshot = result.snapshot
                     state = "prepared"
+                elif result.status == "budget_blocked":
+                    state = "budget_blocked"
                 elif result.status in {"interpreter_unavailable", "invalid_decision"}:
                     state = "uncertain"
             except Exception:

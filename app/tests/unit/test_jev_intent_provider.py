@@ -54,6 +54,23 @@ async def test_jev_interprets_a_single_candidate_without_exposing_secrets(candid
 
 
 @pytest.mark.asyncio
+async def test_implicit_advertising_request_has_explicit_criteria_without_promoting_price_updates(candidate):
+    def handler(request):
+        body = json.loads(request.content)
+        question = body["questions"]["intent"]
+        assert "quer divulgar" in question["criteria"]["content_request"]
+        assert "sem pedir divulgação" in question["criteria"]["price"]
+        assert "informação isolada não é pedido de publicação" in question["instructions"]
+        selected = response_body()
+        selected["answers"]["format"] = answer("unspecified", {"photo", "story", "unspecified", "unsupported"})
+        return httpx.Response(200, json=selected)
+
+    provider = JevIntentProvider(SecretStr("key"), "jev-1.14.0", transport=httpx.MockTransport(handler))
+    result = await provider.interpret("Quero divulgar o Dog da Casa", [candidate], ["photo", "story"], uuid4())
+    assert result.intent == "content_request" and result.decision == "selected" and result.format is None
+
+
+@pytest.mark.asyncio
 async def test_no_match_is_never_promoted_to_a_product():
     provider = JevIntentProvider(
         SecretStr("key"),

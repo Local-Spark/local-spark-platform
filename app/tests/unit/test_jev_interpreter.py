@@ -8,7 +8,8 @@ from uuid import uuid4
 import pytest
 from pydantic import SecretStr
 
-from app.services.creative_catalog_resolution import CatalogInterpreterUnavailable
+from app.services.auth import AuthError
+from app.services.creative_catalog_resolution import CatalogInterpreterBudgetBlocked, CatalogInterpreterUnavailable
 from app.services.editorial_briefings import EditorialBriefingService
 from app.services.jev_interpreter import BudgetedJevInterpreter
 
@@ -42,3 +43,15 @@ async def test_changed_source_or_existing_reservation_never_calls_provider(setti
         await interpreter.interpret("message", [])
     provider.interpret.assert_not_awaited()
     assert reserve.await_count == (0 if source_changed else 1)
+
+
+@pytest.mark.parametrize("error", ["INTENT_BUDGET_DISABLED", "INTENT_BUDGET_EXCEEDED"])
+async def test_budget_rejection_is_distinguished_before_any_provider_call(settings, monkeypatch, error):
+    cfg = settings.model_copy(update={"typesafe_api_key": SecretStr("fake"), "meta_encryption_key": SecretStr("fake")})
+    provider = SimpleNamespace(interpret=AsyncMock())
+    monkeypatch.setattr(EditorialBriefingService, "_source", AsyncMock(return_value="message"))
+    monkeypatch.setattr("app.services.jev_interpreter.reserve_intent", AsyncMock(side_effect=AuthError(error, 409)))
+    interpreter = BudgetedJevInterpreter(cfg, Database(), *(uuid4() for _ in range(5)), provider=provider)
+    with pytest.raises(CatalogInterpreterBudgetBlocked):
+        await interpreter.interpret("message", [])
+    provider.interpret.assert_not_awaited()

@@ -50,10 +50,47 @@ async def test_structured_provider_selects_only_eligible_id_and_format(example):
     assert (result.input_tokens, result.output_tokens) == (100, 20)
     sent = json.loads(captured[0].content)
     assert sent["store"] is False and sent["tools"] == []
+    assert sent["service_tier"] == "default"
+    assert sent["reasoning"] == {"effort": "low"}
     assert sent["text"]["format"]["strict"] is True
     assert sent["max_output_tokens"] == 320
     assert captured[0].headers["x-client-request-id"] == str(operation)
     assert json.loads(sent["input"][1]["content"])["candidates"] == example["candidates"]
+
+
+async def test_interpreter_allows_none_reasoning_for_the_comparison_without_changing_default(example):
+    def handler(request):
+        sent = json.loads(request.content)
+        assert sent["reasoning"] == {"effort": "none"} and sent["max_output_tokens"] == 320
+        return httpx.Response(200, json=response(example["draft"]))
+
+    adapter = OpenAICatalogIntentProvider(
+        SecretStr("test-key"), "gpt-test", transport=httpx.MockTransport(handler), reasoning_effort="none"
+    )
+    result = await adapter.interpret("Crie uma imagem do croissant", example["candidates"], ["photo"], uuid4())
+    assert result.offering_id == example["id"]
+
+
+def test_invalid_reasoning_effort_is_rejected_before_network():
+    with pytest.raises(CatalogInterpretationError, match="CATALOG_INTERPRETER_DISABLED"):
+        OpenAICatalogIntentProvider(SecretStr("test-key"), "gpt-test", reasoning_effort="invalid")
+
+
+@pytest.mark.parametrize("cap", [0, -1, 1025, True, 1.5])
+def test_invalid_output_caps_are_rejected_before_network(cap):
+    with pytest.raises(CatalogInterpretationError, match="CATALOG_INTERPRETER_DISABLED"):
+        OpenAICatalogIntentProvider(SecretStr("test-key"), "gpt-test", max_output_tokens=cap)
+
+
+async def test_output_cap_can_be_raised_only_for_explicit_comparison(example):
+    def handler(request):
+        assert json.loads(request.content)["max_output_tokens"] == 1024
+        return httpx.Response(200, json=response(example["draft"]))
+
+    adapter = OpenAICatalogIntentProvider(
+        SecretStr("test-key"), "gpt-test", max_output_tokens=1024, transport=httpx.MockTransport(handler)
+    )
+    assert (await adapter.interpret("Crie uma imagem", example["candidates"], ["photo"], uuid4())).format == "photo"
 
 
 async def test_negation_blocks_even_a_selected_provider_output(example):

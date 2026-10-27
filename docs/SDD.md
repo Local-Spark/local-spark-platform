@@ -210,7 +210,15 @@ Sem evidência, pedir material ou oferecer conceito identificado. Não inventar
 local, preço, cardápio, agenda, resultado ou imagem documental. Kit não substitui
 fontes do cliente. Avatar/voz exigem consentimento específico e orçamento.
 
-A execução e os limites da fase ativa estão no [SDD BL04](phases/BL04-context-and-ai-production.md). Em desenvolvimento/teste, o worker pode usar Jev com consentimento TypeSafe separado, reserva financeira e snapshots revalidados; permanece desligado por padrão. Esclarecimentos usam entrega local simulada e prévias com esse briefing são bloqueadas até BL04.2. A oferta inicial de R$ 99 admite foto e story, sem franquia de quantidade definida; vídeo e planos adicionais ainda serão definidos. O nome versionado de um item ativo pode fundamentar o roteiro, sem converter preço ou oferta em fato nem criar registro artificial no contexto do negócio.
+**Vídeo real e roteiro:** o cliente poderá solicitar orientação de gravação por
+WhatsApp ou receber sugestão proativa dentro da cadência aceita. Captar mãos,
+produto e ambiente reais; após o envio, oferecer original, edição leve ou motion
+como receitas separadas e submeter a versão final à aprovação. Permissões, limites,
+custos e canal determinam elegibilidade. Voz sintética é uma hipótese distinta,
+com consentimento específico e liberação comercial somente na F05 posterior ao
+piloto. Ver [plano de vídeo real e voz](design/video-real-and-voice.md).
+
+A execução e os limites da fase ativa estão no [SDD BL04](phases/BL04-context-and-ai-production.md). Em desenvolvimento/teste, o worker pode usar Jev com consentimento TypeSafe separado, reserva financeira e snapshots revalidados; permanece desligado por padrão. Bloqueio de orçamento antes de submissão tem retomada segura e limitada; respostas incertas não são reenviadas. Esclarecimentos usam entrega local simulada e prévias com esse briefing são bloqueadas até BL04.2. A [comparação Jev/OpenAI](evals/intent-comparison-2026-10-27.md) não prova conversa com memória nem homologação comercial. A oferta inicial de R$ 99 admite foto e story, sem franquia de quantidade definida; vídeo e planos adicionais ainda serão definidos. O nome versionado de um item ativo pode fundamentar o roteiro, sem converter preço ou oferta em fato nem criar registro artificial no contexto do negócio.
 
 **Gate BL04 por receita:** fontes/direitos válidos, texto/preço/CTA corretos,
 fidelidade a produto/local, acabamento e legibilidade no celular, avaliação
