@@ -38,7 +38,7 @@ escala atual. Alcance e engajamento não comprovam faturamento nem causalidade.
 | Contexto e texto | Fatos/preferências versionados, propostas e roteiros, adapter OpenAI, reservas/tokens e projeção administrativa limitada | Não há agente geral, pesquisa automática de concorrentes, skills executáveis por cliente nem geração visual integrada. |
 | Kits BL01/BL02 | Vitrine fictícia de cafeteria, seleção por negócio, edição guiada de cores/fontes/logo/textos/composição, prévia, rascunho, confirmação e histórico | Kit `public_demo` somente para teste; direitos e qualidade comercial pendentes. F03 congela a versão; F04 ainda não a aplica à mídia. |
 | Conteúdos F04/F06 | Prévias técnicas estáticas/vídeo, candidata, decisão explícita e publicação falsa com validação de versão/hash | Renderers Pillow/FFmpeg não são receitas aprovadas. Ajuste ainda não regenera automaticamente; envio de candidata e publicação reais pendentes. |
-| Acervo BL03 | Especificação aceita para produtos, serviços e fotos reais do local | Ainda não implementado. Hoje há fatos livres e materiais temporários do WhatsApp. |
+| Acervo BL03 | Cadastro manual versionado de produtos/serviços/promoções e fotos privadas de item/espaço, com cópia consentida de foto WhatsApp, implementados localmente | Importação automática de cardápio é BL03.3 posterior; o acervo ainda não alimenta a geração BL04. |
 | Produção BL04/BL05 | Contratos e ensaios isolados de IA visual, qualidade e custos | Falta recuperar acervo automaticamente, integrar IA visual, provar peça aceita e completar jornada/proatividade. |
 | Infraestrutura F08 | Compose, CI e workflow de deploy preparado | AWS/staging, backup/restore, observabilidade operacional e capacidade não provisionados/homologados. |
 
@@ -52,7 +52,7 @@ da titular. Custos de poucas chamadas isoladas não comprovam custo mensal.
 | --- | --- |
 | Início | Resumo e orientações com estados reais do perfil, sem página estática de passos. |
 | WhatsApp | Situação do canal, telefone/SMS, vínculo e consentimentos; histórico temporário de envios como consulta secundária. |
-| Sobre meu negócio | Fatos/preferências e autorização/retirada de IA; BL03 acrescentará Produtos e serviços e Meu espaço aqui. |
+| Sobre meu negócio | Fatos/preferências, autorização de IA e acervo opcional de Produtos e serviços e Meu espaço. |
 | Conteúdos | Acompanhar propostas/prévias e decisões disponíveis; alternativa à aprovação pelo WhatsApp. A simulação é identificada. |
 | Kits visuais | Explorar, escolher e editar a direção visual aplicada ao negócio. |
 | Plano e acesso | Assinatura, patrocínio e situação de acesso. |
@@ -73,8 +73,8 @@ sustentam a jornada automática. A frequência semanal manual sai da interface;
 | Fase | Resultado esperado | Estado |
 | --- | --- | --- |
 | [BL02](phases/BL-brand-library.md#bl02--escolher-e-editar-o-kit-piloto-para-um-negócio) | Escolha e edição guiada do primeiro kit por negócio | Implementada localmente; manter gates comerciais. |
-| [BL03](phases/BL-brand-library.md#bl03--acervo-progressivo-em-sobre-meu-negócio) | Acervo privado, opcional e progressivo em Sobre meu negócio: produtos/serviços, fotos dos itens e do espaço | **Próxima fase.** |
-| [BL04](phases/BL-brand-library.md#bl04--recuperar-contexto-e-produzir-uma-peça-nova) | Pedido livre recupera fontes automaticamente; nova peça aplica kit com IA visual/receita e mede fidelidade, qualidade e custo por peça aceita | Planejada após BL03. |
+| [BL03](phases/BL-brand-library.md#bl03--acervo-progressivo-em-sobre-meu-negócio) | Acervo privado, opcional e progressivo em Sobre meu negócio: produtos/serviços, fotos dos itens e do espaço | **Cadastro manual e fotos implementados localmente; BL03.3 é posterior.** |
+| [BL04](phases/BL-brand-library.md#bl04--recuperar-contexto-e-produzir-uma-peça-nova) | Pedido livre recupera fontes automaticamente; nova peça aplica kit com IA visual/receita e mede fidelidade, qualidade e custo por peça aceita | **Próxima fase.** |
 | [BL05](phases/BL-brand-library.md#bl05--jornada-completa-local-ajuste-e-proatividade-mínima) | WhatsApp simulado percorre criação, ajuste, aprovação/publicação falsa e proposta em dia sem mensagem | Planejada; reutiliza as fatias F02–F06 existentes. |
 | [BL06](phases/BL-brand-library.md#bl06--ampliar-a-biblioteca-e-servir-o-catálogo-em-escala) | Kits de manicure/personal e catálogo público em objetos/CDN | Após provar reaplicação do primeiro kit. |
 
@@ -91,6 +91,13 @@ homologar WhatsApp/Instagram oficiais e operar staging/recuperação F08. Avatar
 voz permanecem no produto, **após o primeiro piloto comercial**, quando imagens
 e vídeos com material real, qualidade e custo já tiverem sido validados (P15).
 Exigem consentimento e orçamento próprios. Pesquisa ampla e novos nichos vêm depois da primeira peça personalizada aprovada.
+
+A [sequência até produção e expansão](design/delivery-roadmap-2026-10-27.md)
+reúne BL03–BL06, homologação Meta, franquias, AWS, piloto, pesquisa, avatar e
+multicanal. Importar fotos de cardápio/tabela de serviços está previsto como
+BL03.3: preencher fichas automaticamente como rascunho e conferir ambiguidades;
+o proprietário aprovou cadastro manual e fotos, agora implementados localmente. JEV e Motion são
+candidatos para avaliação nas fases de IA/mídia, sem integração nesta BL03.
 
 ## Decisões técnicas e limites de IA
 

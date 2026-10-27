@@ -19,7 +19,7 @@ também pode iniciar uma proposta dentro da cadência aceita.
 | --- | --- |
 | Vitrine de um kit de cafeteria em `/kits` e `/app/kits` | Implementada localmente com 10 posts, 2 stories, reel e 6 cenários fictícios; revisão criativa e de direitos antes de uso comercial. |
 | Selecionar ou editar o kit para um negócio | BL02 implementada localmente na API e web; editor guiado, prévia ampliada, rascunho, confirmação, histórico e logo privado. |
-| Acervo estruturado de produtos, serviços e fotos do local | Não implementado; hoje há fatos livres e materiais temporários do WhatsApp. |
+| Acervo estruturado de produtos, serviços e fotos do local | BL03.1/BL03.2 implementadas localmente; importação automática fica em BL03.3. |
 | IA visual usando kit + acervo no pipeline do produto | Não implementada; há ensaios isolados de IA e prévias locais com Pillow/FFmpeg. |
 | Aprovação/publicação reais pelas contas Meta | Não homologadas; o fluxo local usa adapters falsos. |
 
@@ -48,6 +48,7 @@ Cada fase entra em fatias revisáveis, mantendo API e web integradas:
 | BL02.3 | Confirmação, histórico de versões, isolamento por tenant, concorrência e ligação da versão vigente ao briefing F03. |
 | BL03.1 | CRUD privado e versionado de produtos/serviços, incluindo preço e validade, dentro de “Sobre meu negócio”. |
 | BL03.2 | Upload privado, fotos dos itens e álbum do espaço, direitos, revisão e promoção consentida de mídia WhatsApp. |
+| BL03.3 (posterior) | Extrair dados de fotos de cardápio/tabela de serviços e preencher fichas automaticamente para revisão/aceite. Reaproveita multimodal/custo BL04; não bloqueia a BL03 atual. |
 | BL04.1 | Resolução automática de pedido livre em texto/áudio para itens/fotos/fatos pertinentes, com pergunta quando faltar fonte. |
 | BL04.2 | Nova peça com kit aplicado e IA visual/receita, validação de fidelidade e ledger de todas as tentativas. |
 | BL04.3 | Eval em celular e aceite de titular consentido, medindo retrabalho e custo completo por peça aceita. |
@@ -132,6 +133,11 @@ aplicada no banco de desenvolvimento, relay/worker atualizados e manifesto
 verificado dentro da imagem Docker. Próxima implementação: BL03.
 
 ### BL03 — Acervo progressivo em “Sobre meu negócio”
+
+**BL03.1/BL03.2 implementadas localmente.** Contratos, limites e validação em [SDD BL03](BL03-business-collection.md).
+Cadastro manual e fotos são o escopo atual aprovado. A importação automática de
+cardápio/tabela de serviços está registrada como BL03.3 posterior: extrair e
+preencher rascunhos, mostrar ambiguidades e confirmar sem redigitação.
 
 A web mantém um único item lateral **Sobre meu negócio** e organiza a área
 em seções: **Informações e preferências** (fatos livres atuais),

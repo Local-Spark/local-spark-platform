@@ -1,5 +1,11 @@
 # F04 — Artes, carrosséis e edição de vídeo
 
+Atualização 27/10/2026: avaliar animações de ofertas/textos/fotos como receita
+própria na BL04, com curadoria reutilizável e qualidade/custo medidos. Claude
+Motion é candidato de teste/curadoria; a interface beta exporta MP4, mas não
+comprova um endpoint público de execução SaaS. Integração depende de contrato
+verificado, não entra na BL03. Ver [roadmap completo](../design/delivery-roadmap-2026-10-27.md).
+
 **Navegação P2 (27/10/2026):** o cliente acompanha e revisa conteúdos em
 `/app/content`; `/app/ideas` redireciona para essa área. Os controles manuais
 para gerar roteiro e pedir/ajustar a renderização ficam no laboratório técnico

@@ -122,7 +122,7 @@ Quatro conceitos permanecem distintos:
 | Material WhatsApp | Entrada temporária, consentida, com retenção/exclusão e origem | Implementado localmente. |
 | Contexto do negócio | Fatos confirmados, preferências e hipóteses separados; versão fixada na geração | Implementado localmente. |
 | Kit fictício/aplicado | Vitrine pública imutável; seleção/overrides privados e versionados por negócio | BL01/BL02 locais. |
-| Acervo durável | Produtos/serviços e fotos reais de item/espaço, opcionais e confirmados | BL03 planejada. |
+| Acervo durável | Produtos/serviços, promoções e fotos reais de item/espaço, opcionais e confirmados | BL03.1/BL03.2 implementadas localmente; BL03.3 importação posterior. |
 
 Aprovar uma publicação não confirma automaticamente preço, horário ou promoção
 como fato. Fatos temporários exigem validade; fonte vencida não autoriza nova
@@ -145,13 +145,20 @@ exige revisão de direitos e qualidade. Os arquivos públicos ainda são locais,
 versionados e servidos no build web. Fotos reais do cliente ficam privadas;
 catálogo em objetos/CDN entra na BL06.
 
-**BL03:** incluir seções Produtos e serviços e Meu espaço dentro de Sobre meu
+**BL03.1/BL03.2 locais:** seções Produtos e serviços e Meu espaço dentro de Sobre meu
 negócio. Cadastro opcional/progressivo, preço com validade, sinônimos confirmados,
 fotos e direitos versionados. Promoção consentida de material WhatsApp não muda
 silenciosamente sua finalidade/retentiva. Não exigir seleção de item por pedido:
 BL04 deve recuperar automaticamente fontes pertinentes do mesmo negócio.
 Contrato: [biblioteca visual](design/brand-library.md) e
-[contexto e geração](design/business-context-and-generation.md).
+[contexto e geração](design/business-context-and-generation.md). O [SDD BL03](phases/BL03-business-collection.md)
+detalha catálogo, fotos e imports. Cadastro manual/fotos são a entrega atual;
+BL03.3 extrairá dados de fotos de cardápio/tabela de serviços para preencher
+rascunhos automaticamente e confirmar ambiguidades sem redigitação. Esta
+extensão foi explicitamente registrada pelo proprietário, não implementada agora.
+A [sequência completa](design/delivery-roadmap-2026-10-27.md) diferencia piloto,
+produção e expansão; JEV/Motion permanecem candidatos de avaliação na camada IA.
+
 
 ## 6. Conversa e inteligência editorial
 
@@ -264,6 +271,7 @@ abaixo já existem localmente; isso não homologa o fornecedor externo.
 | Negócios | `/api/v1/businesses`, referência de estados/cidades, administração auditada; Bearer, tenant e membership. |
 | WhatsApp | `/api/v1/webhooks/whatsapp`; por negócio `whatsapp-link`, `whatsapp-materials`, `editorial-conversation`. |
 | Contexto | Por negócio `editorial-context`, histórico/restauração e consentimento de IA. |
+| Acervo | Por negócio `catalog`, histórico/versionamento e `collection/photos`, owner-only; cópia autorizada de foto WhatsApp e URL temporária. |
 | Kit | Por negócio `brand-kit`, draft/confirm/history e logo privado, owner-only. |
 | Conteúdo | Por negócio `editorial-proposals`, versões/roteiro, `media-previews`, `content-deliveries` e decisão. |
 | Cobrança/operadores | Stripe webhook/jobs/reconciliação, assinatura/patrocínio, oportunidades admin e convites staff/MFA. |
@@ -285,7 +293,7 @@ A preservação dessas APIs não as torna todas etapas visíveis para o cliente.
 
 ## 11. Sequência e condições de liberação
 
-**BL02 local → BL03 acervo → BL04 recuperação + peça nova aprovada → BL05 jornada
+**BL02/BL03.1–BL03.2 locais → BL04 recuperação + peça nova aprovada → BL05 jornada
 local e proatividade → BL06 expansão.** Não ampliar catálogo antes de provar a
 reaplicação do primeiro kit. F00–F08 continuam organizando contratos transversais;
 a trilha BL define a prioridade de produto vigente.

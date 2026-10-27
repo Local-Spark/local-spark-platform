@@ -29,8 +29,8 @@ peça nova.
 | --- | --- | --- | --- |
 | 1 | [BL01](BL-brand-library.md#bl01--kit-piloto-e-vitrine-local) | Kit piloto de cafeteria, dez posts, stories, reel e vitrine. | Técnica local pronta; revisão comercial/direitos pendente. |
 | 2 | [BL02](BL-brand-library.md#bl02--escolher-e-editar-o-kit-piloto-para-um-negócio) | Dono seleciona o kit e ajusta cores, fontes, logo, textos e composição guiada de feed/story/capa vertical; vê e confirma prévias versionadas. | Implementada localmente; gate comercial do kit segue pendente. |
-| 3 | [BL03](BL-brand-library.md#bl03--acervo-progressivo-em-sobre-meu-negócio) | Dentro de “Sobre meu negócio”, cadastrar opcionalmente produtos/serviços e fotos reais do espaço; dado privado, confirmado e versionado. | **Próxima fase de implementação.** |
-| 4 | [BL04](BL-brand-library.md#bl04--recuperar-contexto-e-produzir-uma-peça-nova) | Áudio/texto livre resolve o item e fontes automaticamente; IA visual/receita gera nova peça com kit aplicado; medir fidelidade, aceite e custo completo. | Planejada; ensaio sintético isolado não encerra o gate. |
+| 3 | [BL03](BL-brand-library.md#bl03--acervo-progressivo-em-sobre-meu-negócio) | Dentro de “Sobre meu negócio”, cadastrar opcionalmente produtos/serviços e fotos reais do espaço; dado privado, confirmado e versionado. | **BL03.1/BL03.2 implementadas localmente; BL03.3 posterior.** |
+| 4 | [BL04](BL-brand-library.md#bl04--recuperar-contexto-e-produzir-uma-peça-nova) | Áudio/texto livre resolve o item e fontes automaticamente; IA visual/receita gera nova peça com kit aplicado; medir fidelidade, aceite e custo completo. | **Próxima fase**; ensaio sintético isolado não encerra o gate. |
 | 5 | [BL05](BL-brand-library.md#bl05--jornada-completa-local-ajuste-e-proatividade-mínima) | WhatsApp simulado e proposta sem mensagem percorrem prévia, ajuste, aprovação e publicação falsa com as mesmas regras. | Contratos F02/F04/F06 parciais já existem; integração pendente. |
 | 6 | [BL06](BL-brand-library.md#bl06--ampliar-a-biblioteca-e-servir-o-catálogo-em-escala) | Kits de manicure e personal, catálogo público versionado em objetos/CDN e revisões por nicho. | Planejada após prova de reaplicação. |
 
@@ -39,6 +39,13 @@ mocks e, para fechar qualidade comercial, precisa de avaliação de titular
 com material consentido. BL05 exercita integração e falhas locais; uso real
 depende da homologação F02/F06. A expansão BL06 não precisa atrasar o primeiro
 piloto de cafeteria, mas não deve anteceder uma peça personalizada aprovada.
+
+O [roadmap completo até produção e expansão](../design/delivery-roadmap-2026-10-27.md)
+organiza homologação Meta, custo/franquia, AWS e piloto depois da jornada local,
+seguido de importação de cardápio, novos nichos, pesquisa, avatar e multicanal.
+BL03 atual entrega cadastro manual/fotos; [BL03.3](BL03-business-collection.md#bl033--importação-automática-de-fotos-de-cardápio-planejada)
+extrairá dados de fotos de cardápio/tabela de serviços e preencherá o acervo
+automaticamente como rascunho para conferência. Não bloqueia a primeira peça.
 
 ## Fases transversais até produção
 

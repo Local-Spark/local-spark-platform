@@ -137,9 +137,9 @@ local e as páginas públicas não fornecem. Toda recomendação é hipótese a 
 
 ## 4. Jev: papel proposto
 
-Foi identificado o modelo Jev, da TypeSafe AI, compatível com a descrição do curso.
-Confirmar a referência do usuário quando chegar; não confundir com JEPA ou modelos
-generativos de nome parecido. A adoção proposta é experimental para decisões delimitadas.
+O usuário confirmou Jev, da TypeSafe AI. A referência foi novamente verificada
+em 27/10/2026 na documentação oficial. A adoção continua candidata para decisões
+delimitadas, após benchmark; não integra a BL03 nem substitui geração criativa.
 
 A documentação descreve perguntas tipadas: `Choice` seleciona opção, `Score` avalia
 critério e `Noul` retorna probabilidade de uma afirmação. Jev não substitui escrita
@@ -167,10 +167,10 @@ modelo versionado e circuit breaker/rate limit separados. Não instalar skills o
 SDK no projeto apenas para documentar; isso ocorre no bootstrap autorizado.
 Fonte do contrato: [quickstart oficial](https://docs.typesafe.ai/introduction/quickstart).
 
-Modelo inicial de avaliação: `jev-1.13.0` estável pinado, comparado a `jev-1.14.0`
-em avaliação separada. A página oficial consultada aponta o segundo como release
-mais novo e `jev-preview`, enquanto `jev-latest` aponta o primeiro; não usar alias
-móvel em produção. Preço publicado: US$ 0,042 por milhão de tokens de entrada, saída
+Em 27/10/2026, a documentação lista `jev-1.14.0` como release mais recente;
+`jev-latest` e `jev-preview` apontam ambos para essa versão. O benchmark deve
+comparar a versão pinada 1.14 com o baseline e guardar versão/thresholds; 1.13
+pode ser controle histórico. Não usar alias móvel em produção. Preço publicado: US$ 0,042 por milhão de tokens de entrada, saída
 gratuita. Limites dependem da organização. Português exige avaliação própria.
 Fonte: [modelos e preços oficiais](https://docs.typesafe.ai/models).
 

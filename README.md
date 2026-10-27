@@ -6,11 +6,11 @@ web React separada. Nome de produto: **Meu Braço Direito**; os diretórios/remo
 continuam `local-spark-platform` e `local-spark-web`.
 
 **Estado em 27/10/2026:** identidade, onboarding, billing sandbox, ingestão e
-processamento de materiais, contexto/roteiros, kits BL01/BL02 e prévias/revisões
-funcionam localmente. A publicação do percurso local é **simulada**. IA visual,
-acervo estruturado BL03, proatividade, Meta/Instagram reais e AWS de produção
-não estão concluídos. As prévias Pillow/FFmpeg são baseline técnico, não receitas
-com qualidade comercial aprovada. Próxima fase: **BL03, acervo em Sobre meu negócio**.
+processamento de materiais, contexto/roteiros, kits BL01/BL02, acervo manual
+BL03.1/BL03.2 e prévias/revisões funcionam localmente. A publicação do percurso
+local é **simulada**. IA visual, importação automática de cardápio BL03.3,
+proatividade, Meta/Instagram reais e AWS de produção não estão concluídos. As prévias Pillow/FFmpeg são baseline técnico, não receitas
+com qualidade comercial aprovada. Próxima fase: **BL04, acervo e kit na geração**.
 Avatar/voz (F05) permanecem planejados para depois do primeiro piloto comercial,
 após validar imagens/vídeos com material real, qualidade e custo.
 Ver [contexto vigente](docs/PROJECT.md), [SDD](docs/SDD.md) e [fases](docs/phases/README.md).
@@ -34,7 +34,8 @@ de migration usa o login administrativo configurado em
 `MEU_BRACO_DIREITO_MIGRATION_DATABASE_URL`. Atualize até o head antes de iniciar
 o código novo; não apague volumes nem recrie o banco para migrar.
 A migração `0038` retira `billing_outbox` e preserva eventos faltantes em audit;
-jobs/reconciliação continuam. Não reescrever migrations já publicadas.
+jobs/reconciliação continuam. As migrações `0039`/`0040` criam catálogo e fotos
+privadas da BL03. Não reescrever migrations já publicadas.
 
 O seed é exclusivo de desenvolvimento local: cria as duas contas demo e prepara
 logins restritos necessários, preservando IDs, senhas e MFA existentes. Não

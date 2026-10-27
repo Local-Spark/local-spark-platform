@@ -1,5 +1,33 @@
 # Registro de mudanças
 
+## 2026-10-27 — BL03.1/BL03.2: acervo opcional do negócio
+
+- Produtos, serviços, promoções com validade e fotos privadas dos itens ou do
+  espaço em Sobre meu negócio; opcional, progressivo e independente do plano.
+  Fichas distinguem rascunho, confirmação e arquivamento. Histórico de versões
+  é exposto pela API; interface concentra cadastro/revisão, sem tela de histórico.
+- API owner-only com RLS/FKs por tenant/negócio, snapshots imutáveis, CAS,
+  idempotência, auditoria transacional e migrações novas 0039/0040. Upload
+  PNG/JPEG/WebP até 2 MiB com direitos; miniaturas e URLs privadas temporárias.
+  Promoção autorizada de foto WhatsApp copia o objeto para acervo independente.
+- Intents/leases, fencing e reconciliação protegem upload e remoção: repetição
+  em andamento preserva operação, erros/cancelamento ambíguos aguardam o escritor
+  e efeitos tardios são compensados. Remoções pendentes podem ser retomadas por
+  owner; varredura global automática permanece F08.
+- Proprietário aprovou manual/fotos agora e solicitou importação automática de
+  imagens de cardápio/tabela de serviços depois. BL03.3 especifica extração e
+  preenchimento de rascunhos com fontes e revisão de ambiguidades; ainda não há
+  OCR, retrieval para geração, JEV, Motion ou geração visual integrada.
+- [Roadmap até produção e evolução](design/delivery-roadmap-2026-10-27.md)
+  registra recomendação de formato, concorrência, custos, Meta, AWS e piloto.
+- Validação: `make ci` com **806 testes**, Ruff, mypy e **100% de linhas/ramos**;
+  web com **293 testes e 100%** nos quatro critérios, build/typecheck/Prettier e
+  jornada desktop/celular com APIs e imagens fictícias. Migrações testadas apenas
+  no banco `_test`; desenvolvimento permanece em 0037 e precisa atualizar até
+  0040. `.env` local ganhou somente configurações ausentes do object storage;
+  bucket local validado com upload/leitura/URL temporária/exclusão de objeto
+  sintético. Sem uso de dados reais ou chamadas pagas.
+
 ## 2026-10-27 — Auditoria e simplificação aprovadas P1–P15
 
 - Jornada web centrada em **Início**, **WhatsApp** e **Conteúdos**; histórico de
