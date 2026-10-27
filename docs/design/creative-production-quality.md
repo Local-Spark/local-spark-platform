@@ -101,6 +101,20 @@ o relatório distingue observado de declarado e não promete causalidade.
 
 ## Contrato do percurso criativo
 
+**Fidelidade da cena é um gate, não só preferência de estilo.** O briefing
+classifica se a peça pretende retratar `real_venue`, `real_product`,
+`generic_concept` ou `authorized_archive`. Para `real_venue`, exigir foto/vídeo
+do próprio local e conservar elementos reconhecíveis; IA não inventa salão,
+fachada ou equipe. Para `real_product`, partir da foto autorizada do item e
+comparar saída com o original para detectar troca de ingrediente, porção,
+embalagem ou aparência. Em delivery, um fundo neutro pode mudar, mas o alimento
+e a embalagem permanecem fiéis. Texto/áudio sem mídia pode render arte gráfica
+ou conceito explicitamente ilustrativo; se o pedido exigir foto do prato ou
+local reais, perguntar pelo material. As duas opções precisam de revisão e
+aprovação antes de publicação. A decisão, hash do original e instruções de
+edição acompanham cada tentativa; resultado sem fonte ou fidelidade suficiente
+é bloqueado, não reclassificado silenciosamente como foto real.
+
 1. **Entender a fonte** (F02/F03): classificar `raw_photo`, `finished_art`,
    `raw_video`, `voice`, `text_only`; extrair metadados, OCR, transcrição e
    amostras de frames quando autorizado. Detectar produto/serviço e área de

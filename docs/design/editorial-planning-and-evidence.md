@@ -1,7 +1,7 @@
 # Cadência, planos e recomendações explicáveis
 
-Data: 26/10/2026. Estado: decisão de produto; franquias, preços finais e
-recomendador ainda **não implementados**. Complementa [BL01–BL05](../phases/BL-brand-library.md),
+Atualizado em 27/10/2026. Estado: decisão de produto; franquias, preços finais e
+recomendador ainda **não implementados**. Complementa [BL01–BL06](../phases/BL-brand-library.md),
 [F03](../phases/F03-editorial-research.md) e [F07](../phases/F07-billing-reports.md).
 
 ## Quem decide a quantidade
@@ -15,7 +15,7 @@ termos técnicos de marketing; pode pausar. Para exceder o limite, a web mostra
 um plano compatível e pede aceite explícito da mudança de preço. A IA não
 assina um plano, publica, cobra nem amplia frequência sozinha.
 
-O preço de cada faixa só será fechado após a BL02 medir **custo por peça aceita**
+O preço de cada faixa só será fechado após BL04 medir **custo por peça aceita**
 por formato, incluindo geração, reprocesso, revisão, armazenamento, mensagens,
 publicação e suporte. O plano de entrada de R$ 99 deve preservar a meta de
 custo total de até R$ 50/mês por cliente; se a medição não couber, reduzir
@@ -38,12 +38,19 @@ expiração, replay e troca de plano precisam de regras e testes na F07.
 1. **Seu negócio:** aproveitar segmento, localização, serviço/produto, agenda e
    informações já confirmadas; pedir só o dado que bloqueia uma proposta útil.
 2. **Seu estilo:** recomendar um kit curado do nicho, abrir simulações de feed,
-   story e vídeo; aceitar ou escolher outro. Cor, fonte e logo são opcionais.
+   story e vídeo; aceitar ou escolher outro. Cores, fontes, logo, textos e
+   composição por formato são ajustes guiados e opcionais em BL02.
 3. **Seu ritmo:** mostrar uma programação inicial em linguagem comum, por
    exemplo “duas publicações por semana”, quais formatos entram, quanto do plano
    ela usa, por que foi sugerida e quando será reavaliada. O cliente aceita,
    reduz ou pausa. Fuso, dias fechados, horários de atendimento e antecedência
    de ofertas/horários vagos são considerados.
+
+Em **Sobre meu negócio**, BL03 oferece acervo opcional e progressivo de
+produtos, serviços e fotos do ambiente. O cliente pode concluir a escolha do
+kit e pedir conteúdo sem cadastrar um cardápio completo. Em BL04, o pedido por
+texto ou áudio recupera automaticamente os itens pertinentes; o cliente não
+precisa escolhê-los a cada mensagem.
 
 “Concluir” confirma kit aplicado e preferência de cadência; **não** aprova peças
 futuras nem autoriza publicação silenciosa. Cada candidata ainda vai para
@@ -104,11 +111,20 @@ análise automática por raio.
 
 ## Sequência
 
-- **BL01–BL03:** vitrine estática, kits próprios e avaliação de qualidade por
-  nicho. Recomendações iniciais de kit são curadoria, sem alegação estatística.
-- **BL04 + F03 mínimo + F07 mínimo:** escolha versionada, cadência simples
-  dentro do plano, justificativa honesta, pausa e enforcement da franquia.
-- **BL05/piloto:** medir custos, aceitação e sinais do próprio negócio; testar
+- **BL01–BL02:** kit demonstrativo local, escolha versionada e edição guiada
+  por formato. Recomendações iniciais de kit são curadoria, sem alegação
+  estatística.
+- **BL03:** acervo privado e opcional em **Sobre meu negócio**, com produtos,
+  serviços e fotos do ambiente, sem bloquear pedidos livres.
+- **BL04:** F03 recupera contexto do pedido livre e F04 gera uma nova peça com
+  kit e acervo pertinentes; medir fidelidade, aceitação e custo por peça aceita
+  antes de fechar as franquias F07.
+- **BL05 + F03 mínimo + F07 mínimo:** jornada local pelo WhatsApp simulado,
+  proatividade, aprovação e ajustes; cadência simples dentro do plano,
+  justificativa honesta, pausa e enforcement da franquia.
+- **BL06:** ampliar para três kits de nichos distintos e publicar o catálogo
+  público em objeto/CDN, com gate próprio de qualidade e direitos por kit.
+- **Piloto:** medir custos, aceitação e sinais do próprio negócio; testar
   ajustes de horário/formato sem prometer ganho causal.
 - **F03 pesquisa avançada:** curar referências por nicho/região e integrar
   somente fontes permitidas; ampliar a biblioteca com padrões auditáveis,

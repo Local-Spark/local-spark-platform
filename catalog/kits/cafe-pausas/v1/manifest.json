@@ -1,0 +1,498 @@
+{
+  "schema_version": "brand-kit-v1",
+  "kit_id": "cafe-pausas",
+  "version": 1,
+  "status": "public_demo",
+  "fictional_brand": "Pausas com sabor · Meu Braço Direito",
+  "segment": "cafeteria",
+  "palette": {
+    "forest": "#244739",
+    "cream": "#F5F0E7",
+    "caramel": "#BB7A48"
+  },
+  "fonts": {
+    "heading": "DejaVu Serif",
+    "body": "DejaVu Sans",
+    "source": "fonts/LICENSE.txt"
+  },
+  "rights": {
+    "scope": "fictional_public_demo",
+    "owner": "Meu Braço Direito",
+    "client_material": false,
+    "brand_or_product_claims": "demonstrative_only",
+    "source_record": "docs/kit-showroom-assets.md"
+  },
+  "recipes": [
+    {
+      "id": "photo-feed-v1",
+      "version": 1,
+      "format": "feed_4_5",
+      "editable_slots": [
+        "authorized_photo",
+        "brand_name",
+        "headline",
+        "price_text",
+        "cta",
+        "palette",
+        "caption"
+      ],
+      "rules": [
+        "keep photo subject visible",
+        "caption is separate from image",
+        "use only confirmed facts"
+      ],
+      "source": "scripts/evaluate_brand_kit_transfer.py:compose"
+    },
+    {
+      "id": "editorial-story-v1",
+      "version": 1,
+      "format": "story_9_16",
+      "editable_slots": [
+        "authorized_photo",
+        "headline",
+        "subline",
+        "brand_name"
+      ],
+      "rules": [
+        "safe margins",
+        "text over graded dark area",
+        "no invented offer"
+      ],
+      "source": "scripts/build_cafe_kit_media.py:frame"
+    },
+    {
+      "id": "motion-reel-v1",
+      "version": 1,
+      "format": "reel_9_16",
+      "editable_slots": [
+        "three_authorized_photos",
+        "three_headlines",
+        "three_sublines"
+      ],
+      "rules": [
+        "three scenes of 3 seconds",
+        "safe margins",
+        "silent demo, no implied real footage"
+      ],
+      "source": "scripts/build_cafe_kit_media.py:main"
+    },
+    {
+      "id": "editorial-product-v1",
+      "version": 1,
+      "format": "feed_4_5",
+      "content_type": "editorial_product",
+      "editable_slots": [
+        "authorized_product_photo",
+        "brand_name",
+        "headline",
+        "description",
+        "price_text",
+        "validity_text",
+        "cta",
+        "palette"
+      ],
+      "rules": [
+        "preserve product appearance",
+        "exact approved copy",
+        "do not publish fictional demo claims"
+      ],
+      "source": "local-spark-web/scripts/build-cafe-kit-posters.mjs",
+      "description": "headline, product description and CTA in image"
+    },
+    {
+      "id": "offer-feed-v1",
+      "version": 1,
+      "format": "feed_4_5",
+      "content_type": "offer",
+      "editable_slots": [
+        "authorized_product_photo",
+        "brand_name",
+        "headline",
+        "description",
+        "price_text",
+        "validity_text",
+        "cta",
+        "palette"
+      ],
+      "rules": [
+        "preserve product appearance",
+        "exact approved copy",
+        "do not publish fictional demo claims"
+      ],
+      "source": "local-spark-web/scripts/build-cafe-kit-posters.mjs",
+      "description": "confirmed price, validity and CTA in image"
+    },
+    {
+      "id": "menu-feature-v1",
+      "version": 1,
+      "format": "feed_4_5",
+      "content_type": "menu_feature",
+      "editable_slots": [
+        "authorized_product_photo",
+        "brand_name",
+        "headline",
+        "description",
+        "price_text",
+        "validity_text",
+        "cta",
+        "palette"
+      ],
+      "rules": [
+        "preserve product appearance",
+        "exact approved copy",
+        "do not publish fictional demo claims"
+      ],
+      "source": "local-spark-web/scripts/build-cafe-kit-posters.mjs",
+      "description": "two product descriptions and CTA in image"
+    }
+  ],
+  "media": [
+    {
+      "path": "assets/cappuccino.jpg",
+      "sha256": "7eae6aa78f919cfe3ef9a7fda56d787298fec91a4ba90ede282bb99371efcef1",
+      "source": "OpenAI imagegen built-in",
+      "use_scope": "fictional_public_demo",
+      "contains_real_client_material": false
+    },
+    {
+      "path": "assets/chocolate-cake.jpg",
+      "sha256": "cff263c1c996f9efaaff7952003bd4bf0641c45fe9d1abe6ece8888b3b26b4ac",
+      "source": "OpenAI imagegen built-in",
+      "use_scope": "fictional_public_demo",
+      "contains_real_client_material": false
+    },
+    {
+      "path": "assets/coffee-beans.jpg",
+      "sha256": "825aabf35b6168a62da8a5a087737445dab27ceded5efa8cfae025d7a2bf6118",
+      "source": "OpenAI imagegen built-in",
+      "use_scope": "fictional_public_demo",
+      "contains_real_client_material": false
+    },
+    {
+      "path": "assets/counter-service.jpg",
+      "sha256": "5752586bee4b35b26b80e3a79394babb63d0913d7e5db9bfc73aeca36251eeb0",
+      "source": "OpenAI imagegen built-in",
+      "use_scope": "fictional_public_demo",
+      "contains_real_client_material": false
+    },
+    {
+      "path": "assets/croissant.jpg",
+      "sha256": "56dc51ac2d9c527b28e66bed9498d50d8747b048868030b39d809cc05f13100e",
+      "source": "OpenAI imagegen built-in",
+      "use_scope": "fictional_public_demo",
+      "contains_real_client_material": false
+    },
+    {
+      "path": "assets/espresso-pour.jpg",
+      "sha256": "193c5e546140d91552df2f2e12b0c49def99c03610fdd6e0d19d100c1e8c2395",
+      "source": "OpenAI imagegen built-in",
+      "use_scope": "fictional_public_demo",
+      "contains_real_client_material": false
+    },
+    {
+      "path": "assets/morning-pastries.jpg",
+      "sha256": "fe6715b995a5f995a42e8aaa5c48a2d8c5ac68491c8b642864a13ca95a2349e0",
+      "source": "OpenAI imagegen built-in",
+      "use_scope": "fictional_public_demo",
+      "contains_real_client_material": false
+    },
+    {
+      "path": "assets/reel-frame-1.jpg",
+      "sha256": "4d3dae7accd7ee9cd2ab663628e989c6fa73ef9996a5ef20a38c4d137301366b",
+      "source": "Derived locally from recorded AI-generated photographs",
+      "use_scope": "fictional_public_demo",
+      "contains_real_client_material": false
+    },
+    {
+      "path": "assets/reel-frame-2.jpg",
+      "sha256": "0b7925a695ce7c5ac7e9728bf00d91d98155d92efe92b4763dff1f1c0d064512",
+      "source": "Derived locally from recorded AI-generated photographs",
+      "use_scope": "fictional_public_demo",
+      "contains_real_client_material": false
+    },
+    {
+      "path": "assets/reel-frame-3.jpg",
+      "sha256": "2122e912a46df22762bed92bd44ef04c260dde9614ae5fa2186d18564141e6ba",
+      "source": "Derived locally from recorded AI-generated photographs",
+      "use_scope": "fictional_public_demo",
+      "contains_real_client_material": false
+    },
+    {
+      "path": "assets/reel-pausas.mp4",
+      "sha256": "5bbddec501b07b414628e98cdd092c0fc904eeeb37a78f3e9181e0d0d1f95e61",
+      "source": "Derived locally from recorded AI-generated photographs",
+      "use_scope": "fictional_public_demo",
+      "contains_real_client_material": false
+    },
+    {
+      "path": "assets/shared-table.jpg",
+      "sha256": "a03ac15fa5a1cbf4727c0fd0118a1bfbeea8efdc26280c57e1ce431791f91564",
+      "source": "OpenAI imagegen built-in",
+      "use_scope": "fictional_public_demo",
+      "contains_real_client_material": false
+    },
+    {
+      "path": "assets/story-pausa.jpg",
+      "sha256": "07248680806a48fcdcad639f216581ea5b00a3a30024567febe2595329b9b3ce",
+      "source": "Derived locally from recorded AI-generated photographs",
+      "use_scope": "fictional_public_demo",
+      "contains_real_client_material": false
+    },
+    {
+      "path": "assets/torta-cookie.jpg",
+      "sha256": "40dbf82435fc05348c4f26c7492253677a2b0a7dae894b630d7df428ee0c9d4d",
+      "source": "OpenAI imagegen built-in",
+      "use_scope": "fictional_public_demo",
+      "contains_real_client_material": false
+    },
+    {
+      "path": "assets/window-pause.jpg",
+      "sha256": "ed5d0de2438a3d518f0b7368f3abe9e9acfb3c50085ee5b5f0fe6cc72ce92343",
+      "source": "OpenAI imagegen built-in",
+      "use_scope": "fictional_public_demo",
+      "contains_real_client_material": false
+    },
+    {
+      "path": "assets/story-janela.jpg",
+      "sha256": "99f48d3ff8688cb2b56df228f9c2889d4b9c6d62b5a1b1f879dfe7d8ce799485",
+      "source": "Derived locally from recorded AI-generated photographs",
+      "use_scope": "fictional_public_demo",
+      "contains_real_client_material": false
+    },
+    {
+      "path": "assets/post-editorial-croissant.jpg",
+      "sha256": "330d7825c785a8af1d4b731c1317b4ed3da3b4f7dc8a1ff18f2738968646573b",
+      "source": "Curated HTML/CSS composition from fictional AI-generated photos",
+      "use_scope": "fictional_public_demo",
+      "contains_real_client_material": false,
+      "derived_from": [
+        "assets/croissant.jpg"
+      ],
+      "copy_source": "local-spark-web/scripts/build-cafe-kit-posters.mjs"
+    },
+    {
+      "path": "assets/post-offer-croissant.jpg",
+      "sha256": "364f3aff64b968341fe13d12c3fe96bd4677e5e905c748f770c9e879e2771d5a",
+      "source": "Curated HTML/CSS composition from fictional AI-generated photos",
+      "use_scope": "fictional_public_demo",
+      "contains_real_client_material": false,
+      "derived_from": [
+        "assets/croissant.jpg"
+      ],
+      "copy_source": "local-spark-web/scripts/build-cafe-kit-posters.mjs"
+    },
+    {
+      "path": "assets/post-menu-pause.jpg",
+      "sha256": "2b9aa1dd810106349756659d4fc7466b5191f6c303bfd564e98dba2b2257c346",
+      "source": "Curated HTML/CSS composition from fictional AI-generated photos",
+      "use_scope": "fictional_public_demo",
+      "contains_real_client_material": false,
+      "derived_from": [
+        "assets/cappuccino.jpg",
+        "assets/torta-cookie.jpg"
+      ],
+      "copy_source": "local-spark-web/scripts/build-cafe-kit-posters.mjs"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "text_only",
+      "label": "Só uma ideia por texto",
+      "message": "Quero uma imagem para convidar para uma pausa à tarde. Hoje não tenho foto.",
+      "source_media": null,
+      "result_media": null,
+      "result_title": "Uma pausa para chamar de sua.",
+      "result_detail": "Arte tipográfica do kit; sem inventar o salão ou um produto real.",
+      "decision": "Se a peça precisar mostrar o café ou um prato específico, pedir uma foto do negócio antes de produzir.",
+      "visual_mode": "concept_graphic",
+      "status": "demo_of_proposed_flow"
+    },
+    {
+      "id": "product_photo_offer",
+      "label": "Foto do produto + promoção",
+      "message": "[Foto] Coloque uma oferta para este croissant: R$ 18 hoje.",
+      "source_media": "assets/croissant.jpg",
+      "result_media": "assets/post-offer-croissant.jpg",
+      "result_title": "Croissant da casa · R$ 18",
+      "result_detail": "Arte final demonstrativa com foto, preço e CTA incorporados. Foto e oferta são fictícias; no negócio real, preço e prazo exigem confirmação.",
+      "decision": "Preservar o prato, a embalagem e o ambiente da foto recebida; confirmar preço e validade antes de sugerir a peça.",
+      "visual_mode": "final_photo_offer",
+      "status": "demo_of_proposed_flow"
+    },
+    {
+      "id": "venue_photo",
+      "label": "Foto do próprio espaço",
+      "message": "[Foto do balcão] Faça um convite para conhecer a cafeteria.",
+      "source_media": "assets/counter-service.jpg",
+      "result_media": "assets/counter-service.jpg",
+      "result_title": "Um lugar para fazer uma pausa.",
+      "result_detail": "A composição parte da mesma imagem de entrada; esta cafeteria é fictícia.",
+      "decision": "Manter o espaço reconhecível. Nunca substituir o salão por um local inventado.",
+      "visual_mode": "venue_overlay",
+      "status": "demo_of_proposed_flow"
+    },
+    {
+      "id": "voice_note",
+      "label": "Áudio + acervo do negócio",
+      "message": "[Áudio] Crie uma imagem de um croissant.",
+      "source_media": null,
+      "result_media": "assets/post-editorial-croissant.jpg",
+      "result_title": "Referência visual de croissant",
+      "result_detail": "Esta arte fictícia mostra o estilo do kit, não prova montagem no café real. No produto, a IA consultará automaticamente o acervo próprio autorizado do negócio.",
+      "decision": "Transcrever, identificar croissant no cardápio e recuperar fotos do produto e do ambiente do mesmo negócio. Se a imagem afirmar mostrar o café real, editar a foto do espaço e conferir fidelidade; sem referências, pedir material ou propor conceito ilustrativo.",
+      "visual_mode": "archive_post",
+      "status": "demo_of_proposed_flow"
+    },
+    {
+      "id": "short_video",
+      "label": "Vídeo curto enviado",
+      "message": "[Vídeo] Fiz o preparo do café. Pode virar um reel com legenda?",
+      "source_media": null,
+      "result_media": "assets/reel-pausas.mp4",
+      "result_title": "Referência de formato",
+      "result_detail": "O reel do kit é uma sequência fictícia de fotos; não é uma edição do vídeo da mensagem.",
+      "decision": "No fluxo real, usar cenas do clipe autorizado, revisar cortes, áudio e legendas antes de pedir aprovação.",
+      "visual_mode": "format_reference",
+      "status": "format_reference_only"
+    },
+    {
+      "id": "no_message",
+      "label": "Dia sem mensagem",
+      "message": "Nenhum material novo hoje.",
+      "source_media": null,
+      "result_media": "assets/coffee-beans.jpg",
+      "result_title": "Uma pauta de rotina",
+      "result_detail": "Exemplo estático do kit. Na conta real, a pauta depende de acervo autorizado e informações vigentes.",
+      "decision": "Usar contexto e acervo existentes; se faltar foto ou fato, pedir ao cliente em vez de inventar.",
+      "visual_mode": "archive_post",
+      "status": "demo_of_proposed_flow"
+    }
+  ],
+  "samples": [
+    {
+      "id": "croissant",
+      "kind": "post",
+      "recipe_id": "editorial-product-v1",
+      "media": "assets/post-editorial-croissant.jpg",
+      "title": "O intervalo merece sabor",
+      "caption": "Um croissant da casa para transformar a pausa em um momento especial. Conheça o cardápio.",
+      "format": "feed_4_5",
+      "content_type": "editorial_product",
+      "copy_in_image": true
+    },
+    {
+      "id": "espresso-pour",
+      "kind": "post",
+      "recipe_id": "photo-feed-v1",
+      "media": "assets/espresso-pour.jpg",
+      "title": "O começo de uma boa pausa",
+      "caption": "O café chegando à xícara pode ser o melhor minuto da manhã.",
+      "format": "feed_4_5"
+    },
+    {
+      "id": "cappuccino",
+      "kind": "post",
+      "recipe_id": "menu-feature-v1",
+      "media": "assets/post-menu-pause.jpg",
+      "title": "Escolha sua próxima pausa",
+      "caption": "Cappuccino ou torta cookie? Explore o cardápio deste exemplo fictício.",
+      "format": "feed_4_5",
+      "content_type": "menu_feature",
+      "copy_in_image": true
+    },
+    {
+      "id": "morning-pastries",
+      "kind": "post",
+      "recipe_id": "photo-feed-v1",
+      "media": "assets/morning-pastries.jpg",
+      "title": "Feito para desacelerar",
+      "caption": "Pequenos rituais tornam uma manhã comum mais gostosa.",
+      "format": "feed_4_5"
+    },
+    {
+      "id": "torta-cookie",
+      "kind": "post",
+      "recipe_id": "photo-feed-v1",
+      "media": "assets/torta-cookie.jpg",
+      "title": "Uma fatia para o intervalo",
+      "caption": "Uma pausa doce, sem pressa e com espaço para conversar.",
+      "format": "feed_4_5"
+    },
+    {
+      "id": "window-pause",
+      "kind": "post",
+      "recipe_id": "photo-feed-v1",
+      "media": "assets/window-pause.jpg",
+      "title": "Seu tempo também merece cuidado",
+      "caption": "Um canto tranquilo, uma xícara e alguns minutos só seus.",
+      "format": "feed_4_5"
+    },
+    {
+      "id": "chocolate-cake",
+      "kind": "post",
+      "recipe_id": "photo-feed-v1",
+      "media": "assets/chocolate-cake.jpg",
+      "title": "O doce da conversa",
+      "caption": "A sobremesa também pode ser o começo de uma boa história.",
+      "format": "feed_4_5"
+    },
+    {
+      "id": "counter-service",
+      "kind": "post",
+      "recipe_id": "photo-feed-v1",
+      "media": "assets/counter-service.jpg",
+      "title": "O cuidado mora nos detalhes",
+      "caption": "Da bancada à mesa, cada pausa tem seu próprio ritmo.",
+      "format": "feed_4_5"
+    },
+    {
+      "id": "shared-table",
+      "kind": "post",
+      "recipe_id": "photo-feed-v1",
+      "media": "assets/shared-table.jpg",
+      "title": "Melhor quando é compartilhado",
+      "caption": "Café e conversa cabem na mesma mesa.",
+      "format": "feed_4_5"
+    },
+    {
+      "id": "coffee-beans",
+      "kind": "post",
+      "recipe_id": "offer-feed-v1",
+      "media": "assets/post-offer-croissant.jpg",
+      "title": "Croissant da casa por R$ 18",
+      "caption": "Oferta demonstrativa: preço fictício e validade a confirmar antes de qualquer publicação real.",
+      "format": "feed_4_5",
+      "content_type": "offer",
+      "copy_in_image": true
+    },
+    {
+      "id": "pausa-story",
+      "kind": "story",
+      "recipe_id": "editorial-story-v1",
+      "media": "assets/story-pausa.jpg",
+      "title": "A pausa começa aqui.",
+      "caption": "Café, conversa e um tempo para você.",
+      "format": "story_9_16"
+    },
+    {
+      "id": "janela-story",
+      "kind": "story",
+      "recipe_id": "editorial-story-v1",
+      "media": "assets/story-janela.jpg",
+      "title": "Seu tempo também importa.",
+      "caption": "Um momento para desacelerar.",
+      "format": "story_9_16"
+    },
+    {
+      "id": "pausa-reel",
+      "kind": "reel",
+      "recipe_id": "motion-reel-v1",
+      "media": "assets/reel-pausas.mp4",
+      "poster": "assets/reel-frame-1.jpg",
+      "title": "Pausas com sabor",
+      "caption": "Um pequeno filme demonstrativo para sentir o ritmo do kit.",
+      "format": "reel_9_16",
+      "sound": "silent_demo"
+    }
+  ]
+}

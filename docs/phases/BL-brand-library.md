@@ -1,140 +1,229 @@
-# BL — Biblioteca visual, vitrine e produção por kit
+# BL — Biblioteca visual, acervo do negócio e produção personalizada
 
-Data: 26/10/2026. Estado: **UI exploratória BL01 em andamento; catálogo e kit final pendentes**.
-Esta trilha cruza F01 (área cliente), F03 (escolha/contexto), F04 (mídia) e F06
-(aprovação). Ela muda a ordem dessas entregas, sem substituir a arquitetura,
-autenticação, RLS, Temporal ou os contratos de publicação já existentes.
+Data: 27/10/2026. Esta é a **ordem vigente** de implementação da trilha BL.
+Ela cruza F01 (área do cliente), F02 (materiais/WhatsApp), F03 (contexto e
+roteiro), F04 (mídia), F06 (aprovação/publicação) e F07 (custos). A arquitetura
+PostgreSQL/RLS, armazenamento privado, Temporal e autorização por plano
+continuam valendo.
 
-## Decisão central
+## Objetivo e estado real
 
-A equipe produz kits demonstrativos completos **uma vez por versão**, com marca
-fictícia, dez posts, stories, reels, exemplos de conversa WhatsApp e de dia sem
-nova mensagem. A web os mostra em simuladores de Instagram/Facebook/TikTok
-internos; visitar a vitrine não gera imagem, não consulta contas sociais e não
-precisa de dados visuais do cliente. Cada kit contém também receitas editáveis,
-direção fotográfica, paleta, tipografia, regras de corte/texto e direitos.
+O cliente vê kits fictícios prontos na nossa web, escolhe uma direção visual,
+ajusta-a com poucos controles, informa progressivamente o que vende e como é
+seu espaço, e pode pedir conteúdo por texto/áudio livre. O sistema recupera
+sozinho os itens e fotos pertinentes, gera uma peça nova, pede aprovação e
+publica somente após autorização específica da peça. Um dia sem mensagem nova
+também pode iniciar uma proposta dentro da cadência aceita.
 
-Após escolher, o cliente pode adaptar o kit ao negócio. F03/F04 montam novas
-peças com fatos e materiais reais, usando o manifesto compacto do kit e, se a
-rota de IA visual precisar, **no máximo uma imagem de referência do kit para o
-formato/receita escolhido**, além do material do próprio cliente. O texto e a
-marca fictícios do exemplo não entram na saída. Cada publicação real continua
-precisando de aprovação individual. O contrato detalhado está na
-[biblioteca de identidade visual](../design/brand-library.md).
-
-## Ordem de entrega e aceite
-
-### BL01 — Kit piloto e contrato do catálogo
-
-- **Escopo:** escolher um segmento inicial (cafeteria fictícia), definir
-  manifest/validator, versionamento, licenças, formatos, receitas-fonte e
-  armazenamento dos exemplos. Produzir **um kit de qualidade comercial** com
-  dez posts, pelo menos um story e um reel demonstrativo completo, usando só
-  materiais próprios/licenciados. O catálogo pode começar como JSON validado
-  no repositório e mídia em armazenamento de objetos; publicação de nova versão
-  promove um conjunto imutável. Não criar CMS antes da primeira curadoria.
-- **UI em paralelo (BL01-UI):** abrir uma vitrine no app desde o primeiro kit,
-  com abas internas Instagram/Facebook/TikTok e mídia demonstrativa estática.
-  Ela pode começar com pautas e capas identificadas como protótipo; não oferece
-  escolha nem afirma que vídeo/catálogo estão concluídos. A implementação do kit
-  final substitui esses exemplos sem refazer a navegação.
-- **Aceite:** qualquer exemplo abre inteiro no celular, o reel é reproduzível,
-  nenhuma fonte/direito fica sem registro e a receita editável consegue gerar
-  uma nova peça. Layout universal atual não vale como kit piloto.
-- **Status:** exploração web inicial entregue com três fotos fictícias e pautas
-  ilustrativas. Manifesto, mídia final, reel reproduzível, receitas, direitos e
-  kit completo ainda pendentes.
-
-### BL02 — Prova de reaplicação e economia
-
-- **Escopo:** com o kit BL01 fixado, produzir pelo **pipeline real** uma nova
-  foto/story para um negócio fictício distinto, usando foto própria/licenciada e
-  fato válido. Comparar quatro rotas no mesmo caso: sem kit, manifesto do kit,
-  manifesto + uma referência do mesmo formato e composição local pela receita.
-  A IA pode criar/tratar a cena; texto, preço e logo exatos podem ser compostos
-  deterministicamente. Guardar modelo, parâmetros, tokens, tentativas,
-  latência, resultado e custo completo.
-- **Aceite:** amostras cegas no celular; nenhuma marca/produto inventado; preço
-  e CTA literais; ao menos uma rota aprovada por dono de material consentido
-  antes de declarar qualidade comercial. O ganho de custo só existe se o
-  **custo por peça aceita** cair, incluindo falhas e revisões. Até lá, resultado
-  sintético é técnico, não validação comercial.
-- **Status:** não implementada. O eval visual atual é de uma peça isolada, não
-  prova reaplicação do kit.
-
-### BL03 — Completar e ampliar a vitrine web
-
-- **Escopo:** expandir para **três kits iniciais em nichos distintos**:
-  cafeteria/alimentação, profissional com agenda (manicure) e personal trainer.
-  Cada kit exige fotos, pautas e formatos próprios do nicho: para manicure,
-  resultado autorizado do atendimento e disponibilidade de horários; para
-  personal, rotina/serviço sem promessas de resultado físico. Conectar o catálogo
-  responsivo na `local-spark-web`. O visitante
-  explora grade de dez posts, abre legenda/arte, percorre stories, reproduz reels
-  e alterna entre simuladores de Instagram/Facebook/TikTok **dentro do produto**.
-  Mostrar disponibilidade por plano e canal; a marca fictícia, ausência de
-  publicação e capacidades ainda não homologadas ficam claras.
-- **Aceite:** mesma mídia do catálogo para todos, sem chamada de IA ou banco de
-  cliente ao alternar kits; navegação por teclado e celular, loading/erro de
-  mídia e fallback; usuário entende o que escolhe sem conectar rede social.
-  Cada nicho passa por revisão própria de qualidade, direitos e aplicabilidade
-  antes de aparecer como opção selecionável. Medir custo de curadoria por versão
-  e tráfego/CDN por visita.
-- **Status:** casca navegável antecipada em BL01; mídias finais, três kits,
-  carregamento do catálogo e reprodução de vídeo ainda pendentes.
-
-### BL04 — Escolha versionada por negócio
-
-- **Escopo:** API do proprietário registra `kit_id/version` escolhido e ajustes
-  opcionais de cor, fonte, foto, logo e tom. A web mostra prévias rápidas de
-  feed, story e capa vertical usando receitas/tokens aprovados; não faz dez
-  chamadas de IA para cada ajuste. A seleção é idempotente, auditada,
-  protegida por tenant/RLS e não transfere aprovação de peças antigas. Na web,
-  aceitar kit é uma ação clara após a comparação; o cliente pode mudar depois.
-  F03 passa a incluir kit aprovado no snapshot/briefing de novas propostas.
-- **Aceite:** outro tenant não lê/altera a seleção; replay e concorrência
-  preservam uma versão vigente; mídia/receita antigas mantêm provenance;
-  confirmar o kit nunca é tratado como autorização para publicar. O cliente
-  consegue voltar ao padrão, comparar antes/depois e concluir sem fornecer logo
-  ou fotos; cada alteração aprovada gera nova versão aplicada ao negócio.
-- **Status:** não implementada.
-
-### BL05 — Jornada de conteúdo e piloto controlado
-
-- **Escopo:** F03 e F04 usam o kit selecionado para mensagens recebidas e dias
-  sem nova entrada. F04.3/F06 entregam candidata, ajuste e aprovação via
-  WhatsApp simulado; publicação simulada mantém hash/versão exatos. Homologação
-  Meta real, custo mensal, suporte, direitos e segurança são gates posteriores
-  do piloto/produção. Outros segmentos e formatos só entram após os próprios
-  gates de qualidade e margem.
-- **Aceite:** um negócio consentido reconhece a direção que escolheu nas peças
-  reais, aprova ou pede alteração pelo WhatsApp, e o sistema mostra custo total
-  por peça aceita, frequência e erros sem operação manual oculta. A Meta
-  restrita não impede testes locais, mas impede a promessa de canal real.
-- **Status:** contratos locais F02/F04.3/F06 já existem; aplicação do kit e
-  teste comercial ponta a ponta ainda não.
-
-## Fronteiras entre repositórios
-
-| Local | Responsabilidade |
+| Entrega | Estado em 27/10/2026 |
 | --- | --- |
-| `local-spark-platform` | Schema/validador do catálogo, publicação de versões, índice público/cacheável, seleção autenticada, snapshot por negócio, roteamento e medição de geração. |
-| `local-spark-web` | Vitrine e simuladores internos, comparação, detalhes dos exemplos, seleção/edição do kit e estados acessíveis. |
-| Armazenamento de objetos + CDN | Exemplos públicos e versionados do catálogo. Mídia real de clientes continua privada e separada por tenant. |
+| Vitrine de um kit de cafeteria em `/kits` e `/app/kits` | Implementada localmente com 10 posts, 2 stories, reel e 6 cenários fictícios; revisão criativa e de direitos antes de uso comercial. |
+| Selecionar ou editar o kit para um negócio | Não implementado; a vitrine atual apenas permite explorar. |
+| Acervo estruturado de produtos, serviços e fotos do local | Não implementado; hoje há fatos livres e materiais temporários do WhatsApp. |
+| IA visual usando kit + acervo no pipeline do produto | Não implementada; há ensaios isolados de IA e prévias locais com Pillow/FFmpeg. |
+| Aprovação/publicação reais pelas contas Meta | Não homologadas; o fluxo local usa adapters falsos. |
 
-Não criar terceiro serviço de workflow ou repositório para o catálogo inicial.
-Uma versão de kit publicada é imutável; revogação de direitos despublica o ativo
-e impede novas seleções/gerações dependentes dele. O custo de curadoria do kit é
-amortizado; o COGS do plano inclui apenas custos atribuíveis à operação e a
-parcela amortizada quando fizer a análise de margem.
+A regra central é **não expandir a biblioteca antes de provar que conseguimos
+reaplicar o primeiro kit em uma peça nova, fiel e aprovada**. O catálogo
+fictício, o kit aplicado ao negócio e o acervo privado do negócio são objetos
+diferentes. Escolher um kit jamais aprova uma publicação.
 
-## O que mudou na sequência
+## Sequência de implementação
 
-Antes, o próximo marco era tentar melhorar uma peça do renderer universal e
-ampliar o pipeline de geração visual. Agora, **a UI de BL01 acompanha o kit
-piloto**, para avaliar a experiência desde o início. BL02 precede ampliar o
-catálogo para três kits e automatizar a produção comercial: primeiro provar que
-um kit bonito gera nova peça com a mesma qualidade. BL03 completa a vitrine e
-BL04 torna os kits escolhíveis.
-F03/F04/F06 já implementadas continuam úteis, mas as receitas visuais atuais
-seguem como baseline técnico e não são promovidas ao piloto por essa mudança.
+```mermaid
+flowchart LR
+  BL01["BL01 • Kit e vitrine piloto<br/>local"] --> BL02["BL02 • Escolha e edição<br/>do kit"]
+  BL02 --> BL03["BL03 • Acervo privado<br/>do negócio"]
+  BL03 --> BL04["BL04 • Recuperação automática<br/>e peça nova com qualidade"]
+  BL04 --> BL05["BL05 • Jornada WhatsApp local<br/>e proatividade"]
+  BL05 --> BL06["BL06 • Novos nichos<br/>e catálogo em CDN"]
+```
+
+Cada fase entra em fatias revisáveis, mantendo API e web integradas:
+
+| Fatia | Resultado que podemos demonstrar |
+| --- | --- |
+| BL02.1 | Seleção e versão do kit por negócio na API; `/app/kits` mostra a escolha salva e permite trocar. |
+| BL02.2 | Editor guiado das três composições, cores, fontes, logo e textos permitidos, com prévias fiéis e opção de restaurar o padrão. |
+| BL02.3 | Confirmação, histórico de versões, isolamento por tenant, concorrência e ligação da versão vigente ao briefing F03. |
+| BL03.1 | CRUD privado e versionado de produtos/serviços, incluindo preço e validade, dentro de “Sobre meu negócio”. |
+| BL03.2 | Upload privado, fotos dos itens e álbum do espaço, direitos, revisão e promoção consentida de mídia WhatsApp. |
+| BL04.1 | Resolução automática de pedido livre em texto/áudio para itens/fotos/fatos pertinentes, com pergunta quando faltar fonte. |
+| BL04.2 | Nova peça com kit aplicado e IA visual/receita, validação de fidelidade e ledger de todas as tentativas. |
+| BL04.3 | Eval em celular e aceite de titular consentido, medindo retrabalho e custo completo por peça aceita. |
+| BL05.1 | Mesmo fluxo com WhatsApp simulado: candidata, ajuste, aprovação, recusa, replay e publicação falsa. |
+| BL05.2 | Proposta em dia sem mensagem, dentro da cadência/plano, com pausa e pedido de material quando necessário. |
+| BL06 | Curadoria dos dois novos nichos e migração de amostras públicas para objetos/CDN, após o gate BL04/BL05. |
+
+### BL01 — Kit piloto e vitrine local
+
+**Entregue tecnicamente.** `cafe-pausas/v1` tem manifesto versionado,
+hash/proveniência por ativo, dez posts 4:5 (três JPEGs com texto incorporado e
+sete fotos editoriais), dois stories 9:16, reel MP4 silencioso de três cenas,
+receitas e seis cenários de origem (texto, foto de produto, foto do espaço,
+áudio, vídeo e dia sem mensagem). A web mostra esse mesmo pacote em simuladores
+internos de Instagram, Facebook e TikTok, sem gerar imagem a cada visita ou
+conectar a conta social. O vídeo demonstra o formato e não simula edição de um
+clipe recebido. O preço de R$ 18 é fictício.
+
+**Pendente para selo comercial:** revisão visual com comerciantes, licenças,
+direitos e aplicabilidade das receitas. O manifesto continua `public_demo`.
+A vitrine não oferece escolha, edição ou autorização de postagem.
+
+### BL02 — Escolher e editar o kit piloto para um negócio
+
+**Próxima fase de código.** Na rota existente `/app/kits`, o proprietário
+escolhe `kit_id/version` e cria uma versão **aplicada ao seu negócio**. O
+editor é guiado para quem não domina edição: trocar cores, fontes licenciadas,
+logo, textos permitidos, enquadramento da imagem e **composição de cada
+formato** por alternativas curadas. Feed, story e capa vertical de reel têm
+controles e prévias próprios; por exemplo, foto dominante ou oferta dominante,
+posição do texto e do CTA. A pessoa compara com o original, desfaz ajustes
+e confirma. A prévia responde sem chamada de IA a cada clique. Edição livre
+de pixels/timeline não é necessária nesta primeira versão.
+
+**Backend:** guardar seleção e overrides versionados por tenant/negócio,
+validar slots/tamanhos/contraste/zona segura e direitos das fontes, aplicar
+idempotência e controle de concorrência, auditar alterações e manter a versão
+pública imutável. F03 recebe somente a versão aplicada vigente em novos
+briefings. Mudanças posteriores não alteram peças antigas nem herdam sua
+aprovação. API e web distinguem claramente `rascunho` de `confirmado`.
+Assinatura e permissões de produção continuam na API.
+
+**Aceite:** dono escolhe o kit de cafeteria, muda ao menos um layout de cada
+formato, vê prévias responsivas fiéis ao arquivo que a receita produzirá,
+confirma e retorna para editar sem perder a versão. Outro tenant não lê nem
+muda essa escolha. Seleção não consome geração paga nem publica nada.
+
+### BL03 — Acervo progressivo em “Sobre meu negócio”
+
+A web mantém um único item lateral **Sobre meu negócio** e organiza a área
+em seções: **Informações e preferências** (fatos livres atuais),
+**Produtos e serviços** (itens estruturados) e **Meu espaço** (fotos reais do
+estabelecimento, quando houver). O cadastro é opcional e progressivo: sugerir
+até três itens principais para começar, sem limite rígido nem bloqueio para
+pedir a primeira peça. Não transformar o onboarding ou checkout em formulário
+longo. Um negócio de serviço pode cadastrar procedimentos, duração e forma de
+agendamento sem fingir que vende produtos físicos.
+
+`business_offerings` guarda tenant, negócio, ID, tipo `product|service`,
+nome, sinônimos confirmados, descrição, categoria, estado
+`draft|active|archived` e versão. Preço opcional em centavos BRL precisa
+de validade; promoções são registros separados com intervalo e aceite do
+dono. `business_offering_media` liga fotos autorizadas ao item. O álbum do
+espaço guarda fotos de fachada, balcão, sala ou ambiente sem obrigar vínculo
+com um produto. Uma foto registra origem, hash, escopo/direito de uso, estado e
+versão. A mídia real vai para armazenamento privado por tenant/negócio, nunca
+para o CDN dos kits fictícios.
+
+**Backend e web:** CRUD guiado, upload temporário autorizado, edição,
+arquivamento, ordenação e revisão. Importação de cardápio pode criar rascunhos;
+nada vira fato confirmado automaticamente. Material recebido pelo WhatsApp só
+se torna acervo durável após aceite explícito, pois sua retenção original é
+temporária. RLS, idempotência, concorrência, auditoria e outbox protegem
+alterações. Não criar um editor administrativo ou catálogo de ecommerce aqui.
+
+**Aceite:** cadastrar/editar um produto e um serviço, associar foto a um item
+e ao local, expirar preço e arquivar item; as leituras por outro tenant falham.
+A tela deixa visível o que está confirmado para a IA e o que ainda é rascunho.
+
+### BL04 — Recuperar contexto e produzir uma peça nova
+
+F02 recebe texto, foto, vídeo ou áudio; F03 transcreve quando necessário,
+interpreta o pedido de conteúdo e **resolve automaticamente** itens ativos,
+sinônimos, fotos e fatos vigentes do mesmo negócio. O cliente não escolhe
+manualmente um produto a cada pedido. O briefing compacto inclui kit aplicado,
+receita/formato, IDs/versões das fontes, restrições e somente as referências
+pertinentes; a galeria inteira nunca acompanha a chamada. Se a rota de IA
+precisar, envia no máximo **uma imagem do kit do mesmo formato**, separada das
+fotos reais do cliente.
+
+F04 integra ao produto uma rota de geração/edição visual por IA e a compara
+com composição local por receita aprovada. O roteador escolhe pela fidelidade,
+qualidade e **custo por peça aceita**, incluindo tentativas e revisões. Texto,
+preço, CTA e logo exatos são validados e podem receber acabamento determinístico.
+O template universal atual continua baseline técnico, não saída comercial
+automática. A saída guarda custo, modelo, prompt/receita versionados e
+proveniência sem expor dados privados por padrão ao operador.
+
+**Regra de fidelidade:** “crie uma imagem de um croissant” deve localizar o
+croissant do acervo se existir. Para mostrar o café real, a foto verdadeira
+do espaço é base da edição e o produto precisa permanecer reconhecível;
+apenas uma referência solta não comprova o lugar. Sem foto/contexto suficiente,
+a IA faz pergunta curta ou oferece peça claramente conceitual, sem apresentar
+um café ou alimento inventado como foto documental. Preço vencido, foto de
+outro item e material sem direito bloqueiam a afirmação. Alterar item, mídia,
+preço ou kit invalida candidatas pendentes que dependiam daquela versão.
+
+**Gate de saída:** gerar ao menos um post e um story **novos** para um caso
+consentido, com revisão em celular por titular, identificação correta de
+produto/local, texto literal, identidade reconhecível, razões de rejeição,
+tentativas e custo total por peça aceita. O ensaio sintético
+[Café do Cedro](../evals/brand-kit-transfer-v1.md) comparou quatro rotas e
+gastou US$ 0,074311 em três chamadas de IA, mas não percorreu o pipeline real
+nem mede aceite comercial. A fase pode ser construída/testada localmente com
+mocks enquanto a Meta está restrita; não se declara comercialmente aprovada
+sem amostra e aceite real.
+Para o plano de entrada de R$ 99/mês, a hipótese econômica é custo total de
+até R$ 50 por cliente/mês, incluindo geração, mensageria, infraestrutura,
+retentativas e suporte atribuível. F07 transforma a medição da BL04 em
+franquias/preços; nenhuma quantidade de posts é prometida antes disso.
+
+### BL05 — Jornada completa local, ajuste e proatividade mínima
+
+Ligar BL04 à orquestração F02/F03/F04/F06 existente: pedido livre por
+WhatsApp simulado **ou** horário da cadência aprovada cria uma candidata
+privada; o dono recebe prévia, pode pedir ajuste, aprovar ou recusar.
+Silêncio nunca aprova. A nova versão após ajuste deve reaplicar fatos,
+kit e acervo atuais; aprovação liga hash da peça, legenda, canal e horário,
+e a publicação falsa exercita falhas, replays e estados incertos. A web
+mostra a trilha e oferece revisão complementar, sem exigir cliques para o
+percurso principal. F03 pede material quando um dia sem input não tiver
+fonte suficiente. Plano limita quantidade/formato; recomendação de cadência
+não altera cobrança automaticamente.
+
+**Aceite local:** rodar casos texto, áudio, foto, vídeo e dia sem mensagem
+com o mesmo fluxo, incluindo correção, rejeição, repetição de webhook,
+mudança de fato antes da aprovação e limite de custo. Medir qualidade, taxa
+de aceite, custo por peça aceita e operação manual necessária. Homologação
+Meta/Instagram real, permissões, cobrança/franquia final e staging F07/F08
+são gates próprios antes de atender clientes; adapters falsos não provam
+essas integrações.
+
+### BL06 — Ampliar a biblioteca e servir o catálogo em escala
+
+Após BL04 demonstrar reaplicação e BL05 fechar o percurso local, curar kits
+próprios para **manicure com agenda** e **personal trainer**; cada nicho
+precisa de formatos finais, receitas editáveis, fontes/direitos e revisão
+própria. A cafeteria pode incluir variação de delivery com foto fiel do
+prato/embalagem e fundo neutro. A API/índice público passa a servir versões
+imutáveis de kits por armazenamento de objetos + CDN; o build da web não
+carrega todos os futuros kits. Escolha/recomendação por segmento e
+disponibilidade por plano usam esse catálogo; mídia de cliente continua
+privada e separada. Medir custo de curadoria por versão e tráfego por visita.
+Pesquisa de concorrentes e avatar F05 permanecem trilhas posteriores com
+fontes, consentimento e gates próprios.
+
+## Evidência e dependências
+
+A BL02 e a BL03 podem avançar sem a conta Meta. BL04 precisa da versão do kit
+e do acervo ou de um caso explicitamente sem item/foto; BL05 precisa de ao
+menos uma receita BL04 que passe no gate de qualidade. BL06 depende da
+reaplicação comprovada antes de prometer a novos nichos. O primeiro piloto
+pode restringir-se à cafeteria e às receitas que passaram no gate; outros
+formatos não entram por associação com o kit.
+
+| Repositório/serviço | Responsabilidade |
+| --- | --- |
+| `local-spark-platform` | Seleção/versão do kit, fatos/acervo privado, resolução automática, briefing, geração, ledger, aprovação e API do catálogo público. |
+| `local-spark-web` | Vitrine, editor guiado, seções de Sobre meu negócio, prévias/revisão e estados acessíveis. |
+| Armazenamento de objetos + CDN | Só amostras públicas e imutáveis dos kits; material de clientes usa bucket/escopo privado e URLs temporárias. |
+
+## Numeração substituída
+
+As entradas históricas de 26/10 e o primeiro ensaio usavam BL02 para a
+reaplicação, BL03 para três kits/CDN, BL04 para escolha e BL04.5 para acervo.
+A partir de 27/10 a ordem executiva é: **BL02 escolha/edição; BL03 acervo;
+BL04 geração/reaplicação com gate de qualidade; BL05 jornada local; BL06
+expansão**. BL01 mantém o mesmo número. Referências históricas não representam
+a fase vigente.

@@ -1,21 +1,69 @@
 # Contexto vivo do projeto
 
+27/10/2026 — **Próximo passo: BL02, escolher e editar o kit piloto.** A vitrine
+do café já existe, mas ainda não salva escolha nem oferece edição. O editor
+guiado permitirá ajustar cores, fontes, logo, textos e composição de feed,
+story e capa vertical, com prévia antes de confirmar. Em seguida, BL03 coloca
+o acervo progressivo e opcional dentro de “Sobre meu negócio”; BL04 usa kit e
+acervo para uma peça nova, avaliada por fidelidade, qualidade e custo por
+peça aceita; BL05 fecha a jornada local com WhatsApp simulado e proatividade;
+BL06 expande para outros nichos e catálogo público em objetos/CDN. A
+[sequência vigente](phases/README.md) substitui a numeração de 26/10.
+
+27/10/2026 — O acervo estruturado de BL03 será contexto consultado
+automaticamente, sem seleção de produto ou serviço por pedido. Áudio livre
+como “crie uma imagem de um croissant” dispara transcrição, identificação do
+item e busca restrita das fotos do produto e do ambiente do mesmo negócio.
+Para afirmar que a cena mostra o café real, a edição parte da foto verdadeira
+do espaço; troca do local/produto reprova a saída. Sem fontes suficientes,
+pedir material ou oferecer conceito ilustrativo. Ver
+[BL03](phases/BL-brand-library.md#bl03--acervo-progressivo-em-sobre-meu-negócio).
+
+27/10/2026 — O piloto visual agora inclui três JPEGs de feed com texto
+incorporado (editorial, oferta fictícia e destaque de cardápio), além das
+fotografias puras, stories e reel. A vitrine local ainda é arquivo versionado
+copiado para a web; BL06 migrará catálogo público para objetos/CDN. Fotos de
+cliente e seu catálogo estruturado serão privados. BL03 define o cadastro
+progressivo de produtos/serviços, preços com validade e fotos do item/ambiente;
+hoje só existem fatos livres e mídia temporária do WhatsApp. Ver
+[biblioteca visual](design/brand-library.md) e
+[fases BL](phases/BL-brand-library.md).
+
+26/10/2026 — A vitrine de cafeteria passou a explicar seis entradas WhatsApp
+(texto, foto de produto com oferta, foto do espaço, áudio, vídeo e nenhum
+material novo), indicando origem e resultado das fotos. O reel do catálogo é
+somente referência de formato. A produção personalizada deve preservar local,
+prato e embalagem reais; pedido só por texto gera conceito/arte gráfica ou
+solicitação de foto, sem simular um espaço/produto como se fosse do cliente.
+Delivery pode usar fundo neutro se o alimento real continuar fiel. Ver
+[contrato de fidelidade](design/brand-library.md#experiência-simples-de-escolha).
+
+26/10/2026 — BL01 tem o pacote técnico `cafe-pausas/v1`: dez posts distintos,
+dois stories, reel MP4, manifesto/validator com hash e proveniência. A web
+mostra a mesma versão em `/kits` (público) e `/app/kits` (cliente). É uma
+vitrine fictícia; revisão final de direitos e qualidade comercial permanece
+antes de adoção por clientes. A antiga BL02 (hoje gate BL04) iniciou um
+[ensaio controlado](evals/brand-kit-transfer-v1.md)
+em quatro rotas; três chamadas de imagem custaram US$ 0,074311 nesta amostra.
+Ainda não há aceite de titular real nem prova de economia por peça aceita.
+Checkout/onboarding seguem disponíveis antes do pagamento; permissões de
+produção/publicação serão aplicadas pela API conforme plano, não pelo menu.
+
 26/10/2026 — [Cadência e planos](design/editorial-planning-and-evidence.md):
 o plano limita volume por formato/canal, a plataforma sugere frequência dentro
 da franquia e explica por que, e o cliente aceita/reduz/pausa. Faixas e preços
-dependem do custo por peça aceita (BL02). Biblioteca cresce por três nichos
+dependem do custo por peça aceita (BL04). Biblioteca cresce por três nichos
 iniciais — cafeteria, manicure e personal — e por padrões de referência
 auditáveis, sem copiar mídia/legenda de concorrentes. Pesquisa automática só
 usa fontes/escopos aprovados; dados de clientes não vazam entre tenants.
 
-26/10/2026 — **Nova ordem de entrega:** [BL01–BL05](phases/BL-brand-library.md)
-antecipa a UI exploratória junto com um kit mestre completo, prova de reaplicação com no máximo **uma
-imagem de referência do kit da mesma receita/formato**, vitrine interna de
-três kits, escolha versionada e só então automação comercial por WhatsApp.
-O código existente de F02–F06 continua base; as prévias Pillow/FFmpeg atuais
-não viram kits aprovados. A mudança de ordem está no
-[índice das fases](phases/README.md). A web já tem uma primeira vitrine estática
-com três canais e mídia fictícia; o kit completo e seu catálogo ainda não existem.
+27/10/2026 — A ordem anterior, que ampliava a biblioteca para três kits antes
+da escolha do primeiro, foi substituída: [BL02–BL06](phases/BL-brand-library.md)
+prioriza escolha/edição, acervo, uma peça personalizada aprovada e a jornada
+local antes de novos nichos. O briefing usa no máximo **uma imagem de
+referência do kit da mesma receita/formato**, além das fotos reais pertinentes
+do cliente. O código de F02–F06 continua base; as prévias Pillow/FFmpeg
+atuais são técnicas e não são kits aprovados.
 
 26/10/2026 — O kit escolhido também será **referência da produção real**:
 receita editável, tokens visuais e **no máximo uma referência do kit** entram no
@@ -40,8 +88,9 @@ avaliadas e cobradas no custo da operação. Ver [biblioteca visual](design/bran
 cores para visualizar as opções. Depois da seleção, o negócio pode adaptar
 detalhes do kit. F03 registra a escolha versionada; F04 compara composição
 profissional local e IA visual com conteúdo real; F06 conserva aprovação
-separada para cada peça. Existe uma simulação inicial na web; catálogo, mídia
-final e escolha ainda não foram implementados.
+separada para cada peça. Existe uma vitrine piloto com mídia fictícia final
+na web; seleção por negócio, API pública do catálogo e produção personalizada
+com o kit ainda não foram implementadas.
 
 26/10/2026 — Eval [contexto completo antes da geração visual](evals/visual-context-eval-v1.md):
 fixture de cafeteria **fictícia** preenche dados de onboarding/contexto atuais e

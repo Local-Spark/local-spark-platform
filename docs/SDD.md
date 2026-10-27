@@ -1,14 +1,46 @@
 # SDD geral — Plataforma de conteúdo
 
-Ordem de implementação atualizada em 26/10/2026: a
-[trilha BL01–BL05](phases/BL-brand-library.md) começa pela UI exploratória em
-paralelo à produção de um kit completo e depois prova uma nova peça no mesmo
-estilo; seguem três kits na vitrine, escolha versionada e automação com WhatsApp. Em
+27/10/2026 — **Ordem vigente:** BL01 vitrine piloto local (entregue
+tecnicamente), BL02 seleção e edição guiada do kit por formato, BL03 acervo
+privado e progressivo em “Sobre meu negócio”, BL04 recuperação automática do
+contexto e primeira peça nova com gate de qualidade/custo, BL05 jornada
+WhatsApp local com ajuste, aprovação e proatividade, BL06 expansão para
+manicure/personal e catálogo público em objetos/CDN. Esta sequência substitui
+a numeração BL02/BL03/BL04/BL04.5 usada em registros de 26/10. Ver
+[trilha BL](phases/BL-brand-library.md) e
+[índice executivo](phases/README.md).
+
+A biblioteca atual é um pacote local versionado copiado para a web. O kit
+de cafeteria inclui três artes 4:5 com texto incorporado no JPEG e origem
+fictícia rastreada. O acervo BL03 guarda produto/serviço, foto autorizada,
+preço e validade com RLS, versão, idempotência e armazenamento privado.
+Cadastro opcional não bloqueia pedidos de conteúdo. Fatos livres atuais não
+substituem esse acervo; F03/BL04 recupera automaticamente itens ativos
+pertinentes de texto ou áudio livre e F04 usa suas fontes visuais.
+
+O acervo é recuperado automaticamente de mensagem ou áudio livre: F03
+identifica o produto/serviço citado e consulta itens/fotos autorizados daquele
+negócio, sem exigir escolha manual. F04 recebe foto do produto e, quando a
+peça pretende mostrar o local físico, foto real do ambiente como base da
+edição. Referências e versões entram no snapshot; fidelidade visual e fatos
+vigentes são revalidados antes da aprovação.
+
+26/10/2026 — O kit público inclui seis cenários de entrada para mostrar a
+diferença entre mensagem, material de origem e proposta. A vitrine é fictícia
+e não afirma que o vídeo demonstrativo foi feito a partir de um clipe do
+cliente. Na produção real, um café físico exige mídia própria/autorizada para
+retratar o local; foto de prato/embalagem precisa manter o produto fiel. Sem
+foto, IA pode ajudar a compor uma arte conceitual, mas não representar
+local/produto inventado como real. O mesmo gate vale para delivery, que pode
+usar fundo neutro sem mudar comida/embalagem. Ver
+[biblioteca visual](design/brand-library.md).
+
+A sequência de 26/10 que colocava três kits antes da escolha foi substituída
+pela ordem acima. Primeiro o negócio precisa aplicar e editar o kit piloto,
+depois registrar seu acervo e provar uma peça nova no mesmo estilo. Em
 qualquer rota de IA, o briefing contém o manifesto e **zero ou uma imagem de
 referência do kit da mesma receita/formato**; material real do cliente é uma
-entrada distinta. A seleção da vitrine não faz geração por visitante.
-Roadmap anterior que priorizava ampliar o renderer universal fica substituído
-pela [sequência vigente](phases/README.md#sequência-executiva-até-a-v0-completa).
+entrada distinta. Navegar na vitrine não gera conteúdo por visitante.
 
 O [planejamento explicável](design/editorial-planning-and-evidence.md) separa
 teto pago e cadência sugerida: cliente aprova o ritmo dentro da franquia, vê
@@ -30,20 +62,25 @@ dez posts por kit, stories, reels e exemplos de conversa ou dia sem mensagem,
 com marca fictícia. O simulador de Instagram/Facebook/TikTok fica **dentro da
 nossa web** e não acessa a conta pessoal do cliente. A seleção não chama IA
 visual nem exige materiais dele; F03 registra `kit_id/version`. Só a produção
-posterior com contexto real aciona F04 e seus custos/gates. A web já oferece
-uma simulação estática inicial; catálogo na API, kit final e seleção continuam
-pendentes.
+posterior com contexto real aciona F04 e seus custos/gates. O primeiro kit
+fictício agora tem manifesto, dez posts, dois stories e reel MP4, servidos como
+arquivos versionados na web. `/kits` é público e `/app/kits` mantém a mesma
+vitrine para clientes. A API de catálogo, escolha por negócio e gates
+comerciais continuam pendentes. Onboarding/checkout não são bloqueados por
+plano; a API autorizará produção/publicação por capacidade contratada.
 
 Atualização de produto (26/10/2026): [biblioteca de identidade e formatos](design/brand-library.md).
-O negócio que não tem kit visual vê até três kits prontos da nossa biblioteca,
-escolhe uma direção e pode editá-la depois. F03 persiste a escolha; F04
+O negócio que não tem kit visual verá até três kits prontos da nossa biblioteca
+quando BL06 ampliar o catálogo; hoje existe um kit piloto. Em BL02, escolhe
+uma direção e pode editar cores, fontes, logo, textos e composição guiada de
+feed, story e capa vertical. F03 persiste a escolha; F04
 aplica receitas versionadas e testa composição local contra geração/edição por IA
 para cada tipo de material, sob o mesmo gate de fidelidade e qualidade. Esta
 decisão de **roteamento por evidência** refina a prioridade anterior de IA visual
 para toda peça nova: IA permanece essencial onde cria valor, mas uma foto real
 boa com layout aprovado pode ser composta localmente se o resultado for aceito.
 Kit aprovado não aprova publicação; F06 pede aceite da peça final. Biblioteca e
-roteamento ainda não estão implementados.
+roteamento ainda não estão integrados ao pipeline real; a vitrine piloto existe.
 
 Promessa central reafirmada em 26/10/2026: **o cliente contrata uma presença
 digital útil e constante para atrair contatos e clientes, não acesso a um editor

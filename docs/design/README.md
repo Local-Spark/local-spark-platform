@@ -1,6 +1,6 @@
 # Plataforma de conteúdo para pequenos negócios
 
-Documentação de produto e engenharia, revisada em 20/10/2026.
+Documentação de produto e engenharia. Índice revisado em 27/10/2026.
 Nome adotado: Meu Braço Direito (`local-spark-platform`). Os documentos descrevem uma especificação para
 implementação; não representam serviços desenvolvidos ou capacidade comprovada.
 
@@ -18,7 +18,7 @@ implementação; não representam serviços desenvolvidos ou capacidade comprova
 10. [Plano de qualidade criativa: fotos, stories, vídeos e avatar](creative-production-quality.md).
 11. [Eval de contexto completo: campos da web, tools, qualidade e custo](../evals/visual-context-eval-v1.md).
 12. [Biblioteca de identidade visual e formatos: escolha simples, receitas e avaliação](brand-library.md).
-13. [Trilha BL01–BL05: catálogo, prova de reaplicação, vitrine e escolha](../phases/BL-brand-library.md).
+13. [Trilha BL01–BL06: vitrine, edição do kit, acervo, geração e expansão](../phases/BL-brand-library.md).
 14. [Cadência, limites dos planos e recomendações com evidência](editorial-planning-and-evidence.md).
 
 ## Decisão atual

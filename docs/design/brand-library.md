@@ -1,8 +1,8 @@
 # Biblioteca de identidade visual e formatos
 
-Data: 26/10/2026. Estado: **decisão de produto para validação**; a web já tem um
-simulador estático inicial, mas catálogo, escolha pelo cliente e renderização
-por receita ainda não estão implementados. Complementa o [plano criativo](creative-production-quality.md) e
+Atualizado em 27/10/2026. Estado: **primeiro kit demonstrativo local e receita
+de foto implementados; escolha, edição guiada e aplicação no pipeline pendentes**. A web
+serve a vitrine pública e autenticada do kit `cafe-pausas/v1`. Complementa o [plano criativo](creative-production-quality.md) e
 o [eval de contexto](../evals/visual-context-eval-v1.md).
 
 ## Problema e decisão
@@ -25,6 +25,17 @@ produto serão próprios, sem copiar templates, marcas ou publicações alheias.
 
 ## Três camadas distintas
 
+**Onde fica a biblioteca:** no desenvolvimento, o manifesto e os arquivos de
+`cafe-pausas/v1` estão versionados no repositório e são copiados para o build
+da web. Isso é um bootstrap de curadoria, não o armazenamento de produção.
+BL06 publica versões imutáveis dos kits públicos em armazenamento de objetos
+com CDN e índice/cache de catálogo; o deploy da web não deve carregar todos
+os kits futuros em seu bundle. Fotos, cardápio e peças de clientes ficam em
+armazenamento **privado por tenant/negócio**, com acesso temporário autorizado,
+fora do pacote público. BL03 introduz esse acervo privado e progressivo em
+**Sobre meu negócio**; metadados e versões do catálogo do negócio ficam no
+PostgreSQL. Cache/CDN público jamais recebe mídia privada.
+
 1. **Kit de demonstração da biblioteca:** pacote próprio, pré-produzido e
    versionado por segmento/estética. Inclui direção fotográfica (luz, cenário,
    enquadramento e tratamento), composição, fontes com licença, paleta,
@@ -34,6 +45,11 @@ produto serão próprios, sem copiar templates, marcas ou publicações alheias.
    produto, imagem, fato, preço, nome, CTA e logo; JPEG/MP4 de demonstração
    sozinhos não bastam para produzir novas peças do cliente.
    Todos veem os mesmos arquivos pré-gerados; abrir o catálogo não chama IA.
+   Cada kit precisa mostrar **peças finais com texto dentro do arquivo**,
+   além de fotos limpas: ao menos oferta, destaque descritivo e peça editorial
+   no feed, com legenda separada. A amostra deve ligar fonte, campos fictícios,
+   receita, arquivo final, hash e revisão. A foto limpa é matéria-prima, não
+   substitui a peça composta.
 2. **Kit aplicado ao negócio:** escolha do `kit_id/version` e, depois, nome,
    logo, cores e referências reais opcionais do cliente. A seleção mantém a
    direção visual do pacote; ajustes simples geram versão própria do negócio.
@@ -59,25 +75,59 @@ produto serão próprios, sem copiar templates, marcas ou publicações alheias.
    TikTok **dentro da nossa web**. Não abre a conta pessoal dele nem conecta as
    redes nessa etapa. Cada kit deve exibir todos os formatos que ele promete e
    indicar quais dependem do plano ou de integração ainda não disponível.
-4. Ao escolher, o cliente confirma a direção visual. Depois pode ajustar cor,
-   fonte licenciada, peso da foto e importar logo/fotos próprias; isso cria um
-   kit aplicado ao negócio. A web atualiza três prévias representativas
-   (feed, story e capa vertical) pelas receitas editáveis, sem regenerar a
-   biblioteca por IA a cada clique. Pode comparar com o padrão e voltar a ele.
-   Edição posterior cria nova versão e não altera peças aprovadas.
-5. WhatsApp pode enviar link direto ao catálogo e receber a escolha por resposta
-   curta; a web oferece a comparação completa. Escolher kit não autoriza postar.
+4. Em BL02, ao escolher, o cliente confirma a direção visual e pode adaptar
+   cores, fontes licenciadas, logo, textos fixos permitidos e composição por
+   formato. Fotos próprias são opcionais. A web atualiza três prévias
+   representativas (feed, story e capa vertical) pelas receitas editáveis, sem
+   regenerar a biblioteca por IA a cada clique. Pode comparar com o padrão e
+   voltar a ele. Cada edição confirmada cria nova versão do kit aplicado ao
+   negócio e não altera peças já aprovadas.
+5. Em BL05, o WhatsApp pode enviar link direto ao catálogo e receber a escolha
+   por resposta curta; a web oferece a comparação completa. Escolher kit não
+   autoriza postar.
+
+### Catálogo real do negócio
+
+Em BL03, a área **Sobre meu negócio** oferece cadastro progressivo e opcional
+de produtos, serviços e fotos do ambiente, sem transformar o cadastro inicial
+em um formulário longo nem bloquear pedidos livres pelo WhatsApp. Um item tem
+ID, nome, descrição, categoria, estado e versão; preço e
+validade são opcionais, e serviço pode declarar duração/forma de agendamento.
+Promoções têm período e aceite próprios. Fotos do item e do ambiente ficam em
+acervo privado com origem, direitos, hash e aprovação. Uma foto recebida pelo
+WhatsApp não vira acervo permanente automaticamente: a mensagem tem retenção
+limitada e o dono precisa autorizar a promoção da mídia. Cardápio enviado em
+PDF/foto pode sugerir rascunhos, que o dono revisa antes de confirmar.
+
+Em BL04, F03 busca **somente os itens ativos relevantes à pauta**, com fotos/fatos
+vigentes e IDs/versões no briefing; não envia todo o catálogo ao modelo.
+A busca é automática a partir de texto/áudio livre, sem escolha manual do item
+por pedido. “Crie uma imagem de um croissant” resolve o nome contra produtos
+e sinônimos, busca foto do produto e fotos autorizadas do ambiente e monta
+um briefing restrito. F04 ancora a geração nessas fontes. Para retratar o
+café real, usa a foto do ambiente como base da edição e verifica que
+arquitetura/letreiro permaneçam reconhecíveis; referência solta não garante
+fidelidade do local. Preço vencido, foto de
+outro item ou ausência de material essencial bloqueiam a afirmação e geram
+pedido curto de confirmação. O snapshot permite invalidar uma candidata
+quando produto, preço, foto ou kit mudam antes do aceite.
 
 ### Simulação da presença futura
 
-Esta é uma **experiência da nossa plataforma**, acessível após o contexto inicial
-e antes de conectar Instagram/Facebook/TikTok. O simulador Instagram mostra a
+Esta é uma **experiência da nossa plataforma**, acessível publicamente para
+visitantes e também após o contexto inicial, antes de conectar
+Instagram/Facebook/TikTok. O simulador Instagram mostra a
 estrutura familiar de perfil, grade de dez posições, stories separados e reels;
 as abas Facebook/TikTok exibem como **as mesmas amostras genéricas** se
 apresentariam nesses canais. Todas as imagens/vídeos/legendas vêm de arquivos
 pré-gerados do catálogo, via armazenamento/CDN. Não abrir, alterar ou ler a
 conta pessoal do cliente. A UI rotula “Exemplo do kit · marca fictícia · ainda
 não publicado” e não inventa seguidores, curtidas, comentários ou resultados.
+O visitante pode conhecer o estilo antes de criar conta; um convite o leva ao
+cadastro. Onboarding e checkout permanecem acessíveis sem plano. Recursos de
+produção/publicação exigem autorização de capacidade na API e terão menus
+liberados conforme a contratação. A visibilidade do menu não substitui a
+autorização no servidor.
 
 Cada posição abre o arquivo demonstrativo completo e mostra objetivo, formato,
 legenda/CTA fictícios e “o que seria enviado pelo WhatsApp”. O cliente alterna
@@ -85,12 +135,43 @@ entre kits e percebe o conjunto, sem gerar novas peças. Sempre que possível,
 usar as mesmas pautas fictícias nos kits comparados para evidenciar a diferença
 de estilo. A biblioteca completa mostra disponibilidade por plano e plataforma.
 
-Dois cenários obrigatórios na demonstração:
+O kit deve explicar os **seis percursos de entrada representativos**; não
+promete que todas as combinações de mídia, canais e receitas já estão
+implementadas. O catálogo guarda mensagem, origem da mídia, decisão, prévia e
+estado (`demo_of_proposed_flow` ou `format_reference_only`) por cenário. A UI
+separa foto de entrada e resultado e identifica claramente que as fotos desta
+vitrine são fictícias. Em especial, o reel de referência feito de fotografias
+não pode ser apresentado como edição de um clipe enviado.
 
 | Origem | Exemplo de entrada | Exemplo de saída simulada |
 | --- | --- | --- |
-| WhatsApp fictício | “Hoje o croissant do café de exemplo está R$ 18” + foto licenciada | Story e post **pré-produzidos** do kit, mostrando o resultado possível e a confirmação de preço que o sistema pediria no uso real. |
-| Dia sem mensagem | Nenhuma entrada nova para o café fictício | Post/dica **pré-produzido** do kit, mostrando como o planejador agiria com acervo e fatos vigentes; no uso real, pediria material caso faltasse. |
+| Apenas texto | “Quero uma imagem para a pausa da tarde, sem foto hoje” | Arte conceitual/tipográfica; se o pedido exigir retratar prato ou espaço reais, pedir foto antes. |
+| Foto do produto + promoção | Foto do próprio produto + “R$ 18 hoje” | Mostrar foto de origem e JPEG final derivado dela, com texto incorporado; no uso real, confirmar preço e prazo. |
+| Foto do próprio espaço | Foto do balcão/salão + pedido de convite | Aplicar estilo mantendo o local reconhecível; nunca criar outro estabelecimento como se fosse o dele. |
+| Áudio | Nota de voz com pauta | Transcrever, recuperar mídia já autorizada e gerar proposta; pedir confirmação de fatos variáveis. |
+| Vídeo | Clipe curto do preparo | Corte/legenda a partir **do clipe** se houver receita homologada; o reel atual do kit é só referência de formato. |
+| Dia sem mensagem | Nenhuma entrada nova | Proposta com acervo e fatos vigentes; se faltarem, pedir material, sem inventar. |
+
+**Regra de fidelidade à origem.** Distinguir `venue_photo`, `product_photo`,
+`customer_video`, `authorized_archive` e `concept_only` no briefing. Para loja,
+salão, café ou consultório físico, uma imagem sintética de interior não pode ser
+publicada como foto do local. Uma foto real do espaço autoriza recorte, cor e
+texto com revisão, mas não troca arquitetura, mobiliário ou letreiro. Para
+produto ou comida, manter prato, ingredientes, porção, embalagem e aparência
+reconhecíveis. IA pode propor fundo neutro ou tratamento de iluminação, sem
+alterar o que é vendido; a peça passa por comparação com o original e aceite
+explícito do cliente. Quando só há texto, usar arte gráfica/ilustração
+identificada ou pedir foto se a pauta depender do produto/local real. Um
+conceito gerado pode ser apresentado como conceito, nunca como prova de um
+produto, equipe ou estabelecimento existente. O briefing e o arquivo final
+registram fonte, direito de uso, operações de edição, versão e aprovação.
+
+No delivery, a prioridade é uma foto autorizada do prato/embalagem. É possível
+compor fundo neutro ou cenário genérico **sem afirmar que é o estabelecimento**,
+desde que o alimento real continue fiel. A ausência de salão físico facilita a
+direção de fundo, mas não permite inventar ingrediente, tamanho ou apresentação.
+Exemplos do kit são fictícios; a foto demonstrativa do croissant nunca vira foto
+do prato real de um assinante por troca de nome.
 
 As dez posições e os outros formatos são produzidos **uma vez por versão do
 kit**, revisados editorial/visualmente e armazenados como ativos estáticos do
@@ -171,36 +252,46 @@ teste, não economia demonstrada.
 
 ## Contratos para implementar em fatias
 
-- **F03 — contexto e escolha:** `brand_kit` por negócio e versão, estado
+- **BL02 — escolha e edição guiada:** `brand_kit` por negócio e versão, estado
   `suggested/approved/retired`, proprietário/horário de aprovação, ativos com
   hash/direitos, regras, `style_pack_id` e `style_pack_version`; nenhuma sugestão
-  pendente entra em produção automática. Snapshot editorial inclui versão do
-  kit e referências autorizadas. F03 usa segmento/preferências apenas para
-  **filtrar/recomendar kits já existentes** e registra o `kit_id/version`
-  escolhido. As dez pautas da demonstração pertencem ao catálogo, não são
-  criadas por F03 com fatos do visitante.
-- **Catálogo interno — curadoria/versionamento:** `catalog_kit` com segmento,
+  pendente entra em produção automática. Ajustes confirmados de cor, fonte,
+  logo, texto e composição por formato criam versão do kit aplicado. A web
+  mostra prévias de feed, story e capa vertical. F03 usa segmento/preferências
+  apenas para **filtrar/recomendar kits já existentes** e registra o
+  `kit_id/version` escolhido. As dez pautas da demonstração pertencem ao
+  catálogo, não são criadas por F03 com fatos do visitante.
+- **BL03 — acervo privado do negócio:** produtos/serviços, preços com validade,
+  promoções aprovadas e fotos autorizadas do item/ambiente são opcionais e
+  versionados por tenant/negócio. Mídia do WhatsApp só vira acervo durável após
+  aceite explícito do dono. A UI de **Sobre meu negócio** permite cadastro e
+  manutenção sem exigir seleção manual de item a cada pedido.
+- **BL06 — catálogo público e curadoria/versionamento:** `catalog_kit` com segmento,
   estilo, status, direitos, formatos, versão e disponibilidade por plano;
   `catalog_sample` com posição, canal, receita, imagem/vídeo/legenda final,
   miniatura, roteiro da conversa fictícia e autoria; `catalog_recipe_source`
   guarda arte-fonte editável, tokens visuais, slots tipados e regras de formato.
   Pacote só fica público depois de revisão; versão publicada é imutável e
   cacheável. A produção posterior fixa a versão do pacote escolhido.
-- **F04.1b/F04.2b — receitas e roteamento:** `recipe_id/version`, formatos
+- **BL04 + F03/F04 — recuperação e nova peça:** texto/áudio livre resolve
+  automaticamente itens e fotos pertinentes no acervo do mesmo negócio. O
+  snapshot editorial inclui versões do kit, dos fatos e das referências
+  autorizadas; ausência de acervo gera pergunta curta quando faltar evidência,
+  sem impedir toda criação. `recipe_id/version` declara formatos
   suportados, entradas exigidas, limites, alternativas visuais e renderer
   `preserve/compose/ai_edit/ai_generate`. Chave idempotente da prévia inclui
   versão do kit, receita, fonte, fato e briefing. Guardar rota e custo de cada
-  tentativa **somente na produção real**. A primeira fatia de catálogo pode
-  conter três nichos iniciais e um kit completo por nicho, mesmo que o pipeline personalizado
-  comece validando apenas foto/story. Indicar formatos ainda não habilitados no
-  produto, sem prometer publicação automática neles. Resolver **zero ou uma**
+  tentativa **somente na produção real**. Validar uma nova peça com o kit piloto
+  antes de expandir para três nichos em BL06. Indicar formatos ainda não
+  habilitados no produto, sem prometer publicação automática neles. Resolver
+  **zero ou uma**
   referência visual do kit por receita, guardar hashes e impedir que nome,
   logo ou produto fictícios do exemplo apareçam na saída personalizada.
 - **Área web — simulador de catálogo:** carregar `catalog_kit/version` e seus
   ativos estáticos, exibir visualizações por canal e comparar kits sem
   `brand_preview_session` ou geração individual. Persistir somente seleção e
-  eventual preferência do negócio. Link pode ser enviado pelo WhatsApp; nenhuma
-  rede precisa estar conectada.
+  versões de ajustes do negócio. Link pode ser enviado pelo WhatsApp na jornada
+  BL05; nenhuma rede precisa estar conectada.
 - **F06 — aprovação:** prévia, legenda e destino continuam aprovados por hash.
   Mudança de kit ou receita gera nova candidata, sem transferir aprovação.
 - **F07 — aprendizado:** registrar escolha do kit, motivo de ajuste/rejeição,
@@ -209,11 +300,13 @@ teste, não economia demonstrada.
 
 ## Eval antes de ampliar a biblioteca
 
-**Eval do catálogo:** três kits iniciais (cafeteria, manicure e personal), com
-dez posts exemplares e os formatos anunciados em cada pacote. Medir tempo até
-escolha, adequação ao nicho, qualidade das peças ampliadas, coerência entre formatos e se o
-cliente entende que a marca/fotos são fictícias. Medir custo de **produção do
-catálogo por versão** e tráfego por visita, sem imputar dez gerações ao cliente.
+**Eval do catálogo:** validar primeiro a escolha e a edição do kit piloto em
+BL02 e sua reaplicação em BL04. Em BL06, acrescentar os kits de manicure e
+personal, cada um com dez posts exemplares e os formatos anunciados no pacote.
+Medir tempo até escolha, adequação ao nicho, qualidade das peças ampliadas,
+coerência entre formatos e se o cliente entende que a marca/fotos são
+fictícias. Medir custo de **produção do catálogo por versão** e tráfego por
+visita, sem imputar dez gerações ao cliente.
 
 **Eval de produção real, separado:** com foto autorizada, fato vigente e kit
 escolhido, comparar **(a)** prompt sem kit, **(b)** manifesto compacto do kit,

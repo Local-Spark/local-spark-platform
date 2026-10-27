@@ -1,5 +1,69 @@
 # Registro de mudanças
 
+## 2026-10-27 — Roadmap BL reorganizado em torno do primeiro conteúdo personalizado
+
+- A ordem vigente agora é BL01 vitrine piloto local, BL02 escolha e edição
+  guiada do kit por negócio e formato, BL03 acervo privado progressivo em
+  “Sobre meu negócio”, BL04 recuperação automática e nova peça com gate de
+  qualidade/custo, BL05 jornada WhatsApp local/proativa e BL06 expansão de
+  nichos e catálogo em objetos/CDN.
+- A renumeração substitui BL02 (prova de reaplicação), BL03 (expansão),
+  BL04 (escolha) e BL04.5 (acervo) usados nos registros anteriores; esses
+  registros permanecem históricos. Escolha/edição, acervo e IA visual no
+  pipeline continuam **planejados**, enquanto o kit/vitrine BL01 já existe
+  localmente.
+- Decisões de produto confirmadas: o acervo fica em seções de “Sobre meu
+  negócio” e é opcional/progressivo; o editor de kits permite alterar também
+  a composição de feed, story e capa vertical por controles guiados com
+  prévias. Áudio/texto livre continuará sem exigir escolha manual de item.
+- Validação desta mudança documental: revisão de referências, estados e
+  `git diff --check`; testes de código não foram necessários.
+
+## 2026-10-27 — Peças finais no kit e catálogo do negócio
+
+- O kit fictício de cafeteria ganhou três JPEGs 4:5 com texto/CTA no próprio
+  arquivo: editorial de produto, oferta ilustrativa e destaque de cardápio.
+  Manifesto e validador rastreiam fotos de origem, receitas, hashes e os três
+  formatos. O fluxo de promoção mostra entrada e arquivo final distintos.
+- BL04.5 especifica produtos/serviços, preço/validade, promoções e fotos do
+  item/ambiente com armazenamento privado, revisão do dono e recuperação
+  automática e seletiva após texto/áudio livre, sem escolha manual de item no
+  pedido. BL03 diferencia biblioteca pública em objeto/CDN do
+  bootstrap local atual; não há API de catálogo nem cadastro estruturado ainda.
+- Validação: 16 testes do catálogo passaram; lint/tipos e 642 testes da suíte
+  completa passaram com 100% de cobertura. Um teste Temporal falhou enquanto
+  o serviço local iniciava e passou isoladamente após ficar disponível.
+  Avaliação visual por comerciantes e publicação do catálogo em produção
+  permanecem pendentes.
+
+## 2026-10-26 — Entradas do kit e fidelidade do negócio
+
+- O manifesto do piloto descreve seis cenários WhatsApp e a origem da mídia de
+  cada um. O validador rejeita referências ausentes e evita que demos de foto
+  do produto/local troquem a imagem de entrada por outro cenário.
+- SDD/BL01–BL02 separam imagem fictícia de vitrine e material real do cliente:
+  um local físico não pode parecer outro; prato, porção e embalagem de delivery
+  precisam ser fiéis. Texto sem foto usa arte conceitual ou pede material.
+- Validação local: `make ci` com 639 testes e 100% de cobertura no app;
+  qualidade visual comercial, ensaio consentido e pipeline de edição real
+  seguem pendentes.
+
+## 2026-10-26 — BL01 técnica e ensaio inicial BL02
+
+- Catálogo `cafe-pausas/v1` com dez posts fotográficos distintos, dois stories,
+  reel silencioso de 8,96 s, receitas editáveis, fontes com licença, hashes e
+  proveniência. Validador/exportador bloqueia mídia alterada, direitos incompletos
+  e referências quebradas; a vitrine web usa o pacote estático.
+- BL02 compara foto CC0 de um segundo negócio fictício em quatro rotas. Três
+  chamadas Flare/medium custaram US$ 0,074311 juntas; a referência extra
+  aumentou custo neste caso. Texto/preço/CTA exatos foram compostos localmente
+  para todas as rotas. [Resultado e limites](evals/brand-kit-transfer-v1.md).
+- A vitrine pública `/kits` entra antes do cadastro; acesso real a recursos pagos
+  seguirá autorização de API por plano em BL04/BL05, sem travar checkout.
+- Validação: validador do catálogo, testes unitários e FFprobe do MP4; `make ci`
+  e testes/browser web registrados no changelog da web. Revisão de titular
+  consentido, custos operacionais e qualidade comercial ainda pendentes.
+
 ## 2026-10-26 — Kits por nicho e cadência vinculada ao plano
 
 - BL03 passa a prever cafeteria, manicure com agenda e personal trainer, cada

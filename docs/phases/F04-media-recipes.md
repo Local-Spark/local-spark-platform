@@ -1,23 +1,30 @@
 # F04 — Artes, carrosséis e edição de vídeo
 
-Ordem vigente: [BL01–BL05](BL-brand-library.md) valida primeiro um kit mestre
-e sua reaplicação num novo conteúdo antes de ampliar a biblioteca, automatizar
-ou declarar pronto o renderer atual. A referência do kit, quando necessária,
-é **uma única imagem da mesma receita/formato**; a foto/clipe do negócio é uma
+Ordem vigente: [BL01–BL06](BL-brand-library.md) entrega o kit demonstrativo
+local (BL01), sua escolha e edição guiada (BL02) e um acervo opcional e privado
+do negócio (BL03). BL04 usa esse contexto e um pedido livre vindo de texto ou
+áudio para gerar **uma nova peça** com o kit aplicado, medindo qualidade,
+fidelidade ao produto/local e custo por peça aceita. BL05 encadeia a peça à
+jornada local de WhatsApp com aprovação e ajustes; BL06 amplia os nichos e
+publica o catálogo em objeto/CDN. A referência do kit, quando necessária, é
+**uma única imagem da mesma receita/formato**; a foto/clipe do negócio é uma
 entrada separada. F04.1b/F04.2b continuam responsáveis pelo gate visual e de
 vídeo da peça real.
 
-Referência do kit na produção real (pendente): F04 recebe manifesto compacto da
-receita/estilo escolhidos e, quando a rota IA precisar, **no máximo uma imagem** da
-biblioteca pertinentes ao formato. O texto/logo fictícios são retirados das
-referências e a saída é verificada contra marca, produto e fatos reais. Comparar
+Referência do kit na produção real (pendente em BL04): F04 recebe manifesto
+compacto da receita/estilo escolhidos e, quando a rota IA precisar, **no máximo
+uma imagem** da biblioteca pertinente ao formato. O texto/logo fictícios são
+retirados das referências e a saída é verificada contra marca, produto, local e
+fatos reais. Usar somente fotos privadas autorizadas e recuperadas do acervo
+BL03 ou da mensagem atual; ausência de acervo não bloqueia o pedido. Comparar
 sem kit, manifesto, manifesto + referência e composição local no mesmo caso;
 registrar tokens, tentativas e custo **por peça aceita**. Ver
 [biblioteca visual](../design/brand-library.md#produção-e-custo).
 
-Showroom de escolha do kit (pendente): a equipe produz **uma vez por versão**
-dez exemplos, stories e reels com marca fictícia para cada kit. A web serve
-os arquivos prontos do catálogo; nenhuma renderização/IA visual é executada
+Showroom do kit piloto (BL01 entregue localmente; expansão em BL06): a equipe
+produz **uma vez por versão** dez exemplos, stories e reels com marca fictícia
+para cada kit. A web serve os arquivos prontos do catálogo; nenhuma
+renderização/IA visual é executada
 para o visitante que apenas compara kits. F04 só gera peças personalizadas após
 escolha, com fontes reais, orçamento e gate comercial próprios. Feed, stories e
 reels têm apresentações distintas no simulador interno; Facebook/TikTok seguem
@@ -31,6 +38,9 @@ escolher pelo gate de qualidade, fidelidade ao produto, preferência do dono e
 custo por peça aceita. Começar com uma receita foto/story e três direções,
 sem substituir uma saída ruim pelo template v4. Nenhuma rota passou ainda no
 gate comercial; biblioteca e roteador estão pendentes.
+
+Atualização de 27/10/2026: o kit demonstrativo local de BL01 existe; a
+biblioteca de receitas para produção real e o roteador visual seguem pendentes.
 
 Eval de 26/10/2026: um
 [perfil sintético preenchido](../evals/visual-context-eval-v1.md) e runner
@@ -73,8 +83,9 @@ Status: F04.1 e primeira receita F04.2 implementadas localmente em 25/10/2026;
 F04.1b tem template v4, ajustes versionados e avaliador; F04.2b começou em
 26/10/2026 com narrativa, dois cortes e revisão de ritmo. O template de vídeo
 v4 conserva o clipe inteiro e há benchmark sintético e gate de revisão humana.
-Revisão consentida, medição de custo em staging, seleção semântica de trechos e
-F04.3 seguem pendentes.
+Revisão consentida, medição de custo em staging e seleção semântica de trechos
+seguem pendentes. A fatia local de F04.3 registra candidata e entrega simulada;
+envio oficial e homologação ainda pendem.
 Dependências: F02, F03.
 
 F04.1 consome apenas roteiro F03.3 aceito, contexto e material vigentes. Produz
@@ -298,7 +309,7 @@ Critérios de entrada **pré-definidos** para a revisão comercial de vídeo:
 F04.2b permanece **em andamento**: além dos gates externos, falta escolher
 trechos por relevância sem alterar fatos, avaliar texto/ritmo com comerciantes
 e decidir se fala e legenda sincronizadas agregam valor com custo e direito de
-uso aceitáveis. F04.3 pode ser construída e testada localmente antes da Meta,
+uso aceitáveis. F04.3 já tem uma fatia local testável antes da Meta,
 mas o piloto comercial aguarda os gates criativos e de custo.
 
 - Aproveitar as cenas do roteiro versionado F03.3b, o contexto de marca e os

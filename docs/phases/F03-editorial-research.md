@@ -1,17 +1,26 @@
 # F03 — Pesquisa, temas e planejamento proativo
 
-Ordem vigente: [BL01–BL05](BL-brand-library.md) produz e valida o kit antes de
-acelerar a automação editorial. A escolha de F03 vem após a vitrine BL03 e
-registra a versão imutável do kit em BL04. Proatividade sem novo material usa
-o mesmo kit e só entra no piloto após a reaplicação visual BL02.
+Ordem vigente: [BL01–BL06](BL-brand-library.md) começa com o kit demonstrativo
+local (BL01), seguido de escolha e edição guiada por formato (BL02). O acervo
+opcional de produtos, serviços e fotos do ambiente entra em BL03, em
+**Sobre meu negócio**; o cliente continua podendo pedir conteúdo sem preencher
+esse acervo. Em BL04, F03 interpreta texto ou áudio livre, recupera
+automaticamente apenas fatos, itens e mídias autorizados pertinentes ao pedido
+e registra suas versões no briefing. BL05 exercita a jornada local de WhatsApp,
+inclusive a proposta sem novo material; BL06 amplia a biblioteca para três
+nichos e publica o catálogo por objeto/CDN. Nenhuma dessas etapas dispensa o
+gate de qualidade, fidelidade e custo por peça aceita antes do piloto comercial.
 
-Após o cliente escolher um kit, F03 inclui `kit_id/version` e a receita
-compatível no briefing editorial real. O serviço resolve as regras visuais do
-catálogo e seleciona apenas exemplos pertinentes; o modelo não interpreta um
-ID de kit isolado. Fatos comerciais vigentes e mídia autorizada continuam vindo
-do negócio, nunca dos exemplos fictícios da vitrine.
+Após o cliente escolher e, se desejar, editar um kit, F03 inclui a versão do
+kit aplicado e a receita compatível no briefing editorial real. O serviço
+resolve as regras visuais do catálogo e seleciona apenas exemplos pertinentes;
+o modelo não interpreta um ID de kit isolado. Em BL04, o pedido livre identifica
+automaticamente o produto ou serviço relevante no acervo opcional do mesmo
+negócio, sem exigir seleção manual de item. Fatos comerciais vigentes e mídia
+autorizada continuam vindo do negócio, nunca dos exemplos fictícios da vitrine.
 
-Showroom de escolha do kit (UI inicial entregue; catálogo/seleção pendentes): as dez pautas e os exemplos de conversa
+Showroom do primeiro kit (UI inicial entregue em BL01; seleção e edição em BL02,
+catálogo publicado e novos nichos em BL06): as dez pautas e os exemplos de conversa
 são produzidos uma vez pela equipe com **marca e materiais de demonstração**.
 F03 não monta pautas com fatos/mídia do visitante para abrir a vitrine; apenas
 recomenda kits existentes por segmento e registra `kit_id/version` escolhido.
