@@ -1,5 +1,15 @@
 # Registro de mudanças
 
+## 2026-10-27 — BL04.1: candidato Jev no worker local
+
+- Interpretador Jev opcional e pinado, com autorização específica TypeSafe por negócio, reserva diária por tenant, identificador idempotente e tratamento conservador de resultado incerto; sem chamada paga nos testes.
+- Ambiguidade registra esclarecimento pelo adaptador simulado. A autorização e as fontes são revalidadas; desabilitar o provedor não substitui consentimento TypeSafe por consentimento OpenAI.
+- Roteiro pode usar o nome de item ativo e versionado do acervo como fonte, sem cadastrar fato artificial nem inferir preço; edição exige revalidar a versão da fonte e rejeita alegações comerciais não confirmadas.
+- Decisão de produto: oferta inicial de R$ 99 com foto e story; vídeo e limites de quantidade serão definidos depois. Regra estática vale apenas para a primeira oferta e deverá ser substituída por permissões persistidas para novos planos.
+- Ensaios Jev autorizados: 29/30 intenções e 6/7 cenários do adapter corresponderam ao gabarito; houve erro em negação e um pedido implícito de divulgação exigiu esclarecimento. Custo estimado total US$ 0,000793884 e reserva conservadora total US$ 0,099456, dentro de US$ 0,10, sem cobrança incerta. As amostras não aprovam produção.
+- Migração 0043 aditiva aplicada no banco de testes e no banco de desenvolvimento local; uma instância nova respondeu 200 em readiness e OpenAPI. Reiniciar a sessão de debug após a migração. Produção e staging continuam bloqueados. Faltam eval PT-BR conclusivo, franquias, conversa, geração visual e demais gates descritos na spec BL04.
+- Validação local: 843 testes unitários, 124 testes direcionados, integração do roteiro com edição e invalidação, 299 testes da web e build passaram. A execução de `make ci` foi interrompida durante os testes de integração; não há resultado consolidado de cobertura do backend para esta entrega.
+
 ## 2026-10-27 — Cenários de QA e avaliação inicial do OpenCode
 
 - Registrados três cenários fictícios e um guia manual com passos disponíveis,

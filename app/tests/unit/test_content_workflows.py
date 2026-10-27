@@ -48,6 +48,24 @@ async def test_candidate_workflow_skips_and_blocks(monkeypatch):
     assert await content_candidate.ContentCandidateWorkflow().run("event-id") == "preview_blocked"
 
 
+@pytest.mark.parametrize(
+    "outcomes,expected",
+    [
+        (["briefing_needs_clarification", "clarification_delivered"], "clarification_delivered"),
+        (["briefing_pending", "briefing_unavailable"], "briefing_unavailable"),
+        (["briefing_pending"] * 61, "briefing_timeout"),
+    ],
+)
+async def test_briefing_workflow_handles_uncertainty_and_bounded_waits(monkeypatch, outcomes, expected):
+    execute = AsyncMock(side_effect=outcomes)
+    monkeypatch.setattr(content_candidate.workflow, "execute_activity", execute)
+    monkeypatch.setattr(content_candidate.workflow, "sleep", AsyncMock())
+    monkeypatch.setattr(content_candidate.workflow, "patched", lambda _: True)
+    assert await content_candidate.ContentCandidateWorkflow().run("event-id") == expected
+    if expected == "clarification_delivered":
+        assert execute.await_args_list[-1].args == ("deliver_briefing_clarification", "event-id")
+
+
 async def test_fake_publication_workflow_delegates(monkeypatch):
     execute = AsyncMock(return_value="published")
     monkeypatch.setattr(content_publication.workflow, "execute_activity", execute)

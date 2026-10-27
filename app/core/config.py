@@ -60,6 +60,12 @@ class Settings(BaseSettings):
     editorial_ai_model: str = "gpt-5-mini"
     editorial_creative_experimental: bool = False
     editorial_daily_token_limit: int = Field(default=0, ge=0)
+    intent_ai_mode: Literal["disabled", "jev"] = "disabled"
+    typesafe_api_key: SecretStr | None = Field(default=None, validation_alias="TYPESAFE_API_KEY")
+    intent_ai_model: str = "jev-1.14.0"
+    intent_ai_daily_budget_usd_micros: int = Field(default=0, ge=0)
+    # The reviewed Jev price may be raised conservatively, never understated.
+    intent_ai_input_rate_usd_micros: int = Field(default=42_000, ge=42_000)
     visual_ai_monthly_budget_usd_micros: int = Field(default=0, ge=0, le=1_000_000_000_000)
     jwt_secret: SecretStr = Field(min_length=32)
     jwt_issuer: str = "meu-braco-direito-local"
@@ -191,6 +197,13 @@ class Settings(BaseSettings):
     def editorial_ai_safety(self) -> "Settings":
         if self.editorial_creative_experimental and self.environment not in {"development", "testing"}:
             raise ValueError("Experimental editorial copy is restricted to development and testing")
+        if self.intent_ai_mode == "jev":
+            if self.environment not in {"development", "testing"}:
+                raise ValueError("Intent interpretation is restricted to development and testing")
+            if not self.typesafe_api_key or not self.meta_encryption_key or self.intent_ai_daily_budget_usd_micros <= 0:
+                raise ValueError("Intent interpretation requires explicit credentials and a daily budget")
+            if self.intent_ai_model != "jev-1.14.0":
+                raise ValueError("Intent model requires a reviewed versioned pricing configuration")
         if self.editorial_ai_mode == "openai" and (not self.openai_api_key or self.editorial_daily_token_limit < 30000):
             raise ValueError("Editorial AI requires a provider key and daily token reservation limit")
         if not self.editorial_ai_model or len(self.editorial_ai_model) > 80:

@@ -1,6 +1,6 @@
 # Eval exploratório — Jev e intenções de conteúdo PT-BR
 
-Data: 27/10/2026. Estado: ensaio real exploratório em cinco mensagens fictícias; **Jev não está integrado ao produto**. O ensaio não envia mensagens a clientes, não consulta banco e não publica. Complementa [inteligência editorial](../design/v0-intelligence.md).
+Data: 27/10/2026. Estado: ensaio real exploratório em 30 mensagens fictícias de desenvolvimento; Jev também está integrado de forma opcional ao worker local, desligado por padrão e sem aprovação comercial. O ensaio não envia mensagens a clientes, não consulta banco e não publica. Complementa [inteligência editorial](../design/v0-intelligence.md).
 
 ## Objetivo e dados
 
@@ -101,6 +101,39 @@ A confiança de `Choice` serve para testar abstenção; o limiar inicial 0,5 é
 avaliá-lo separadamente em um novo holdout cego (o holdout atual foi contaminado). A tabela de calibração agrupa a probabilidade
 da opção escolhida e compara com os acertos observados: não confundir
 `confidence` do fornecedor com probabilidade de acerto do nosso negócio.
+
+## Ensaio ampliado com autorização de US$ 0,10 — 27/10/2026
+
+Com 30 casos fictícios da partição de desenvolvimento, `jev-1.14.0` respondeu
+os 30 e acertou **29/30**, com limiar experimental 0,5 e sem abstenções. O baseline
+respondeu 11 corretamente e se absteve em 19; não houve erros nas respostas do
+baseline. O Jev classificou como disponibilidade uma mensagem de fechamento
+negado (`other-04`), cujo gabarito era `other`. A regra determinística atual do
+fluxo integrado se abstém diante de negação, mas este ensaio isolado não mede a
+eficácia desse fluxo de ponta a ponta. Os casos são sintéticos e de desenvolvimento;
+não constituem holdout independente nem validam seleção de produto, formato ou
+conversa com clientes.
+
+O provedor reportou **14.135 tokens de entrada**, custo estimado de
+**US$ 0,000593670**, sem chamadas de cobrança incerta; a reserva conservadora foi
+**US$ 0,08064**, dentro do teto autorizado de US$ 0,10. Mediana **202,423 ms**,
+p95 amostral **294,699 ms**. São estimativas sem impostos, infraestrutura ou
+refações e não equivalem à fatura ou ao custo mensal por cliente. É preciso corpus
+representativo e holdout novo antes de habilitar clientes reais.
+
+No mesmo teto, o adapter de runtime foi chamado diretamente em [sete cenários
+fictícios registrados](jev-briefing-smoke-v1.json) de intenção, seleção e formato: seis corresponderam ao gabarito.
+O pedido “quero divulgar” foi classificado como `other` e encaminhado para
+esclarecimento, em vez de ser reconhecido como solicitação de conteúdo. Foto,
+story, vídeo indisponível, preço, pergunta e saudação tiveram os resultados
+esperados neste conjunto mínimo. Esses testes não incluem o worker, o banco ou a
+entrega WhatsApp e não são uma avaliação representativa.
+
+Nessas sete chamadas, o provedor reportou **4.767 tokens de entrada**, com custo
+estimado de **US$ 0,000200214** e nenhuma chamada incerta. Somando os dois ensaios
+desta autorização: **US$ 0,000793884** estimados; as reservas máximas somadas
+foram **US$ 0,099456**, dentro do teto de US$ 0,10. Melhorar o reconhecimento de
+intenções implícitas e repetir a avaliação em conjunto novo antes de uso comercial.
 
 ## Métricas e limites de decisão
 

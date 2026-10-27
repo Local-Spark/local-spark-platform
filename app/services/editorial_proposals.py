@@ -8,7 +8,7 @@ import json
 import re
 from datetime import UTC, datetime
 from typing import Any, Literal
-from uuid import UUID, uuid4
+from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 from zoneinfo import ZoneInfo
 
 from cryptography.fernet import Fernet, InvalidToken
@@ -33,6 +33,7 @@ from app.schemas.editorial_proposals import (
 )
 from app.services.auth import AuthError
 from app.services.brand_kits import kit_commercially_available
+from app.services.plan_capabilities import INITIAL_PLAN_INTENT_FORMATS
 from app.services.whatsapp_materials import WhatsAppMaterialsService
 
 
@@ -63,6 +64,32 @@ _COMMERCIAL_CLAIM = re.compile(
     r"(?i)(?:r\$\s*\d+(?:[.,]\d+)?|\b\d+(?:[.,]\d+)?\s*(?:%|reais|horas?|dias?|h)\b|"
     r"\b(?:gr[aá]tis|gratuit[oa]s?|desconto|promo[cç][aã]o|garantid[oa]s?|hoje|amanh[aã])\b)"
 )
+
+
+def _catalog_fact(snapshot: dict[str, object]) -> dict[str, object] | None:
+    """Use only the versioned name of an active item as an editorial fact.
+
+    Prices, offers and temporal claims require separately validated evidence.
+    The deterministic ID belongs to this catalog version, not business_context.
+    """
+    offering = snapshot.get("offering")
+    if not isinstance(offering, dict):
+        return None
+    name, kind, item_id, version = (offering.get(k) for k in ("name", "kind", "id", "version"))
+    if not isinstance(name, str) or not name.strip() or _COMMERCIAL_CLAIM.search(name):
+        return None
+    if kind not in {"product", "service"} or not isinstance(item_id, str) or type(version) is not int:
+        return None
+    try:
+        item = UUID(item_id)
+    except ValueError:
+        return None
+    return {
+        "id": str(uuid5(NAMESPACE_URL, f"catalog-fact:{item}:{version}")),
+        "kind": kind,
+        "statement": name,
+        "valid_until": None,
+    }
 
 
 def _has_unconfirmed_claim(body: ScriptEdit, confirmed_statement: str) -> bool:
@@ -362,7 +389,7 @@ class EditorialProposalService:
                   WHERE tenant_id=:tenant AND business_id=:business"""),
                 {"tenant": tenant, "business": business},
             )
-            if head != row["context_version"]:
+            if (head or 0) != row["context_version"]:
                 raise AuthError("SCRIPT_CONTEXT_CHANGED", 409)
             context_doc = await session.scalar(
                 text("""SELECT document FROM business_context_versions WHERE tenant_id=:tenant
@@ -373,15 +400,30 @@ class EditorialProposalService:
                 text("SELECT timezone FROM businesses WHERE tenant_id=:tenant AND id=:business"),
                 {"tenant": tenant, "business": business},
             )
-            if context_doc is None:
+            if context_doc is None and head:
                 raise AuthError("SCRIPT_CONTEXT_CHANGED", 409)
-            context = ContextContent.model_validate(context_doc)
+            context = ContextContent.model_validate(context_doc) if context_doc is not None else ContextContent()
             today = datetime.now(ZoneInfo(timezone)).date()
             fact_scene = next(scene for scene in body.script if scene.role == "fact")
             fact = next((item for item in context.facts if item.id in fact_scene.fact_ids), None)
-            if fact is None or (fact.valid_until is not None and fact.valid_until < today):
-                raise AuthError("SCRIPT_FACT_EXPIRED", 409)
-            statement = fact.statement.rstrip(". ") + "."
+            if (
+                fact is None
+                and row.get("briefing_id") is not None
+                and self.settings.environment in {"development", "testing"}
+            ):
+                from app.services.editorial_briefings import EditorialBriefingService
+
+                status, snapshot = await EditorialBriefingService(self.settings, self.database).read_valid(
+                    session, tenant, business, actor, row["briefing_id"]
+                )
+                catalog_fact = _catalog_fact(snapshot) if status == "prepared" and snapshot is not None else None
+                if catalog_fact is None or UUID(str(catalog_fact["id"])) not in fact_scene.fact_ids:
+                    raise AuthError("SCRIPT_FACT_EXPIRED", 409)
+                statement = str(catalog_fact["statement"]).rstrip(". ") + "."
+            else:
+                if fact is None or (fact.valid_until is not None and fact.valid_until < today):
+                    raise AuthError("SCRIPT_FACT_EXPIRED", 409)
+                statement = fact.statement.rstrip(". ") + "."
             if fact_scene.on_screen_text != statement or fact_scene.voiceover != statement:
                 raise AuthError("SCRIPT_FACT_CHANGED", 409)
             if _has_unconfirmed_claim(body, statement):
@@ -407,7 +449,7 @@ class EditorialProposalService:
                     "version": row["script_version"],
                     "document": json.dumps(row["document"], ensure_ascii=False),
                     "hash": original_hash,
-                    "context": head,
+                    "context": head or 0,
                     "source": row["source_asset_id"],
                     "actor": row["reviewed_by"] or row["actor_id"],
                     "review_state": row["review_state"],
@@ -431,7 +473,7 @@ class EditorialProposalService:
                             "version": next_version,
                             "document": json.dumps(document, ensure_ascii=False),
                             "hash": document_hash,
-                            "context": head,
+                            "context": head or 0,
                             "source": row["source_asset_id"],
                             "actor": actor,
                             "operation": body.operation_id,
@@ -535,6 +577,16 @@ class EditorialProposalService:
                 raise AuthError("SCRIPT_ALREADY_REVIEWED", 409)
             if row["state"] != "completed" or not row["document"] or not row["document"].get("script"):
                 raise AuthError("SCRIPT_NOT_READY", 409)
+            if row.get("briefing_required"):
+                if row.get("briefing_id") is None or self.settings.environment not in {"development", "testing"}:
+                    raise AuthError("SCRIPT_CONTEXT_CHANGED", 409)
+                from app.services.editorial_briefings import EditorialBriefingService
+
+                status, _ = await EditorialBriefingService(self.settings, self.database).read_valid(
+                    session, tenant, business, actor, row["briefing_id"]
+                )
+                if status != "prepared":
+                    raise AuthError("SCRIPT_CONTEXT_CHANGED", 409)
             await session.execute(
                 text("SELECT pg_advisory_xact_lock(hashtextextended(:key,0))"),
                 {"key": f"{tenant}:{business}:{body.operation_id}"},
@@ -671,6 +723,7 @@ class EditorialProposalService:
             "source_asset_id": str(row["source_asset_id"]) if row["source_asset_id"] else None,
             "context_version": row["context_version"],
         }
+        valid_ids = {fact.id for fact in facts}
         briefing_id = row.get("briefing_id")
         if row.get("briefing_required") and briefing_id is None:
             return None
@@ -683,8 +736,19 @@ class EditorialProposalService:
                 status, snapshot = await EditorialBriefingService(self.settings, self.owner_database).read_valid(
                     owner_session, row["tenant_id"], row["business_id"], row["actor_id"], briefing_id
                 )
+                suggested_format = await owner_session.scalar(
+                    text(
+                        "SELECT suggested_format FROM editorial_briefings "
+                        "WHERE id=:id AND tenant_id=:tenant AND business_id=:business"
+                    ),
+                    {"id": briefing_id, "tenant": row["tenant_id"], "business": row["business_id"]},
+                )
             if status != "prepared" or snapshot is None:
                 return None
+            if suggested_format is not None and suggested_format not in INITIAL_PLAN_INTENT_FORMATS:
+                return None
+            data["requested_format"] = suggested_format
+            data["eligible_formats"] = list(INITIAL_PLAN_INTENT_FORMATS)
             offering = snapshot["offering"]
             assert isinstance(offering, dict)
             price = offering["price"]
@@ -696,6 +760,15 @@ class EditorialProposalService:
                 "has_item_photo": bool(snapshot.get("item_photo")),
                 "has_space_photo": bool(snapshot.get("space_photo")),
             }
+            catalog_fact = _catalog_fact(snapshot)
+            if catalog_fact is not None:
+                catalog_id = UUID(str(catalog_fact["id"]))
+                if catalog_id in valid_ids:
+                    return None
+                valid_ids.add(catalog_id)
+                confirmed = data["confirmed_facts"]
+                assert isinstance(confirmed, list)
+                confirmed.insert(0, catalog_fact)
         kit_document = row.get("brand_kit_document")
         if kit_document is not None:
             if self.settings.environment == "production" and not kit_commercially_available():
@@ -714,7 +787,7 @@ class EditorialProposalService:
                 "body_font": overrides.body_font,
                 "formats": overrides.formats.model_dump(),
             }
-        return data, {fact.id for fact in facts}
+        return data, valid_ids
 
     @staticmethod
     def _baseline(data: dict[str, object]) -> ProposalDraft:
@@ -731,6 +804,14 @@ class EditorialProposalService:
         fmt: Literal["short_video", "photo", "story"] = (
             "short_video" if kind in {"audio", "video"} else "photo" if kind == "image" else "story"
         )
+        requested = data.get("requested_format")
+        eligible = data.get("eligible_formats")
+        if requested == "photo":
+            fmt = "photo"
+        elif requested == "story":
+            fmt = "story"
+        elif isinstance(eligible, list) and fmt not in eligible:
+            fmt = "story"
         draft = ProposalDraft(
             title="Uma história do seu negócio",
             format=fmt,
@@ -811,6 +892,11 @@ class EditorialProposalService:
 
     @staticmethod
     def _safe(draft: ProposalDraft, data: dict[str, object], valid_ids: set[UUID]) -> bool:
+        eligible = data.get("eligible_formats")
+        if isinstance(eligible, list) and (
+            draft.format not in eligible or (data.get("requested_format") and draft.format != data["requested_format"])
+        ):
+            return False
         if not draft.fact_ids or not set(draft.fact_ids) <= valid_ids:
             return False
         facts = data["confirmed_facts"]

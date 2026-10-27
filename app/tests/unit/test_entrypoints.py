@@ -51,7 +51,10 @@ async def test_material_worker_registers_activities_and_closes_both_pools(settin
     await worker.run_worker()
     assert len(constructor.call_args.kwargs["workflows"]) == 7
     assert worker.BrandKitChangedWorkflow in constructor.call_args.kwargs["workflows"]
-    assert len(constructor.call_args.kwargs["activities"]) == 14
+    assert len(constructor.call_args.kwargs["activities"]) == 15
+    assert any(
+        activity.__name__ == "deliver_briefing_clarification" for activity in constructor.call_args.kwargs["activities"]
+    )
     assert any(
         activity.__name__ == "record_brand_kit_changed" for activity in constructor.call_args.kwargs["activities"]
     )

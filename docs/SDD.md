@@ -174,7 +174,7 @@ O adapter editorial integrado chama OpenAI Responses com JSON Schema,
 `gpt-transcribe`. Isso descreve código, não modelo vencedor de benchmark ou
 aprovação comercial. A revisão P1–P14 não troca fornecedor/modelos.
 
-Não estão implementados retrieval do acervo, tools de pesquisa do negócio,
+O retrieval experimental do acervo está integrado ao worker local. Não estão implementadas tools de pesquisa externa do negócio,
 skills executáveis por cliente, treinamento automático, pesquisa ampla de
 concorrentes ou schedules de proatividade. Hoje o pós-processamento restringe
 parte da direção criativa a fatos/estrutura baseline; melhorar criatividade
@@ -210,7 +210,7 @@ Sem evidência, pedir material ou oferecer conceito identificado. Não inventar
 local, preço, cardápio, agenda, resultado ou imagem documental. Kit não substitui
 fontes do cliente. Avatar/voz exigem consentimento específico e orçamento.
 
-A execução e os limites da fase ativa estão no [SDD BL04](phases/BL04-context-and-ai-production.md). A resolução do acervo agora se liga à proposta apenas em ensaio de desenvolvimento/teste com intérprete injetado. O worker normal não a ativa; pedidos ambíguos não enviam esclarecimento ainda e prévias com esse briefing são bloqueadas até revalidação de ponta a ponta.
+A execução e os limites da fase ativa estão no [SDD BL04](phases/BL04-context-and-ai-production.md). Em desenvolvimento/teste, o worker pode usar Jev com consentimento TypeSafe separado, reserva financeira e snapshots revalidados; permanece desligado por padrão. Esclarecimentos usam entrega local simulada e prévias com esse briefing são bloqueadas até BL04.2. A oferta inicial de R$ 99 admite foto e story, sem franquia de quantidade definida; vídeo e planos adicionais ainda serão definidos. O nome versionado de um item ativo pode fundamentar o roteiro, sem converter preço ou oferta em fato nem criar registro artificial no contexto do negócio.
 
 **Gate BL04 por receita:** fontes/direitos válidos, texto/preço/CTA corretos,
 fidelidade a produto/local, acabamento e legibilidade no celular, avaliação

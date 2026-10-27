@@ -15,6 +15,7 @@ from app.schemas.editorial_proposals import (
     ScriptVersionRead,
 )
 from app.services.editorial_proposals import EditorialProposalService
+from app.services.jev_consent import JevConsentService
 
 proposals_router = APIRouter(
     prefix="/api/v1/organizations/{tenant_id}/businesses/{business_id}/editorial-proposals",
@@ -24,6 +25,22 @@ proposals_router = APIRouter(
 
 def service(request: Request) -> EditorialProposalService:
     return EditorialProposalService(request.app.state.settings, request.app.state.database)
+
+
+@proposals_router.get("/jev-consent", response_model=EditorialAIStatus)
+async def jev_consent_status(tenant_id: UUID, business_id: UUID, request: Request, actor: Actor) -> dict[str, bool]:
+    return await JevConsentService(request.app.state.settings, request.app.state.database).status(
+        tenant_id, business_id, actor
+    )
+
+
+@proposals_router.put("/jev-consent", response_model=EditorialAIStatus)
+async def set_jev_consent(
+    tenant_id: UUID, business_id: UUID, body: EditorialAIConsent, request: Request, actor: Actor
+) -> dict[str, bool]:
+    return await JevConsentService(request.app.state.settings, request.app.state.database).set(
+        tenant_id, business_id, actor, body.accepted
+    )
 
 
 @proposals_router.get("/consent", response_model=EditorialAIStatus)

@@ -10,16 +10,34 @@ A partir de um pedido livre e de informações autorizadas do negócio, identifi
 
 ### Andamento da BL04.1
 
-Há um caminho experimental em desenvolvimento/teste que liga material recebido,
-resolução do acervo, snapshot privado e proposta, usando um interpretador injetado
-nos testes. O snapshot é revalidado e a web pode exibir projeção sem dados privados.
-O worker normal não instancia o interpretador: Jev e o adapter de interpretação
-OpenAI continuam fora da conversa real, pendentes de avaliação, reserva de custo e
-consentimento. Uma ambiguidade gera apenas estado interno; a pergunta ao cliente
-ainda não é enviada. Propostas com briefing experimental não avançam à prévia até
-que BL04.2 faça a revalidação ao longo de todo o processo. Um item do acervo não
-substitui automaticamente o fato editorial confirmado atualmente exigido pelo roteiro.
-Assim, esta é uma fatia local da BL04.1, não a conclusão do fluxo.
+O worker pode usar o **Jev como primeiro candidato** em desenvolvimento/teste,
+desligado por padrão. O proprietário autoriza separadamente o envio de texto e
+nomes de candidatos à TypeSafe. Uma operação durável reserva orçamento por tenant
+antes da chamada; o acesso, origem e snapshot são revalidados, e uma resposta
+incerta não é repetida automaticamente. Um esclarecimento fica registrado no
+adaptador local simulado, sem afirmar envio real pelo WhatsApp. A configuração
+requer `TYPESAFE_API_KEY`, `MEU_BRACO_DIREITO_INTENT_AI_MODE=jev`, chave de
+criptografia e orçamento diário positivo `MEU_BRACO_DIREITO_INTENT_AI_DAILY_BUDGET_USD_MICROS`.
+Esse teto é por tenant/dia, em milionésimos de dólar; é conservador, não uma
+fatura nem um limite global para outras APIs. A chamada real exige autorização de
+gasto específica e uma avaliação PT-BR mais ampla antes de liberar produção.
+
+Para a oferta inicial de **R$ 99/mês**, o proprietário definiu foto e story como
+formatos iniciais; vídeo será definido depois. O interpretador consulta essa regra
+única após a verificação do acesso e pede esclarecimento se o formato pedido for
+indisponível. A regra estática descreve somente a oferta inicial e precisa ser
+substituída por permissões persistidas quando houver múltiplos planos. Não define
+quantidade de peças nem autoriza gerar ou publicar.
+
+Permanecem limites relevantes da BL04.1: a interpretação de formato é experimental,
+sem franquias de quantidade implementadas; preço e agenda não são confirmados pela IA.
+O nome do item ativo e versionado pode servir de fonte factual do roteiro, com
+identificador vinculado à versão do acervo e nova validação na edição. Nomes que
+contenham alegações comerciais exigem outro fato confirmado; preços e ofertas não
+são inferidos do nome. A pergunta simulada é genérica e não mantém uma conversa completa.
+Prévia com este briefing fica bloqueada até BL04.2. Kit é congelado na proposta;
+as referências fotográficas ainda não são enviadas a um gerador visual. Portanto
+não afirmar que o fluxo completo ou a qualidade comercial estão concluídos.
 
 
 1. **BL04.1 — Interpretação e contexto:** interpretar intenção e formato dentro das opções efetivamente disponíveis; localizar candidatos no acervo do mesmo negócio com produtos/aliases ativos e validade no fuso do negócio. Correspondência lexical é só candidato: negação, ambiguidade ou ausência de fonte não autorizam escolher produto automaticamente. Fotografias precisam de direito válido; dados de outro tenant, item arquivado e preços vencidos não podem compor o briefing. Kit confirmado, fatos, itens e mídias devem ter versões e proveniência verificáveis. Revalidar antes de efeito externo e antes de liberar o resultado; revogação, exclusão e alteração invalidam as dependências afetadas.
@@ -36,7 +54,7 @@ Para a avaliação inicial, o usuário autorizou até **US$ 1 no total para cham
 
 ## Avaliação do Jev
 
-Jev é candidato para classificação curta, necessidade de esclarecimento e escolha entre formatos já elegíveis; não é gerador de imagem e não decide permissões, consentimento, fatos ou limite de gasto. Um corpus PT-BR sintético com gabarito e casos de ambiguidade/negação compara baseline e modelo pinado, taxa de acerto, abstenções, latência e custo; medir erros críticos separadamente. O ensaio é offline por padrão, sem dados de clientes. A chamada real exige chave local, teto explícito e execução deliberada. Um ensaio exploratório com cinco casos foi realizado; a amostra não comprova precisão e não houve decisão de adoção. Ver [eval Jev](../evals/jev-intent-ptbr-v1.md).
+Jev é o primeiro candidato para classificação curta, necessidade de esclarecimento e sugestão de formato; não é gerador de imagem e não decide permissões, consentimento, fatos ou limite de gasto. Um corpus PT-BR sintético com gabarito e casos de ambiguidade/negação compara baseline e modelo pinado, taxa de acerto, abstenções, latência e custo; medir erros críticos separadamente. O ensaio é offline por padrão, sem dados de clientes. A chamada real exige chave local, teto explícito e execução deliberada. Um ensaio exploratório com 30 casos de desenvolvimento teve um erro; a amostra não comprova precisão nem aprova o modelo comercialmente. Ver [eval Jev](../evals/jev-intent-ptbr-v1.md).
 
 ## O que não encerra a fase
 

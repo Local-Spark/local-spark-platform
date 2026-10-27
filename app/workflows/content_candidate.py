@@ -18,6 +18,31 @@ class ContentCandidateWorkflow:
             start_to_close_timeout=timedelta(seconds=30),
             retry_policy=RetryPolicy(maximum_attempts=3),
         )
+        if proposal_id == "briefing_pending" and workflow.patched("briefing-pending-v1"):
+            for _ in range(60):
+                await workflow.sleep(5)
+                proposal_id = await workflow.execute_activity(
+                    "request_candidate_proposal",
+                    event_id,
+                    result_type=str,
+                    start_to_close_timeout=timedelta(seconds=30),
+                    retry_policy=RetryPolicy(maximum_attempts=3),
+                )
+                if proposal_id != "briefing_pending":
+                    break
+            else:
+                return "briefing_timeout"
+        if proposal_id == "briefing_needs_clarification" and workflow.patched("briefing-clarification-v1"):
+            return cast(
+                str,
+                await workflow.execute_activity(
+                    "deliver_briefing_clarification",
+                    event_id,
+                    result_type=str,
+                    start_to_close_timeout=timedelta(seconds=30),
+                    retry_policy=RetryPolicy(maximum_attempts=3),
+                ),
+            )
         if proposal_id in {"skipped", "briefing_needs_clarification", "briefing_unavailable"}:
             return cast(str, proposal_id)
         for _ in range(60):

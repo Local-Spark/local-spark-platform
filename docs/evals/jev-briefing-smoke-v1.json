@@ -1,0 +1,20 @@
+{
+  "version": "jev-briefing-smoke-v1",
+  "date": "2026-10-27",
+  "synthetic": true,
+  "model": "jev-1.14.0",
+  "allowed_formats": ["photo", "story"],
+  "cases": [
+    {"id": "foto", "message": "Crie uma foto do Dog da Casa", "candidates": [{"kind": "product", "name": "Dog da Casa"}], "expected": ["content_request", "selected", "photo"], "actual": ["content_request", "selected", "photo"]},
+    {"id": "story", "message": "Crie um story de Unhas em gel", "candidates": [{"kind": "service", "name": "Unhas em gel"}], "expected": ["content_request", "selected", "story"], "actual": ["content_request", "selected", "story"]},
+    {"id": "video", "message": "Crie um vídeo do Dog da Casa", "candidates": [{"kind": "product", "name": "Dog da Casa"}], "expected": ["content_request", "clarify", null], "actual": ["content_request", "clarify", null]},
+    {"id": "price", "message": "O Dog da Casa custa 20 reais", "candidates": [{"kind": "product", "name": "Dog da Casa"}], "expected": ["price", "selected", null], "actual": ["price", "selected", null]},
+    {"id": "question", "message": "Como posso atrair mais clientes?", "candidates": [], "expected": ["question", "clarify", null], "actual": ["question", "clarify", null]},
+    {"id": "offer", "message": "Quero divulgar o Dog da Casa", "candidates": [{"kind": "product", "name": "Dog da Casa"}], "expected": ["content_request", "selected", null], "actual": ["other", "clarify", null]},
+    {"id": "greeting", "message": "Olá, tudo bem?", "candidates": [], "expected": ["other", "clarify", null], "actual": ["other", "clarify", null]}
+  ],
+  "known_input_tokens": 4767,
+  "estimated_usd": "0.000200214",
+  "uncertain_calls": 0,
+  "note": "Exploratory provider adapter smoke test; no database, worker, or WhatsApp delivery. Not an independent evaluation."
+}

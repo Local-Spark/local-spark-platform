@@ -38,8 +38,8 @@ escala atual. Alcance e engajamento não comprovam faturamento nem causalidade.
 | Contexto e texto | Fatos/preferências versionados, propostas e roteiros, adapter OpenAI, reservas/tokens e projeção administrativa limitada | Não há agente geral, pesquisa automática de concorrentes, skills executáveis por cliente nem geração visual integrada. |
 | Kits BL01/BL02 | Vitrine fictícia de cafeteria, seleção por negócio, edição guiada de cores/fontes/logo/textos/composição, prévia, rascunho, confirmação e histórico | Kit `public_demo` somente para teste; direitos e qualidade comercial pendentes. F03 congela a versão; F04 ainda não a aplica à mídia. |
 | Conteúdos F04/F06 | Prévias técnicas estáticas/vídeo, candidata, decisão explícita e publicação falsa com validação de versão/hash | Renderers Pillow/FFmpeg não são receitas aprovadas. Ajuste ainda não regenera automaticamente; envio de candidata e publicação reais pendentes. |
-| Acervo BL03 | Cadastro manual versionado de produtos/serviços/promoções e fotos privadas de item/espaço, com cópia consentida de foto WhatsApp, implementados localmente | Importação automática de cardápio é BL03.3 posterior; o acervo só alimenta uma proposta experimental com intérprete simulado em testes. |
-| Produção BL04/BL05 | Briefing privado versionado e consulta do acervo ligados experimentalmente à proposta com intérprete injetado; web pode mostrar resumo; adapter de imagem e ledger isolados | Worker não ativa intérprete real; esclarecimento não é enviado; prévia de propostas com briefing é bloqueada. Faltam consentimento/orçamento da interpretação real, integração visual e jornada completa. |
+| Acervo BL03 | Cadastro manual versionado de produtos/serviços/promoções e fotos privadas de item/espaço, com cópia consentida de foto WhatsApp, implementados localmente | Importação automática de cardápio é BL03.3 posterior; o acervo alimenta briefing e roteiro experimentais em desenvolvimento/teste, sem geração visual integrada. |
+| Produção BL04/BL05 | Worker local pode interpretar com Jev mediante autorização TypeSafe e orçamento; briefing privado consulta acervo, com revalidação e resposta simulada | Desligado por padrão, somente desenvolvimento/teste; precisa avaliação PT-BR, atendimento de esclarecimentos, imagem integrada e jornada completa. Prévia com briefing permanece bloqueada. |
 | Infraestrutura F08 | Compose, CI e workflow de deploy preparado | AWS/staging, backup/restore, observabilidade operacional e capacidade não provisionados/homologados. |
 
 Os ensaios em [evals](evals/) não são features do produto nem aceites comerciais.
@@ -96,7 +96,7 @@ A [sequência até produção e expansão](design/delivery-roadmap-2026-10-27.md
 reúne BL03–BL06, homologação Meta, franquias, AWS, piloto, pesquisa, avatar e
 multicanal. Importar fotos de cardápio/tabela de serviços está previsto como
 BL03.3: preencher fichas automaticamente como rascunho e conferir ambiguidades;
-o proprietário aprovou cadastro manual e fotos, agora implementados localmente. Jev teve um ensaio real exploratório de cinco mensagens fictícias na BL04; ainda não foi adotado ou integrado. Motion continua candidato, sem integração.
+o proprietário aprovou cadastro manual e fotos, agora implementados localmente. Jev é o primeiro candidato à interpretação local; um ensaio real com 30 mensagens fictícias de desenvolvimento apresentou um erro, e é insuficiente para homologação. Motion continua candidato, sem integração.
 
 ## Decisões técnicas e limites de IA
 
@@ -113,9 +113,7 @@ o proprietário aprovou cadastro manual e fotos, agora implementados localmente.
   tools; `gpt-5-mini` é o default de configuração, sem escolha comercial final
   de modelo. O adapter de áudio referencia `gpt-transcribe`. Não houve aprovação
   nesta revisão para trocar fornecedor, modelo ou adicionar plataforma agente.
-- A conversa WhatsApp atual reconhece intenções delimitadas por regras e agora se abstém em negações explícitas; não é
-  um chat semântico geral. O briefing e o retrieval estão conectados somente em ensaio local injetado;
-  o worker real ainda não interpreta pedidos por esse caminho.
+- A conversa WhatsApp reconhece intenções delimitadas por regras; o worker local pode chamar Jev para classificar texto e candidatos do acervo, com consentimento e reserva próprios. Não é um chat geral nem envio real homologado.
 - Reservas e tokens são dados de consumo, não custo monetário completo. Faltam
   tarifa versionada e visão de gastos de todas as tentativas; o admin não recebe
   material/prompt privado irrestrito. Memória versionada não treina o modelo

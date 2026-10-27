@@ -11,6 +11,7 @@ from sqlalchemy import text
 
 from app.db.session import Database
 from app.schemas.business_catalog import CatalogUpdate
+from app.schemas.editorial_proposals import ScriptEdit, ScriptReview
 from app.services.auth import AuthError
 from app.services.business_catalog import BusinessCatalogService
 from app.services.creative_catalog_resolution import CatalogIntent
@@ -54,7 +55,9 @@ async def test_inbound_catalog_briefing_is_durable_scoped_and_revalidated(admin,
     catalog = _payload()
     await BusinessCatalogService(database).update(tenant, business, actor, CatalogUpdate.model_validate(catalog))
     item = UUID(catalog["offerings"][0]["id"])
-    interpreter = SimpleNamespace(interpret=AsyncMock(return_value=CatalogIntent("selected", item)))
+    interpreter = SimpleNamespace(
+        interpret=AsyncMock(return_value=CatalogIntent("selected", item, "content_request", "photo"))
+    )
     worker = Database(cfg, correlator=True)
     try:
         activity = ContentCandidateActivities(cfg, database, worker, interpreter=interpreter)
@@ -95,16 +98,58 @@ async def test_inbound_catalog_briefing_is_durable_scoped_and_revalidated(admin,
         assert (await owner.list(tenant, business, actor))[0].briefing.status == "prepared"
         claims = await claim_proposals(worker, uuid4())
         await finish_proposal_dispatch(worker, claims[0], True)
-        # An acervo item is context, not a fabricated business_context fact.
-        assert await EditorialProposalService(cfg, worker, owner_database=database).run(proposal_id) == "rejected"
+        # The versioned item name is its own source; it does not create a
+        # business_context fact or invent a price.
+        assert await EditorialProposalService(cfg, worker, owner_database=database).run(proposal_id) == "completed"
         async with admin.connect() as conn:
-            assert (
-                await conn.scalar(text("SELECT error_code FROM editorial_proposals WHERE id=:id"), {"id": proposal_id})
-                == "EDITORIAL_FACTS_REQUIRED"
+            document = await conn.scalar(
+                text("SELECT document FROM editorial_proposals WHERE id=:id"), {"id": proposal_id}
             )
+            assert document["script"][0]["on_screen_text"] == "Croissant."
+            assert document["format"] == "photo"
+            assert "R$" not in str(document)
+            assert (
+                await conn.scalar(
+                    text("SELECT count(*) FROM business_context_heads WHERE business_id=:business"),
+                    {"business": business},
+                )
+                == 0
+            )
+        edited = await owner.edit_script(
+            tenant,
+            business,
+            actor,
+            proposal_id,
+            ScriptEdit(
+                operation_id=uuid4(),
+                expected_version=1,
+                title="Conheça o croissant",
+                angle=document["angle"],
+                script=document["script"],
+            ),
+        )
+        assert edited.version == 2 and edited.document.script[0].on_screen_text == "Croissant."
         async with admin.begin() as conn:
             await conn.execute(text("UPDATE business_offerings SET name='Alterado' WHERE id=:id"), {"id": item})
         assert (await owner.list(tenant, business, actor))[0].briefing.status == "context_changed"
+        with pytest.raises(AuthError, match="SCRIPT_CONTEXT_CHANGED"):
+            await owner.review_script(
+                tenant, business, actor, proposal_id, ScriptReview(operation_id=uuid4(), decision="accepted")
+            )
+        with pytest.raises(AuthError, match="SCRIPT_FACT_EXPIRED"):
+            await owner.edit_script(
+                tenant,
+                business,
+                actor,
+                proposal_id,
+                ScriptEdit(
+                    operation_id=uuid4(),
+                    expected_version=2,
+                    title="Outro título",
+                    angle=document["angle"],
+                    script=document["script"],
+                ),
+            )
         async with admin.begin() as conn:
             await conn.execute(text("DELETE FROM editorial_briefings WHERE tenant_id=:tenant"), {"tenant": tenant})
         async with worker.sessions() as session, session.begin():
@@ -208,7 +253,7 @@ async def test_concurrent_replay_never_runs_interpreter_twice(admin, database, s
         activity = ContentCandidateActivities(cfg, database, worker, interpreter=interpreter)
         task = asyncio.create_task(activity.request_candidate_proposal(str(source)))
         await asyncio.wait_for(entered.wait(), timeout=5)
-        assert await activity.request_candidate_proposal(str(source)) == "briefing_unavailable"
+        assert await activity.request_candidate_proposal(str(source)) == "briefing_pending"
         release.set()
         UUID(await asyncio.wait_for(task, timeout=5))
         assert interpreter.interpret.await_count == 1

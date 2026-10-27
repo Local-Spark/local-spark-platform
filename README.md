@@ -151,8 +151,10 @@ ambiente/staging continua necessária.
 **IA.** OpenAI tem adapters de texto editorial e transcrição opcionais,
 autorização por negócio e limites configurados; os modos são desabilitados por
 padrão. O default editorial é `gpt-5-mini`, configurável; a transcrição referencia
-`gpt-transcribe`. Ainda não há IA visual integrada, retrieval do acervo, skills
-executáveis por cliente ou pesquisa automática de concorrentes no produto.
+`gpt-transcribe`. O worker pode usar Jev para interpretação experimental do
+acervo em desenvolvimento/teste, com consentimento separado e orçamento explícito.
+Ainda não há IA visual integrada, skills executáveis por cliente ou pesquisa
+automática de concorrentes no produto.
 Os ensaios visuais em [evals](docs/evals/) são separados. Ter uma chave/saldo não
 habilita automaticamente toda a jornada nem comprova qualidade/custo comercial.
 

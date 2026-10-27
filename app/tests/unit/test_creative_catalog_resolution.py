@@ -118,3 +118,33 @@ async def test_message_is_bounded_for_both_lookup_and_interpreter(setup):
     await _resolve(setup, selected, "x" * 5000)
     assert len(setup.candidates.await_args.args[-1]) == 4000
     assert len(selected.interpret.await_args.args[0]) == 4000
+
+
+@pytest.mark.parametrize(
+    "intent",
+    [
+        CatalogIntent("selected", uuid4(), intent="unknown"),
+        CatalogIntent("selected", uuid4(), format="unknown"),
+    ],
+)
+async def test_unrecognized_interpretation_is_never_accepted(setup, intent):
+    result = await _resolve(setup, SimpleNamespace(interpret=AsyncMock(return_value=intent)))
+    assert result.status == "invalid_decision"
+    setup.snapshot.assert_not_awaited()
+
+
+async def test_negation_blocks_lookup_and_unmatched_text_can_be_classified_without_item(setup):
+    interpreter = SimpleNamespace(interpret=AsyncMock(return_value=CatalogIntent("none", intent="question")))
+    assert (await _resolve(setup, interpreter, "Não quero croissant")).status == "clarify"
+    interpreter.interpret.assert_not_awaited()
+    setup.candidates.return_value = {"status": "not_found", "catalog_version": 4, "candidates": []}
+    result = await resolve_catalog_context(
+        setup.database,
+        setup.tenant,
+        setup.business,
+        setup.actor,
+        "O que posso publicar?",
+        interpreter,
+        interpret_unmatched=True,
+    )
+    assert result.status == "none" and result.intent == "question" and result.snapshot is None

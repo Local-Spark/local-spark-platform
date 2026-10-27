@@ -65,7 +65,9 @@ async def test_prepare_rejects_snapshot_changed_during_interpretation(settings, 
     monkeypatch.setattr(service, "_source", AsyncMock(return_value="Crie croissant"))
     monkeypatch.setattr(
         "app.services.editorial_briefings.resolve_catalog_context",
-        AsyncMock(return_value=SimpleNamespace(status="resolved", snapshot={"catalog_version": 1})),
+        AsyncMock(
+            return_value=SimpleNamespace(status="resolved", snapshot={"catalog_version": 1}, intent=None, format=None)
+        ),
     )
     monkeypatch.setattr(
         "app.services.editorial_briefings.validate_catalog_snapshot", AsyncMock(return_value="catalog_changed")
@@ -76,7 +78,14 @@ async def test_prepare_rejects_snapshot_changed_during_interpretation(settings, 
 
 async def test_read_valid_denies_revoked_or_missing_source(settings, ids, monkeypatch):
     tenant, business, actor, source, briefing = ids
-    row = {"id": briefing, "source_asset_id": source, "source_digest": "x", "state": "prepared", "catalog_snapshot": {}}
+    row = {
+        "id": briefing,
+        "source_asset_id": source,
+        "source_digest": "x",
+        "state": "prepared",
+        "catalog_snapshot": {},
+        "used_jev": False,
+    }
     session = SimpleNamespace(execute=AsyncMock(return_value=mapped(row)))
     service = EditorialBriefingService(settings, MemoryDatabase(session))
     monkeypatch.setattr("app.services.whatsapp_materials.WhatsAppMaterialsService._require_owner", AsyncMock())

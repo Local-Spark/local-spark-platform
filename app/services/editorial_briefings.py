@@ -1,7 +1,7 @@
 """Experimental durable, owner-scoped catalog context for an inbound material.
 
-No external interpreter is configured here. The caller must use a synthetic
-interpreter in development/testing; paid providers require a separate ledger.
+The worker can inject a synthetic interpreter or a budgeted Jev adapter in
+development/testing. Paid providers require separate consent and a durable ledger.
 """
 
 import hashlib
@@ -35,12 +35,22 @@ class EditorialBriefingService:
             raise ValueError("Experimental briefing is restricted to development and testing")
         self.settings, self.database, self.interpreter = settings, database, interpreter
 
-    async def _source(self, session: Any, tenant: UUID, business: UUID, actor: UUID, source: UUID) -> str | None:
+    async def _source(
+        self, session: Any, tenant: UUID, business: UUID, actor: UUID, source: UUID, *, jev: bool | None = None
+    ) -> str | None:
         await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
         params = {"tenant": tenant, "business": business, "actor": actor, "source": source}
         if not await session.scalar(text(_access_sql()), {"tenant": tenant, "live": False}):
             raise AuthError("PLAN_REQUIRED", 403)
-        if not await EditorialProposalService._consented(session, tenant, business):
+        if jev if jev is not None else self.settings.intent_ai_mode == "jev":
+            consented = await session.scalar(
+                text("""SELECT revoked_at IS NULL FROM intent_jev_consents
+                  WHERE tenant_id=:tenant AND business_id=:business"""),
+                params,
+            )
+            if not consented:
+                raise AuthError("JEV_CONSENT_REQUIRED", 409)
+        elif not await EditorialProposalService._consented(session, tenant, business):
             raise AuthError("EDITORIAL_AI_CONSENT_REQUIRED", 409)
         row = (
             (
@@ -127,13 +137,24 @@ class EditorialBriefingService:
             )
         # No transaction or lock is held while the interpreter runs.
         snapshot: dict[str, object] | None = None
+        intent_kind = None
+        suggested_format = None
         state = "needs_clarification"
         if message:
             try:
                 result = await resolve_catalog_context(
-                    self.database, tenant, business, actor, message, self.interpreter
+                    self.database,
+                    tenant,
+                    business,
+                    actor,
+                    message,
+                    self.interpreter,
+                    interpret_unmatched=self.settings.intent_ai_mode == "jev",
                 )
-                if result.status == "resolved":
+                intent_kind, suggested_format = result.intent, result.format
+                # A price/availability update is not itself a request to create
+                # content and never confirms the factual information it contains.
+                if result.status == "resolved" and result.intent in {None, "content_request"}:
                     snapshot = result.snapshot
                     state = "prepared"
                 elif result.status in {"interpreter_unavailable", "invalid_decision"}:
@@ -158,6 +179,7 @@ class EditorialBriefingService:
                 (
                     await session.execute(
                         text("""UPDATE editorial_briefings SET state=:state,catalog_snapshot=CAST(:snapshot AS jsonb),
+                          intent_kind=:intent_kind,suggested_format=:suggested_format,
                           updated_at=now() WHERE id=:id AND tenant_id=:tenant AND business_id=:business
                             AND state='submitted' RETURNING id,state"""),
                         {
@@ -165,6 +187,8 @@ class EditorialBriefingService:
                             "id": briefing_id,
                             "state": state,
                             "snapshot": json.dumps(snapshot) if snapshot else None,
+                            "intent_kind": intent_kind,
+                            "suggested_format": suggested_format,
                         },
                     )
                 )
@@ -187,8 +211,10 @@ class EditorialBriefingService:
         row = (
             (
                 await session.execute(
-                    text("""SELECT id,source_asset_id,source_digest,state,catalog_snapshot FROM editorial_briefings
-            WHERE id=:id AND tenant_id=:tenant AND business_id=:business"""),
+                    text("""SELECT b.id,b.source_asset_id,b.source_digest,b.state,b.catalog_snapshot,
+              EXISTS(SELECT 1 FROM editorial_intent_usage u WHERE u.tenant_id=b.tenant_id
+                AND u.operation_id=b.operation_id AND u.provider='typesafe') AS used_jev FROM editorial_briefings b
+            WHERE b.id=:id AND b.tenant_id=:tenant AND b.business_id=:business"""),
                     {"id": briefing_id, "tenant": tenant, "business": business},
                 )
             )
@@ -200,7 +226,9 @@ class EditorialBriefingService:
         if row["state"] != "prepared":
             return ("needs_clarification" if row["state"] == "needs_clarification" else "unavailable"), None
         try:
-            source_message = await self._source(session, tenant, business, actor, row["source_asset_id"])
+            source_message = await self._source(
+                session, tenant, business, actor, row["source_asset_id"], jev=row["used_jev"]
+            )
             if self._source_digest(source_message) != row["source_digest"]:
                 return "context_changed", None
             if (

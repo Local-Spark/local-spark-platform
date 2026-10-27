@@ -101,6 +101,7 @@ async def run_worker() -> None:
                     content_activities.request_candidate_preview,
                     content_activities.candidate_preview_state,
                     content_activities.deliver_candidate_clarification,
+                    content_activities.deliver_briefing_clarification,
                     content_activities.deliver_candidate_preview,
                     content_activities.publish_fake_content,
                 ]

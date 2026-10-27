@@ -121,9 +121,12 @@ async def test_delivery_and_publication_activity_results(settings, monkeypatch):
     monkeypatch.setattr(content_activities.ContentDeliveryService, "record", record)
     event, preview = uuid4(), uuid4()
     assert await adapter.deliver_candidate_clarification(str(event)) == "delivery_blocked"
+    assert await adapter.deliver_briefing_clarification(str(event)) == "delivery_blocked"
     assert await adapter.deliver_candidate_preview([str(event), str(preview)]) == "delivery_blocked"
     record.return_value = uuid4()
     assert await adapter.deliver_candidate_clarification(str(event)) == "clarification_delivered"
+    assert await adapter.deliver_briefing_clarification(str(event)) == "clarification_delivered"
+    assert record.await_args.kwargs == {"clarification": "briefing"}
     assert await adapter.deliver_candidate_preview([str(event), str(preview)]) == "candidate_delivered"
     publish = AsyncMock(return_value="published")
     monkeypatch.setattr(content_activities, "publish_fake", publish)

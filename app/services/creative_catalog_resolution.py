@@ -1,8 +1,8 @@
 """Two-transaction contract for future editorial catalog resolution.
 
-This module does not install an AI provider or connect the editorial flow. A
-caller must enforce consent, budget and durable idempotency before enabling an
-external interpreter. Lexical candidates are never automatically selected.
+The caller supplies an interpreter and enforces consent, budget and durable
+idempotency before any external call. Lexical candidates are never automatically
+selected.
 """
 
 from __future__ import annotations
@@ -24,6 +24,8 @@ class CatalogIntent:
 
     decision: Literal["selected", "none", "clarify"]
     offering_id: UUID | None = None
+    intent: Literal["content_request", "price", "availability", "question", "other"] | None = None
+    format: Literal["photo", "carousel", "short_video", "story"] | None = None
 
 
 class CatalogInterpreter(Protocol):
@@ -49,6 +51,8 @@ class CatalogResolution:
         "context_changed",
     ]
     snapshot: dict[str, object] | None = None
+    intent: Literal["content_request", "price", "availability", "question", "other"] | None = None
+    format: Literal["photo", "carousel", "short_video", "story"] | None = None
 
 
 async def resolve_catalog_context(
@@ -58,6 +62,8 @@ async def resolve_catalog_context(
     actor: UUID,
     message: str,
     interpreter: CatalogInterpreter,
+    *,
+    interpret_unmatched: bool = False,
 ) -> CatalogResolution:
     """Resolve for an authorized owner without holding a lock during interpretation.
 
@@ -69,7 +75,7 @@ async def resolve_catalog_context(
     async with database.transaction(tenant, actor) as session:
         result = await catalog_candidates(session, tenant, business, actor, bounded_message)
     status = result["status"]
-    if status != "needs_selection":
+    if status != "needs_selection" and not (interpret_unmatched and status == "not_found"):
         if status not in {"no_text", "not_found", "catalog_too_large", "too_many_matches"}:
             return CatalogResolution("invalid_decision")
         return CatalogResolution(cast(Literal["no_text", "not_found", "catalog_too_large", "too_many_matches"], status))
@@ -87,10 +93,14 @@ async def resolve_catalog_context(
         return CatalogResolution("interpreter_unavailable")
     if not isinstance(intent, CatalogIntent):
         return CatalogResolution("invalid_decision")
+    if intent.intent not in {None, "content_request", "price", "availability", "question", "other"}:
+        return CatalogResolution("invalid_decision")
+    if intent.format not in {None, "photo", "carousel", "short_video", "story"}:
+        return CatalogResolution("invalid_decision")
     if intent.decision == "none" and intent.offering_id is None:
-        return CatalogResolution("none")
+        return CatalogResolution("none", intent=intent.intent, format=intent.format)
     if intent.decision == "clarify" and intent.offering_id is None:
-        return CatalogResolution("clarify")
+        return CatalogResolution("clarify", intent=intent.intent, format=intent.format)
     if (
         intent.decision != "selected"
         or not isinstance(intent.offering_id, UUID)
@@ -106,4 +116,4 @@ async def resolve_catalog_context(
         if exc.code == "COLLECTION_CONTEXT_CHANGED":
             return CatalogResolution("context_changed")
         raise
-    return CatalogResolution("resolved", snapshot)
+    return CatalogResolution("resolved", snapshot, intent=intent.intent, format=intent.format)

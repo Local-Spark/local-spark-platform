@@ -214,6 +214,26 @@ async def test_without_confirmed_fact_asks_for_clarification(admin, seeded, sett
         await app_db.close()
 
 
+async def test_ambiguous_briefing_records_one_simulated_clarification(admin, seeded, settings):
+    cfg, app_db, worker_db, tenant, business, actor, _, event, _ = await _candidate_case(admin, seeded, settings)
+    try:
+        activities = ContentCandidateActivities(cfg, app_db, worker_db)
+        assert await activities.deliver_briefing_clarification(str(event)) == "clarification_delivered"
+        assert await activities.deliver_briefing_clarification(str(event)) == "clarification_delivered"
+        deliveries = await ContentDeliveryService(cfg, app_db, worker_db).list(tenant, business, actor)
+        assert len(deliveries) == 1 and deliveries[0].kind == "clarification"
+        async with admin.connect() as conn:
+            provider_id = await conn.scalar(
+                text("SELECT provider_message_id FROM content_deliveries WHERE id=:id"), {"id": deliveries[0].id}
+            )
+        assert provider_id.startswith("fake-whatsapp/")
+        assert "quer divulgar" in deliveries[0].message_body
+        assert deliveries[0].preview_id is None
+    finally:
+        await worker_db.close()
+        await app_db.close()
+
+
 async def test_command_requires_one_live_candidate_and_changes_are_not_published(admin, seeded, settings):
     cfg, app_db, worker_db, tenant, business, actor, _, event, preview = await _candidate_case(admin, seeded, settings)
     try:

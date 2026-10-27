@@ -49,7 +49,9 @@ class ContentDeliveryService:
     def __init__(self, settings: Settings, app_database: Database, worker_database: Database) -> None:
         self.settings, self.app_database, self.worker_database = settings, app_database, worker_database
 
-    async def record(self, event_id: UUID, preview_id: UUID | None = None) -> UUID | None:
+    async def record(
+        self, event_id: UUID, preview_id: UUID | None = None, *, clarification: str = "fact"
+    ) -> UUID | None:
         """Persist a local WhatsApp message after rechecking the current owner and preview."""
         async with self.worker_database.sessions() as session, session.begin():
             event = (
@@ -105,7 +107,11 @@ class ContentDeliveryService:
             expires_at = preview["expires_at"]
         else:
             caption = None
-            body = "Para preparar uma publicação, me conte o que deseja mostrar e confirme um fato atual do negócio."
+            body = (
+                "Para preparar seu conteúdo, conte o que você quer divulgar e como imagina a publicação."
+                if clarification == "briefing"
+                else "Para preparar uma publicação, me conte o que deseja mostrar e confirme um fato atual do negócio."
+            )
             expires_at = datetime.now(UTC) + timedelta(days=1)
         delivery_id = _delivery_id(event_id)
         async with self.worker_database.sessions() as session, session.begin():

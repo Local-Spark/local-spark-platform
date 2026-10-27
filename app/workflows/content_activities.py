@@ -65,9 +65,22 @@ class ContentCandidateActivities:
             ):
                 return "skipped"
         briefing_id = None
-        if self.interpreter is not None:
+        if self.interpreter is not None or self.settings.intent_ai_mode == "jev":
+            interpreter = self.interpreter
+            if interpreter is None:
+                from app.services.jev_interpreter import BudgetedJevInterpreter
+
+                interpreter = BudgetedJevInterpreter(
+                    self.settings,
+                    self.app_database,
+                    row["tenant_id"],
+                    row["business_id"],
+                    row["actor_id"],
+                    event,
+                    uuid5(NAMESPACE_URL, f"candidate-briefing:{event}"),
+                )
             try:
-                briefing = await EditorialBriefingService(self.settings, self.app_database, self.interpreter).prepare(
+                briefing = await EditorialBriefingService(self.settings, self.app_database, interpreter).prepare(
                     row["tenant_id"],
                     row["business_id"],
                     row["actor_id"],
@@ -76,6 +89,8 @@ class ContentCandidateActivities:
                 )
             except AuthError:
                 return "skipped"
+            if briefing.state == "submitted":
+                return "briefing_pending"
             if briefing.state != "prepared":
                 return (
                     "briefing_needs_clarification"
@@ -160,6 +175,13 @@ class ContentCandidateActivities:
     async def deliver_candidate_clarification(self, event_id: str) -> str:
         delivered = await ContentDeliveryService(self.settings, self.app_database, self.worker_database).record(
             UUID(event_id)
+        )
+        return "clarification_delivered" if delivered else "delivery_blocked"
+
+    @activity.defn
+    async def deliver_briefing_clarification(self, event_id: str) -> str:
+        delivered = await ContentDeliveryService(self.settings, self.app_database, self.worker_database).record(
+            UUID(event_id), clarification="briefing"
         )
         return "clarification_delivered" if delivered else "delivery_blocked"
 
