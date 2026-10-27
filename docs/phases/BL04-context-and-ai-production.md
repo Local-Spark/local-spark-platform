@@ -42,6 +42,30 @@ Prévia com este briefing fica bloqueada até BL04.2. Kit é congelado na propos
 as referências fotográficas ainda não são enviadas a um gerador visual. Portanto
 não afirmar que o fluxo completo ou a qualidade comercial estão concluídos.
 
+### Andamento da BL04.2
+
+O proprietário pode conceder, quando o modo visual estiver configurado, e
+retirar em Sobre meu negócio uma autorização específica para o envio futuro de
+contexto visual e fotos autorizadas à OpenAI; a API permite retirada mesmo com
+o modo desligado.
+É independente do consentimento de texto; a tela informa que a criação de
+imagens ainda está em preparação. O serviço registra as mudanças por negócio e
+mantém isolamento entre organizações. O modo visual continua desligado por
+padrão e restrito a desenvolvimento/teste.
+
+O ledger aceita reservas dentro de uma transação existente, preparando a
+integração com o fence e a intenção de envio; essa ligação **ainda não está
+implementada**. As prévias locais passaram a usar arquivos distintos por
+tentativa, evitando que uma execução vencida apague a prévia vencedora. Nenhuma
+dessas mudanças conecta o gerador de imagem ao briefing ou autoriza publicação.
+Uma captura pontual interna valida proprietário, consentimento, briefing e kit
+e calcula uma impressão digital dos documentos e referências. Ela não armazena
+um snapshot de tentativa nem verifica os bytes, e não autoriza efeito externo;
+por enquanto bloqueia mídia original do WhatsApp que não tenha normalização
+comprovada. Ainda faltam persistência e revalidação das fontes, integração
+atômica, chamada com adapter falso, tratamento de resultado incerto e teste
+integrado de geração. Os limites da BL04.1 continuam em aberto.
+
 
 1. **BL04.1 — Interpretação e contexto:** interpretar intenção e formato dentro das opções efetivamente disponíveis; localizar candidatos no acervo do mesmo negócio com produtos/aliases ativos e validade no fuso do negócio. Correspondência lexical é só candidato: negação, ambiguidade ou ausência de fonte não autorizam escolher produto automaticamente. Fotografias precisam de direito válido; dados de outro tenant, item arquivado e preços vencidos não podem compor o briefing. Kit confirmado, fatos, itens e mídias devem ter versões e proveniência verificáveis. Revalidar antes de efeito externo e antes de liberar o resultado; revogação, exclusão e alteração invalidam as dependências afetadas.
 2. **BL04.2 — Imagem e custo:** integrar um provedor de imagem ao caminho real da prévia, com consentimento aplicável, referências mínimas e saída privada; registrar operação, versão de modelo/briefing, fontes e uso. Uma referência de kit no máximo, quando necessária; fotos reais pertinentes do negócio são referências separadas. Se a promessa for retratar local/produto reais, não apresentar um ambiente inventado como fotografia documental. Texto/preço/CTA exigem conferência literal; resultado generativo não comprova fidelidade por si só. Falta de fonte deve gerar pergunta ou conceito identificado, não fato inventado.

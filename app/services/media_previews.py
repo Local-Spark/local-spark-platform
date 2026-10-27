@@ -515,7 +515,12 @@ class MediaPreviewService:
             return await self._fail(preview_id, fence, invalid_code, False)
         is_video = inputs.format == "short_video"
         extension = "mp4" if is_video else "jpg"
-        key = f"previews/{row['tenant_id']}/{row['business_id']}/{preview_id}/{row['render_key']}.{extension}"
+        # Isolate each fenced attempt so a delayed worker can delete only its
+        # own upload, never the object committed by a newer worker.
+        key = (
+            f"previews/{row['tenant_id']}/{row['business_id']}/{preview_id}/"
+            f"attempt-{fence}/{row['render_key']}.{extension}"
+        )
         try:
             source = None
             if inputs.source_key is not None:

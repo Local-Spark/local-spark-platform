@@ -1,8 +1,9 @@
 # BL04 — integração segura de IA visual à prévia
 
-Estado: **desenho pendente de implementação e validação**. Os componentes de
-ledger, adapter e resolução de candidatos existentes são isolados; não há ainda
-uma geração visual integrada, habilitada ou homologada. Este documento detalha
+Estado: **implementação iniciada, geração ainda não integrada**. Há consentimento
+visual independente, reserva utilizável na transação do chamador e isolamento de
+arquivos por tentativa; adapter e resolução de candidatos continuam isolados.
+Não há geração visual integrada ou homologada. Este documento detalha
 a ordem necessária e complementa [BL04](../phases/BL04-context-and-ai-production.md).
 
 ## Alcance da primeira integração
@@ -64,14 +65,42 @@ As políticas do ledger isolado restringem o tenant, não validam membership nem
 a autorização do ator sobre o negócio; a activity integrada deve verificá-las
 antes da reserva e dos efeitos, inclusive após revogação.
 
+
+## Atomicidade e permissões para a integração
+
+O ledger usa a role `meu_braco_direito_correlator`, enquanto consentimento,
+briefing, kit, catálogo e fotos usam políticas da role do proprietário. Duas
+sessões não compartilham a mesma transação; validar com uma role e reservar com
+outra não garante atomicidade. O método `reserve_in_transaction` pressupõe
+contexto de tenant e ator já configurado e não autentica o proprietário nem
+valida o fence, as fontes ou o consentimento.
+
+A integração precisa, na mesma transação, verificar o proprietário ativo e as
+permissões atuais, proteger a tentativa contra troca de fence e serializar sua
+validação com alterações ou revogações relevantes, registrar a intenção e
+reservar o custo. Definir ordem consistente dos locks e confirmar que todos os
+escritores participam do protocolo; consultas comuns em READ COMMITTED, ou um
+preflight em outra transação, não impedem essas corridas. Apenas uma reserva
+nova e efetivamente confirmada pelo commit permite uma chamada externa.
+
+São alternativas a avaliar: uma role dedicada à geração visual, com acesso
+mínimo por tenant e proprietário ativo, ou uma função `SECURITY DEFINER` de
+escopo restrito e `search_path` fixo, executada por role sem login e sujeita a
+políticas RLS específicas. Nenhuma deve usar `BYPASSRLS` ou ampliar acesso sem
+necessidade. A estratégia de lock deve considerar que locks de linha exigem
+privilégios adicionais; não conceder atualizações amplas apenas para obtê-los.
+Cobrir isolamento, revogação concorrente, fence, rollback e replay em testes de
+integração antes de habilitar chamadas reais.
+
 ## Reserva, Temporal e incerteza
 
 O ledger mínimo usa micros de USD e limite técnico mensal por tenant, padrão
 zero; não representa franquia comercial nem todo o custo do cliente. A reserva
 precisa ser criada antes de qualquer envio e a decisão deve ser atômica com a
-revalidação do `dispatch_fence` e a gravação durável da intenção de envio. Isso
-exige integrar a reserva à **mesma transação** da tentativa; chamar o método
-atual em uma transação separada não oferece essa garantia. Usar uma operação
+revalidação do `dispatch_fence` e a gravação durável da intenção de envio. O
+ledger oferece `reserve_in_transaction`, mas o fluxo de prévia ainda precisa
+chamá-lo na **mesma transação** da tentativa; a existência do método não prova
+que fence e intenção já estão integrados. Usar uma operação
 estável por tentativa lógica, não o número de fence, que muda no redispatch.
 
 Somente o criador de uma reserva nova pode iniciar a chamada. Replay de uma
@@ -108,7 +137,9 @@ o gasto e exige alerta, reconciliação e bloqueios comerciais apropriados.
 
 ## Objetos privados e retenção
 
-Gravar o resultado em chave privada exclusiva da tentativa/fence, com hash e
+O renderer local agora grava em chave privada exclusiva do fence, impedindo que
+um worker antigo apague o arquivo da tentativa vencedora. A integração de IA
+precisará preservar essa propriedade. Gravar o resultado com hash e
 mime conferidos. Um worker vencido deve apagar apenas o objeto que ele próprio
 criou; não usar uma chave compartilhada que permita sobrescrever ou apagar
 resultado de outra tentativa. Adaptar a retenção, exclusão e limpeza de órfãos

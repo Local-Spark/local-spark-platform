@@ -6,8 +6,9 @@ from fastapi import APIRouter, Request
 
 from app.adapters.material_media import MaterialStore
 from app.api.deps import Actor
-from app.schemas.media_previews import PreviewRead, PreviewRequest
+from app.schemas.media_previews import PreviewRead, PreviewRequest, VisualAIConsent, VisualAIStatus
 from app.services.media_previews import MediaPreviewService
+from app.services.visual_consent import VisualConsentService
 
 previews_router = APIRouter(
     prefix="/api/v1/organizations/{tenant_id}/businesses/{business_id}/media-previews",
@@ -17,6 +18,22 @@ previews_router = APIRouter(
 
 def service(request: Request) -> MediaPreviewService:
     return MediaPreviewService(request.app.state.settings, request.app.state.database)
+
+
+@previews_router.get("/visual-consent", response_model=VisualAIStatus)
+async def visual_consent_status(tenant_id: UUID, business_id: UUID, request: Request, actor: Actor) -> dict[str, bool]:
+    return await VisualConsentService(request.app.state.settings, request.app.state.database).status(
+        tenant_id, business_id, actor
+    )
+
+
+@previews_router.put("/visual-consent", response_model=VisualAIStatus)
+async def set_visual_consent(
+    tenant_id: UUID, business_id: UUID, body: VisualAIConsent, request: Request, actor: Actor
+) -> dict[str, bool]:
+    return await VisualConsentService(request.app.state.settings, request.app.state.database).set(
+        tenant_id, business_id, actor, body.accepted
+    )
 
 
 @previews_router.post("", response_model=PreviewRead, status_code=202)

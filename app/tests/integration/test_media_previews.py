@@ -1,5 +1,6 @@
 """Private preview lifecycle on restricted PostgreSQL roles and real HTTP routes."""
 
+import asyncio
 import hashlib
 import io
 import json
@@ -391,6 +392,53 @@ async def test_render_rechecks_inputs_and_cleans_partial_output(
             store.delete.assert_not_awaited()
     finally:
         await worker.close()
+
+
+async def test_stale_render_does_not_delete_the_newer_attempts_object(admin, seeded, settings):
+    tenant, business, actor, _, proposal, _ = await _accepted_case(admin, seeded)
+    owner, worker = Database(settings), Database(settings, correlator=True)
+    try:
+        preview = await MediaPreviewService(settings, owner).request(
+            tenant, business, actor, PreviewRequest(operation_id=uuid4(), proposal_id=proposal)
+        )
+        claim = (await claim_previews(worker, uuid4()))[0]
+        entered, release = asyncio.Event(), asyncio.Event()
+        objects = {}
+
+        async def put(key, media):
+            objects[key] = media.data
+            if f"/attempt-{claim.fence}/" in key:
+                entered.set()
+                await release.wait()
+
+        async def delete(key):
+            objects.pop(key, None)
+
+        store = AsyncMock()
+        store.put.side_effect = put
+        store.delete.side_effect = delete
+        service = MediaPreviewService(settings, worker, store)
+        first = asyncio.create_task(service.render(claim.id, claim.fence))
+        try:
+            await asyncio.wait_for(entered.wait(), timeout=20)
+            async with admin.begin() as conn:
+                await conn.execute(
+                    text("UPDATE media_previews SET dispatch_fence=dispatch_fence+1 WHERE id=:id"),
+                    {"id": preview.id},
+                )
+            assert await service.render(claim.id, claim.fence + 1) == "completed"
+        finally:
+            release.set()
+        assert await first == "skipped"
+        async with admin.connect() as conn:
+            winner_key = await conn.scalar(
+                text("SELECT object_key FROM media_previews WHERE id=:id"), {"id": preview.id}
+            )
+        assert f"/attempt-{claim.fence + 1}/" in winner_key
+        assert list(objects) == [winner_key]
+    finally:
+        await worker.close()
+        await owner.close()
 
 
 @pytest.mark.parametrize("terminal", ["failed_dispatch", "stale_worker"])

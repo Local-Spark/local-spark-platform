@@ -220,6 +220,16 @@ piloto. Ver [plano de vídeo real e voz](design/video-real-and-voice.md).
 
 A execução e os limites da fase ativa estão no [SDD BL04](phases/BL04-context-and-ai-production.md). Em desenvolvimento/teste, o worker pode usar Jev com consentimento TypeSafe separado, reserva financeira e snapshots revalidados; permanece desligado por padrão. Bloqueio de orçamento antes de submissão tem retomada segura e limitada; respostas incertas não são reenviadas. Esclarecimentos usam entrega local simulada e prévias com esse briefing são bloqueadas até BL04.2. A [comparação Jev/OpenAI](evals/intent-comparison-2026-10-27.md) não prova conversa com memória nem homologação comercial. A oferta inicial de R$ 99 admite foto e story, sem franquia de quantidade definida; vídeo e planos adicionais ainda serão definidos. O nome versionado de um item ativo pode fundamentar o roteiro, sem converter preço ou oferta em fato nem criar registro artificial no contexto do negócio.
 
+A BL04.2 iniciou o consentimento específico para uso de IA visual, independente
+do consentimento de texto, e a captura pontual da impressão digital do contexto
+confirmado; essa captura não é snapshot durável nem autoriza chamada externa.
+A reserva financeira agora pode participar da mesma
+transação que a intenção de envio, mas a chamada pelo worker, o snapshot visual
+e a verificação do fence ainda não estão integrados. O armazenamento da prévia
+local usa chave distinta por tentativa para evitar perda em corridas. A geração
+visual permanece em preparação e desligada por padrão; esses fundamentos não
+comprovam qualidade, custo comercial ou publicação automática.
+
 **Gate BL04 por receita:** fontes/direitos válidos, texto/preço/CTA corretos,
 fidelidade a produto/local, acabamento e legibilidade no celular, avaliação
 consentida do titular e custo por peça aceita incluindo rejeições/refações.

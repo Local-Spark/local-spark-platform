@@ -1,5 +1,24 @@
 # Registro de mudanças
 
+## 2026-10-27 — BL04.2: início dos controles de geração visual
+
+- Consentimento visual independente por negócio, auditado e revogável, com
+  interface em Sobre meu negócio; geração real continua em preparação e desligada.
+- Ledger oferece reserva na transação do chamador. A integração com intenção
+  de envio, fence e provedor ainda precisa ser implementada e validada.
+- Captura pontual interna valida owner, consentimento, briefing e kit e calcula
+  impressão digital do contexto; ainda não persiste tentativa nem envia mídia.
+- Prévias locais usam chave por tentativa para evitar que um worker vencido
+  remova o arquivo de uma execução mais nova.
+- Nenhuma chamada visual paga foi feita nesta entrega; não há resultado novo ou
+  conclusão sobre qualidade e custo por peça aceita.
+- Validação: `make ci` do backend passou com 1.147 testes e 100% de linhas e
+  ramos. No frontend, 303 testes e cobertura de 100% passaram em execução
+  sequencial, após instabilidade em execuções anteriores; typecheck, build e
+  jornada Chromium em desktop/celular também passaram. Migração `0045` aplicada
+  ao banco local de desenvolvimento; health e OpenAPI responderam 200 em uma
+  nova instância da API.
+
 ## 2026-10-27 — BL04.1: comparação e recuperação de orçamento
 
 - Jev reconhece pedidos explícitos de divulgação nos critérios sem promover preços e horários isolados a publicações. Teste real do adapter reconheceu o caso anterior; a [comparação Jev/OpenAI](evals/intent-comparison-2026-10-27.md) documenta outros erros e seis respostas OpenAI incompletas no recorte comparável.

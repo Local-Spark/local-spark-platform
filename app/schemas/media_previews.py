@@ -4,7 +4,17 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, StrictBool, model_validator
+
+
+class VisualAIConsent(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    accepted: StrictBool
+
+
+class VisualAIStatus(VisualAIConsent):
+    provider_enabled: bool
 
 
 class PreviewRequest(BaseModel):

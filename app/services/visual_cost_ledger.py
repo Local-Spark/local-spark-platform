@@ -2,7 +2,8 @@
 
 USD amounts are integer millionths. The UTC calendar-month ceiling is an
 operational guard, not a commercial plan or a complete measure of COGS.
-Only a freshly created reservation grants permission to dispatch an effect.
+Only a freshly created and committed reservation grants permission to dispatch
+an effect; a reservation inside an uncommitted transaction is not authorization.
 """
 
 import hashlib
@@ -12,6 +13,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
 from app.db.session import Database
@@ -42,6 +44,32 @@ async def _event(session: Any, tenant: UUID, actor: UUID, reservation: UUID, act
     )
 
 
+def _reservation_digest(
+    business: UUID,
+    actor: UUID,
+    provider: str,
+    model: str,
+    request_hash: str,
+    reserved_usd_micros: int,
+) -> str:
+    if (
+        not provider
+        or len(provider) > 80
+        or not model
+        or len(model) > 120
+        or len(request_hash) != 64
+        or any(ch not in "0123456789abcdef" for ch in request_hash)
+        or not 0 < reserved_usd_micros <= 1_000_000_000_000
+    ):
+        raise VisualCostError("INVALID_RESERVATION")
+    # Hash the entire billing-relevant identity; never persist prompt or source data.
+    return hashlib.sha256(
+        json.dumps(
+            [str(business), str(actor), provider, model, request_hash, reserved_usd_micros], separators=(",", ":")
+        ).encode()
+    ).hexdigest()
+
+
 class VisualCostLedger:
     def __init__(self, settings: Settings, database: Database) -> None:
         self.settings, self.database = settings, database
@@ -57,77 +85,87 @@ class VisualCostLedger:
         request_hash: str,
         reserved_usd_micros: int,
     ) -> VisualReservation:
-        if (
-            not provider
-            or len(provider) > 80
-            or not model
-            or len(model) > 120
-            or len(request_hash) != 64
-            or any(ch not in "0123456789abcdef" for ch in request_hash)
-            or not 0 < reserved_usd_micros <= 1_000_000_000_000
-        ):
-            raise VisualCostError("INVALID_RESERVATION")
-        # Hash the entire billing-relevant identity; never persist prompt or source data.
-        digest = hashlib.sha256(
-            json.dumps(
-                [str(business), str(actor), provider, model, request_hash, reserved_usd_micros], separators=(",", ":")
-            ).encode()
-        ).hexdigest()
+        # Preserve rejection of invalid inputs before opening the database transaction.
+        _reservation_digest(business, actor, provider, model, request_hash, reserved_usd_micros)
         async with self.database.transaction(tenant, actor) as session:
-            await session.execute(
-                text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 31))"), {"key": str(tenant)}
+            return await self.reserve_in_transaction(
+                session, tenant, business, actor, operation, provider, model, request_hash, reserved_usd_micros
             )
-            row = (
-                (
-                    await session.execute(
-                        text("""SELECT * FROM visual_cost_reservations
+
+    async def reserve_in_transaction(
+        self,
+        session: AsyncSession,
+        tenant: UUID,
+        business: UUID,
+        actor: UUID,
+        operation: UUID,
+        provider: str,
+        model: str,
+        request_hash: str,
+        reserved_usd_micros: int,
+    ) -> VisualReservation:
+        """Reserve inside the caller's active transaction without committing it.
+
+        The caller must set tenant/actor RLS context and revalidate owner, fence,
+        sources and consent in this transaction. A newly inserted reservation
+        permits a provider call only after this transaction has committed. This
+        method itself never makes network requests or controls transaction scope.
+        """
+        digest = _reservation_digest(business, actor, provider, model, request_hash, reserved_usd_micros)
+        if not session.in_transaction():
+            raise VisualCostError("VISUAL_TRANSACTION_REQUIRED")
+        await session.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 31))"), {"key": str(tenant)})
+        row = (
+            (
+                await session.execute(
+                    text("""SELECT * FROM visual_cost_reservations
               WHERE tenant_id=:tenant AND operation_id=:operation"""),
-                        {"tenant": tenant, "operation": operation},
-                    )
+                    {"tenant": tenant, "operation": operation},
                 )
-                .mappings()
-                .one_or_none()
             )
-            if row is not None:
-                if row["request_hash"] != digest:
-                    raise VisualCostError("RESERVATION_OPERATION_CONFLICT")
-                return _result(row, False)
-            if self.settings.visual_ai_monthly_budget_usd_micros <= 0:
-                raise VisualCostError("VISUAL_BUDGET_DISABLED")
-            used = await session.scalar(
-                text("""SELECT coalesce(sum(CASE WHEN state='completed'
+            .mappings()
+            .one_or_none()
+        )
+        if row is not None:
+            if row["request_hash"] != digest:
+                raise VisualCostError("RESERVATION_OPERATION_CONFLICT")
+            return _result(row, False)
+        if self.settings.visual_ai_monthly_budget_usd_micros <= 0:
+            raise VisualCostError("VISUAL_BUDGET_DISABLED")
+        used = await session.scalar(
+            text("""SELECT coalesce(sum(CASE WHEN state='completed'
               THEN actual_usd_micros ELSE reserved_usd_micros END),0) FROM visual_cost_reservations
               WHERE tenant_id=:tenant AND created_at>=date_trunc('month',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'
               AND created_at<(date_trunc('month',now() AT TIME ZONE 'UTC') + interval '1 month') AT TIME ZONE 'UTC'"""),
-                {"tenant": tenant},
-            )
-            if used + reserved_usd_micros > self.settings.visual_ai_monthly_budget_usd_micros:
-                raise VisualCostError("VISUAL_BUDGET_EXCEEDED")
-            row = (
-                (
-                    await session.execute(
-                        text("""INSERT INTO visual_cost_reservations
+            {"tenant": tenant},
+        )
+        if used + reserved_usd_micros > self.settings.visual_ai_monthly_budget_usd_micros:
+            raise VisualCostError("VISUAL_BUDGET_EXCEEDED")
+        row = (
+            (
+                await session.execute(
+                    text("""INSERT INTO visual_cost_reservations
               (id,tenant_id,business_id,actor_id,operation_id,request_hash,provider,model,reserved_usd_micros,state)
               VALUES(:id,:tenant,:business,:actor,:operation,:hash,:provider,:model,:reserved,'submitted')
               RETURNING *"""),
-                        {
-                            "id": uuid4(),
-                            "tenant": tenant,
-                            "business": business,
-                            "actor": actor,
-                            "operation": operation,
-                            "hash": digest,
-                            "provider": provider,
-                            "model": model,
-                            "reserved": reserved_usd_micros,
-                        },
-                    )
+                    {
+                        "id": uuid4(),
+                        "tenant": tenant,
+                        "business": business,
+                        "actor": actor,
+                        "operation": operation,
+                        "hash": digest,
+                        "provider": provider,
+                        "model": model,
+                        "reserved": reserved_usd_micros,
+                    },
                 )
-                .mappings()
-                .one()
             )
-            await _event(session, tenant, actor, row["id"], "reserved")
-            return _result(row, True)
+            .mappings()
+            .one()
+        )
+        await _event(session, tenant, actor, row["id"], "reserved")
+        return _result(row, True)
 
     async def finish(
         self, tenant: UUID, actor: UUID, reservation: UUID, *, actual_usd_micros: int | None
