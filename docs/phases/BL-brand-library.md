@@ -173,6 +173,14 @@ A tela deixa visível o que está confirmado para a IA e o que ainda é rascunho
 
 ### BL04 — Recuperar contexto e produzir uma peça nova
 
+**Em implementação local:** busca e resolução interna do acervo, adaptador de
+imagem e ledger de custo têm testes, mas ainda não estão conectados ao processo
+de propostas/prévias. O [SDD BL04](BL04-context-and-ai-production.md) e o
+[desenho de integração segura](../design/BL04-integration-safety.md) registram
+os passos pendentes. O [ensaio sintético vertical](../evals/bl04-visual-synthetic-story-2026-10-27.md)
+fez uma chamada real controlada; não é gate comercial. A [avaliação Jev](../evals/jev-intent-ptbr-v1.md)
+inclui um ensaio real pequeno, sem adoção no runtime.
+
 F02 recebe texto, foto, vídeo ou áudio; F03 transcreve quando necessário,
 interpreta o pedido de conteúdo e **resolve automaticamente** itens ativos,
 sinônimos, fotos e fatos vigentes do mesmo negócio. O cliente não escolhe

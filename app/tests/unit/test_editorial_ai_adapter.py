@@ -117,3 +117,34 @@ async def test_adapter_rejects_non_json_response(settings, monkeypatch):
     monkeypatch.setattr(module.httpx, "AsyncClient", lambda **kwargs: client)
     with pytest.raises(EditorialProviderError, match="EDITORIAL_PROVIDER_UNCERTAIN"):
         await OpenAIEditorialProvider(configured).propose({}, uuid4())
+
+
+@pytest.mark.parametrize(
+    "environment,enabled,expected",
+    [
+        ("testing", True, True),
+        ("testing", False, False),
+        ("production", True, False),
+    ],
+)
+async def test_experimental_prompt_is_limited_to_local_testing(settings, monkeypatch, environment, enabled, expected):
+    configured = settings.model_copy(
+        update={
+            "editorial_ai_mode": "openai",
+            "openai_api_key": SecretStr("fake"),
+            "environment": environment,
+            "editorial_creative_experimental": enabled,
+        }
+    )
+    requests = []
+
+    def handler(request):
+        requests.append(json.loads(request.content))
+        return httpx.Response(200, json=_response())
+
+    client = httpx.AsyncClient
+    monkeypatch.setattr(module.httpx, "AsyncClient", lambda **kw: client(transport=httpx.MockTransport(handler), **kw))
+    await OpenAIEditorialProvider(configured).propose({}, uuid4())
+    instruction = requests[0]["input"][0]["content"]
+    assert ("cite exatamente um fact_id" in instruction) is expected
+    assert requests[0]["text"]["format"] == module.FORMAT

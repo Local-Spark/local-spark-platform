@@ -19,3 +19,17 @@ def test_price_and_availability_rules() -> None:
     assert classify("Hoje tenho horário livre as 25h", now)[0] == "unknown"
     assert classify("Hoje tenho horário livre as 15:99", now)[0] == "unknown"
     assert classify("Qual é a melhor hora para postar?", now)[0] == "unknown"
+
+
+def test_negated_or_ambiguous_messages_never_become_positive_facts() -> None:
+    now = datetime(2026, 10, 23, 12, tzinfo=ZoneInfo("America/Sao_Paulo"))
+    for message in (
+        "O produto não custa 20 reais hoje",
+        "O produto nao custa 20 reais hoje",
+        "Hoje não tenho agenda livre às 15h",
+        "Hoje nunca tenho horário livre às 15h",
+        "O bolo sem glúten custa 20 reais hoje",
+    ):
+        kind, proposal, reply = classify(message, now)
+        assert kind == "unknown" and proposal == {}
+        assert "informe" in reply.lower()

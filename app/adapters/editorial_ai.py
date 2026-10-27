@@ -6,6 +6,7 @@ from uuid import UUID
 import httpx
 
 from app.core.config import Settings
+from app.core.editorial_creative import CREATIVE_STYLE_WORDS, creative_experiment_enabled
 from app.schemas.editorial_proposals import ProposalDraft
 
 
@@ -54,6 +55,15 @@ class OpenAIEditorialProvider:
         key = self.settings.openai_api_key
         if self.settings.editorial_ai_mode != "openai" or key is None:
             raise EditorialProviderError("EDITORIAL_PROVIDER_DISABLED")
+        experimental_instruction = (
+            (
+                " Nesta avaliação, cite exatamente um fact_id. No título e ângulo, use somente palavras "
+                "do fato citado ou estas palavras de estilo: " + ", ".join(sorted(CREATIVE_STYLE_WORDS)) + ". "
+                "Não use negação, não acrescente atributos e não prometa resultados."
+            )
+            if creative_experiment_enabled(self.settings)
+            else ""
+        )
         request = {
             "model": self.settings.editorial_ai_model,
             "store": False,
@@ -74,7 +84,7 @@ class OpenAIEditorialProvider:
                         "Sugira uma sequência de até três cenas usando apenas material, fact e cta. "
                         "Uma cena de material só pode usar o arquivo recebido, sem inventar o que ele mostra. "
                         "O texto factual e a fala serão montados a partir dos fatos confirmados. "
-                        "Não produza peça pronta para publicação."
+                        "Não produza peça pronta para publicação." + experimental_instruction
                     ),
                 },
                 {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},

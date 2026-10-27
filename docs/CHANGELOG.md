@@ -1,5 +1,44 @@
 # Registro de mudanças
 
+## 2026-10-27 — Primeiro ensaio Jev com dados fictícios
+
+- Conta e chave configuradas localmente; cinco chamadas de `jev-1.14.0` em
+  mensagens sintéticas de desenvolvimento, sem dados de clientes. O modelo
+  acertou 5/5; baseline acertou 2 e se absteve em 3. Mediana 179,676 ms;
+  2.357 tokens de entrada e custo estimado US$ 0,000098994 no total.
+- Amostra pequena e não cega, insuficiente para adoção ou aferir precisão real;
+  comparação ampla, novo holdout e integração continuam pendentes. Registro em
+  [eval Jev](evals/jev-intent-ptbr-v1.md). Não foram alterados código ou banco.
+
+## 2026-10-27 — Início BL04: bases isoladas, avaliação e ensaio sintético
+
+- Busca owner-scoped de candidatos no acervo, snapshot mínimo e revalidação de
+  versões, preço, promoções e fotos; orquestrador interno interpreta fora das
+  transações e rejeita seleção inválida. Não há consumidor no fluxo editorial,
+  nem resolução automática por modelo real ou persistência de snapshot.
+- Adapter de imagem OpenAI isolado, sem retries e com resultado incerto após
+  submissão; ledger `0041` reserva limite técnico em micros de USD por tenant,
+  com idempotência, lock, RLS e retenção de reservas incertas. Ainda não estão
+  integrados a prévias, consentimento visual, Temporal ou plano comercial;
+  limite padrão é zero e não habilita chamadas reais de clientes.
+- Cópia criativa opcional em desenvolvimento/teste, ligada a um fato e protegida
+  pelas verificações existentes; validação lexical não garante veracidade.
+  Classificador conservador solicita esclarecimento para negações explícitas.
+- Avaliação Jev preparada com 50 casos PT-BR sintéticos e chave opcional
+  `TYPESAFE_API_KEY`; nenhuma chamada real ou adoção. O holdout foi contaminado
+  durante correção do baseline e será substituído antes de avaliação cega.
+- Uma chamada de imagem real com marca fictícia e foto CC0, autorizada até US$ 1,
+  estimada em US$ 0,024627, documentada no [eval](evals/bl04-visual-synthetic-story-2026-10-27.md).
+  O resultado não garante fidelidade do logo/texto nem qualidade comercial.
+- A [spec BL04](phases/BL04-context-and-ai-production.md) e o [desenho de
+  integração](design/BL04-integration-safety.md) distinguem as unidades prontas
+  da etapa durável de ponta a ponta ainda pendente.
+- Validação final: `make ci` com cache isolado do mypy, Ruff e mypy aprovados,
+  **930 testes aprovados e 100% de cobertura de linhas/ramos**. A migração 0041
+  foi aplicada apenas na base dedicada `_test`; a base de desenvolvimento não
+  foi alterada. Houve uma única chamada real de imagem no ensaio sintético.
+
+
 ## 2026-10-27 — Correção local da consulta ao acervo
 
 - A consulta do catálogo falhava com 500 porque o banco de desenvolvimento

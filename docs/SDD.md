@@ -210,6 +210,8 @@ Sem evidência, pedir material ou oferecer conceito identificado. Não inventar
 local, preço, cardápio, agenda, resultado ou imagem documental. Kit não substitui
 fontes do cliente. Avatar/voz exigem consentimento específico e orçamento.
 
+A execução e os limites da fase ativa estão no [SDD BL04](phases/BL04-context-and-ai-production.md).
+
 **Gate BL04 por receita:** fontes/direitos válidos, texto/preço/CTA corretos,
 fidelidade a produto/local, acabamento e legibilidade no celular, avaliação
 consentida do titular e custo por peça aceita incluindo rejeições/refações.

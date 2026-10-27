@@ -1324,3 +1324,87 @@ async def test_staff_daily_usage_keeps_tenants_private_and_separates_reserved_fr
         assert (await api.get("/api/v1/admin/editorial-usage?limit=101", headers=staff_headers)).status_code == 422
     finally:
         await db.close()
+
+
+async def test_experimental_copy_preserves_provenance_and_abstains_on_unsupported_amount(admin, seeded, settings):
+    business = await _business(admin, seeded)
+    tenant, actor = seeded["t1"], seeded["a1"]
+    first, selected = uuid4(), uuid4()
+    config = settings.model_copy(
+        update={
+            "editorial_ai_mode": "openai",
+            "openai_api_key": SecretStr("fake"),
+            "editorial_daily_token_limit": 30000,
+            "editorial_creative_experimental": True,
+        }
+    )
+    api_db, worker_db = Database(config), Database(config, correlator=True)
+    provider = AsyncMock()
+    service, worker = EditorialProposalService(config, api_db), EditorialProposalService(config, worker_db, provider)
+    try:
+        await service.set_consent(tenant, business, actor, True)
+        async with admin.begin() as connection:
+            await connection.execute(
+                text("INSERT INTO business_context_heads(tenant_id,business_id,version) VALUES(:tenant,:business,1)"),
+                {"tenant": tenant, "business": business},
+            )
+            document = {
+                "facts": [
+                    {"id": str(first), "kind": "product", "statement": "Bolo por R$ 30", "source_detail": "Dono"},
+                    {
+                        "id": str(selected),
+                        "kind": "product",
+                        "statement": "Croissant por R$ 20",
+                        "source_detail": "Dono",
+                    },
+                ],
+                "preferences": {"goal": "sales", "tone": None, "avoided_topics": [], "posts_per_week": None},
+            }
+            await connection.execute(
+                text("""INSERT INTO business_context_versions
+                  (tenant_id,business_id,version,operation_id,actor_id,request_hash,document)
+                  VALUES(:tenant,:business,1,:operation,:actor,:hash,CAST(:doc AS jsonb))"""),
+                {
+                    "tenant": tenant,
+                    "business": business,
+                    "operation": uuid4(),
+                    "actor": actor,
+                    "hash": "b" * 64,
+                    "doc": json.dumps(document),
+                },
+            )
+        draft = ProposalDraft(
+            title="Sua pausa com croissant",
+            format="photo",
+            angle="Conheça croissant por R$ 20",
+            fact_ids=[selected],
+            hypotheses=[],
+            questions=[],
+            scene_plan=["fact", "cta"],
+        )
+        provider.propose.return_value = draft, 100, 50
+        request = await service.request(tenant, business, actor, ProposalRequest(operation_id=uuid4()))
+        claim = (await claim_proposals(worker_db, uuid4()))[0]
+        await finish_proposal_dispatch(worker_db, claim, True)
+        assert await worker.run(request.id) == "completed"
+        async with admin.connect() as connection:
+            result = await connection.scalar(
+                text("SELECT document FROM editorial_proposals WHERE id=:id"), {"id": request.id}
+            )
+        assert result["title"] == draft.title and result["angle"] == draft.angle
+        assert result["fact_ids"] == [str(selected)]
+        assert result["script"][0]["on_screen_text"] == "Croissant por R$ 20."
+        assert result["script"][0]["fact_ids"] == [str(selected)]
+        provider.propose.return_value = draft.model_copy(update={"angle": "Conheça croissant por R$ 30"}), 100, 50
+        request = await service.request(tenant, business, actor, ProposalRequest(operation_id=uuid4()))
+        claim = (await claim_proposals(worker_db, uuid4()))[0]
+        await finish_proposal_dispatch(worker_db, claim, True)
+        assert await worker.run(request.id) == "uncertain"
+        async with admin.connect() as connection:
+            result = await connection.scalar(
+                text("SELECT document FROM editorial_proposals WHERE id=:id"), {"id": request.id}
+            )
+        assert result is None
+    finally:
+        await api_db.close()
+        await worker_db.close()

@@ -132,3 +132,137 @@ def test_storyboard_omits_visual_scene_without_image_or_fact(settings, fake_data
     assert all(scene.source_asset_id is None for scene in draft.script)
     assert service._script(draft.model_copy(update={"scene_plan": ["material"]}), data)[0].role == "fact"
     assert service._baseline(_data("image")).script == []
+
+
+def test_experimental_copy_is_tied_to_one_confirmed_fact(settings, fake_database):
+    service = EditorialProposalService(settings, fake_database)
+    wrong_id, selected_id, asset_id = uuid4(), uuid4(), uuid4()
+    data = _data(
+        "image",
+        [
+            {"id": str(wrong_id), "statement": "Bolo por R$ 30", "kind": "price"},
+            {"id": str(selected_id), "statement": "Croissant por R$ 20", "kind": "price"},
+        ],
+    )
+    data["source_asset_id"] = asset_id
+    draft = ProposalDraft(
+        title="Sua pausa com croissant",
+        format="photo",
+        angle="Conheça croissant por R$ 20",
+        fact_ids=[selected_id],
+        hypotheses=[],
+        questions=[],
+        scene_plan=["material", "fact", "cta"],
+    )
+    assert service._safe_experimental(draft, data, {wrong_id, selected_id})
+    result = service._ground(draft, data, experimental=True)
+    assert result.title == draft.title and result.angle == draft.angle
+    assert result.fact_ids == [selected_id]
+    assert result.script[0].on_screen_text == draft.title
+    assert result.script[0].voiceover == draft.angle
+    assert result.script[0].source_asset_id == asset_id
+    assert result.script[1].on_screen_text == "Croissant por R$ 20."
+    assert result.script[1].voiceover == "Croissant por R$ 20."
+    assert result.script[1].fact_ids == [selected_id]
+    assert result.script[2].on_screen_text == "Fale com o negócio"
+    assert result.script[2].voiceover == "Entre em contato para saber mais."
+    assert not service._safe_experimental(draft.model_copy(update={"fact_ids": []}), data, {selected_id})
+    assert not service._safe_experimental(
+        draft.model_copy(update={"fact_ids": [selected_id, wrong_id]}), data, {selected_id, wrong_id}
+    )
+    assert not service._safe_experimental(draft, data, {wrong_id})
+    assert not service._safe_experimental(draft, _data("image", [data["confirmed_facts"][0]]), {selected_id})
+    assert not service._safe_experimental(draft, _data("image", data["confirmed_facts"], ["croissant"]), {selected_id})
+    # Preserve baseline guard: the first fact's avoided topic blocks the draft too.
+    assert not service._safe_experimental(draft, _data("image", data["confirmed_facts"], ["bolo"]), {selected_id})
+
+
+@pytest.mark.parametrize(
+    "title,angle,statement",
+    [
+        ("Croissant vegano", "Conheça croissant por R$ 20", "Croissant por R$ 20"),
+        ("Croissant garantido", "Conheça croissant por R$ 20", "Croissant por R$ 20"),
+        ("O melhor croissant", "Conheça croissant por R$ 20", "Croissant por R$ 20"),
+        ("Croissant sem açúcar", "Conheça croissant", "Croissant por R$ 20"),
+        ("Croissant por R$ 30", "Conheça croissant", "Croissant por R$ 20"),
+        ("Promoção de 20%", "Conheça a promoção", "Promoção 20 reais"),
+        ("Desconto de 20%", "Conheça o desconto", "Desconto por R$ 20"),
+        ("Atendimento por 15 dias", "Conheça o atendimento", "Atendimento às 15h"),
+    ],
+)
+def test_experimental_copy_abstains_from_unsupported_claims(settings, fake_database, title, angle, statement):
+    service = EditorialProposalService(settings, fake_database)
+    fact_id = uuid4()
+    data = _data("image", [{"id": str(fact_id), "statement": statement, "kind": "product"}])
+    draft = ProposalDraft(title=title, format="photo", angle=angle, fact_ids=[fact_id], hypotheses=[], questions=[])
+    assert not service._safe_experimental(draft, data, {fact_id})
+
+
+def test_experimental_copy_rejects_another_facts_numbers_and_never_alters_factual_text(settings, fake_database):
+    service = EditorialProposalService(settings, fake_database)
+    a, b = uuid4(), uuid4()
+    data = _data(
+        "text",
+        [
+            {"id": str(a), "statement": "Croissant por R$ 20", "kind": "product"},
+            {"id": str(b), "statement": "Bolo por R$ 30", "kind": "product"},
+        ],
+    )
+    draft = ProposalDraft(
+        title="Croissant por R$ 30",
+        format="story",
+        angle="Conheça croissant",
+        fact_ids=[a],
+        hypotheses=[],
+        questions=[],
+    )
+    assert not service._safe_experimental(draft, data, {a, b})
+    assert service._ground(draft, data).title == "Uma história do seu negócio"
+
+
+def test_experimental_flag_defaults_off_and_cannot_be_enabled_in_production(settings):
+    assert not settings.editorial_creative_experimental
+    for environment in ("production", "staging"):
+        forbidden = settings.model_copy(update={"environment": environment, "editorial_creative_experimental": True})
+        with pytest.raises(ValueError, match="restricted to development and testing"):
+            forbidden.editorial_ai_safety()
+    allowed = settings.model_copy(update={"environment": "testing", "editorial_creative_experimental": True})
+    assert allowed.editorial_ai_safety() is allowed
+
+
+def test_experimental_script_fails_closed_and_bounds_voiceover(settings, fake_database):
+    service = EditorialProposalService(settings, fake_database)
+    fact_id = uuid4()
+    data = _data("image", [{"id": str(fact_id), "statement": "Croissant por R$ 20", "kind": "price"}])
+    data["source_asset_id"] = uuid4()
+    draft = ProposalDraft(
+        title="Conheça croissant",
+        angle="Conheça " * 35,
+        format="photo",
+        fact_ids=[fact_id],
+        hypotheses=[],
+        questions=[],
+        scene_plan=["material", "fact", "cta"],
+    )
+    assert service._script(draft, data, experimental=True)[0].voiceover == draft.title
+    with pytest.raises(ValueError, match="fact source unavailable"):
+        service._script(draft.model_copy(update={"fact_ids": [uuid4()]}), data, experimental=True)
+    with pytest.raises(ValueError, match="fact source unavailable"):
+        service._script(draft.model_copy(update={"fact_ids": []}), data, experimental=True)
+
+
+def test_experimental_rejects_id_missing_from_loaded_fact_snapshot(settings, fake_database):
+    service = EditorialProposalService(settings, fake_database)
+    actual_id, stale_id = uuid4(), uuid4()
+    data = _data("image", [{"id": str(actual_id), "statement": "Croissant artesanal", "kind": "product"}])
+    draft = ProposalDraft(
+        title="Conheça croissant",
+        format="photo",
+        angle="Conheça nosso croissant artesanal",
+        fact_ids=[stale_id],
+        hypotheses=[],
+        questions=[],
+    )
+    # Model-provided ID passes the initial ID set but is absent from the snapshot.
+    assert service._safe(draft, data, {stale_id})
+    assert not service._safe_experimental(draft, data, {stale_id})

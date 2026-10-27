@@ -16,6 +16,7 @@ from sqlalchemy import text
 
 from app.adapters.editorial_ai import EditorialProviderError, OpenAIEditorialProvider
 from app.core.config import Settings
+from app.core.editorial_creative import creative_experiment_enabled, experimental_copy_matches_fact
 from app.db.session import Database
 from app.schemas.brand_kits import BrandKitOverrides
 from app.schemas.editorial_context import ContextContent
@@ -653,12 +654,18 @@ class EditorialProposalService:
         return draft.model_copy(update={"script": EditorialProposalService._script(draft, data)})
 
     @staticmethod
-    def _script(draft: ProposalDraft, data: dict[str, object]) -> builtins.list[ScriptScene]:
+    def _script(
+        draft: ProposalDraft, data: dict[str, object], *, experimental: bool = False
+    ) -> builtins.list[ScriptScene]:
         facts = data["confirmed_facts"]
         assert isinstance(facts, list)
         if not facts:
             return []
         first = facts[0]
+        if experimental:
+            first = next((fact for fact in facts if draft.fact_ids and str(fact["id"]) == str(draft.fact_ids[0])), None)
+            if first is None:
+                raise ValueError("Experimental fact source unavailable")
         assert isinstance(first, dict)
         fact_id = UUID(str(first["id"]))
         statement = str(first["statement"]).rstrip(". ") + "."
@@ -683,8 +690,10 @@ class EditorialProposalService:
                     ScriptScene(
                         role=role,
                         visual="source_material",
-                        on_screen_text="Seu negócio em destaque",
-                        voiceover="Veja este material do negócio.",
+                        on_screen_text=draft.title if experimental else "Seu negócio em destaque",
+                        voiceover=(draft.angle if len(draft.angle) <= 240 else draft.title)
+                        if experimental
+                        else "Veja este material do negócio.",
                         fact_ids=[],
                         source_asset_id=source_id,
                     )
@@ -727,18 +736,39 @@ class EditorialProposalService:
         return not any(str(topic).casefold() in visible_text for topic in preferences.get("avoided_topics", []))
 
     @staticmethod
-    def _ground(draft: ProposalDraft, data: dict[str, object]) -> ProposalDraft:
-        """Keep the factual surface deterministic; model text is review-only."""
+    def _safe_experimental(draft: ProposalDraft, data: dict[str, object], valid_ids: set[UUID]) -> bool:
+        # Keep the existing guard, then require one source for both title and angle.
+        if not EditorialProposalService._safe(draft, data, valid_ids):
+            return False
+        if len(draft.fact_ids) != 1 or draft.fact_ids[0] not in valid_ids:
+            return False
+        facts = data["confirmed_facts"]
+        assert isinstance(facts, list)
+        fact = next((item for item in facts if str(item["id"]) == str(draft.fact_ids[0])), None)
+        if fact is None:
+            return False
+        statement = str(fact["statement"])
+        copy = f"{draft.title} {draft.angle}"
+        preferences = data["preferences"]
+        assert isinstance(preferences, dict)
+        visible = f"{copy} {statement}".casefold()
+        return experimental_copy_matches_fact(copy, statement) and not any(
+            str(topic).casefold() in visible for topic in preferences.get("avoided_topics", [])
+        )
+
+    @staticmethod
+    def _ground(draft: ProposalDraft, data: dict[str, object], *, experimental: bool = False) -> ProposalDraft:
+        """Keep factual scenes exact; only a bounded dev/test experiment preserves copy."""
         baseline = EditorialProposalService._baseline(data)
         return ProposalDraft(
-            title=baseline.title,
+            title=draft.title if experimental else baseline.title,
             format=draft.format,
-            angle=baseline.angle,
-            fact_ids=baseline.fact_ids,
+            angle=draft.angle if experimental else baseline.angle,
+            fact_ids=draft.fact_ids if experimental else baseline.fact_ids,
             hypotheses=draft.hypotheses,
             questions=draft.questions,
             scene_plan=draft.scene_plan,
-            script=EditorialProposalService._script(draft, data),
+            script=EditorialProposalService._script(draft, data, experimental=experimental),
         )
 
     async def run(self, proposal_id: UUID) -> str:
@@ -828,11 +858,18 @@ class EditorialProposalService:
                 {"tenant": row["tenant_id"], "live": self.settings.environment == "production"},
             )
             fresh_inputs = await self._inputs(session, row) if consent and access else None
+            experimental = creative_experiment_enabled(self.settings)
             safe = bool(
-                draft is not None and fresh_inputs is not None and self._safe(draft, fresh_inputs[0], fresh_inputs[1])
+                draft is not None
+                and fresh_inputs is not None
+                and (
+                    self._safe_experimental(draft, fresh_inputs[0], fresh_inputs[1])
+                    if experimental
+                    else self._safe(draft, fresh_inputs[0], fresh_inputs[1])
+                )
             )
             if safe and draft is not None and fresh_inputs is not None:
-                draft = self._ground(draft, fresh_inputs[0])
+                draft = self._ground(draft, fresh_inputs[0], experimental=experimental)
             state = "completed" if safe else "uncertain"
             await session.execute(
                 text("""UPDATE editorial_proposals SET state=:state,

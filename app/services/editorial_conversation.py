@@ -27,6 +27,7 @@ PRICE = re.compile(
     r"(?:está|esta|sai|custa)\s+(?:r\$\s*)?(\d{1,5}(?:[,.]\d{1,2})?)\s*(?:reais)?(?:\s+hoje)?\b",
     re.I,
 )
+NEGATION = re.compile(r"\b(?:não|nao|nunca|jamais|sem|nenhum|nenhuma|ninguém|ninguem)\b", re.I)
 AVAILABILITY = re.compile(
     r"\bhoje\b.*\b(?:agenda|horário|horario)\s+livre\s+(?:às|as)\s+(\d{1,2})(?::(\d{2}))?\s*h?\b", re.I
 )
@@ -35,7 +36,7 @@ AVAILABILITY = re.compile(
 def classify(message: str, now: datetime) -> tuple[str, dict[str, Any], str]:
     """Only exact, bounded patterns receive a confirmable proposal."""
     value = " ".join(message.strip().split())
-    match = PRICE.fullmatch(value)
+    match = None if NEGATION.search(value) else PRICE.fullmatch(value)
     if match and "hoje" in value.casefold().split():
         product = match.group(1).strip()
         raw = match.group(2).replace(",", ".")
@@ -48,7 +49,7 @@ def classify(message: str, now: datetime) -> tuple[str, dict[str, Any], str]:
                 {"summary": summary, "valid_until": now.date().isoformat()},
                 f"Quer divulgar {summary}? Responda Confirmar ou Descartar.",
             )
-    match = AVAILABILITY.fullmatch(value)
+    match = None if NEGATION.search(value) else AVAILABILITY.fullmatch(value)
     if match:
         hour, minute = int(match.group(1)), int(match.group(2) or 0)
         if hour < 24 and minute < 60:

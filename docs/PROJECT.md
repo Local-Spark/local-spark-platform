@@ -39,7 +39,7 @@ escala atual. Alcance e engajamento não comprovam faturamento nem causalidade.
 | Kits BL01/BL02 | Vitrine fictícia de cafeteria, seleção por negócio, edição guiada de cores/fontes/logo/textos/composição, prévia, rascunho, confirmação e histórico | Kit `public_demo` somente para teste; direitos e qualidade comercial pendentes. F03 congela a versão; F04 ainda não a aplica à mídia. |
 | Conteúdos F04/F06 | Prévias técnicas estáticas/vídeo, candidata, decisão explícita e publicação falsa com validação de versão/hash | Renderers Pillow/FFmpeg não são receitas aprovadas. Ajuste ainda não regenera automaticamente; envio de candidata e publicação reais pendentes. |
 | Acervo BL03 | Cadastro manual versionado de produtos/serviços/promoções e fotos privadas de item/espaço, com cópia consentida de foto WhatsApp, implementados localmente | Importação automática de cardápio é BL03.3 posterior; o acervo ainda não alimenta a geração BL04. |
-| Produção BL04/BL05 | Contratos e ensaios isolados de IA visual, qualidade e custos | Falta recuperar acervo automaticamente, integrar IA visual, provar peça aceita e completar jornada/proatividade. |
+| Produção BL04/BL05 | Busca e resolução interna do acervo, adapter de imagem e ledger mínimo implementados/testados separadamente; eval Jev e um ensaio real sintético | Não estão ligados ao fluxo editorial/render: faltam interpretação real, snapshots persistidos, consentimentos de imagem, integração da geração, aceite e jornada/proatividade. |
 | Infraestrutura F08 | Compose, CI e workflow de deploy preparado | AWS/staging, backup/restore, observabilidade operacional e capacidade não provisionados/homologados. |
 
 Os ensaios em [evals](evals/) não são features do produto nem aceites comerciais.
@@ -74,7 +74,7 @@ sustentam a jornada automática. A frequência semanal manual sai da interface;
 | --- | --- | --- |
 | [BL02](phases/BL-brand-library.md#bl02--escolher-e-editar-o-kit-piloto-para-um-negócio) | Escolha e edição guiada do primeiro kit por negócio | Implementada localmente; manter gates comerciais. |
 | [BL03](phases/BL-brand-library.md#bl03--acervo-progressivo-em-sobre-meu-negócio) | Acervo privado, opcional e progressivo em Sobre meu negócio: produtos/serviços, fotos dos itens e do espaço | **Cadastro manual e fotos implementados localmente; BL03.3 é posterior.** |
-| [BL04](phases/BL-brand-library.md#bl04--recuperar-contexto-e-produzir-uma-peça-nova) | Pedido livre recupera fontes automaticamente; nova peça aplica kit com IA visual/receita e mede fidelidade, qualidade e custo por peça aceita | **Próxima fase.** |
+| [BL04](phases/BL-brand-library.md#bl04--recuperar-contexto-e-produzir-uma-peça-nova) | Pedido livre recupera fontes automaticamente; nova peça aplica kit com IA visual/receita e mede fidelidade, qualidade e custo por peça aceita | **Em implementação local; sem gate de qualidade concluído.** |
 | [BL05](phases/BL-brand-library.md#bl05--jornada-completa-local-ajuste-e-proatividade-mínima) | WhatsApp simulado percorre criação, ajuste, aprovação/publicação falsa e proposta em dia sem mensagem | Planejada; reutiliza as fatias F02–F06 existentes. |
 | [BL06](phases/BL-brand-library.md#bl06--ampliar-a-biblioteca-e-servir-o-catálogo-em-escala) | Kits de manicure/personal e catálogo público em objetos/CDN | Após provar reaplicação do primeiro kit. |
 
@@ -96,8 +96,7 @@ A [sequência até produção e expansão](design/delivery-roadmap-2026-10-27.md
 reúne BL03–BL06, homologação Meta, franquias, AWS, piloto, pesquisa, avatar e
 multicanal. Importar fotos de cardápio/tabela de serviços está previsto como
 BL03.3: preencher fichas automaticamente como rascunho e conferir ambiguidades;
-o proprietário aprovou cadastro manual e fotos, agora implementados localmente. JEV e Motion são
-candidatos para avaliação nas fases de IA/mídia, sem integração nesta BL03.
+o proprietário aprovou cadastro manual e fotos, agora implementados localmente. Jev teve um ensaio real exploratório de cinco mensagens fictícias na BL04; ainda não foi adotado ou integrado. Motion continua candidato, sem integração.
 
 ## Decisões técnicas e limites de IA
 
@@ -114,7 +113,7 @@ candidatos para avaliação nas fases de IA/mídia, sem integração nesta BL03.
   tools; `gpt-5-mini` é o default de configuração, sem escolha comercial final
   de modelo. O adapter de áudio referencia `gpt-transcribe`. Não houve aprovação
   nesta revisão para trocar fornecedor, modelo ou adicionar plataforma agente.
-- A conversa WhatsApp atual reconhece intenções delimitadas por regras; não é
+- A conversa WhatsApp atual reconhece intenções delimitadas por regras e agora se abstém em negações explícitas; não é
   um chat semântico geral. Briefing, retrieval do acervo e melhor direção
   criativa são entregas seguintes; não presumir que já existem por haver LLM.
 - Reservas e tokens são dados de consumo, não custo monetário completo. Faltam
