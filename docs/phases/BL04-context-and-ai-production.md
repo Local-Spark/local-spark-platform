@@ -83,6 +83,30 @@ paleta e a composição do kit, mas ainda não aplica as fontes, o nome, a tagli
 ou o logo; o hash do logo apenas participa da validação. Isso é uma lacuna de
 fidelidade, não um kit aplicado integralmente.
 
+Decisão do proprietário em 27/10/2026: se ele alterar o kit ou excluir uma
+foto enquanto uma imagem estiver sendo criada, aplicar a alteração ou exclusão
+imediatamente e descartar a prévia produzida a partir da versão antiga. Isso é
+distinto da retirada de autorização visual, que aguarda as criações já iniciadas.
+O comportamento real exige revalidação e testes concorrentes; não presumir que
+está completo apenas por existir no fluxo simulado.
+
+Um [ensaio isolado de feed](../evals/bl042-guarded-synthetic-feed-2026-10-27.md)
+gerou uma imagem real da OpenAI usando exclusivamente dados fictícios e foto
+CC0; uma chamada custou US$ 0,026272 estimados. Não utiliza o fluxo de cliente,
+não comprova fatura nem margem, e a IA alterou logo e pontuação. Um acabamento
+experimental pode aplicar nome, logo original e textos validados a uma cena
+sem texto; não está integrado nem aprovado. O executor de provedor também está
+isolado: um CAS no ledger impede reenvio, sem liberar o envio real de fontes.
+Continuam obrigatórios coordenação das fontes, custos e revalidação completa.
+
+Após a decisão de alteração imediata do kit/foto, dois testes concorrentes do
+fluxo simulado confirmam que a modificação conclui sem esperar o renderer e a
+prévia antiga é descartada. O acabamento experimental agora possui serviço que
+revalida kit, logo, direitos e texto antes/depois, e um orquestrador com guarda
+injetado exercita envio, revalidação, descarte e armazenamento com mocks. Nenhum
+deles foi ligado ao worker ou constitui guarda real aprovado. A revalidação do
+acabamento relê referências e precisa de medição antes de operar em escala.
+
 ### Retirada de autorização visual — decisão do produto
 
 Quando o cliente solicitar a retirada, impedir imediatamente novas admissões

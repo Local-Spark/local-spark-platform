@@ -1,5 +1,34 @@
 # Registro de mudanças
 
+## 2026-10-27 — BL04.2: decisão de alteração imediata de fontes
+
+- Proprietário definiu alteração imediata de kit ou exclusão de foto durante a
+  criação, com descarte da prévia antiga. Dois testes concorrentes confirmam
+  esse comportamento no fluxo simulado; o envio real ainda não está habilitado.
+- Serviço experimental de acabamento prepara cena sem texto e reaplica kit,
+  logo e textos verificados; orquestrador isolado com guard injetado foi testado
+  com mocks. Ambos permanecem fora do worker até existir guarda efetiva para
+  todas as fontes, consentimentos, orçamento e tratamento de falhas.
+- Alternativa de travas cooperativas foi prototipada e retirada dos serviços
+  existentes: a cobertura integral dos escritores e a recuperação de falhas
+  ainda não foram demonstradas. A avaliação está na proposta de atomicidade.
+- `make ci` passou com 1.310 testes e cobertura de 100% de linhas e ramos; não
+  foram feitas novas chamadas pagas nesta entrega.
+
+## 2026-10-27 — BL04.2: ensaio isolado e componentes experimentais
+
+- Uma chamada real apenas com fixture fictícia e foto CC0 produziu prévia de
+  feed; custo estimado US$ 0,026272, sem comprovação de fatura ou custo mensal.
+  O [relatório](evals/bl042-guarded-synthetic-feed-2026-10-27.md) registra
+  reservas, falhas de fidelidade e o escopo isolado do ensaio.
+- Acabamento experimental e executor com CAS do ledger adicionados como peças
+  isoladas. Nenhum liga o worker à OpenAI: fonte/consentimento ainda não são
+  validados atomicamente com a reserva e o acabamento precisa de avaliação.
+- Validação: `make ci` passou com 1.267 testes e 100% de linhas/ramos. Após
+  corrigir o fechamento de conexões SQLite no runner do ensaio, seus sete
+  testes offline passaram com `ResourceWarning` tratado como erro. Nenhuma
+  chamada adicional foi feita.
+
 ## 2026-10-27 — Retirada gradual da autorização visual simulada
 
 - Solicitação bloqueia novas admissões, cancela logicamente a fila não iniciada

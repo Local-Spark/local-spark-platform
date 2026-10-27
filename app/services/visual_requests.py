@@ -40,6 +40,31 @@ class PreparedVisualRequest:
     request: VisualRequest = field(repr=False)
 
 
+def visual_request_digest(
+    key: str, context: VisualContextSnapshot, sources: tuple[VisualReferenceSource, ...], request: VisualRequest
+) -> str:
+    """Authenticate the bounded provider request and its server-side source identities."""
+    payload = json.dumps(
+        {
+            "context": context.fingerprint,
+            "operation": str(request.request_id),
+            "prompt": request.prompt,
+            "model": request.model,
+            "quality": request.quality,
+            "size": request.size,
+            "output_format": request.output_format,
+            "sources": [
+                (source.kind, str(source.id), source.version, source.source_sha256, source.normalized_sha256)
+                for source in sources
+            ],
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+    return hmac.new(key.encode(), payload, hashlib.sha256).hexdigest()
+
+
 class VisualRequestService:
     def __init__(self, settings: Settings, database: Database, store: MaterialStore | None = None) -> None:
         self.settings, self.database, self.store = settings, database, store
@@ -140,23 +165,5 @@ class VisualRequestService:
         key = self.settings.meta_encryption_key
         if key is None or not key.get_secret_value().strip():
             raise AuthError("VISUAL_CONTEXT_KEY_REQUIRED", 409)
-        payload = json.dumps(
-            {
-                "context": current.fingerprint,
-                "operation": str(operation),
-                "prompt": prompt,
-                "model": request.model,
-                "quality": request.quality,
-                "size": request.size,
-                "output_format": request.output_format,
-                "sources": [
-                    (source.kind, str(source.id), source.version, source.source_sha256, source.normalized_sha256)
-                    for source in refs.sources
-                ],
-            },
-            ensure_ascii=False,
-            sort_keys=True,
-            separators=(",", ":"),
-        ).encode()
-        digest = hmac.new(key.get_secret_value().encode(), payload, hashlib.sha256).hexdigest()
+        digest = visual_request_digest(key.get_secret_value(), current, refs.sources, request)
         return PreparedVisualRequest(current, refs.sources, digest, request)

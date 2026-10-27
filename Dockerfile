@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -r
 COPY --from=build /src/.venv /src/.venv
 COPY app ./app
 COPY catalog/kits/cafe-pausas/v1/manifest.json ./catalog/kits/cafe-pausas/v1/manifest.json
+COPY catalog/kits/cafe-pausas/v1/fonts ./catalog/kits/cafe-pausas/v1/fonts
 COPY alembic.ini ./
 COPY migrations ./migrations
 USER 10001

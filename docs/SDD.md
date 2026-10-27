@@ -239,6 +239,14 @@ autoriza uma chamada real. A [proposta de atomicidade](design/BL04-atomicity-pro
 registra a alteração de segurança pendente. A geração visual continua desligada
 por padrão e sem qualidade ou custo comercial comprovados.
 
+O [ensaio sintético isolado](evals/bl042-guarded-synthetic-feed-2026-10-27.md)
+fez uma chamada real com fixture fictícia, foto CC0 e hold local; não usa o
+worker de clientes. O acabamento de marca e o executor de provedor são componentes
+experimentais isolados; não autorizam envio real nem demonstram margem ou qualidade.
+Kit/foto podem ser alterados imediatamente durante uma criação; o resultado
+antigo deve ser descartado. A regra foi testada em concorrência no fluxo simulado;
+o efeito externo real continua condicionado ao protocolo de fontes.
+
 **Gate BL04 por receita:** fontes/direitos válidos, texto/preço/CTA corretos,
 fidelidade a produto/local, acabamento e legibilidade no celular, avaliação
 consentida do titular e custo por peça aceita incluindo rejeições/refações.

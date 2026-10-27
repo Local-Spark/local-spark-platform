@@ -53,6 +53,12 @@ escala atual. Alcance e engajamento não comprovam faturamento nem causalidade.
 | Infraestrutura F08 | Compose, CI e workflow de deploy preparado | AWS/staging, backup/restore, observabilidade operacional e capacidade não provisionados/homologados. |
 
 Os ensaios em [evals](evals/) não são features do produto nem aceites comerciais.
+A [amostra sintética BL04.2](evals/bl042-guarded-synthetic-feed-2026-10-27.md)
+é uma chamada real isolada, com estimativa de custo; não usa o worker do cliente
+nem comprova fidelidade, margem ou prontidão comercial.
+A alteração de kit ou exclusão de foto durante a criação deve ter efeito
+imediato e invalidar a prévia antiga; a concorrência foi exercitada no modo
+simulado, sem comprovar ainda o guard de fontes do provedor real.
 A consulta a um perfil público não concede direitos sobre material ou aprovação
 da titular. Custos de poucas chamadas isoladas não comprovam custo mensal.
 
