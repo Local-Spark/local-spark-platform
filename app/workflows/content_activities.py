@@ -12,13 +12,25 @@ from app.schemas.editorial_proposals import ProposalRequest
 from app.schemas.media_previews import PreviewRequest
 from app.services.auth import AuthError
 from app.services.content_deliveries import ContentDeliveryService, publish_fake
+from app.services.creative_catalog_resolution import CatalogInterpreter
+from app.services.editorial_briefings import EditorialBriefingService
 from app.services.editorial_proposals import EditorialProposalService
 from app.services.media_previews import MediaPreviewService
 
 
 class ContentCandidateActivities:
-    def __init__(self, settings: Settings, app_database: Database, worker_database: Database) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        app_database: Database,
+        worker_database: Database,
+        *,
+        interpreter: CatalogInterpreter | None = None,
+    ) -> None:
+        if interpreter is not None and settings.environment not in {"development", "testing"}:
+            raise ValueError("Experimental briefing is restricted to development and testing")
         self.settings, self.app_database, self.worker_database = settings, app_database, worker_database
+        self.interpreter = interpreter
 
     @activity.defn
     async def request_candidate_proposal(self, event_id: str) -> str:
@@ -52,6 +64,25 @@ class ContentCandidateActivities:
                 "pedir ajustes:"
             ):
                 return "skipped"
+        briefing_id = None
+        if self.interpreter is not None:
+            try:
+                briefing = await EditorialBriefingService(self.settings, self.app_database, self.interpreter).prepare(
+                    row["tenant_id"],
+                    row["business_id"],
+                    row["actor_id"],
+                    event,
+                    uuid5(NAMESPACE_URL, f"candidate-briefing:{event}"),
+                )
+            except AuthError:
+                return "skipped"
+            if briefing.state != "prepared":
+                return (
+                    "briefing_needs_clarification"
+                    if briefing.state == "needs_clarification"
+                    else "briefing_unavailable"
+                )
+            briefing_id = briefing.id
         try:
             proposal = await EditorialProposalService(self.settings, self.app_database).request(
                 row["tenant_id"],
@@ -60,6 +91,7 @@ class ContentCandidateActivities:
                 ProposalRequest(
                     operation_id=uuid5(NAMESPACE_URL, f"candidate-proposal:{event}"), source_asset_id=event
                 ),
+                briefing_id=briefing_id,
             )
         except AuthError:
             return "skipped"

@@ -21,6 +21,8 @@ from app.db.session import Database
 from app.schemas.brand_kits import BrandKitOverrides
 from app.schemas.editorial_context import ContextContent
 from app.schemas.editorial_proposals import (
+    BriefingOffering,
+    BriefingRead,
     ProposalDraft,
     ProposalRead,
     ProposalRequest,
@@ -88,8 +90,16 @@ async def _audit(session: Any, row: Any, action: str) -> None:
 
 
 class EditorialProposalService:
-    def __init__(self, settings: Settings, database: Database, provider: OpenAIEditorialProvider | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        database: Database,
+        provider: OpenAIEditorialProvider | None = None,
+        *,
+        owner_database: Database | None = None,
+    ) -> None:
         self.settings, self.database = settings, database
+        self.owner_database = owner_database
         self.provider = provider or OpenAIEditorialProvider(settings)
 
     async def consent_status(self, tenant: UUID, business: UUID, actor: UUID) -> dict[str, bool]:
@@ -127,8 +137,11 @@ class EditorialProposalService:
             )
             return {"accepted": accepted, "provider_enabled": self.settings.editorial_ai_mode == "openai"}
 
-    async def request(self, tenant: UUID, business: UUID, actor: UUID, payload: ProposalRequest) -> ProposalRead:
-        digest = hashlib.sha256(str(payload.source_asset_id).encode()).hexdigest()
+    async def request(
+        self, tenant: UUID, business: UUID, actor: UUID, payload: ProposalRequest, *, briefing_id: UUID | None = None
+    ) -> ProposalRead:
+        identity = str(payload.source_asset_id) if briefing_id is None else f"{payload.source_asset_id}:{briefing_id}"
+        digest = hashlib.sha256(identity.encode()).hexdigest()
         async with self.database.transaction(tenant, actor) as session:
             await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
             existing = (
@@ -159,6 +172,21 @@ class EditorialProposalService:
                 )
                 if source is None:
                     raise AuthError("MATERIAL_NOT_FOUND", 404)
+            if briefing_id is not None:
+                from app.services.editorial_briefings import EditorialBriefingService
+
+                status, snapshot = await EditorialBriefingService(self.settings, self.database).read_valid(
+                    session, tenant, business, actor, briefing_id
+                )
+                matching_source = await session.scalar(
+                    text(
+                        "SELECT source_asset_id FROM editorial_briefings "
+                        "WHERE id=:id AND tenant_id=:tenant AND business_id=:business"
+                    ),
+                    {"id": briefing_id, "tenant": tenant, "business": business},
+                )
+                if status != "prepared" or snapshot is None or matching_source != payload.source_asset_id:
+                    raise AuthError("BRIEFING_NOT_READY", 409)
             version = (
                 await session.scalar(
                     text("""SELECT version FROM business_context_heads
@@ -188,9 +216,9 @@ class EditorialProposalService:
                     await session.execute(
                         text("""INSERT INTO editorial_proposals
               (id,tenant_id,business_id,actor_id,operation_id,request_hash,context_version,source_asset_id,
-               brand_kit_version,brand_kit_document)
+               brand_kit_version,brand_kit_document,briefing_id,briefing_required)
               VALUES(:id,:tenant,:business,:actor,:operation,:digest,:version,:source,:kit_version,
-                     CAST(:kit_document AS jsonb))
+                     CAST(:kit_document AS jsonb),:briefing_id,:briefing_required)
               ON CONFLICT(tenant_id,business_id,operation_id) DO NOTHING RETURNING *"""),
                         {
                             "id": proposal,
@@ -201,6 +229,8 @@ class EditorialProposalService:
                             "digest": digest,
                             "version": version,
                             "source": payload.source_asset_id,
+                            "briefing_id": briefing_id,
+                            "briefing_required": briefing_id is not None,
                             "kit_version": kit["version"] if kit is not None else None,
                             "kit_document": (
                                 json.dumps(kit["document"], ensure_ascii=False) if kit is not None else None
@@ -242,7 +272,41 @@ class EditorialProposalService:
                 .mappings()
                 .all()
             )
-            return [_present(row) for row in rows]
+            return [await self._present_with_briefing(session, row, tenant, business, actor) for row in rows]
+
+    async def _present_with_briefing(
+        self, session: Any, row: Any, tenant: UUID, business: UUID, actor: UUID
+    ) -> ProposalRead:
+        proposal = _present(row)
+        briefing_id = row.get("briefing_id")
+        if briefing_id is None:
+            if row.get("briefing_required"):
+                return proposal.model_copy(update={"briefing": BriefingRead(status="unavailable")})
+            return proposal
+        if self.settings.environment not in {"development", "testing"}:
+            return proposal.model_copy(update={"briefing": BriefingRead(status="unavailable")})
+        from app.services.editorial_briefings import EditorialBriefingService
+
+        status, snapshot = await EditorialBriefingService(self.settings, self.database).read_valid(
+            session, tenant, business, actor, briefing_id
+        )
+        if status != "prepared" or snapshot is None:
+            return proposal.model_copy(update={"briefing": BriefingRead(status=status)})
+        offering = snapshot["offering"]
+        assert isinstance(offering, dict)
+        kit = row.get("brand_kit_document") or {}
+        brand_name = kit.get("overrides", {}).get("brand_name")
+        return proposal.model_copy(
+            update={
+                "briefing": BriefingRead(
+                    status="prepared",
+                    offering=BriefingOffering.model_validate({"name": offering["name"], "kind": offering["kind"]}),
+                    brand_name=brand_name,
+                    has_item_photo=bool(snapshot.get("item_photo")),
+                    has_space_photo=bool(snapshot.get("space_photo")),
+                )
+            }
+        )
 
     async def edit_script(
         self, tenant: UUID, business: UUID, actor: UUID, proposal_id: UUID, body: ScriptEdit
@@ -607,6 +671,31 @@ class EditorialProposalService:
             "source_asset_id": str(row["source_asset_id"]) if row["source_asset_id"] else None,
             "context_version": row["context_version"],
         }
+        briefing_id = row.get("briefing_id")
+        if row.get("briefing_required") and briefing_id is None:
+            return None
+        if briefing_id is not None:
+            if self.owner_database is None or self.settings.environment not in {"development", "testing"}:
+                return None
+            from app.services.editorial_briefings import EditorialBriefingService
+
+            async with self.owner_database.transaction(row["tenant_id"], row["actor_id"]) as owner_session:
+                status, snapshot = await EditorialBriefingService(self.settings, self.owner_database).read_valid(
+                    owner_session, row["tenant_id"], row["business_id"], row["actor_id"], briefing_id
+                )
+            if status != "prepared" or snapshot is None:
+                return None
+            offering = snapshot["offering"]
+            assert isinstance(offering, dict)
+            price = offering["price"]
+            assert isinstance(price, dict)
+            data["catalog_context"] = {
+                "name": offering["name"],
+                "kind": offering["kind"],
+                "price": price if price.get("status") == "valid" else None,
+                "has_item_photo": bool(snapshot.get("item_photo")),
+                "has_space_photo": bool(snapshot.get("space_photo")),
+            }
         kit_document = row.get("brand_kit_document")
         if kit_document is not None:
             if self.settings.environment == "production" and not kit_commercially_available():

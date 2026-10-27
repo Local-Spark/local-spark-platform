@@ -174,8 +174,9 @@ A tela deixa visível o que está confirmado para a IA e o que ainda é rascunho
 ### BL04 — Recuperar contexto e produzir uma peça nova
 
 **Em implementação local:** busca e resolução interna do acervo, adaptador de
-imagem e ledger de custo têm testes, mas ainda não estão conectados ao processo
-de propostas/prévias. O [SDD BL04](BL04-context-and-ai-production.md) e o
+imagem e ledger de custo têm testes. A resolução do acervo está ligada à
+proposta somente em experimento com intérprete injetado; a prévia permanece
+bloqueada nesse caminho e o worker normal não o ativa. O [SDD BL04](BL04-context-and-ai-production.md) e o
 [desenho de integração segura](../design/BL04-integration-safety.md) registram
 os passos pendentes. O [ensaio sintético vertical](../evals/bl04-visual-synthetic-story-2026-10-27.md)
 fez uma chamada real controlada; não é gate comercial. A [avaliação Jev](../evals/jev-intent-ptbr-v1.md)

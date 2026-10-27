@@ -1,5 +1,37 @@
 # Registro de mudanças
 
+## 2026-10-27 — Cenários de QA e avaliação inicial do OpenCode
+
+- Registrados três cenários fictícios e um guia manual com passos disponíveis,
+  limitações atuais, testes planejados e pontos de observação. Nenhum negócio,
+  imagem, pagamento, publicação ou registro de cliente foi criado nesta mudança.
+- OpenCode avaliado pela documentação oficial como candidato para QA e análise;
+  sem instalação, integração, decisão comercial ou substituição dos traces do produto.
+
+
+## 2026-10-27 — BL04.1: integração experimental do briefing
+
+- Material WhatsApp e áudio transcrito podem alimentar resolução privada do
+  acervo com intérprete injetado em desenvolvimento/teste; intenção persistida,
+  idempotência, autorização, estado incerto e snapshot revalidado. Texto bruto
+  não entra no histórico do Temporal; alterações na origem são detectadas.
+- Proposta recebe projeção mínima do acervo e expõe resumo owner-only na web.
+  Prévia é bloqueada para briefing experimental até revalidação de ponta a ponta;
+  remoção de briefing não permite fallback à proposta legada. Negação explícita
+  pede esclarecimento, que ainda não é entregue ao cliente.
+- Adapter estruturado OpenAI de interpretação testado com mocks, sem integração
+  de provider pago. Jev continua candidato em avaliação. Worker normal mantém
+  comportamento anterior; não há IA semântica real habilitada nesta entrega.
+- A migração 0042 é aditiva; avaliação de acesso, contexto, consentimento,
+  orçamento, reconciliação e testes devem preceder habilitação de provider real.
+- Validação final: backend `make ci` com 996 testes, Ruff e mypy aprovados
+  e 100% de linhas/ramos; web 296 testes com 100% nos quatro critérios,
+  typecheck/build e Chromium desktop/móvel. Migrações aditivas 0041/0042
+  aplicadas no banco local após validação no `_test`. Uma instância recém-carregada
+  respondeu 200 em `/health/ready` e OpenAPI; o processo de debug anterior deve
+  ser reiniciado para atualizar o head em cache. Nenhuma chamada paga neste passo.
+
+
 ## 2026-10-27 — Primeiro ensaio Jev com dados fictícios
 
 - Conta e chave configuradas localmente; cinco chamadas de `jev-1.14.0` em

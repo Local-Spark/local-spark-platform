@@ -8,6 +8,20 @@ A partir de um pedido livre e de informações autorizadas do negócio, identifi
 
 ## Entregas e gates
 
+### Andamento da BL04.1
+
+Há um caminho experimental em desenvolvimento/teste que liga material recebido,
+resolução do acervo, snapshot privado e proposta, usando um interpretador injetado
+nos testes. O snapshot é revalidado e a web pode exibir projeção sem dados privados.
+O worker normal não instancia o interpretador: Jev e o adapter de interpretação
+OpenAI continuam fora da conversa real, pendentes de avaliação, reserva de custo e
+consentimento. Uma ambiguidade gera apenas estado interno; a pergunta ao cliente
+ainda não é enviada. Propostas com briefing experimental não avançam à prévia até
+que BL04.2 faça a revalidação ao longo de todo o processo. Um item do acervo não
+substitui automaticamente o fato editorial confirmado atualmente exigido pelo roteiro.
+Assim, esta é uma fatia local da BL04.1, não a conclusão do fluxo.
+
+
 1. **BL04.1 — Interpretação e contexto:** interpretar intenção e formato dentro das opções efetivamente disponíveis; localizar candidatos no acervo do mesmo negócio com produtos/aliases ativos e validade no fuso do negócio. Correspondência lexical é só candidato: negação, ambiguidade ou ausência de fonte não autorizam escolher produto automaticamente. Fotografias precisam de direito válido; dados de outro tenant, item arquivado e preços vencidos não podem compor o briefing. Kit confirmado, fatos, itens e mídias devem ter versões e proveniência verificáveis. Revalidar antes de efeito externo e antes de liberar o resultado; revogação, exclusão e alteração invalidam as dependências afetadas.
 2. **BL04.2 — Imagem e custo:** integrar um provedor de imagem ao caminho real da prévia, com consentimento aplicável, referências mínimas e saída privada; registrar operação, versão de modelo/briefing, fontes e uso. Uma referência de kit no máximo, quando necessária; fotos reais pertinentes do negócio são referências separadas. Se a promessa for retratar local/produto reais, não apresentar um ambiente inventado como fotografia documental. Texto/preço/CTA exigem conferência literal; resultado generativo não comprova fidelidade por si só. Falta de fonte deve gerar pergunta ou conceito identificado, não fato inventado.
 3. **BL04.3 — Qualidade e economia:** avaliar post e story novos em celular com titular e materiais consentidos. Registrar rejeições, retrabalho, todas as tentativas e custo por peça aceita; avaliar separadamente legibilidade, identidade, fidelidade e texto. Ensaios fictícios e comparação entre modelos medem viabilidade técnica, mas não substituem aceite do titular nem comprovam margem.
@@ -27,3 +41,9 @@ Jev é candidato para classificação curta, necessidade de esclarecimento e esc
 ## O que não encerra a fase
 
 Um helper de busca, eval isolado ou renderer técnico não significa fluxo integrado. São necessários conexão das fontes ao processo durável, geração de imagem com orçamento e consentimentos, verificação das alterações durante o processamento, prévia utilizável e os gates acima. A importação assistida de cardápio continua BL03.3 posterior. BL05 integra conversa, ajuste, aprovação e publicação simuladas sem depender da Meta.
+
+## Casos de QA planejados
+
+Loja física de cachorro-quente, delivery e manicure com espaço próprio têm cenários
+e roteiro de testes manuais em [guia de QA](../evals/manual-qa-negocios-ficticios.md).
+Preparação de dados/imagens é distinta de completar o fluxo BL04/BL05.

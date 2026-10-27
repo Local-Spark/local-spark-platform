@@ -129,3 +129,14 @@ async def test_delivery_and_publication_activity_results(settings, monkeypatch):
     monkeypatch.setattr(content_activities, "publish_fake", publish)
     assert await adapter.publish_fake_content([str(event), 3]) == "published"
     assert publish.await_args.args[-2:] == (event, 3)
+
+
+@pytest.mark.parametrize("environment", ["staging", "production"])
+def test_experimental_interpreter_cannot_be_enabled_outside_development(settings, environment):
+    cfg = settings.model_copy(update={"environment": environment})
+    database = DatabaseStub()
+    interpreter = SimpleNamespace(interpret=AsyncMock())
+    with pytest.raises(ValueError, match="restricted to development and testing"):
+        content_activities.ContentCandidateActivities(cfg, database, database, interpreter=interpreter)
+    # The existing activity remains constructible when the experimental path is off.
+    assert content_activities.ContentCandidateActivities(cfg, database, database).interpreter is None

@@ -54,7 +54,9 @@ async def run_worker() -> None:
         )
         editorial_activities = (
             EditorialActivities(
-                EditorialProposalService(settings, material_database, OpenAIEditorialProvider(settings))
+                EditorialProposalService(
+                    settings, material_database, OpenAIEditorialProvider(settings), owner_database=database
+                )
             )
             if material_database
             else None

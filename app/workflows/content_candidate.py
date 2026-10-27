@@ -18,8 +18,8 @@ class ContentCandidateWorkflow:
             start_to_close_timeout=timedelta(seconds=30),
             retry_policy=RetryPolicy(maximum_attempts=3),
         )
-        if proposal_id == "skipped":
-            return "skipped"
+        if proposal_id in {"skipped", "briefing_needs_clarification", "briefing_unavailable"}:
+            return cast(str, proposal_id)
         for _ in range(60):
             state = await workflow.execute_activity(
                 "candidate_proposal_state",

@@ -38,8 +38,22 @@ class ProposalRequest(BaseModel):
     source_asset_id: UUID | None = None
 
 
+class BriefingOffering(BaseModel):
+    name: str
+    kind: Literal["product", "service"]
+
+
+class BriefingRead(BaseModel):
+    status: Literal["prepared", "needs_clarification", "context_changed", "unavailable"]
+    offering: BriefingOffering | None = None
+    brand_name: str | None = None
+    has_item_photo: bool = False
+    has_space_photo: bool = False
+
+
 class ProposalRead(BaseModel):
     id: UUID
+    briefing: BriefingRead | None = None
     state: Literal["pending", "dispatching", "submitted", "completed", "rejected", "budget_exceeded", "uncertain"]
     context_version: int
     brand_kit_version: int | None = None

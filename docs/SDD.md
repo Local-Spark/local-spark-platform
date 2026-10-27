@@ -210,7 +210,7 @@ Sem evidência, pedir material ou oferecer conceito identificado. Não inventar
 local, preço, cardápio, agenda, resultado ou imagem documental. Kit não substitui
 fontes do cliente. Avatar/voz exigem consentimento específico e orçamento.
 
-A execução e os limites da fase ativa estão no [SDD BL04](phases/BL04-context-and-ai-production.md).
+A execução e os limites da fase ativa estão no [SDD BL04](phases/BL04-context-and-ai-production.md). A resolução do acervo agora se liga à proposta apenas em ensaio de desenvolvimento/teste com intérprete injetado. O worker normal não a ativa; pedidos ambíguos não enviam esclarecimento ainda e prévias com esse briefing são bloqueadas até revalidação de ponta a ponta.
 
 **Gate BL04 por receita:** fontes/direitos válidos, texto/preço/CTA corretos,
 fidelidade a produto/local, acabamento e legibilidade no celular, avaliação
@@ -320,6 +320,10 @@ AWS nem comprova deploy comercial. OIDC do CI é independente da auth dos usuár
 P10–P12 retiram apenas helper/seed/volume sem uso aprovados, preservando dados;
 P13 consolida documentos; P14 mantém compatibilidade dos recibos históricos;
 P15 posiciona F05 depois do primeiro piloto comercial, sem executá-la.
+
+QA local progressivo, os três cenários fictícios e os passos ainda não disponíveis
+estão no [guia de QA](evals/manual-qa-negocios-ficticios.md). OpenCode é candidato
+para investigação, sem substituir telemetria do produto ou autorização de efeitos.
 
 Em cada entrega: atualizar PROJECT, este SDD, fase e CHANGELOG com decisão,
 validação e pendências. Nova dúvida de produto/remoção/modelo exige decisão

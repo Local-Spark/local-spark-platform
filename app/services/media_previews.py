@@ -63,6 +63,9 @@ class MediaPreviewService:
         template_version: int | None = None,
         candidate: bool = False,
     ) -> RenderInputs:
+        # BL04.1 does not yet revalidate catalog/kit throughout preview and delivery.
+        if proposal.get("briefing_required"):
+            raise AuthError("BRIEFING_PREVIEW_NOT_READY", 409)
         if (
             proposal["state"] != "completed"
             or proposal["document"] is None

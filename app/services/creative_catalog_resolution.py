@@ -15,6 +15,7 @@ from uuid import UUID
 from app.db.session import Database
 from app.services.auth import AuthError
 from app.services.creative_catalog import catalog_candidates, selected_catalog_snapshot
+from app.services.editorial_conversation import NEGATION
 
 
 @dataclass(frozen=True)
@@ -72,6 +73,10 @@ async def resolve_catalog_context(
         if status not in {"no_text", "not_found", "catalog_too_large", "too_many_matches"}:
             return CatalogResolution("invalid_decision")
         return CatalogResolution(cast(Literal["no_text", "not_found", "catalog_too_large", "too_many_matches"], status))
+    # The lexical candidate is never an affirmative instruction. Negation is
+    # conservatively routed to clarification, including benign "sem glúten".
+    if NEGATION.search(bounded_message):
+        return CatalogResolution("clarify")
     choices = cast(list[dict[str, str]], result["candidates"])
     version = cast(int, result["catalog_version"])
     # A provider can receive only the bounded text and candidate names/IDs, not
