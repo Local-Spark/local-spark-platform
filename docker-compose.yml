@@ -143,6 +143,7 @@ services:
       object-storage:
         condition: service_started
   relay:
+    # Manual compatibility consumer for receipts persisted before P14.
     build: .
     command: ["python", "-m", "app.entrypoints.relay"]
     environment:
@@ -150,7 +151,7 @@ services:
       MEU_BRACO_DIREITO_RELAY_DATABASE_URL: postgresql+asyncpg://meu_braco_direito_delivery:meu-braco-direito-relay-password@postgres:5432/meu_braco_direito_platform
       MEU_BRACO_DIREITO_JWT_SECRET: development-meu-braco-direito-change-this-secret-before-deploying
       MEU_BRACO_DIREITO_TEMPORAL_ADDRESS: temporal:7233
-    profiles: ["workers"]
+    profiles: ["legacy-relay"]
     restart: on-failure
     depends_on:
       postgres:
@@ -194,5 +195,3 @@ volumes:
   meu-braco-direito-postgres:
   meu-braco-direito-temporal:
   meu-braco-direito-materials:
-  # Legacy identity volume retained without a service; never delete user data during migration.
-  meu-braco-direito-keycloak:

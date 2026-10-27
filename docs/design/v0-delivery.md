@@ -1,5 +1,12 @@
 # v0 — Repositórios, infraestrutura e execução
 
+**Decisão P15 — 27/10/2026:** avatar/voz do próprio cliente permanecem no
+produto, na F05 **após o primeiro piloto comercial**, com consentimento,
+qualidade PT-BR e orçamento próprios. Não são requisito de aceite desse piloto,
+que primeiro valida imagens, vídeos com material real, aprovação/publicação e
+custo. As receitas e contratos de avatar abaixo descrevem a evolução completa,
+não uma integração já entregue nem obrigação do primeiro piloto.
+
 Data: 20/10/2026. Nome adotado: Meu Braço Direito; repositórios com prefixo `meu-braco-direito-`.
 Documentação de [arquitetura](v0-architecture.md), [APIs](v0-integrations.md) e
 [resiliência](v0-reliability.md) define o contrato da v0.

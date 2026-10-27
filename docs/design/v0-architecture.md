@@ -1,5 +1,12 @@
 # SDD v0.2 — Arquitetura da primeira versão comercial
 
+**Decisão P15 — 27/10/2026:** avatar/voz do próprio cliente permanecem no
+produto, na F05 **após o primeiro piloto comercial**, com consentimento,
+qualidade PT-BR e orçamento próprios. Não são requisito de aceite desse piloto,
+que primeiro valida imagens, vídeos com material real, aprovação/publicação e
+custo. As receitas e contratos de avatar abaixo descrevem a evolução completa,
+não uma integração já entregue nem obrigação do primeiro piloto.
+
 Data: 20/10/2026. Status: especificação para implementação, sem serviços provisionados.
 
 Atualização de 21/10: fornecedores de avatar/cena listados abaixo são candidatos,
@@ -203,11 +210,16 @@ chamar modelos e validar JSON; só adicionar se melhorar um caso medido.
 - **PostgreSQL:** fonte de conteúdo, fatos, versões, consentimentos, aprovações,
   publicações, operações externas, reservas, custos e auditoria do produto.
 - **S3:** arquivos imutáveis; identificados por tenant e checksum.
-- **Redis:** coordenação temporária e limites; perda não elimina dados de negócio.
+- **Redis:** candidato futuro para coordenação/limites quando houver necessidade
+  medida; não há cliente/dependência/serviço Redis no runtime atual. PostgreSQL e
+  Temporal sustentam os estados atuais; Redis não é requisito do ambiente local.
 
 Não existe transação ACID entre PostgreSQL e Temporal. Toda activity que grava no
 DB é idempotente por operação. Toda transação HTTP que precisa iniciar/avisar workflow
-inclui uma outbox. Projeções podem atrasar; API apresenta estado em processamento,
+inclui uma intenção durável/outbox com consumidor real. P14 retira os recibos
+assíncronos de CRUD que só repetiam auditoria; criar negócio ou alterar kit
+continua atômico/idempotente e auditado, sem iniciar workflow sem efeito.
+Projeções podem atrasar; API apresenta estado em processamento,
 sem inferir sucesso de uma fila. Não habilitar caminhos de execução independentes.
 
 Entidades adicionais à v0.1: `external_operations`, `operation_attempts`,

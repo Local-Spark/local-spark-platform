@@ -22,8 +22,9 @@ async def test_creation_replay_and_conflict_are_atomic(api, headers, admin):
     conflict = await api.post("/api/v1/businesses", headers=headers, json={"name": "Outro"})
     assert conflict.status_code == 409
     async with admin.connect() as connection:
-        for table in ("businesses", "idempotency_records", "outbox_events", "audit_events"):
+        for table in ("businesses", "idempotency_records", "audit_events"):
             assert await connection.scalar(text(f"SELECT count(*) FROM {table}")) == 1
+        assert await connection.scalar(text("SELECT count(*) FROM outbox_events")) == 0
 
 
 async def test_concurrent_same_command_has_one_effect(database, seeded, admin):
@@ -38,7 +39,7 @@ async def test_concurrent_same_command_has_one_effect(database, seeded, admin):
     assert sum(not result.replayed for result in results) == 1
     async with admin.connect() as connection:
         assert await connection.scalar(text("SELECT count(*) FROM businesses")) == 1
-        assert await connection.scalar(text("SELECT count(*) FROM outbox_events")) == 1
+        assert await connection.scalar(text("SELECT count(*) FROM outbox_events")) == 0
 
 
 async def test_rls_read_write_and_pool_reuse(database, seeded):

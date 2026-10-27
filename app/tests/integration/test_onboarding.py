@@ -54,10 +54,10 @@ async def test_concurrent_onboarding_is_atomic_and_replayable(database, admin, i
             "memberships",
             "businesses",
             "business_profiles",
-            "outbox_events",
             "onboarding_registrations",
         ):
             assert await connection.scalar(text(f"SELECT count(*) FROM {table}")) == 1
+        assert await connection.scalar(text("SELECT count(*) FROM outbox_events")) == 0
         assert await connection.scalar(text("SELECT count(*) FROM consents")) == 2
         assert await connection.scalar(text("SELECT phone_verified FROM business_profiles")) is False
         legacy_json = onboarding_payload.model_dump_json(exclude={"state_code", "city_ibge_code"})
@@ -96,7 +96,7 @@ async def test_structured_location_and_custom_brand_persist_atomically(
             .one()
         )
         assert dict(profile) == {key: payload[key] for key in profile}
-        assert await db.scalar(text("SELECT count(*) FROM outbox_events")) == 1
+        assert await db.scalar(text("SELECT count(*) FROM outbox_events")) == 0
 
 
 async def test_onboarding_conflict_revocation_and_unverified_email(database, admin, identity, onboarding_payload):

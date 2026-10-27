@@ -1,581 +1,153 @@
-# Contexto vivo do projeto
-
-27/10/2026 — **BL02 implementada localmente.** A API grava, versiona e confirma a
-escolha do kit por negócio, com edição guiada de cores, fontes, logo, textos e
-composição de feed, story e capa vertical. A web oferece edição, comparação,
-prévia ampliada, rascunho, confirmação e histórico integrados à API.
-O kit piloto permanece `public_demo`: pode ser testado localmente,
-mas não pode ser aplicado comercialmente em produção até aprovação de direitos
-e qualidade. Em seguida, BL03 coloca
-o acervo progressivo e opcional dentro de “Sobre meu negócio”; BL04 usa kit e
-acervo para uma peça nova, avaliada por fidelidade, qualidade e custo por
-peça aceita; BL05 fecha a jornada local com WhatsApp simulado e proatividade;
-BL06 expande para outros nichos e catálogo público em objetos/CDN. A
-[sequência vigente](phases/README.md) substitui a numeração de 26/10.
-
-27/10/2026 — O acervo estruturado de BL03 será contexto consultado
-automaticamente, sem seleção de produto ou serviço por pedido. Áudio livre
-como “crie uma imagem de um croissant” dispara transcrição, identificação do
-item e busca restrita das fotos do produto e do ambiente do mesmo negócio.
-Para afirmar que a cena mostra o café real, a edição parte da foto verdadeira
-do espaço; troca do local/produto reprova a saída. Sem fontes suficientes,
-pedir material ou oferecer conceito ilustrativo. Ver
-[BL03](phases/BL-brand-library.md#bl03--acervo-progressivo-em-sobre-meu-negócio).
-
-27/10/2026 — O piloto visual agora inclui três JPEGs de feed com texto
-incorporado (editorial, oferta fictícia e destaque de cardápio), além das
-fotografias puras, stories e reel. A vitrine local ainda é arquivo versionado
-copiado para a web; BL06 migrará catálogo público para objetos/CDN. Fotos de
-cliente e seu catálogo estruturado serão privados. BL03 define o cadastro
-progressivo de produtos/serviços, preços com validade e fotos do item/ambiente;
-hoje só existem fatos livres e mídia temporária do WhatsApp. Ver
-[biblioteca visual](design/brand-library.md) e
-[fases BL](phases/BL-brand-library.md).
-
-26/10/2026 — A vitrine de cafeteria passou a explicar seis entradas WhatsApp
-(texto, foto de produto com oferta, foto do espaço, áudio, vídeo e nenhum
-material novo), indicando origem e resultado das fotos. O reel do catálogo é
-somente referência de formato. A produção personalizada deve preservar local,
-prato e embalagem reais; pedido só por texto gera conceito/arte gráfica ou
-solicitação de foto, sem simular um espaço/produto como se fosse do cliente.
-Delivery pode usar fundo neutro se o alimento real continuar fiel. Ver
-[contrato de fidelidade](design/brand-library.md#experiência-simples-de-escolha).
-
-26/10/2026 — BL01 tem o pacote técnico `cafe-pausas/v1`: dez posts distintos,
-dois stories, reel MP4, manifesto/validator com hash e proveniência. A web
-mostra a mesma versão em `/kits` (público) e `/app/kits` (cliente). É uma
-vitrine fictícia; revisão final de direitos e qualidade comercial permanece
-antes de adoção por clientes. A antiga BL02 (hoje gate BL04) iniciou um
-[ensaio controlado](evals/brand-kit-transfer-v1.md)
-em quatro rotas; três chamadas de imagem custaram US$ 0,074311 nesta amostra.
-Ainda não há aceite de titular real nem prova de economia por peça aceita.
-Checkout/onboarding seguem disponíveis antes do pagamento; permissões de
-produção/publicação serão aplicadas pela API conforme plano, não pelo menu.
-
-26/10/2026 — [Cadência e planos](design/editorial-planning-and-evidence.md):
-o plano limita volume por formato/canal, a plataforma sugere frequência dentro
-da franquia e explica por que, e o cliente aceita/reduz/pausa. Faixas e preços
-dependem do custo por peça aceita (BL04). Biblioteca cresce por três nichos
-iniciais — cafeteria, manicure e personal — e por padrões de referência
-auditáveis, sem copiar mídia/legenda de concorrentes. Pesquisa automática só
-usa fontes/escopos aprovados; dados de clientes não vazam entre tenants.
-
-27/10/2026 — A ordem anterior, que ampliava a biblioteca para três kits antes
-da escolha do primeiro, foi substituída: [BL02–BL06](phases/BL-brand-library.md)
-prioriza escolha/edição, acervo, uma peça personalizada aprovada e a jornada
-local antes de novos nichos. O briefing usa no máximo **uma imagem de
-referência do kit da mesma receita/formato**, além das fotos reais pertinentes
-do cliente. O código de F02–F06 continua base; as prévias Pillow/FFmpeg
-atuais são técnicas e não são kits aprovados.
-
-26/10/2026 — O kit escolhido também será **referência da produção real**:
-receita editável, tokens visuais e **no máximo uma referência do kit** entram no
-briefing com fatos/mídia do cliente. Evitar enviar toda a galeria ou copiar a
-marca fictícia da vitrine. A economia esperada vem de menos erros/revisões e da
-composição local quando aprovada, não de supor que referências reduzem o preço
-de cada chamada. Avaliar sem kit, kit compacto, kit + referência e composição
-local no mesmo caso; medir custo por peça aceita. Ver
-[biblioteca visual](design/brand-library.md#produção-e-custo).
-
-26/10/2026 — Correção do showroom: a escolha exibe **kits de campanha do
-catálogo, pré-produzidos uma vez por nós**, com marca fictícia (por exemplo,
-“Meu Braço Direito”), dez posts, stories, reels e exemplos de conversa/proposta
-sem mensagem. O cliente compara os formatos em simuladores de Instagram,
-Facebook e TikTok **dentro da nossa plataforma**; nada é lido ou publicado nas
-contas pessoais. Abrir o catálogo serve arquivos prontos, sem geração visual
-por visitante. Só após a escolha há adaptação e geração com dados reais,
-avaliadas e cobradas no custo da operação. Ver [biblioteca visual](design/brand-library.md).
-
-26/10/2026 — Clientes sem identidade visual poderão escolher um
-[kit pronto da biblioteca](design/brand-library.md), sem fornecer fotos, logo ou
-cores para visualizar as opções. Depois da seleção, o negócio pode adaptar
-detalhes do kit. F03 registra a escolha versionada; F04 compara composição
-profissional local e IA visual com conteúdo real; F06 conserva aprovação
-separada para cada peça. Existe uma vitrine piloto com mídia fictícia final
-na web; seleção por negócio, API pública do catálogo e produção personalizada
-com o kit ainda não foram implementadas.
-
-26/10/2026 — Eval [contexto completo antes da geração visual](evals/visual-context-eval-v1.md):
-fixture de cafeteria **fictícia** preenche dados de onboarding/contexto atuais e
-campos propostos de kit visual, catálogo, canais, histórico e concorrência. Um
-runner local recupera apenas dados vigentes/autorizados, bloqueia casos sem
-evidência e pode fazer uma chamada paga de imagem com foto CC0 e logo sintético.
-A primeira geração Flare/high custou US$ 0,060232 e falhou em texto literal e
-fidelidade comercial. Com a mesma entrada, Flare/medium custou US$ 0,026272
-e manteve aparência promissora nesta amostra; Sunburst/high custou US$ 0,060232.
-As três saídas ainda precisam de acabamento exato e avaliação real. Não houve alteração da conta/DB de cliente nem integração
-dessas ferramentas ao produto; a web só tem uma exploração estática inicial.
-
-26/10/2026 — Definição de negócio: Meu Braço Direito é um operador de conteúdo
-assistido por IA para pequenos negócios. O cliente não precisa dominar prompts,
-modelos ou ferramentas; pode enviar material/ideia ou passar um dia sem enviar.
-O sistema usa o contexto confirmado e o acervo autorizado para propor peças
-proativamente na cadência contratada, pede aprovação simples por WhatsApp e
-acompanha sinais de interesse. Proatividade mínima é requisito do primeiro
-piloto; pesquisa ampla de concorrentes continua expansão. Não prometer aumento
-de faturamento sem medição causal. Ver [F03](phases/F03-editorial-research.md).
-
-26/10/2026 — Produto reafirmado como **IA visual primeiro**: intenção/material
-do WhatsApp + contexto e marca do negócio + fatos/CTA confirmados alimentam
-diretamente modelo de imagem/vídeo para nova peça; prévia, revisão e aprovação
-seguem no pipeline existente. Hoje isso é especificação, não feature pronta:
-IA integrada só gera texto/roteiro e Pillow/FFmpeg montam o arquivo. Próxima
-entrega é adapter de imagem/edição IA com custo e qualidade medidos; vídeo e
-avatar seguem gates próprios. Ver [plano](design/creative-production-quality.md).
-
-26/10/2026 — Ensaio visual privado com foto CC0 de croissant: a edição com IA
-produziu um conceito visualmente superior ao template v4. A primeira chamada
-à API direta falhou por falta de saldo; após a recarga, uma edição com
-`gpt-image-2.5-flare` consumiu 2.779 tokens totais em 19,56 s e custou
-US$ 0,054885 pelas tarifas Standard. A imagem recriou detalhes do produto e
-cenário; não é peça aprovada nem custo mensal validado. O adapter visual ainda
-não está integrado ao produto. Ver [registro do ensaio](evals/ai-visual-spike-2026-10-26.md).
-
-26/10/2026 — A qualidade das prévias atuais foi considerada inadequada para
-publicação: IA está restrita a ideia/roteiro; Pillow/FFmpeg desenham um layout
-universal e vídeo silencioso, sem entendimento visual suficiente do material.
-Prioridade imediata: [plano de produção criativa](design/creative-production-quality.md)
-com classificação da fonte, kit de marca progressivo, briefing, edição de imagem
-com IA em benchmark controlado, vídeo real com corte/áudio/legenda, gates humanos
-e custo por peça aceita. Nenhuma receita visual atual está aprovada para cliente.
-
-22/10/2026 — Produto renomeado para **Meu Braço Direito**. Diretórios e remotos
-Git permanecem `local-spark-platform`/`local-spark-web`; os pacotes, Compose,
-variáveis `MEU_BRACO_DIREITO_`, bancos e roles usam os identificadores novos.
-A migração `0015_product_brand` precede a correlação WhatsApp, preserva IDs,
-senhas/MFA e permissões, atualiza as duas identidades de demonstração e congela
-as chaves Stripe de checkouts anteriores. Contas existentes conservam suas senhas;
-as senhas de exemplo abaixo valem para instalações novas. Instruções e exceções
-de compatibilidade em [renomeação do produto](product-rename.md).
-
-26/10/2026 — Ensaio privado de PhotoCraft CLI e FilmCraft CLI mostrou edição
-local automatizável, mas também confirmou que a direção criativa, a escolha de
-material bruto versus arte pronta e a revisão da saída determinam a qualidade.
-Nenhuma IA visual foi usada no ensaio; não houve validação comercial ou custo
-AWS. O plano de R$ 99 passa a ter como restrição de desenho custo mensal total
-por cliente de no máximo R$ 50, a verificar em staging com franquias e
-retentativas limitadas. Ver [benchmark dos editores](evals/open-source-editors-2026-10-26.md).
-
-
-Atualizado: 23/10/2026. Nome adotado: Meu Braço Direito. Repositório principal: `local-spark-platform`.
-
-26/10/2026 — Fatia local F04.3/F06: após processar material, Temporal pode pedir
-roteiro com fato confirmado, criar prévia privada marcada como candidata e
-registrar uma entrega simulada. Uma decisão explícita do proprietário vincula
-hash da arte, legenda, destino Instagram e horário; o dispatcher só registra
-publicação **falsa** se esses dados ainda forem válidos. A web de desenvolvimento
-exibe candidatas e decisões. Não há envio real ao WhatsApp nem Instagram; pedido
-de ajustes ainda não gera nova versão automaticamente. Uma
-[amostra pública do perfil](evals/priscila-public-reference-2026-10-26.md)
-`priscilasilveiracafeteria` foi consultada para orientar a avaliação criativa;
-não recebemos fotos próprias autorizadas nem aceite da proprietária. Os casos
-adicionais de cafeteria permanecem sintéticos e não são fatos confirmados do
-negócio dela. Gates humanos/custo das etapas 1–2 e homologação Meta continuam
-abertos.
-
-26/10/2026 — Decisão de produto: não antecipar publicação de peças sem qualidade
-comercial comprovada. Concluir avaliação factual/criativa/visual e custo de cada
-receita escolhida para o piloto antes de habilitar sua automação em F04.3/F06.
-Continuar a implementação local com Meta simulada; homologar WhatsApp/Instagram
-reais antes de atender clientes. Avatar e outros formatos mantêm o escopo da v0,
-mas não são dependências do primeiro percurso aprovado. Ver [fases](phases/README.md).
-
-26/10/2026 — F04.1b ganhou ajustes visuais versionados de foto/story, privados e
-idempotentes, na API e na área do cliente. Avaliação humana consentida agora tem
-pontuação automatizada com gates por amostra, segmento e falha crítica. A
-homologação com comerciantes e o custo real em staging continuam pendentes.
-Ver [F04](phases/F04-media-recipes.md).
-
-26/10/2026 — F04.2b local: o vídeo privado usa abertura e CTA do roteiro aceito,
-preserva a foto inteira e escolhe dois trechos distintos de clipes autorizados
-suficientemente longos. O proprietário pode pedir uma nova versão com mais tempo
-de cena ou de leitura, até quatro versões da peça. O fato comercial continua
-literal e a receita muda para v3, sem alterar as prévias anteriores. Ainda
-faltam revisão visual consentida, custo de staging, edição avançada e eventual
-fala/legenda sincronizada antes do piloto; ver [F04](phases/F04-media-recipes.md).
-
-26/10/2026 — Próxima fatia F04.2b: vídeo v4 preserva todo o quadro de clipes,
-inclusive horizontais, sobre fundo desfocado. Corpus e avaliador de vídeo
-separam benchmark sintético de aprovação comercial; tempo/CPU/bytes locais
-podem ser medidos no worker, mas COGS de staging e revisão de 20 peças reais
-consentidas ainda faltam. Seleção semântica de trechos também permanece
-pendente. Ver [F04](phases/F04-media-recipes.md).
-
-25/10/2026 — F04.1b iniciada: template estático v4 preserva a foto real inteira,
-melhora contraste e separa o texto factual em painel legível. Oito casos sintéticos
-PT-BR produzem artes e folha de contato para revisão; não são prova de qualidade
-comercial. Antes do piloto ainda faltam revisão consentida com comerciantes,
-ajuste visual versionado e medição de custo em staging. Ver [F04](phases/F04-media-recipes.md).
-
-25/10/2026 — F04.1 implementada localmente: roteiro F03.3 aceito gera foto/story
-JPEG privada com template determinístico, fato confirmado vigente e foto real
-opcional. A área cliente pede/abre a prévia, sem publicação. Temporal, render key,
-fencing, retries e limpeza de objetos expirados/excluídos protegem estado e
-retenção; o roteiro local `baseline-v1` não requer consentimento de IA externa.
-Ver [F04](phases/F04-media-recipes.md). Edição avançada de clipes, F06 publicação,
-benchmark comercial e homologação Meta continuam pendentes.
-
-25/10/2026 — A primeira receita F04.2 já renderiza MP4 H.264 privado a partir
-de foto ou trecho inicial de clipe autorizado e fato confirmado, com texto de
-cena temporizado e sem áudio. O cliente abre a prévia na web. Cortes múltiplos,
-legenda sincronizada
-à fala, avaliação visual e envio/aprovação pelo WhatsApp continuam pendentes.
-
-25/10/2026 — F03.3b iniciou a edição versionada do roteiro: proprietário pode
-ajustar título, direção e cenas sem trocar a origem dos fatos/materiais. Cada
-versão tem hash, autor e revisão própria; editar remove o aceite vigente e
-invalida prévias da versão anterior. A avaliação criativa PT-BR com negócios
-consentidos ainda é obrigatória antes de uso comercial. O conjunto sintético
-v2 de dez cenários e a planilha de revisão humana estão prontos; nenhuma
-comparação nova de modelos foi executada nesta entrega.
-
-25/10/2026 — Jornada WhatsApp-first formalizada: F03.3b inclui edição e nova
-versão do roteiro com benchmark comercial; F04.1b mede/revisa a qualidade das
-artes com comerciantes consentidos. F04.2 já entrega o primeiro vídeo privado;
-F04.3 iniciará geração e envio da prévia pelo WhatsApp sem obrigar uso da web.
-F06 separa a aprovação explícita da peça final da confirmação de preço/horário
-e só então agenda/publica. A avaliação comercial F03.3b, a revisão humana
-F04.1b, F04.2b, F04.3 e F06 seguem pendentes;
-ver [fases](phases/README.md).
-Após a primeira receita F04.2, a ordem de implementação é F03.3b, F04.1b,
-F04.2b e F04.3; os três primeiros são gates de qualidade antes da automação da
-prévia.
-
-24/10/2026 — Sequência executável consolidada em [fases](phases/README.md):
-F02 recebe/guarda materiais localmente; F03.3 agora cria roteiro estruturado e
-revisão do proprietário a partir desses materiais e fatos confirmados. A avaliação
-de qualidade comercial e a edição direta de cenas continuam pendentes.
-F04.1 renderiza arte estática; F04.2 gera vídeo silencioso de foto ou clipe. F06
-aprova/publica com adapter fake e F05 adiciona avatar sem
-bloquear a publicação inicial. A conta Meta real fica para homologação externa,
-obrigatória antes de clientes reais, sem bloquear desenvolvimento e testes locais.
-
-23/10/2026 — F02.2c6 acrescenta recibos de entrega/falha vinculados ao ID Meta, resposta final durável após decisão, teto diário de tentativas por organização e revisão administrativa auditada sem reenvio. A interface web tem uma lista de falhas/incertezas. Envio real continua desligado até a Meta liberar a WABA e o smoke externo ser aprovado; custo monetário e opt-out ainda são pendências. Ver [F02](phases/F02-whatsapp-ingestion.md).
-
-23/10/2026 — F02.2c5 prepara respostas WhatsApp duráveis e cifradas para as
-propostas, com envio Cloud API atrás de chave explicitamente desligada. Comando
-`Confirmar`/`Descartar` aceita referência ao ID Meta ou uma única proposta recente
-do mesmo remetente e negócio; não decide quando houver ambiguidade. Resultado incerto não é reenviado. Sem smoke externo, comprovante de
-entrega ou envio ativo até a WABA ser liberada. Ver [F02](phases/F02-whatsapp-ingestion.md).
-
-23/10/2026 — F02.2c4 conecta texto WhatsApp já vinculado e autorizado à decisão
-editorial na transação de material processado. O proprietário pode listar propostas
-e confirmar/descartar pela API; a simulação permanece local. Não há resposta
-enviada ao WhatsApp, interpretação de comando recebido ou LLM. Migration 0027;
-o smoke externo aguarda liberação da WABA. Ver [F02](phases/F02-whatsapp-ingestion.md).
-
-23/10/2026 — Primeira fatia do assistente conversacional editorial: simulador local
-restrito ao proprietário recebe texto e `operation_id`, reconhece oferta de preço
-ou disponibilidade para hoje, pede confirmação e grava fato temporário no contexto
-versionado após aceite. Repetições são idempotentes; mensagens incertas vão para
-revisão. Migration 0026. Ainda não usa LLM nem responde pelo WhatsApp real;
-Meta/WABA restrita continua bloqueando o smoke externo. Ver [F02](phases/F02-whatsapp-ingestion.md).
-
-23/10/2026 — F03.2c, terceira fatia: `GET /api/v1/admin/editorial-usage`
-agrega por organização as reservas de tokens do dia UTC, tokens informados pelo
-provedor e chamadas pendentes/incertas. Leitura exclusiva de staff e auditada;
-alertas de 80% e 100% usam o limite diário atualmente configurado, não valor
-histórico. Não há tarifa versionada, portanto custo monetário permanece
-desconhecido. Fluxo completo WhatsApp/publicação e feedback continuam pendentes.
-
-23/10/2026 — F03.2c, segunda fatia: eventos editoriais novos são correlacionados
-ao ID interno único do pedido, vinculado ao `operation_id` externo, e consultáveis
-por staff numa linha do tempo de metadados,
-sem prompt ou material. O dispatcher registra a etapa de claim na transação;
-duplicatas não criam outro marco. Eventos antigos podem estar incompletos.
-Percurso WhatsApp/publicação, custo monetário e alertas além da quota editorial ainda faltam.
-
-23/10/2026 — F03.2b: a geração agora exige pelo menos um fato vigente
-confirmado pelo proprietário, inclusive quando há material WhatsApp. Sem isso,
-o pedido termina com `EDITORIAL_FACTS_REQUIRED` antes da reserva de tokens ou
-da chamada à OpenAI. O eval sintético pula esses casos em modo live. F03.2c
-iniciada: `/admin/editorial-operations` projeta apenas estado, IDs, versão de
-contexto/modelo, tokens e erro estável, com função restrita a staff e auditoria. Custo
-monetário fica explicitamente desconhecido; trace de todas as etapas e leitura
-restrita de conteúdo ainda estão pendentes. Ver [F03](phases/F03-editorial-research.md).
-Avaliação técnica F03.2b encerrada com decisão **não ativar comercialmente**;
-o modelo permanece apenas para testes consentidos. Título e ângulo entregues
-são derivados deterministicamente de fato confirmado.
-
-23/10/2026 — F03.2c planejada antes do piloto: contexto confirmado e feedback
-por negócio personalizam a geração sem treinar um modelo por cliente; mensagens
-WhatsApp seguem retenção F02, e eval com conteúdo real pede finalidade/autorização
-específicas. Admin terá visão por operação com etapas, erros, tokens e custos;
-acesso eventual ao conteúdo será restrito, justificado e auditado. O console
-unificado e o dataset real ainda não foram implementados. Ver [F03](phases/F03-editorial-research.md).
-
-23/10/2026 — F03.2b iniciou avaliação sintética da geração editorial: credencial
-OpenAI validada, adapter ajustado para limite/estrutura, cinco casos PT-BR
-versionados e runner pago apenas com `--live`. Cinco respostas completas passaram
-pelos guardas automáticos, mas revisão identificou sugestão semântica não apoiada
-em caso sem fato confirmado. Sem liberação comercial, alteração de consentimentos,
-conteúdo real; o worker local já lê o modo OpenAI do `.env`, mas não havia
-consentimentos ativos nem pedidos pendentes. Ampliar eval, comparar modelo atual e
-homologar fluxo completo ainda são pendências. Ver [F03](phases/F03-editorial-research.md).
-
-23/10/2026 — F03.2a cria sugestões editoriais revisáveis a pedido do dono,
-ligadas a uma versão do contexto e opcionalmente a um material WhatsApp. O modo
-local funciona sem chave; o modo OpenAI usa consentimento próprio, quota diária,
-JSON estruturado e activity Temporal sem repetição de chamada paga. Excluir um
-material apaga suas sugestões. A interface `/app/ideas` mostra o estado e separa
-hipóteses de fatos. Teste real de provedor, avaliação PT-BR, pesquisa e
-planejamento proativo são F03.2b/fatias seguintes. WABA Meta segue restrita.
-
-23/10/2026 — F03.1 iniciou o contexto editorial por negócio. O dono confirma
-fatos com origem e validade, informa preferências e pode corrigir/restaurar
-versões. A API usa CAS e operação idempotente, guarda histórico imutável e audita
-o commit sob RLS. A web oferece a edição. Nenhuma extração automática, LLM/Jev,
-pesquisa paga, sugestão ou publicação foi ativada. F03.2 usará snapshots
-versionados para separar hipóteses de fatos antes de gerar propostas.
-Validação local: 417 testes backend/100% de linhas e ramos, migration 0021
-revertida/reaplicada no `_test`, backup e upgrade local. Web: 158 testes/100%,
-build e fluxo Chromium de salvar/restaurar.
-
-23/10/2026 — F02.2c3a agrupa mensagens do mesmo remetente e negócio em
-janelas fixas de dez minutos, com `group_id` estável desde a correlação até o
-asset e a biblioteca web. Migration 0019 preserva itens antigos como grupos
-unitários. Nenhuma LLM, Jev ou harness interpreta mensagens nesta entrega:
-Temporal orquestra material, mas não infere conteúdo. F02.2c3b adicionou transcrição
-com orçamento e ledger; sem credencial, a feature segue desativada. Meta real
-continua bloqueada pela WABA de teste.
-Validação local: 374 testes backend e 100% de linhas/ramos, Ruff/mypy;
-migration 0019 revertida/reaplicada no `_test` e aplicada à base de
-desenvolvimento após backup. A UI passou 150 testes com 100% nos quatro
-critérios e fluxo Chromium do WhatsApp.
-
-23/10/2026 — F02.2c3b adiciona transcrição de áudio no worker Temporal,
-desativada por padrão. Migration 0020 guarda texto cifrado e ledger de segundos
-reservados por evento/tenant; chamadas pagas são únicas por evento e resultados
-incertos não são reenviados. A biblioteca mostra o texto e o estado verdadeiro.
-Ativação exige chave OpenAI, chave Meta e limite diário explícito. Ainda não há
-interpretação de intenção por LLM/Jev, resposta automática ou smoke Meta real.
-O proprietário também precisa aceitar separadamente o envio de áudio ao
-provedor; revogar o recebimento geral apaga esse aceite.
-Validação: 410 testes backend/100% de linhas e ramos, Ruff/mypy; migration
-0020 reversível no `_test`, base local atualizada após backup. Web: 151 testes,
-100% nos quatro critérios, build e jornada Chromium aprovados.
-
-F02.2c2 entregou localmente o registro durável de cada tentativa de upload antes
-do S3 e a reconciliação de arquivos sem commit, com chaves exclusivas, retry,
-lease/fencing e auditoria. A migration 0018 protege as intenções por papel; a
-API não as lê. Agrupamento e transcrição entram em F02.2c3. Mídia real ainda
-depende do desbloqueio da WABA e de smoke/staging.
-Validação: 372 testes backend com 100% de linhas/ramos, Ruff/mypy, rollback e
-reaplicação da 0018 no `_test`, backup e migração da base local; worker e
-dispatcher atualizados no Docker. Readiness da API local respondeu 200 após a
-migração; se o depurador mantiver código antigo, reiniciar com F5.
-
-F02.2c1 entregou localmente retenção e exclusão da biblioteca: materiais preparados vencem
-em 30 dias, o dono pode pedir exclusão antecipada e um worker remove objetos com
-retry/lease/fencing antes de apagar registros. Inbox/fila vencem em sete dias com
-limpeza periódica. A reconciliação de uploads entrou em F02.2c2;
-agrupamento/transcrição, Meta real e staging seguem pendentes. Não operar conteúdo
-real até esses bloqueios serem tratados.
-Validação: 367 testes backend/100% linhas e ramos, 149 web/100% nos quatro
-critérios, Chromium da exclusão, rollback/reaplicação da 0017 no `_test` e
-remoção de arquivo sintético no SeaweedFS. Migração 0017 aplicada localmente
-após backup; dispatcher atualizado está em execução.
-A API que já estava aberta pelo depurador VS Code conserva o head antigo em
-memória e responde readiness 503 até ser reiniciada com F5; o processo do
-depurador foi preservado para o desenvolvedor reiniciá-lo.
-
-Smoke Meta de 22/10: o app e a WABA de teste foram criados, e o callback HTTPS
-temporário respondeu ao desafio e aceitou um POST sintético assinado. O primeiro
-envio pelo número de teste falhou na Meta com `131031` (`Business Account locked`);
-nenhum subevento real entrou na inbox local. A Qualidade da Conta da Meta mostra
-restrição permanente da WABA de teste e exige verificar a empresa antes de iniciar
-ou responder conversas; após a análise, confirmar a remoção da restrição e a
-assinatura do app na WABA. Não operar conteúdo real.
-
-F02.2b1 foi implementada e validada localmente: um processo restrito correlaciona mensagens
-cifradas ao negócio após a prova do canal e grava fila durável, privada e auditada.
-F02.2b2 agora consome essa fila pelo Temporal, revalida autorização/consentimento,
-guarda texto e mídia em biblioteca privada e oferece conexão/recibos na área do
-cliente. O storage local usa SeaweedFS/S3; migration 0016 adiciona consentimento,
-leases, fencing e assets. Transcrição, resposta, agrupamento, reconciliação de
-uploads órfãos e smoke com a Meta eram pendentes nessa fatia; F02.2c2 cobre
-uploads órfãos, e os demais itens ainda impedem conteúdo real.
-A migração 0015 foi testada
-com rollback/reaplicação num PostgreSQL temporário `_test`; a base local renomeada
-está no head 0015. 289 testes passaram com 100% de linhas/ramos; lint, tipos e
-Compose passaram. Smoke real Meta e staging ainda pendentes.
-
-Correção CI de F02.2a: o workflow declara `TEST_META_DATABASE_URL` com a porta
-5432 do PostgreSQL do Actions e prepara o login restrito Meta. Em `CI`, pytest
-exige todas as URLs explicitamente para não herdar a porta local 55432 do
-`.env.test.example`. A próxima fatia funcional é F02.2b: correlação de eventos
-ao negócio vinculado, retenção, biblioteca de mídia e início dos workflows.
-Simulação local do modo CI passou: 278 testes, 100% de linhas/ramos, lint e tipos.
-O workflow remoto ainda não foi executado nesta alteração.
-
-F02.2a implementa a prova de posse do canal WhatsApp: dono autenticado com
-telefone verificado e plano ativo recebe código único, envia-o pelo WhatsApp
-registrado, e confirma após webhook Meta assinado. Há vínculo tenant/negócio,
-auditoria e revogação automática ao trocar o telefone. A inbox continua em
-quarentena: UI do vínculo, correlação de mensagens, mídia, transcrição e workflow
-de conteúdo permanecem nas próximas fatias. Validação local usa webhooks
-sintéticos; ainda não existe App/WABA Meta disponível para smoke real.
-Migration 0014 aplicada no desenvolvimento local após backup; 278 testes com
-100% de linhas/ramos, lint e tipos passaram. Banco `_test` validou rollback/upgrade.
-
-F02 começou pela ingressão segura de WhatsApp (F02.1): desafio e assinatura Meta,
-limite de corpo, inbox cifrada/deduplicada com papel PostgreSQL isolado e migração
-0013. Sem App/WABA configurados, a rota fica desabilitada. Sem vínculo específico
-entre remetente e negócio, eventos ficam em quarentena; ainda não há processamento
-de fotos/áudio/texto nem resposta via WhatsApp. F02.2 continua com resolução do
-remetente, biblioteca privada e workflow. F02.1 foi validada com 271 testes/100% linhas e ramos, lint,
-tipos, migração de teste revertida/reaplicada e migração local após backup. Nenhum
-smoke real com a Meta ocorreu.
-
-F01.6 está implementada e validada localmente: reconciliação periódica de checkout
-aberto sem depender do listener Stripe, convite/revogação auditados de operadores
-com MFA e confirmação de telefone pela API Twilio Verify. A web tem telas de equipe
-e telefone. O envio de código fica desativado até configurar conta e credenciais
-Twilio; nenhum telefone foi marcado como verificado por teste local. O staging AWS
-ainda não existe, portanto a fase não está homologada externamente. Migrations
-0008–0010 aplicadas no banco local após backup e teste de rollback/upgrade no `_test`.
-Validação: 244 testes backend/100% linhas e branches, 107 web/100% em quatro
-critérios, tipos e lint, oito jornadas Chromium com banco `_test`. API em F5 deve
-reiniciar para carregar as novas rotas.
-
-Atualização 21/10/2026: sandbox do titular recebeu pagamento de teste, com assinatura
-ativa e eventos checkout/subscription/invoice processados. Isso não encerra os
-demais critérios de sandbox/staging. Retorno localhost após login em 127.0.0.1
-reproduziu INVALID_SESSION por ausência do cookie host-only. Checkout passa a
-congelar Origin autorizado na intenção (migration 0006); produção continua exata,
-sem redirect arbitrário. Sessões/assinaturas existentes preservadas na migração local.
-Validação: 218 testes backend/100%, 84 testes web/100% e sete jornadas browser;
-rollback/reaplicação da 0006 no _test, build e atualização do worker billing.
-API F5 precisa reiniciar; nenhum pagamento adicional realizado.
-
-F01.5 agora inclui `GET /admin/billing/opportunities` e uma visão no admin para
-checkouts abertos/expirados sem acesso ativo. A lista é paginada pelo job mais
-recente, separa teste/produção pelo ambiente, mostra contato já cadastrado sem
-distribuir a URL Stripe e exige staff/MFA/RLS/auditoria. Fechar a aba não marca
-abandono; a expiração vem da reconciliação. Migration 0007 adiciona índice de
-ordenação; aplicada localmente e validada com upgrade/downgrade no banco `_test`.
-
-## Negócio
-
-Pequenos empresários enviam fotos, vídeos, áudio ou ideias pelo WhatsApp. A plataforma
-pesquisa, seleciona temas, roteiriza, gera conteúdo, recebe aprovação, publica e mostra
-resultados. Pode usar avatar e voz autorizados do próprio dono. Sem material novo,
-gera sugestões a partir de fatos e biblioteca autorizados, com orçamento e aprovação.
-Aquisição será por vídeos longos de entretenimento no YouTube dos três sócios.
-Negócios apresentados podem ser pagantes ou receber acesso patrocinado por seis meses.
-R$ 99/mês é hipótese de plano de entrada, sem franquias comerciais fechadas.
-200 mil clientes é cenário de escala, não capacidade comprovada nem adoção garantida.
-
-## Decisões aceitas
-
-- Backend em Python; FastAPI, PostgreSQL, Temporal, Redis e S3.
-- Multi-tenancy em tabelas compartilhadas/RLS; sem schema por cliente como padrão.
-- Instagram primeiro, vários formatos incluindo avatar e híbrido na v0 completa.
-- Pesquisa local com raio configurável e fontes permitidas; nenhuma promessa de
-  conhecer faturamento/alcance privado de concorrentes.
-- Jev/TypeSafe é candidato a decisão semântica após eval PT-BR; não escreve roteiros.
-- F02 coleta preferências opcionais sem aumentar o cadastro obrigatório. F03 entrega
-  contexto versionado do negócio, com fatos confirmados separados de hipóteses e
-  edição pelo dono; aprovar conteúdo não confirma fatos comerciais automaticamente.
-- Antes da primeira operação paga, reservar quota/custo de forma atômica (F03 se
-  pesquisa paga; F04/F05 para mídia). Adapters de IA por capacidade e fornecedores
-  são escolhidos por benchmark, contrato e direitos, sem primário fixado nesta etapa.
-- Aprovação por versão/destino; silêncio não autoriza publicação. Consentimento,
-  autorização de gasto e aprovação de postagem são permissões distintas.
-- Padrão de organização baseado no `spotlight-api`, sem copiar domínio/dependências.
-- Testes unitários, integração real, coverage de linhas/branches de 100% e GitHub Actions.
-- Implementação em fases pequenas com SDD geral, SDD por fase e atualização contínua.
-- Autenticação própria na FastAPI: Argon2id, sessões revogáveis, cookies/CSRF,
-  recuperação por e-mail e MFA de staff. Sem dependência de Keycloak/Cognito.
-
-## Estado atual
-
-F00 concluída e validada localmente: API, configuração, JWT verificado, tenants/
-memberships, RLS, criação/listagem, idempotência, auditoria/outbox, relay com lease/
-fencing e workflow inicial Temporal. **62 testes passaram, cobertura 100%** com
-linhas e branches; gate 100%. PostgreSQL 17.6 e Temporal em Docker, lint e tipos,
-rollback/reaplicação de migration, build e smoke da jornada em containers passaram.
-GitHub Actions validado com actionlint; execução remota/deploy ainda não ocorreram.
-Validação após a troca de nome: `make ci`, rollback/reaplicação no banco `_test`,
-build e smoke HTTP/Temporal passaram. Dados e histórico anteriores foram preservados;
-tokens anteriores foram rejeitados e um novo token de demonstração foi emitido.
-Suíte ampliada: contratos HTTP de criação/replay, serviço de paginação/idempotência,
-readiness sem migration, lease expirado durante RPC e retorno inválido da activity.
-Pytest usa `.env.test.example`/`.env.test`, com ambiente do processo prevalecendo;
-PostgreSQL/Temporal indisponíveis causam falha, sem pular integração silenciosamente.
-F01.1–F01.4 implementadas localmente: autenticação nativa, onboarding concorrente
-idempotente, contexto do negócio, consentimentos e administração com acesso auditado.
-React independente em `../local-spark-web`, com entrada/login, cadastro, espaço do
-cliente, overview e busca/paginação de organizações. Worker SMTP e Mailpit em Docker.
-Suíte atual antes da cobrança: **131 testes backend, 100% linhas/branches**, lint/tipos aprovados;
-rollback/reaplicação da nova migration validado no banco exclusivo de teste.
-Onboarding ampliado: atividade sugerida ou livre, cor HEX personalizada e UF/código
-IBGE/cidade consistentes. Catálogo versionado de 27 UFs e 5.571 municípios, sem
-consulta externa no cadastro. Migration 0004 aditiva preserva perfis e hashes de replay
-legados; aplicada localmente sem remover usuários, negócios ou organizações.
-Frontend: 62 testes/100%, build e quatro jornadas Playwright com API/SMTP reais
-aprovados; onboarding desktop/mobile revisado. Build Docker e catálogo na imagem
-validados. F5 deve reiniciar para carregar as novas rotas de referência.
-F01.5 em implementação. Entregas locais: Stripe Checkout, inbox/webhook autenticado, jobs
-Temporal com lease/fencing, confirmação canônica e acesso pago/teste separados de
-patrocínio de seis meses. Cliente /app/billing e admin /admin/billing. Cobrança
-desabilitada por padrão; credenciais, Price/valor, sandbox real e staging pendentes.
-F01.6 tem convites e verificação de telefone implementados localmente; entrega
-real de código e homologação AWS/staging dependem das contas externas. Sem deploy.
-Contrato e continuidade em docs/design/billing.md; migration 0005 aditiva aplicada
-localmente, preservando contas, negócios, organizações e memberships.
-Validação da entrega: 206 testes backend/100% linhas e branches; 84 testes web/
-100% em quatro critérios; cinco jornadas Playwright com API/SMTP reais, incluindo
-concessão/uso/revogação do patrocínio. Stripe foi exercitado por contratos locais,
-sem pagamento no provedor. Builds e serviço Docker billing em modo disabled.
-Detalhes em `docs/phases/F00-foundation.md`; v0 comercial continua em implementação.
-
-## Decisões não bloqueantes para F00
-
-Validação comercial da marca; segmento/coorte inicial; limites de cada plano e política de refações;
-orçamento de geração proativa; operação SMTP e política de autenticação em PRD; cobrança local;
-contratos/capacidade dos fornecedores; scopes/app review Meta; retenção final e termos.
-Esses itens bloqueiam partes do piloto comercial, não a fundação local.
-
-## Continuidade
-
-Fonte principal passa a ser este repositório. Os documentos de origem copiados para
-`docs/design` preservam contexto; docs de implementação e status em `docs/SDD.md`
-e `docs/phases` prevalecem sobre nomes de pastas sugeridos em rascunhos anteriores.
-O repositório principal já possui remoto Git configurado; esta implementação permanece
-em alterações locais. Não houve push, execução remota de CI ou provisionamento AWS.
-Configuração usa `MEU_BRACO_DIREITO_`, bancos `meu_braco_direito_platform`/`meu_braco_direito_platform_test`
-e roles `meu_braco_direito_*`. Credenciais locais foram atualizadas, incluindo a assinatura JWT.
-Não há cliente real ou integração paga provisionados.
-
-Desenvolvimento: `.vscode/launch.json` oferece `Meu Braço Direito: API (FastAPI)` com
-Python da `.venv`, `.env` local e porta 8000. Prelaunch para a API Docker e sobe
-dependências para evitar conflito de porta; workers seguem nos containers.
-No macOS, pré-tarefas usam o caminho absoluto do Docker Desktop e PATH explícito
-para funcionar quando o VS Code é aberto pela interface gráfica.
-Versionamento: `.gitignore` exclui credenciais locais, estado de runtime, bancos,
-backups, caches e artefatos gerados. Código, testes, migrations SQL, SDDs, lockfile,
-workflows CI e os quatro arquivos compartilhados de debug VS Code permanecem versionáveis.
-
-## Interfaces e jornada aprovadas
-
-Operadores da plataforma e membros de negócios são permissões distintas. F01.6
-implementou convite/revogação de staff por outro staff autenticado com MFA, com
-e-mail verificado, trilha auditada e TOTP individual. O seed de operador existente
-serve somente para desenvolvimento local; cadastro público não cria staff.
-
-`local-spark-web` é repositório separado inspirado na organização de rogue-skydogg-ui.
-F01: backend de identidade, base React, admin de cadastros/onboarding e configuração
-essencial do cliente. Área completa cresce junto das integrações. Contratação
-automática e concessão patrocinada entram em F01.5; não marcar como implementadas
-antes do webhook/provedor real. Perfil em setup não concede plano pago.
-
-Admin usará nossa base de cadastros/assinaturas/consumo e métricas sociais importadas
-com autorização. Diferenciar usuários, organizações, negócios, pagantes e patrocinados.
-Sem fonte não há métrica; redes não comprovam faturamento. Autenticação própria,
-sem dependência de provedor de identidade externo ou deploy nesta entrega.
-Cadastro local: localhost e 127.0.0.1 são aliases aceitos apenas em development/
-testing, com porta/protocolo idênticos à origem web configurada. Produção/staging
-continuam exigindo a origem exata. Debug precisa reiniciar F5 após alterações.
-Contrato vigente em `docs/design/native-auth.md`: IDs antigos preservados, credenciais
-sem senha recuperadas por e-mail, role auth isolada e MFA obrigatório para staff.
+# Meu Braço Direito — contexto vigente
+
+Atualizado em **27/10/2026**. Este documento resume o produto, o estado local e
+as decisões aceitas. O [SDD](SDD.md) define os contratos; a
+[trilha BL](phases/BL-brand-library.md) e o [índice de fases](phases/README.md)
+definem a sequência. Registros cronológicos anteriores foram preservados
+integralmente no [histórico da consolidação](history/2026-10-27-pre-consolidation/index.md).
+Uma entrega técnica local não equivale a uma capacidade comercial homologada.
+
+## Produto e resultado esperado
+
+Pequenos negócios enviam texto, foto, áudio ou vídeo pelo WhatsApp; o sistema
+usa contexto confirmado, kit visual e material autorizado para produzir conteúdo
+útil, pedir aprovação simples, publicar nos canais habilitados e acompanhar
+resultados observáveis. Também deve propor conteúdo quando o cliente não enviar
+material novo, dentro da cadência aceita e da franquia. A rotina não exige saber
+usar editor, escrever prompt ou conhecer modelos de IA.
+
+A web complementa configuração, consentimentos, acervo, kits e revisão. O cliente
+pode ver uma vitrine pública com posts, stories e reel fictícios em simuladores
+de Instagram, Facebook e TikTok dentro da nossa plataforma. São arquivos
+pré-produzidos uma vez, sem geração paga a cada visitante e sem acesso às contas
+sociais do visitante. Escolher um kit não aprova nenhuma publicação.
+
+Aquisição por vídeos longos de entretenimento dos três sócios permanece uma
+estratégia comercial. R$ 99/mês é hipótese do plano de entrada; o teto de desenho
+é R$ 50 de custo mensal total por cliente. Franquias e margem ainda precisam de
+medição. A meta de 200 mil clientes orienta evolução de capacidade, não comprova
+escala atual. Alcance e engajamento não comprovam faturamento nem causalidade.
+
+## O que existe e o que ainda falta
+
+| Área | Implementado localmente | Limite atual |
+| --- | --- | --- |
+| Fundação e identidade | FastAPI, PostgreSQL/RLS, auth própria, sessões, recuperação, e-mail HTML, onboarding, operador com MFA e convites | Staging, operação e segurança de produção ainda precisam de homologação. |
+| Cobrança | Stripe Checkout sandbox, webhook assinado, jobs, reconciliação, assinatura de teste e patrocínio separados, painel de oportunidades | Franquias comerciais, custos completos e homologação de produção pendentes. Cadastro não ativa plano. |
+| WhatsApp e materiais | Inbox assinada/criptografada, vínculo, consentimentos, correlação, processamento, retenção/exclusão e transcrição opcional | Meta real não homologada; conversa automática ainda é limitada. SMS verificado não equivale a vínculo WhatsApp. |
+| Contexto e texto | Fatos/preferências versionados, propostas e roteiros, adapter OpenAI, reservas/tokens e projeção administrativa limitada | Não há agente geral, pesquisa automática de concorrentes, skills executáveis por cliente nem geração visual integrada. |
+| Kits BL01/BL02 | Vitrine fictícia de cafeteria, seleção por negócio, edição guiada de cores/fontes/logo/textos/composição, prévia, rascunho, confirmação e histórico | Kit `public_demo` somente para teste; direitos e qualidade comercial pendentes. F03 congela a versão; F04 ainda não a aplica à mídia. |
+| Conteúdos F04/F06 | Prévias técnicas estáticas/vídeo, candidata, decisão explícita e publicação falsa com validação de versão/hash | Renderers Pillow/FFmpeg não são receitas aprovadas. Ajuste ainda não regenera automaticamente; envio de candidata e publicação reais pendentes. |
+| Acervo BL03 | Especificação aceita para produtos, serviços e fotos reais do local | Ainda não implementado. Hoje há fatos livres e materiais temporários do WhatsApp. |
+| Produção BL04/BL05 | Contratos e ensaios isolados de IA visual, qualidade e custos | Falta recuperar acervo automaticamente, integrar IA visual, provar peça aceita e completar jornada/proatividade. |
+| Infraestrutura F08 | Compose, CI e workflow de deploy preparado | AWS/staging, backup/restore, observabilidade operacional e capacidade não provisionados/homologados. |
+
+Os ensaios em [evals](evals/) não são features do produto nem aceites comerciais.
+A consulta a um perfil público não concede direitos sobre material ou aprovação
+da titular. Custos de poucas chamadas isoladas não comprovam custo mensal.
+
+## Experiência aprovada na web
+
+| Área do cliente | Finalidade |
+| --- | --- |
+| Início | Resumo e orientações com estados reais do perfil, sem página estática de passos. |
+| WhatsApp | Situação do canal, telefone/SMS, vínculo e consentimentos; histórico temporário de envios como consulta secundária. |
+| Sobre meu negócio | Fatos/preferências e autorização/retirada de IA; BL03 acrescentará Produtos e serviços e Meu espaço aqui. |
+| Conteúdos | Acompanhar propostas/prévias e decisões disponíveis; alternativa à aprovação pelo WhatsApp. A simulação é identificada. |
+| Kits visuais | Explorar, escolher e editar a direção visual aplicada ao negócio. |
+| Plano e acesso | Assinatura, patrocínio e situação de acesso. |
+
+Organização e negócio ativos são compartilhados entre as telas, com seleção em
+memória; autorização permanece na API/RLS. `/app/content` é a rota vigente;
+`/app/ideas` redireciona para ela e `/app/guide` para Início. `/app/phone` continua
+como rota utilitária, acessível pela configuração WhatsApp.
+
+Gerar ideia manualmente, aceitar/editar roteiro e operar ajustes técnicos do
+renderer ficam em `/app/editorial-lab`, disponível somente no build de
+desenvolvimento. As APIs, propostas, roteiros e versões permanecem: também
+sustentam a jornada automática. A frequência semanal manual sai da interface;
+`posts_per_week` histórico é preservado até recomendação por formato e plano.
+
+## Próximas entregas, em ordem
+
+| Fase | Resultado esperado | Estado |
+| --- | --- | --- |
+| [BL02](phases/BL-brand-library.md#bl02--escolher-e-editar-o-kit-piloto-para-um-negócio) | Escolha e edição guiada do primeiro kit por negócio | Implementada localmente; manter gates comerciais. |
+| [BL03](phases/BL-brand-library.md#bl03--acervo-progressivo-em-sobre-meu-negócio) | Acervo privado, opcional e progressivo em Sobre meu negócio: produtos/serviços, fotos dos itens e do espaço | **Próxima fase.** |
+| [BL04](phases/BL-brand-library.md#bl04--recuperar-contexto-e-produzir-uma-peça-nova) | Pedido livre recupera fontes automaticamente; nova peça aplica kit com IA visual/receita e mede fidelidade, qualidade e custo por peça aceita | Planejada após BL03. |
+| [BL05](phases/BL-brand-library.md#bl05--jornada-completa-local-ajuste-e-proatividade-mínima) | WhatsApp simulado percorre criação, ajuste, aprovação/publicação falsa e proposta em dia sem mensagem | Planejada; reutiliza as fatias F02–F06 existentes. |
+| [BL06](phases/BL-brand-library.md#bl06--ampliar-a-biblioteca-e-servir-o-catálogo-em-escala) | Kits de manicure/personal e catálogo público em objetos/CDN | Após provar reaplicação do primeiro kit. |
+
+O acervo é contexto recuperado automaticamente, sem seleção obrigatória de item
+por pedido. “Crie uma imagem de um croissant” deve resolver o produto, as fotos e
+os fatos pertinentes do mesmo negócio. Para mostrar o café real, a edição deve
+partir de foto real do espaço e preservar o produto; fonte insuficiente exige
+pergunta curta ou conceito identificado. Material temporário só vira acervo
+permanente com aceite específico.
+
+Antes do piloto comercial: fechar BL03–BL05 para as receitas prometidas, obter
+avaliação consentida de qualidade, medir custo por peça aceita e franquia F07,
+homologar WhatsApp/Instagram oficiais e operar staging/recuperação F08. Avatar e
+voz permanecem no produto, **após o primeiro piloto comercial**, quando imagens
+e vídeos com material real, qualidade e custo já tiverem sido validados (P15).
+Exigem consentimento e orçamento próprios. Pesquisa ampla e novos nichos vêm depois da primeira peça personalizada aprovada.
+
+## Decisões técnicas e limites de IA
+
+- Backend Python modular; FastAPI, PostgreSQL com tabelas compartilhadas/RLS,
+  Temporal e armazenamento compatível com S3. Web React em repositório separado.
+  API, dispatchers e workers escalam separadamente. Redis é opção prevista, não
+  dependência ativa; não há Celery, Make ou n8n no runtime.
+- Temporal coordena processos duráveis de integração/geração. CRUD simples usa
+  transação e auditoria; não precisa iniciar workflow apenas para emitir recibo.
+- Auth própria: Argon2id, JWT de acesso em memória na web, refresh HttpOnly,
+  sessão revogável, Origin/CSRF e MFA obrigatório para staff. Permissão de
+  operador é distinta de owner e não exige cadastrar negócio.
+- O adapter editorial atual usa OpenAI Responses com saída estruturada, sem
+  tools; `gpt-5-mini` é o default de configuração, sem escolha comercial final
+  de modelo. O adapter de áudio referencia `gpt-transcribe`. Não houve aprovação
+  nesta revisão para trocar fornecedor, modelo ou adicionar plataforma agente.
+- A conversa WhatsApp atual reconhece intenções delimitadas por regras; não é
+  um chat semântico geral. Briefing, retrieval do acervo e melhor direção
+  criativa são entregas seguintes; não presumir que já existem por haver LLM.
+- Reservas e tokens são dados de consumo, não custo monetário completo. Faltam
+  tarifa versionada e visão de gastos de todas as tentativas; o admin não recebe
+  material/prompt privado irrestrito. Memória versionada não treina o modelo
+  automaticamente nem garante economia de tokens.
+
+## Limpeza aprovada e preservação
+
+A [auditoria de 27/10](audits/product-flow-and-ai-2026-10-27.md) registra as
+aprovações ponto a ponto. A revisão preserva domínio editorial, materiais e
+históricos; não autoriza remoções gerais por aparente falta de uso.
+
+- P1–P8 simplificam navegação e fluxo, sem remover APIs/tabelas editoriais.
+- P9 retira `billing_outbox` pela migração nova `0038`, preservando eventos
+  faltantes em `billing_audit`. Jobs, Stripe e reconciliação permanecem.
+- P10–P12 retiram `actor_for_subject`, o seed aposentado e a declaração sem
+  serviço do volume Keycloak. Usar `scripts/seed_operator.py`; contas/IDs/MFA e
+  volumes existentes são preservados.
+- P13 separa estado vigente dos registros antigos nos três documentos de
+  entrada, mantendo snapshots integrais e specs/evals detalhados.
+- P14 encerra novos eventos-recibo `business.created`/`brand_kit.changed` e tira
+  o relay genérico da inicialização automática. Auditoria transacional e
+  snapshots de kit continuam. Tabelas, handlers e relay manual são mantidos
+  temporariamente para compatibilidade com históricos; Temporal continua nos
+  processos com efeitos reais. A retirada não apaga volumes ou eventos antigos.
+- P15 mantém avatar/voz como F05 posterior ao primeiro piloto comercial, sem
+  implementar nem encerrar essa fase nesta revisão.
+
+## Continuidade e fontes de verdade
+
+Produto adotado: **Meu Braço Direito**. Diretórios/remotos permanecem
+`local-spark-platform` e `local-spark-web`; configuração usa `MEU_BRACO_DIREITO_`
+e bancos `meu_braco_direito_platform`/`meu_braco_direito_platform_test`.
+A [renomeação](product-rename.md) preserva identidades e explica compatibilidade.
+O repositório de infraestrutura é planejado, não provisionado.
+
+Atualizar este contexto, o [SDD](SDD.md), o SDD da fase e o
+[CHANGELOG](CHANGELOG.md) em cada entrega. Manter resultados datados no changelog
+e nos evals; não acumular estados antigos no texto vigente. Em conflito, o estado
+atual e a fase ativa prevalecem sobre rascunhos históricos em `design/`.
+Configuração local e comandos estão no [README](../README.md); critérios de
+qualidade e operação ficam no [SDD](SDD.md) e em [operações](operations.md).

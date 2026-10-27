@@ -1,4 +1,4 @@
-"""A complete transactional slice: membership, business, idempotency, audit and outbox."""
+"""Atomic membership, business creation, idempotency and audit."""
 
 import hashlib
 import json
@@ -41,7 +41,7 @@ async def create_business(
     payload: BusinessCreate,
 ) -> BusinessCreated:
     await require_member(session, tenant_id, actor_id, write=True)
-    operation_id, business_id, event_id = uuid4(), uuid4(), uuid4()
+    operation_id, business_id = uuid4(), uuid4()
     scope = f"{actor_id}:POST:/api/v1/businesses"
     digest = fingerprint(payload)
     inserted = await session.scalar(
@@ -81,12 +81,6 @@ async def create_business(
         .one()
     )
     response = BusinessCreated(business=BusinessRead.model_validate(row), operation_id=operation_id)
-    event_payload = {"business_id": str(business_id), "actor_id": str(actor_id), "operation_id": str(operation_id)}
-    await session.execute(
-        text("""INSERT INTO outbox_events (id, tenant_id, event_type, payload)
-             VALUES (:id, :tenant, 'business.created', CAST(:payload AS jsonb))"""),
-        {"id": event_id, "tenant": tenant_id, "payload": json.dumps(event_payload)},
-    )
     await session.execute(
         text("""INSERT INTO audit_events (tenant_id, actor_id, operation_id, action, resource_id)
              VALUES (:tenant, :actor, :operation, 'business.created', :resource)"""),

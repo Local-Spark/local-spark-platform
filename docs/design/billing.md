@@ -109,8 +109,12 @@ ou dados do provedor. Leitura exige staff/MFA, RLS e auditoria. Contato comercia
 
 ## Persistência e execução
 
-Migration 0005: billing_jobs, billing_accounts, billing_checkouts,
-billing_sponsorships, billing_audit, billing_outbox; todas com FORCE RLS. Login
+A migração histórica 0005 criou os jobs, contas, checkouts, patrocínios,
+auditoria e uma outbox financeira. A revisão 0038, aprovada no ponto 9 da
+auditoria de 27/10, preserva eventos faltantes em `billing_audit` e remove
+`billing_outbox`, que não tinha consumidor. Persistência vigente: `billing_jobs`,
+`billing_accounts`, `billing_checkouts`, `billing_sponsorships` e `billing_audit`,
+com FORCE RLS. Login
 meu_braco_direito_payments herda meu_braco_direito_billing, sem escrita em memberships,
 usuários/perfis/staff, patrocínios ou alteração de auditoria. Runtime comum não
 escreve estados de pagamento confirmados.
@@ -140,8 +144,14 @@ Atualização por organização exige lease/fencing válida; a leitura financeir
 canônica ocorre depois da aquisição, fora de transação. Evento de assinatura
 antiga não substitui a atual. Hold de refund/disputa não é limpo por invoice
 posterior; resolução é operacional/futura. Expiração de acesso usa relógio DB.
-Auditoria + billing_outbox são atômicas. Outbox permanece pendente para F02;
-o relay business.created não recebe mensagens incompatíveis com seu contrato.
+Alterações comerciais e `billing_audit` são atômicas. A execução durável usa
+`billing_jobs`; não há fila de notificações financeiras implicitamente pendente
+para F02. O relay geral de `business.created` não processa eventos financeiros.
+A migração 0038 roda com privilégios de migração/BYPASSRLS, trava as tabelas na
+ordem do escritor, copia eventos faltantes e aborta se algum tenant não estiver
+representado na auditoria. Downgrade recria intents pendentes com RLS a partir
+da auditoria, sem afirmar entrega nem apagar histórico. Atualizar API e processo
+billing junto da migração; executáveis antigos ainda tentam gravar a tabela removida.
 
 Modo disabled não cria cobrança nem consome jobs do provedor. Webhooks recebem
 503 até configurar credenciais; jobs aceitos continuam duráveis. Pausas maiores
@@ -153,7 +163,7 @@ são relidos no provedor. Cliente nunca fornece dados de cartão à nossa API.
 
 ## Interfaces e continuidade
 
-Cliente /app/billing: escolha do negócio, acesso/validade, estado e checkout.
+Cliente /app/billing: negócio ativo do seletor global, acesso/validade, estado e checkout.
 Retorno success apenas mostra espera; mudança depende da API. Polling de 3s
 limitado a 20 atualizações, refresh manual disponível. Testes identificados e
 excluídos de pagantes. Sem configuração não há cobrança/preço comercial fictício.

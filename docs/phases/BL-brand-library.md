@@ -95,7 +95,10 @@ Assinatura e permissões de produção continuam na API.
 de origem sem texto fictício incorporado, fontes licenciadas, layouts e
 posições disponíveis. A API de kit é do proprietário e separa `draft` de
 `confirmed`; cada mutação pede `operation_id` e `expected_version` e gera
-versão imutável, audit e outbox tipado. `public_demo` é selecionável só em
+versão imutável e auditoria transacional. Desde P14, essas mutações não emitem
+o recibo `brand_kit.changed`; o snapshot do kit em F03 permanece. Outbox,
+históricos e handlers legados são preservados para consumo manual compatível.
+`public_demo` é selecionável só em
 ambiente local/teste. Logos entram em armazenamento privado por tenant/negócio,
 com validação de formato/dimensões/direitos, URL temporária e intent de upload
 recuperável pelo proprietário. Falhas de upload não criam logo pronto;
@@ -122,7 +125,7 @@ PNG/JPEG/WebP de até 2 MiB é opcional e pede confirmação de direito. A
 migração `0037_brand_kits` é necessária; o teste não exige credenciais Meta
 nem chamadas de IA. Mudar um rascunho não troca o kit já confirmado.
 
-**Validação da entrega local:** `make ci` com 718 testes e 100% de cobertura
+**Validação histórica da entrega local BL02, anterior à P14:** `make ci` com 718 testes e 100% de cobertura
 de linhas/ramos na plataforma; 220 testes web com 100% nos quatro critérios,
 build e duas jornadas de navegador desktop/mobile aprovados. Migração 0037
 aplicada no banco de desenvolvimento, relay/worker atualizados e manifesto
@@ -153,8 +156,10 @@ para o CDN dos kits fictícios.
 arquivamento, ordenação e revisão. Importação de cardápio pode criar rascunhos;
 nada vira fato confirmado automaticamente. Material recebido pelo WhatsApp só
 se torna acervo durável após aceite explícito, pois sua retenção original é
-temporária. RLS, idempotência, concorrência, auditoria e outbox protegem
-alterações. Não criar um editor administrativo ou catálogo de ecommerce aqui.
+temporária. RLS, idempotência, concorrência e auditoria protegem as alterações.
+Uma identidade durável com outbox/Temporal é exigida quando houver um efeito
+assíncrono específico, sem criar recibos de CRUD sem consumidor de negócio.
+Não criar um editor administrativo ou catálogo de ecommerce aqui.
 
 **Aceite:** cadastrar/editar um produto e um serviço, associar foto a um item
 e ao local, expirar preço e arquivar item; as leituras por outro tenant falham.

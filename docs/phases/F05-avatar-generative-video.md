@@ -1,5 +1,12 @@
 # F05 — Avatar, voz e cenas geradas
 
+**Decisão P15 — 27/10/2026:** avatar/voz do próprio cliente permanecem no
+produto, na F05 **após o primeiro piloto comercial**, com consentimento,
+qualidade PT-BR e orçamento próprios. Não são requisito de aceite desse piloto,
+que primeiro valida imagens, vídeos com material real, aprovação/publicação e
+custo. As receitas e contratos de avatar abaixo descrevem a evolução completa,
+não uma integração já entregue nem obrigação do primeiro piloto.
+
 Decisão de 26/10/2026: [plano de qualidade criativa](../design/creative-production-quality.md)
 separa avatar/voz e cena generativa das receitas de foto real e vídeo editado.
 Sem benchmark de consentimento, qualidade PT-BR e custo por peça aceita, nenhuma

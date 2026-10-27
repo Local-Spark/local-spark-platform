@@ -1,4 +1,20 @@
-# F02 — WhatsApp e biblioteca de materiais
+# F02 — WhatsApp, recebimento e histórico de envios
+
+## Navegação do cliente — P1 aprovado em 27/10/2026
+
+O menu passa a se chamar **WhatsApp** e prioriza vínculo, situação do canal e
+consentimentos. Os materiais recebidos aparecem como **histórico de envios**
+secundário, para conferir processamento, transcrição, erro ou exclusão quando
+necessário. O cliente não precisa navegar por essa lista nem escolher um
+material na web para iniciar o percurso principal de conteúdo.
+
+O acervo BL03 em **Sobre meu negócio** terá produtos, serviços e fotos
+autorizadas duráveis. O histórico WhatsApp continua representando entradas
+temporárias, com origem e retenção próprias. A aprovação de P1 modifica a
+apresentação; preserva APIs, inbox, eventos, assets, agrupamento, vínculos,
+consentimentos, transcrição, retenção, download privado e exclusão. Essas
+fontes continuam usadas por F03/F04/F06. Promover uma foto recebida ao acervo
+durável exige autorização específica, como definido na BL03.
 
 ## Assistente editorial conversacional: simulação local (primeira fatia entregue)
 

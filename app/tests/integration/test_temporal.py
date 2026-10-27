@@ -1,3 +1,4 @@
+import json
 import os
 from uuid import uuid4
 
@@ -42,7 +43,25 @@ async def test_real_workflow_retries_and_duplicate_delivery(
         return await implementation.record_business_created(event)
 
     async with database.transaction(seeded["t1"], seeded["a1"]) as session:
-        await create_business(session, seeded["t1"], seeded["a1"], "temporal-request", BusinessCreate(name="Store"))
+        created = await create_business(
+            session, seeded["t1"], seeded["a1"], "temporal-request", BusinessCreate(name="Store")
+        )
+        # Persist an old receipt explicitly; current CRUD no longer emits it.
+        await session.execute(
+            text("""INSERT INTO outbox_events(id,tenant_id,event_type,payload)
+              VALUES(:id,:tenant,'business.created',CAST(:payload AS jsonb))"""),
+            {
+                "id": uuid4(),
+                "tenant": seeded["t1"],
+                "payload": json.dumps(
+                    {
+                        "business_id": str(created.business.id),
+                        "actor_id": str(seeded["a1"]),
+                        "operation_id": str(created.operation_id),
+                    }
+                ),
+            },
+        )
     async with admin.connect() as connection:
         event_id = await connection.scalar(text("SELECT id FROM outbox_events"))
     async with Worker(client, task_queue=queue, workflows=[BusinessCreatedWorkflow], activities=[record]):

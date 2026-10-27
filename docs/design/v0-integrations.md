@@ -1,5 +1,12 @@
 # v0 — Catálogo de integrações e APIs
 
+**Decisão P15 — 27/10/2026:** avatar/voz do próprio cliente permanecem no
+produto, na F05 **após o primeiro piloto comercial**, com consentimento,
+qualidade PT-BR e orçamento próprios. Não são requisito de aceite desse piloto,
+que primeiro valida imagens, vídeos com material real, aprovação/publicação e
+custo. As receitas e contratos de avatar abaixo descrevem a evolução completa,
+não uma integração já entregue nem obrigação do primeiro piloto.
+
 Data de consulta: 20/10/2026. Decisões concretas de implementação, ainda sujeitas a
 teste de acesso/contrato, orçamento e benchmark. “Selecionado” não significa serviço
 contratado, modelo habilitado na nossa conta ou integração já testada.

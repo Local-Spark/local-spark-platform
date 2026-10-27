@@ -1,5 +1,22 @@
 # F03 — Pesquisa, temas e planejamento proativo
 
+## Experiência do cliente — P2 aprovado em 27/10/2026
+
+O pedido livre pelo WhatsApp é o percurso principal. A web oferece
+**Conteúdos**, em `/app/content`, para acompanhar propostas, abrir prévias e
+revisar a peça quando necessário. `/app/ideas` é um endereço de compatibilidade
+que redireciona para essa área; deixa de apresentar o fluxo manual como tarefa
+obrigatória do cliente.
+
+O ensaio manual de ideia → roteiro → aceite intermediário → renderização fica
+em `/app/editorial-lab`, somente no build de desenvolvimento. Esse laboratório
+permite validar o pipeline enquanto a Meta e os gates criativos não estão
+homologados. Os endpoints de proposta, edição/revisão de roteiro e versões são
+preservados: o workflow iniciado pelo WhatsApp usa os mesmos serviços. P2 não
+remove tabelas, colunas, histórico nem o contrato de aprovação da peça final.
+As descrições datadas de telas `/app/ideas` neste SDD permanecem como histórico
+da entrega original.
+
 Ordem vigente: [BL01–BL06](BL-brand-library.md) começa com o kit demonstrativo
 local (BL01), seguido de escolha e edição guiada por formato (BL02). O acervo
 opcional de produtos, serviços e fotos do ambiente entra em BL03, em

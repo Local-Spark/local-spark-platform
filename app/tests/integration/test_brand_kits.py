@@ -153,7 +153,7 @@ async def test_kit_catalog_draft_confirm_replay_cas_and_snapshot(admin, api, dat
         brand_events = await connection.scalar(
             text("SELECT count(*) FROM outbox_events WHERE event_type='brand_kit.changed'")
         )
-        assert brand_events == 3
+        assert brand_events == 0
     confirmed_edit = await api.post(
         base + "/confirm", headers=owner, json={"operation_id": str(uuid4()), "expected_version": 3}
     )
@@ -258,7 +258,7 @@ async def test_logo_intent_replay_private_reference_and_concurrent_upload(admin,
         brand_events = await connection.scalar(
             text("SELECT count(*) FROM outbox_events WHERE event_type='brand_kit.changed'")
         )
-        assert brand_events == 2
+        assert brand_events == 0
 
 
 async def test_logo_pending_reconcile_is_owner_scoped(admin, database, seeded, settings):

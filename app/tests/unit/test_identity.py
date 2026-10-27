@@ -5,15 +5,9 @@ from uuid import uuid4
 import jwt
 import pytest
 
-from app.core.identity import actor_for_subject
 from app.core.passwords import Passwords
 from app.services.auth import AuthError, AuthService
 from app.tests.unit.test_core import access_token
-
-
-def test_legacy_actor_ids_are_stable_and_namespaced():
-    assert actor_for_subject("issuer", "subject") == actor_for_subject("issuer", "subject")
-    assert actor_for_subject("issuer", "subject") != actor_for_subject("other", "subject")
 
 
 async def test_password_hash_and_mismatch():

@@ -23,10 +23,15 @@ a sessão/assinatura/fatura na Stripe, o acesso pode ser ativado sem o webhook
 perdido. Não repetir a compra; confirmar o estado pelo endpoint de assinatura.
 Reiniciar o listener não retransmite automaticamente eventos perdidos.
 Nunca reprocessar um checkout ambíguo com uma nova chave: consultar estado canônico
-da sessão/assinatura antes de alterar intent, lease ou estado de falha. Billing jobs
-failed e billing_outbox pending são duráveis; reprocesso e consumo de notificações
-dependem das próximas fatias. Não escrever mensagens incompatíveis no outbox
-business.created. Nenhuma integração comercial está ativa apenas por subir o worker.
+da sessão/assinatura antes de alterar intent, lease ou estado de falha. Jobs de
+cobrança com falha permanecem duráveis e exigem revisão antes de reprocessamento.
+A migração `0038_retire_billing_outbox` preserva os eventos financeiros em
+`billing_audit` e remove a outbox sem consumidor; não há notificações financeiras
+agendadas por ela. Atualizar API e processo `billing` junto da migração, evitando
+executáveis antigos que ainda gravam a tabela retirada. O login de migração
+precisa de BYPASSRLS; permissões de runtime continuam restritas. Não escrever
+eventos financeiros no outbox geral de `business.created`. Nenhuma integração
+comercial está ativa apenas por subir o worker.
 
 F01.6: convites de staff saem pelo worker `auth-mail` para o e-mail convidado e
 expiram em 48 horas. O operador acessa `/staff-invite`, usa conta com e-mail
@@ -153,8 +158,12 @@ versão nova da API.
 ## Runtime
 
 API: `uvicorn app.main:create_app --factory --host 0.0.0.0 --port 8000 --no-access-log`.
-Worker: `python -m app.entrypoints.worker`. Relay: `python -m app.entrypoints.relay`.
-API/worker usam runtime login; relay tem URL específica e só acessa outbox. Owner
+Worker: `python -m app.entrypoints.worker`. O relay legado
+`python -m app.entrypoints.relay` é manual, exclusivo para recibos históricos;
+não integra mais a inicialização automática `workers` ou o debug. Quando
+necessário, iniciar explicitamente `docker compose up -d relay` (profile
+`legacy-relay`). Novos CRUDs de negócio/kit não geram esses recibos.
+API/worker usam runtime login; o relay manual tem URL específica e só acessa outbox. Owner
 credencial serve apenas a migrações/provisionamento, nunca é variável de runtime.
 
 Outbox fica `failed` após falhas repetidas conhecidas de entrega e precisa intervenção.

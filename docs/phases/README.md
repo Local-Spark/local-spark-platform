@@ -49,7 +49,7 @@ piloto de cafeteria, mas não deve anteceder uma peça personalizada aprovada.
 | [F02](F02-whatsapp-ingestion.md) | WhatsApp, materiais e confirmação | Local/mock; Meta real pendente. |
 | [F03](F03-editorial-research.md) | Contexto, pauta, roteiro, cadência proativa e pesquisa | Parte local; BL02–BL05 integram contexto/kit e proatividade mínima. Pesquisa ampla fica depois. |
 | [F04](F04-media-recipes.md) | Receita visual, IA de imagem/vídeo, prévia e ajuste | Renderer local é baseline técnico; BL04 fecha primeira receita aprovada. |
-| [F05](F05-avatar-generative-video.md) | Avatar, voz e cenas geradas | Opcional/posterior, com consentimento e orçamento próprios. |
+| [F05](F05-avatar-generative-video.md) | Avatar, voz e cenas geradas | Avatar do cliente após o primeiro piloto comercial (P15), com consentimento, qualidade e orçamento próprios. |
 | [F06](F06-instagram-publishing.md) | Aprovação, agenda, publicação e métricas Instagram | Fluxo falso local; Meta/Instagram reais pendentes. |
 | [F07](F07-billing-reports.md) | Franquias, assinatura e relatórios honestos | Cobrança mínima F01.5 local; limite por formato e custo real antes do piloto pago. |
 | [F08](F08-production-scale.md) | Deploy, segurança, suporte, recuperação e escala | Staging, backup/restore, capacidade e operação ainda pendentes. |

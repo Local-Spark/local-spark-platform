@@ -37,11 +37,6 @@ async def commercial_event(
       VALUES(:id,:tenant,:operation,:action,:actor) ON CONFLICT(operation_id,action) DO NOTHING"""),
         params,
     )
-    await session.execute(
-        text("""INSERT INTO billing_outbox(id,tenant_id,operation_id,event_type)
-      VALUES(:id,:tenant,:operation,:action) ON CONFLICT(operation_id,event_type) DO NOTHING"""),
-        params,
-    )
 
 
 async def lock_commercial_change(session: AsyncSession, tenant: UUID) -> None:

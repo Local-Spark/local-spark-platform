@@ -1,35 +1,50 @@
 # F00 — Fundação executável
 
-Status: Concluída localmente. Atualizado em 20/10/2026.
+Status: Concluída localmente. Atualizado em 27/10/2026 (P14).
 Dependências: Nenhuma.
 
 ## Objetivo
 
-API, configuração, autenticação verificada, tenancy/RLS, idempotência, auditoria/outbox e primeira execução Temporal.
+API, configuração, autenticação verificada, tenancy/RLS, idempotência e auditoria
+transacional. Temporal permanece para os processos assíncronos do produto.
 
 ## Features e contratos
 
 - POST/GET /api/v1/businesses com JWT, membership e tenant autorizado.
-- Mesmo comando concorrente produz um negócio e uma outbox; payload diferente com mesma chave gera conflito.
-- Transação inclui negócio, registro idempotente, auditoria e outbox; nenhum IO externo dentro dela.
-- Relay com SKIP LOCKED, lease, fencing e workflow ID estável; activity valida intenção persistida e deduplica.
+- Mesmo comando concorrente produz um negócio, uma resposta idempotente e auditoria;
+  payload diferente com mesma chave gera conflito.
+- A transação de CRUD inclui negócio, registro idempotente e auditoria, sem IO
+  externo. P14 encerra a emissão de recibos `business.created` e
+  `brand_kit.changed`, que não executavam uma ação assíncrona do produto.
+- Relay, tabelas e handlers de recibos antigos permanecem para compatibilidade,
+  com SKIP LOCKED, lease, fencing, intenção durável e deduplicação. O relay é
+  manual, no profile `legacy-relay`, e sai das dependências de debug e do profile
+  automático `workers`. Pode ser iniciado explicitamente com
+  `docker compose up -d relay` para tratar dados legados.
+- Workflows de materiais, IA, mídia, cobrança e publicação mantêm suas identidades
+  duráveis, filas e workers Temporal; não dependem desses recibos de CRUD.
 
 ## Critérios de aceite e testes
 
 - Unitários de configuração, autenticação, validação e logs sem segredos.
 - Integração PostgreSQL com login runtime real: RLS, rollback, reuso de conexão, concorrência e FK composta.
-- Temporal real: execução, retry de activity e entrega repetida sem novo efeito.
+- Compatibilidade Temporal real: fixtures explícitas de recibos antigos comprovam
+  execução, retry de activity e entrega repetida sem novo efeito.
 - Lint, tipos, cobertura 100% de linhas/branches, migration downgrade/upgrade e build Docker.
 
-## Limites e decisões pendentes
+## Limites históricos desta fatia
 
-- Onboarding/login públicos, MFA e recuperação de conta.
-- WhatsApp, IA paga, geração de mídia ou publicação real.
-- Provisionamento AWS/GitHub e capacidade comprovada para 200 mil clientes.
+Onboarding/login públicos, MFA e recuperação de conta estavam fora da F00 e
+foram implementados localmente na F01. WhatsApp, IA paga, mídia e publicação
+têm entregas próprias nas fases seguintes. Homologação das integrações reais,
+provisionamento AWS e capacidade comprovada para 200 mil clientes continuam
+gates de produção; não são garantias trazidas pela fundação.
 
-## Integração e manutenção
+## Evidências históricas de validação da fundação
 
-## Evidências de validação
+Os recibos/relay mencionados nesta seção registram a implementação anterior à
+P14. A regra vigente acima conserva seus históricos e leitores, sem emitir
+novos recibos nas mutações síncronas de negócio ou kit.
 
 - 54 testes passaram, incluindo integração com PostgreSQL 17.6 e serviço Temporal
   real em Docker. Cobertura de linhas/branches: **96,74%**, gate mínimo 81%.

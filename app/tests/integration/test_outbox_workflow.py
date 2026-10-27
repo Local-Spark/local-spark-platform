@@ -1,4 +1,5 @@
 import asyncio
+import json
 from dataclasses import replace
 from unittest.mock import AsyncMock
 from uuid import uuid4
@@ -20,7 +21,25 @@ pytestmark = pytest.mark.integration
 @pytest.fixture
 async def event(database, relay_database, seeded):
     async with database.transaction(seeded["t1"], seeded["a1"]) as session:
-        await create_business(session, seeded["t1"], seeded["a1"], "workflow-create", BusinessCreate(name="Store"))
+        created = await create_business(
+            session, seeded["t1"], seeded["a1"], "workflow-create", BusinessCreate(name="Store")
+        )
+        # Compatibility fixture: these receipts were emitted before P14.
+        await session.execute(
+            text("""INSERT INTO outbox_events(id,tenant_id,event_type,payload)
+              VALUES(:id,:tenant,'business.created',CAST(:payload AS jsonb))"""),
+            {
+                "id": uuid4(),
+                "tenant": seeded["t1"],
+                "payload": json.dumps(
+                    {
+                        "business_id": str(created.business.id),
+                        "actor_id": str(seeded["a1"]),
+                        "operation_id": str(created.operation_id),
+                    }
+                ),
+            },
+        )
 
 
 async def test_concurrent_relays_have_disjoint_claims(event, relay_database):

@@ -59,7 +59,9 @@ Cada comando executa uma transação curta com:
 2. Inserção/claim idempotente, usando constraint única como árbitro.
 3. Validação e alteração de estado com versão/precondições.
 4. Reserva ou lançamento financeiro, quando necessário.
-5. Auditoria obrigatória e evento de outbox.
+5. Auditoria obrigatória; intenção durável/outbox quando houver efeito assíncrono real.
+   P14 não emite evento-recibo sem efeito ao criar negócio ou alterar kit; a
+   auditoria dessas mutações continua na mesma transação.
 6. Resultado idempotente da operação e commit.
 
 Não usar “SELECT para ver se existe → INSERT” sem proteção de unicidade, pois dois

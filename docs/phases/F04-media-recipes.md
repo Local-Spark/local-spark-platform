@@ -1,5 +1,14 @@
 # F04 — Artes, carrosséis e edição de vídeo
 
+**Navegação P2 (27/10/2026):** o cliente acompanha e revisa conteúdos em
+`/app/content`; `/app/ideas` redireciona para essa área. Os controles manuais
+para gerar roteiro e pedir/ajustar a renderização ficam no laboratório técnico
+`/app/editorial-lab`, disponível somente no build de desenvolvimento. O fluxo
+principal entrega a candidata pelo WhatsApp e usa a web como alternativa de
+revisão. Esta reorganização preserva o renderer técnico, as APIs, prévias,
+versões e decisões; substituição de motores ou remoção de dados exigirá outra
+aprovação. A qualidade comercial das receitas continua sujeita à BL04.
+
 Ordem vigente: [BL01–BL06](BL-brand-library.md) entrega o kit demonstrativo
 local (BL01), sua escolha e edição guiada (BL02) e um acervo opcional e privado
 do negócio (BL03). BL04 usa esse contexto e um pedido livre vindo de texto ou
@@ -91,7 +100,9 @@ Dependências: F02, F03.
 F04.1 consome apenas roteiro F03.3 aceito, contexto e material vigentes. Produz
 prévia JPEG privada de foto (1080×1350) ou story (1080×1920) com identidade de
 marca, foto real opcional, fato confirmado e convite genérico. O proprietário
-pede e abre a prévia em `/app/ideas`; isso não aprova uma publicação. F04.2
+pede e abre essa prévia técnica em `/app/editorial-lab` no desenvolvimento;
+o acompanhamento e a revisão da peça ficam em `/app/content`. Pedir uma
+prévia não aprova uma publicação. F04.2
 acrescenta MP4 curto e texto de cena temporizado; F05 mantém avatar
 opcional. A edição versionada do roteiro F03.3b já existe; avaliação criativa
 com negócios reais permanece obrigatória antes de ativação comercial.

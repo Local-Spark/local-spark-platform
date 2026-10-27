@@ -155,7 +155,7 @@ async def test_sponsorship_concurrent_replay_expiration_revoke_and_isolation(dat
     async with admin.begin() as db:
         assert await db.scalar(text("SELECT ends_at=starts_at+interval '6 months' FROM billing_sponsorships"))
         assert await db.scalar(text("SELECT count(*) FROM billing_audit")) == 1
-        assert await db.scalar(text("SELECT count(*) FROM billing_outbox")) == 1
+        assert await db.scalar(text("SELECT to_regclass('public.billing_outbox')")) is None
         await db.execute(
             text("UPDATE billing_sponsorships SET starts_at=now()-interval '7 months',ends_at=now()-interval '1 month'")
         )

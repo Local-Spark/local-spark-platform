@@ -302,23 +302,6 @@ class BrandKitService:
               VALUES(:tenant,:actor,:operation,:action,:business)"""),
             {"tenant": tenant, "actor": actor, "operation": operation, "action": action, "business": business},
         )
-        event_id = uuid5(NAMESPACE_URL, f"brand-kit/{tenant}/{business}/{operation}/{action}")
-        await session.execute(
-            text("""INSERT INTO outbox_events
-              (id,tenant_id,event_type,payload)
-              VALUES(:id,:tenant,'brand_kit.changed',CAST(:payload AS jsonb))"""),
-            {
-                "id": event_id,
-                "tenant": tenant,
-                "payload": json.dumps(
-                    {
-                        "business_id": str(business),
-                        "actor_id": str(actor),
-                        "operation_id": str(operation),
-                    }
-                ),
-            },
-        )
 
     async def draft(self, tenant: UUID, business: UUID, actor: UUID, body: BrandKitDraftRequest) -> BrandKitState:
         digest = _digest(body.model_dump(mode="json"))

@@ -1,5 +1,36 @@
 # Registro de mudanças
 
+## 2026-10-27 — Auditoria e simplificação aprovadas P1–P15
+
+- Jornada web centrada em **Início**, **WhatsApp** e **Conteúdos**; histórico de
+  envios secundário, telefone como etapa do canal e IA autorizada em Sobre meu
+  negócio. Organização/negócio ativos compartilhados, sem seletores repetidos.
+  Campo semanal retirado preservando o valor histórico. Guia estático removido
+  com redirect; editor de ideia/roteiro/render somente no laboratório DEV.
+- APIs/tabelas de materiais, propostas, roteiros, versões, decisões, retenção e
+  consentimento permanecem: a jornada automática usa esses contratos.
+- P9 remove gravação na outbox financeira sem consumidor. Migração nova
+  `0038_retire_billing_outbox` copia eventos faltantes para `billing_audit`,
+  aborta em conflito de tenant e permite downgrade com RLS/permissões. Jobs,
+  Stripe e reconciliação preservados. Aplicada somente à base `_test` nesta
+  revisão; atualizar executáveis junto da migração no ambiente de uso.
+- Removidos helper `actor_for_subject`, stub `seed_development.py` e declaração
+  sem serviço do volume Keycloak. Contas/IDs/MFA e volumes reais preservados.
+- P14 retira novos eventos-recibo de criação de negócio/alteração de kit;
+  auditoria e idempotência continuam atômicas. Relay sai do startup normal e
+  debug, mantendo profile manual, tabelas e handlers para históricos.
+- PROJECT/SDD/README consolidados; snapshots integrais com SHA-256 em
+  `docs/history/2026-10-27-pre-consolidation`. Avatar/voz do cliente ficam após
+  o primeiro piloto comercial (P15), sem eliminar a F05 do produto.
+- [Auditoria de produto e IA](audits/product-flow-and-ai-2026-10-27.md) registra
+  decisões, evidências, capacidades faltantes e comparação proposta entre
+  OpenAI/Claude/chamada direta/harness. Nenhuma troca de modelo ou chamada paga.
+  BL03 continua próxima; acervo e IA visual não foram implementados nesta limpeza.
+- Validação final: `make ci` passou (Ruff, formatação, mypy e **722 testes**,
+  **100% de linhas/ramos**). Web: **257 testes**, **100% nos quatro critérios**,
+  build/typecheck, Prettier e quatro jornadas Chromium aprovadas. Migração
+  validada com preservação/rollback/RLS em `_test`; base do usuário intocada.
+
 ## 2026-10-27 — BL02 API de kit aplicado e snapshot F03
 
 - Catálogo derivado do manifesto `cafe-pausas/v1`, com fotos limpas de origem

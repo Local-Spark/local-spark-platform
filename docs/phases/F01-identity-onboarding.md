@@ -123,7 +123,7 @@ contados separadamente; nenhum MRR inventado. Sandbox/staging ainda não validad
 - POST /api/v1/session: sincroniza identidade validada e retorna contexto do usuário.
 - GET /api/v1/me: retorna organizações acessíveis e permissão administrativa.
 - POST /api/v1/onboarding: contexto confirmado, termos/privacidade e provisionamento
-  atômico do primeiro tenant/membership/business/profile/outbox. Replay do mesmo
+  atômico do primeiro tenant/membership/business/profile/auditoria. Replay do mesmo
   cadastro retorna os mesmos recursos; payload diferente gera 409.
 - GET /api/v1/admin/overview: contagens reais e série de cadastros, sem receita estimada.
 - GET /api/v1/admin/organizations: lista paginada e busca limitada, acesso de staff.
@@ -170,8 +170,10 @@ Atualizar PROJECT.md, SDD geral, este SDD e CHANGELOG.md em cada feature.
 
 O diagrama de autenticação vigente está no [SDD auth](../design/native-auth.md).
 Depois de autenticar, POST /session retorna contexto; POST /onboarding confirma
-identidade/e-mail/consentimento e cria tenant, owner, negócio, perfil, auditoria e
-outbox na mesma transação. O relay entrega o evento ao Temporal sem efeito pago.
+identidade/e-mail/consentimento e cria tenant, owner, negócio, perfil e auditoria
+na mesma transação. P14 (27/10/2026) retira o evento-recibo que apenas repetia a
+auditoria; não há workflow novo de CRUD sem ação de negócio. E-mails, cobrança e
+demais efeitos assíncronos mantêm suas intenções/filas próprias.
 
 Validação atual: 244 testes backend, 100% linhas/branches; 107 testes web, 100%
 nos quatro critérios; oito jornadas Chromium com banco `_test`. Migrations 0008–0010
