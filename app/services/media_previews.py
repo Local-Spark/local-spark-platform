@@ -4,16 +4,19 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import io
 import json
+import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, time, timedelta
 from typing import Any, Literal
-from uuid import UUID, uuid4
+from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 from zoneinfo import ZoneInfo
 
+from PIL import Image, ImageDraw
 from sqlalchemy import text
 
-from app.adapters.material_media import MaterialError, MaterialStore
+from app.adapters.material_media import FetchedMedia, MaterialError, MaterialStore
 from app.adapters.static_preview import TEMPLATE_VERSION, PreviewRenderError, render_static_preview
 from app.adapters.video_preview import VIDEO_DURATION_MS, VIDEO_TEMPLATE_VERSION, render_video_preview
 from app.core.config import Settings
@@ -24,6 +27,8 @@ from app.schemas.media_previews import PreviewRead, PreviewRequest
 from app.services.auth import AuthError
 from app.services.editorial_proposals import _access_sql, _audit
 from app.services.whatsapp_materials import WhatsAppMaterialsService
+
+logger = logging.getLogger("meu_braco_direito.media_previews")
 
 
 @dataclass(frozen=True)
@@ -48,10 +53,21 @@ def _digest(value: object) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True, default=str, ensure_ascii=False).encode()).hexdigest()
 
 
+def _visual_render_key(fingerprint: str, operation: UUID, candidate: bool) -> str:
+    return _digest({"fingerprint": fingerprint, "operation": operation, "candidate": candidate, "mode": "visual_fake"})
+
+
 class MediaPreviewService:
-    def __init__(self, settings: Settings, database: Database, store: MaterialStore | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        database: Database,
+        store: MaterialStore | None = None,
+        owner_database: Database | None = None,
+    ) -> None:
         self.settings, self.database = settings, database
         self.store = store or MaterialStore(settings)
+        self.owner_database = owner_database or database
 
     async def _inputs(
         self,
@@ -220,6 +236,8 @@ class MediaPreviewService:
     async def _request(
         self, tenant: UUID, business: UUID, actor: UUID, payload: PreviewRequest, *, candidate: bool
     ) -> PreviewRead:
+        if payload.generation_mode == "visual_fake":
+            return await self._request_visual_fake(tenant, business, actor, payload, candidate=candidate)
         request_hash = _digest(
             {"proposal_id": payload.proposal_id}
             | ({"candidate": True} if candidate else {})
@@ -377,6 +395,111 @@ class MediaPreviewService:
                 await _audit(session, row, "media.preview_requested")
             return PreviewRead.model_validate(row)
 
+    async def _request_visual_fake(
+        self, tenant: UUID, business: UUID, actor: UUID, payload: PreviewRequest, *, candidate: bool
+    ) -> PreviewRead:
+        """Explicitly simulated preview: no external visual provider is called."""
+        from app.services.visual_consent_gate import VisualConsentGate
+        from app.services.visual_context import VisualContextService
+
+        if self.settings.environment not in {"development", "testing"} or self.settings.visual_ai_mode != "fake":
+            raise AuthError("VISUAL_FAKE_DISABLED", 409)
+        if await VisualConsentGate(self.owner_database).status(tenant, business, actor) != "active":
+            raise AuthError("VISUAL_AI_CONSENT_REQUIRED", 409)
+        # Queueing validates only metadata; image bytes are read by the admitted
+        # worker, so a queued item never begins consuming photos on its own.
+        context = await VisualContextService(self.settings, self.owner_database).capture(
+            tenant, business, actor, payload.proposal_id, candidate=candidate
+        )
+        render_key = _visual_render_key(context.fingerprint, payload.operation_id, candidate)
+        request_hash = _digest({"proposal": payload.proposal_id, "mode": "visual_fake", "candidate": candidate})
+        async with self.database.transaction(tenant, actor) as session:
+            await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
+            # Keep explicit authorization and serialize acceptance with withdrawal.
+            gate = VisualConsentGate(self.owner_database)
+            await gate._lock(session, tenant, business, actor)
+            if await gate._state(session, tenant, business) != "active":
+                raise AuthError("VISUAL_AI_CONSENT_REQUIRED", 409)
+            existing = (
+                (
+                    await session.execute(
+                        text("""SELECT * FROM media_previews
+              WHERE tenant_id=:tenant AND business_id=:business AND operation_id=:operation"""),
+                        {"tenant": tenant, "business": business, "operation": payload.operation_id},
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+            if existing is not None:
+                if existing["request_hash"] != request_hash or existing["render_key"] != render_key:
+                    raise AuthError("PREVIEW_OPERATION_CONFLICT", 409)
+                return PreviewRead.model_validate(existing)
+            proposal = (
+                (
+                    await session.execute(
+                        text("""SELECT * FROM editorial_proposals WHERE id=:id
+              AND tenant_id=:tenant AND business_id=:business"""),
+                        {"tenant": tenant, "business": business, "id": payload.proposal_id},
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+            if proposal is None:
+                raise AuthError("PROPOSAL_NOT_FOUND", 404)
+            row = (
+                (
+                    await session.execute(
+                        text("""INSERT INTO media_previews
+              (id,tenant_id,business_id,proposal_id,actor_id,operation_id,request_hash,render_key,
+               template_version,context_version,script_version,source_asset_id,fact_ids,expires_at,mime_type,
+               parent_preview_id,emphasis,revision,candidate,generation_mode,visual_fingerprint)
+              VALUES(:id,:tenant,:business,:proposal,:actor,:operation,:hash,:key,1,:version,:script,
+                :source,'[]'::jsonb,:expires,'image/jpeg',NULL,'balanced',1,:candidate,'visual_fake',:fingerprint)
+              ON CONFLICT DO NOTHING RETURNING *"""),
+                        {
+                            "id": uuid4(),
+                            "tenant": tenant,
+                            "business": business,
+                            "proposal": payload.proposal_id,
+                            "actor": actor,
+                            "operation": payload.operation_id,
+                            "hash": request_hash,
+                            "key": render_key,
+                            "version": context.context_version,
+                            "script": context.script_version,
+                            "source": context.source_asset_id,
+                            "expires": proposal["expires_at"],
+                            "candidate": candidate,
+                            "fingerprint": context.fingerprint,
+                        },
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+            if row is None:
+                # A concurrent request can have inserted this operation after our
+                # first lookup. Return the same job only if its payload and all
+                # visual inputs are identical; otherwise the operation conflicts.
+                row = (
+                    (
+                        await session.execute(
+                            text("""SELECT * FROM media_previews WHERE tenant_id=:tenant
+                              AND business_id=:business AND operation_id=:operation"""),
+                            {"tenant": tenant, "business": business, "operation": payload.operation_id},
+                        )
+                    )
+                    .mappings()
+                    .one_or_none()
+                )
+                if row is None or row["request_hash"] != request_hash or row["render_key"] != render_key:
+                    raise AuthError("PREVIEW_OPERATION_CONFLICT", 409)
+                return PreviewRead.model_validate(row)
+            await _audit(session, row, "media.preview_requested")
+            return PreviewRead.model_validate(row)
+
     async def list(self, tenant: UUID, business: UUID, actor: UUID) -> list[PreviewRead]:
         async with self.database.transaction(tenant, actor) as session:
             await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
@@ -389,18 +512,54 @@ class MediaPreviewService:
                             AND e.script_version=p.script_version
                             AND ((p.candidate AND e.review_state IS NULL)
                               OR (NOT p.candidate AND e.review_state='accepted')))
-                          AND EXISTS(SELECT 1 FROM business_context_heads h WHERE h.tenant_id=p.tenant_id
-                            AND h.business_id=p.business_id AND h.version=p.context_version)
+                          AND (p.generation_mode='visual_fake' OR EXISTS(SELECT 1 FROM business_context_heads h
+                            WHERE h.tenant_id=p.tenant_id AND h.business_id=p.business_id
+                              AND h.version=p.context_version))
+                          AND (p.generation_mode<>'visual_fake' OR p.state NOT IN ('pending','rendering')
+                            OR NOT EXISTS(SELECT 1 FROM visual_consent_gates g WHERE g.tenant_id=p.tenant_id
+                              AND g.business_id=p.business_id AND g.state<>'active')
+                            OR EXISTS(SELECT 1 FROM visual_consent_runs r WHERE r.tenant_id=p.tenant_id
+                              AND r.business_id=p.business_id AND r.preview_id=p.id AND r.actor_id=:actor
+                              AND r.state='in_flight'))
                           AND (p.source_asset_id IS NULL OR EXISTS(SELECT 1 FROM whatsapp_material_assets a
                             WHERE a.id=p.source_asset_id AND a.delete_requested_at IS NULL AND a.expires_at>now()))
                           ORDER BY p.created_at DESC,p.id DESC LIMIT 30"""),
-                        {"tenant": tenant, "business": business},
+                        {"tenant": tenant, "business": business, "actor": actor},
                     )
                 )
                 .mappings()
                 .all()
             )
-            return [PreviewRead.model_validate(row) for row in rows]
+        visible = []
+        for row in rows:
+            if row["generation_mode"] == "visual_fake":
+                try:
+                    await self._validate_visual(row, actor, view_only=True)
+                except AuthError:
+                    continue
+            visible.append(PreviewRead.model_validate(row))
+        return visible
+
+    async def _validate_visual(self, row: Any, actor: UUID, *, view_only: bool = False) -> None:
+        from app.services.visual_context import VisualContextService
+
+        if row["generation_mode"] != "visual_fake" or self.settings.visual_ai_mode != "fake":
+            raise AuthError("VISUAL_FAKE_DISABLED", 409)
+        if view_only:
+            current = await VisualContextService(self.settings, self.owner_database).capture(
+                row["tenant_id"],
+                row["business_id"],
+                actor,
+                row["proposal_id"],
+                candidate=row["candidate"],
+                completed_preview_id=row["id"],
+            )
+        else:
+            current = await VisualContextService(self.settings, self.owner_database).capture(
+                row["tenant_id"], row["business_id"], actor, row["proposal_id"], candidate=row["candidate"]
+            )
+        if current.fingerprint != row["visual_fingerprint"]:
+            raise AuthError("PREVIEW_INPUT_CHANGED", 409)
 
     async def file_key(self, tenant: UUID, business: UUID, actor: UUID, preview_id: UUID) -> str:
         async with self.database.transaction(tenant, actor) as session:
@@ -421,6 +580,12 @@ class MediaPreviewService:
             )
             if row is None or not row["object_key"]:
                 raise AuthError("PREVIEW_NOT_READY", 404)
+            if row["generation_mode"] == "visual_fake":
+                try:
+                    await self._validate_visual(row, actor, view_only=True)
+                except AuthError as exc:
+                    raise AuthError("PREVIEW_NOT_READY", 404) from exc
+                return str(row["object_key"])
             proposal = (
                 (
                     await session.execute(
@@ -472,6 +637,174 @@ class MediaPreviewService:
             return str(row["state"])
 
     async def render(self, preview_id: UUID, fence: int) -> str:
+        async with self.database.sessions() as session, session.begin():
+            mode = await session.scalar(
+                text("""SELECT generation_mode FROM media_previews
+              WHERE id=:id AND state='rendering' AND dispatch_fence=:fence"""),
+                {"id": preview_id, "fence": fence},
+            )
+        if mode == "visual_fake":
+            return await self._render_visual_fake(preview_id, fence)
+        return await self._render_local(preview_id, fence)
+
+    async def _render_visual_fake(self, preview_id: UUID, fence: int) -> str:
+        """Exercise the visual lifecycle with a clearly simulated image, never an external call."""
+        from app.services.visual_attempts import VisualAttemptService
+        from app.services.visual_consent_gate import VisualConsentGate
+        from app.services.visual_context import VisualContextService
+        from app.services.visual_cost_ledger import VisualCostError, VisualCostLedger
+        from app.services.visual_requests import VisualRequestService
+
+        if self.settings.environment not in {"development", "testing"} or self.settings.visual_ai_mode != "fake":
+            return await self._fail(preview_id, fence, "VISUAL_FAKE_DISABLED", False)
+        async with self.database.sessions() as session, session.begin():
+            row = (
+                (
+                    await session.execute(
+                        text("""SELECT * FROM media_previews WHERE id=:id AND state='rendering'
+              AND dispatch_fence=:fence AND generation_mode='visual_fake'"""),
+                        {"id": preview_id, "fence": fence},
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+        if row is None:
+            return "skipped"
+        request_service = VisualRequestService(self.settings, self.owner_database, self.store)
+        operation = uuid5(NAMESPACE_URL, f"visual-preview:{preview_id}")
+        gate = VisualConsentGate(self.owner_database)
+        admitted = False
+        terminal = False
+        completed = False
+        reservation = None
+        upload_started = False
+        key = f"previews/{row['tenant_id']}/{row['business_id']}/{preview_id}/attempt-{fence}/{row['render_key']}.jpg"
+        try:
+            admitted = await gate.admit(
+                row["tenant_id"], row["business_id"], row["actor_id"], preview_id, operation, fence
+            )
+            if not admitted:
+                return await self._fail(preview_id, fence, "VISUAL_OUTCOME_UNCERTAIN", False)
+            # A job left in the queue across withdrawal and re-grant must not
+            # begin using images from the new consent generation.
+            metadata = await VisualContextService(self.settings, self.owner_database).capture(
+                row["tenant_id"],
+                row["business_id"],
+                row["actor_id"],
+                row["proposal_id"],
+                candidate=row["candidate"],
+            )
+            if metadata.fingerprint != row["visual_fingerprint"]:
+                raise AuthError("PREVIEW_INPUT_CHANGED", 409)
+            prepared = await request_service.prepare(
+                row["tenant_id"],
+                row["business_id"],
+                row["actor_id"],
+                row["proposal_id"],
+                row["operation_id"],
+                candidate=row["candidate"],
+            )
+            if (
+                _visual_render_key(prepared.context.fingerprint, row["operation_id"], row["candidate"])
+                != row["render_key"]
+                or prepared.context.fingerprint != row["visual_fingerprint"]
+            ):
+                raise AuthError("PREVIEW_INPUT_CHANGED", 409)
+            attempt = await VisualAttemptService(self.settings, self.database).reserve(
+                row["tenant_id"],
+                row["business_id"],
+                row["actor_id"],
+                preview_id,
+                fence,
+                operation,
+                "fake",
+                prepared.request.model,
+                prepared.request_hash,
+                1,
+            )
+            if not attempt.created:
+                return await self._fail(preview_id, fence, "VISUAL_OUTCOME_UNCERTAIN", False)
+            reservation = attempt.reservation.id
+            width, height = (int(value) for value in prepared.request.size.split("x"))
+            image = Image.new("RGB", (width, height), "#e8e6f8")
+            ImageDraw.Draw(image).text((40, 40), "SIMULACAO - NAO PUBLICAR", fill="#272044")
+            output = io.BytesIO()
+            image.save(output, format="JPEG", quality=80)
+            data = output.getvalue()
+            media = FetchedMedia(data=data, mime_type="image/jpeg", sha256=hashlib.sha256(data).hexdigest())
+            upload_started = True
+            await self.store.put(key, media)
+            current = await request_service.prepare(
+                row["tenant_id"],
+                row["business_id"],
+                row["actor_id"],
+                row["proposal_id"],
+                row["operation_id"],
+                candidate=row["candidate"],
+            )
+            if current.request_hash != prepared.request_hash:
+                raise AuthError("PREVIEW_INPUT_CHANGED", 409)
+            async with self.database.sessions() as session, session.begin():
+                finished = (
+                    (
+                        await session.execute(
+                            text("""UPDATE media_previews SET state='completed',object_key=:key,
+                  sha256=:sha,width=:width,height=:height,dispatch_owner=NULL,dispatch_lease_until=NULL,updated_at=now()
+                  WHERE id=:id AND state='rendering' AND dispatch_fence=:fence RETURNING *"""),
+                            {
+                                "id": preview_id,
+                                "fence": fence,
+                                "key": key,
+                                "sha": media.sha256,
+                                "width": width,
+                                "height": height,
+                            },
+                        )
+                    )
+                    .mappings()
+                    .one_or_none()
+                )
+                if finished is not None:
+                    await _audit(session, finished, "media.preview_completed")
+                    terminal = True
+                    completed = True
+                    return "completed"
+            await self._discard_visual_object(key)
+            terminal = True
+            return "skipped"
+        except (AuthError, MaterialError, VisualCostError) as exc:
+            if upload_started:
+                await self._discard_visual_object(key)
+            terminal = True
+            return await self._fail(preview_id, fence, getattr(exc, "code", str(exc)), False)
+        finally:
+            try:
+                if reservation is not None:
+                    await VisualCostLedger(self.settings, self.database).finish(
+                        row["tenant_id"], row["actor_id"], reservation, actual_usd_micros=0
+                    )
+            finally:
+                # This path uses only the fake renderer. Cancellation, crash or a
+                # previous uncertain reservation leaves admission unresolved.
+                if admitted and terminal:
+                    await gate.finish(
+                        row["tenant_id"],
+                        row["business_id"],
+                        row["actor_id"],
+                        operation,
+                        fence,
+                        preview_completed=completed,
+                    )
+
+    async def _discard_visual_object(self, key: str) -> None:
+        try:
+            await self.store.delete(key)
+        except Exception:
+            # Cleanup failure must not turn a terminal, already reserved attempt into a retry.
+            logger.warning("media.visual_cleanup_failed")
+
+    async def _render_local(self, preview_id: UUID, fence: int) -> str:
         invalid_code: str | None = None
         async with self.database.sessions() as session, session.begin():
             row = (

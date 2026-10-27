@@ -17,18 +17,24 @@ async def test_visual_consent_requires_owner_and_does_not_change_other_consents(
     owner = {"Authorization": f"Bearer {access_token(settings, actor)}"}
     viewer = {"Authorization": f"Bearer {access_token(settings, seeded['viewer'])}"}
     other = {"Authorization": f"Bearer {access_token(settings, seeded['a2'])}"}
-    assert (await api.get(base, headers=owner)).json() == {"accepted": False, "provider_enabled": False}
+    assert (await api.get(base, headers=owner)).json() == {
+        "accepted": False,
+        "state": "revoked",
+        "provider_enabled": False,
+    }
     assert (await api.get(base, headers=viewer)).status_code == 403
     assert (await api.put(base, headers=viewer, json={"accepted": True})).status_code == 403
     assert (await api.get(base, headers=other)).status_code in {403, 404}
     assert (await api.put(base, headers=owner, json={"accepted": "true"})).status_code == 422
     # Giving or withdrawing visual consent never modifies the separately stored Jev permission.
     await JevConsentService(settings, database).set(tenant, business, actor, True)
-    assert (await api.put(base, headers=owner, json={"accepted": False})).json()["accepted"] is False
-    assert (await api.put(base, headers=owner, json={"accepted": True})).json()["accepted"] is True
-    assert (await api.put(base, headers=owner, json={"accepted": True})).json()["accepted"] is True
-    assert (await api.put(base, headers=owner, json={"accepted": False})).json()["accepted"] is False
-    assert (await api.put(base, headers=owner, json={"accepted": False})).json()["accepted"] is False
+    revoked = {"accepted": False, "state": "revoked", "provider_enabled": False}
+    active = {"accepted": True, "state": "active", "provider_enabled": False}
+    assert (await api.put(base, headers=owner, json={"accepted": False})).json() == revoked
+    assert (await api.put(base, headers=owner, json={"accepted": True})).json() == active
+    assert (await api.put(base, headers=owner, json={"accepted": True})).json() == active
+    assert (await api.put(base, headers=owner, json={"accepted": False})).json() == revoked
+    assert (await api.put(base, headers=owner, json={"accepted": False})).json() == revoked
     assert (await JevConsentService(settings, database).status(tenant, business, actor))["accepted"] is True
     async with admin.connect() as conn:
         events = (

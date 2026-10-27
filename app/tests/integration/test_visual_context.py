@@ -81,6 +81,8 @@ async def test_real_capture_revalidates_owner_consent_and_kit(admin, database, s
         with pytest.raises(AuthError, match="VISUAL_AI_CONSENT_REQUIRED"):
             await capture.capture(tenant, business, actor, proposal_id, candidate=True)
         await consent.set(tenant, business, actor, True)
+        renewed = await capture.capture(tenant, business, actor, proposal_id, candidate=True)
+        assert renewed.fingerprint != result.fingerprint
         async with admin.begin() as conn:
             await conn.execute(
                 text("""UPDATE business_brand_kit_heads SET confirmed_version=NULL

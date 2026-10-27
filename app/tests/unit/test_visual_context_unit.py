@@ -28,15 +28,25 @@ class Session:
     def __init__(self, proposal, kit, source):
         self.proposal, self.kit, self.source = proposal, kit, source
         self.consent, self.source_kind, self.context_version, self.logo_hash = True, "text", 0, "logo-hash"
+        self.source_image_hash = "a" * 64
+        self.consent_dates = {
+            "whatsapp_processing_consents": "w1",
+            "intent_jev_consents": "j1",
+            "editorial_ai_consents": "e1",
+            "whatsapp_channel_links": "l1",
+        }
 
     async def scalar(self, statement, params):
         sql = str(statement)
         if "visual_ai_consents" in sql:
             return self.consent
+        for name, value in self.consent_dates.items():
+            if name in sql:
+                return value
         if "FROM editorial_briefings" in sql:
             return self.source
         if "whatsapp_material_assets" in sql:
-            return self.source_kind
+            return self.source_image_hash if "SELECT sha256" in sql else self.source_kind
         if "business_context_heads" in sql:
             return self.context_version
         if "business_brand_kit_logos" in sql:
@@ -122,6 +132,27 @@ async def test_capture_is_owner_scoped_and_only_exposes_ids_and_keyed_fingerprin
 
 
 @pytest.mark.parametrize(
+    "changed",
+    [
+        "visual_ai_consents",
+        "whatsapp_processing_consents",
+        "intent_jev_consents",
+        "editorial_ai_consents",
+        "whatsapp_channel_links",
+    ],
+)
+async def test_withdraw_and_regrant_or_relink_invalidates_old_fingerprint(setup_case, changed):
+    c = setup_case
+    before = await c.service.capture(*c.ids[:4])
+    if changed == "visual_ai_consents":
+        c.session.consent = "new grant"
+    else:
+        c.session.consent_dates[changed] = "new grant"
+    after = await c.service.capture(*c.ids[:4])
+    assert before.fingerprint != after.fingerprint
+
+
+@pytest.mark.parametrize(
     ("mutation", "code"),
     [
         ("no_consent", "VISUAL_AI_CONSENT_REQUIRED"),
@@ -158,7 +189,7 @@ async def test_capture_fails_closed(setup_case, mutation, code):
     if mutation == "source_changed":
         s.source = uuid4()
     if mutation == "image":
-        s.source_kind = "image"
+        s.source_kind = "video"
     if mutation == "kit_changed":
         s.kit = None
     if mutation == "context_changed":
@@ -190,3 +221,14 @@ async def test_capture_includes_current_authorized_logo_hash(setup_case):
     c.session.logo_hash = "different-logo-hash"
     after = await c.service.capture(*c.ids[:4])
     assert before.fingerprint != after.fingerprint
+
+
+async def test_capture_binds_whatsapp_image_hash_and_requires_ready_source(setup_case):
+    c = setup_case
+    c.session.source_kind = "image"
+    before = await c.service.capture(*c.ids[:4])
+    c.session.source_image_hash = "b" * 64
+    assert before.fingerprint != (await c.service.capture(*c.ids[:4])).fingerprint
+    c.session.source_image_hash = None
+    with pytest.raises(AuthError, match="VISUAL_SOURCE_NOT_READY"):
+        await c.service.capture(*c.ids[:4])

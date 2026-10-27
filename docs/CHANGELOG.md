@@ -1,5 +1,41 @@
 # Registro de mudanças
 
+## 2026-10-27 — Retirada gradual da autorização visual simulada
+
+- Solicitação bloqueia novas admissões, cancela logicamente a fila não iniciada
+  e permanece pendente enquanto houver tentativa já admitida. O dispatcher
+  marca as entradas canceladas quando as encontra; interrupção ou resultado
+  incerto exigem verificação, sem presumir conclusão.
+- Prévia cuja tentativa terminou durante a pendência pode ser consultada após a
+  retirada, inclusive após nova concessão, mediante validação de identidade,
+  hash e demais fontes. Decisão/publicação depois da retirada segue bloqueada.
+- Interface informa os estados e atualiza enquanto pendente. Controle integrado
+  ao modo fake; envio real à OpenAI e reconciliação automática seguem pendentes.
+- CI backend passou com 1.215 testes e 100% de linhas/ramos. Cinco testes
+  direcionados de interface e typecheck passaram; migração aditiva `0048` aplicada
+  ao banco local, com health e OpenAPI respondendo 200 em nova instância.
+
+## 2026-10-27 — BL04.2: referências e percurso visual simulado
+
+- Preparação do pedido usa fontes validadas, foto WhatsApp e referências do
+  acervo, com hash e remoção de metadados, além de paleta, composição e textos
+  confirmados. Fontes/nome/logo do kit ainda não são aplicados à peça.
+- Jornada fake de desenvolvimento/teste exercita reserva e fence, prévia privada,
+  entrega e decisão; imagem e interface indicam simulação. Nenhum provedor real
+  foi chamado. A validação de fontes em transação separada impede afirmar que a
+  geração real está pronta. Revisão automática rejeitou a migração candidata de
+  permissões; proposta e pendências constam no SDD da fase.
+- Validação: `make ci` passou com 1.199 testes e 100% de linhas/ramos. No
+  frontend, 13 testes e 100% de cobertura focada da tela Conteúdos, typecheck e
+  build passaram. Migrações `0046` e `0047` aplicadas ao banco de desenvolvimento
+  local; health e OpenAPI retornaram 200 em nova instância da API.
+
+## 2026-10-27 — Avaliação de ferramentas de vídeo, voz e desenvolvimento
+
+- Registrada análise preliminar de HyperFrames, Remotion, VoiceStudio e
+  Superpowers, com condições de licença, distinção entre geração e edição e POC
+  futura para vídeo. Nenhuma ferramenta foi instalada ou incluída no runtime.
+
 ## 2026-10-27 — BL04.2: início dos controles de geração visual
 
 - Consentimento visual independente por negócio, auditado e revogável, com

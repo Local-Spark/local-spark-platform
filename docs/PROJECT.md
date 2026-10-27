@@ -21,6 +21,10 @@ negócio: cliente pode solicitar roteiro ou recebê-lo como sugestão consentida
 Original, edição leve e motion são receitas futuras a validar. Vídeo e sua
 franquia não integram automaticamente a oferta inicial. Voz sintética é opcional
 e posterior ao primeiro piloto; ver [plano de vídeo real](design/video-real-and-voice.md).
+O [estudo dos projetos de vídeo e voz](design/video-tool-candidates-2026-10-27.md)
+propõe uma POC futura de HyperFrames, com Remotion como alternativa; nenhum foi
+integrado ou teve custo e qualidade comprovados no produto. Superpowers é
+candidato a apoio de desenvolvimento, não dependência da aplicação.
 
 A web complementa configuração, consentimentos, acervo, kits e revisão. O cliente
 pode ver uma vitrine pública com posts, stories e reel fictícios em simuladores
@@ -45,7 +49,7 @@ escala atual. Alcance e engajamento não comprovam faturamento nem causalidade.
 | Kits BL01/BL02 | Vitrine fictícia de cafeteria, seleção por negócio, edição guiada de cores/fontes/logo/textos/composição, prévia, rascunho, confirmação e histórico | Kit `public_demo` somente para teste; direitos e qualidade comercial pendentes. F03 congela a versão; F04 ainda não a aplica à mídia. |
 | Conteúdos F04/F06 | Prévias técnicas estáticas/vídeo, candidata, decisão explícita e publicação falsa com validação de versão/hash | Renderers Pillow/FFmpeg não são receitas aprovadas. Ajuste ainda não regenera automaticamente; envio de candidata e publicação reais pendentes. |
 | Acervo BL03 | Cadastro manual versionado de produtos/serviços/promoções e fotos privadas de item/espaço, com cópia consentida de foto WhatsApp, implementados localmente | Importação automática de cardápio é BL03.3 posterior; o acervo alimenta briefing e roteiro experimentais em desenvolvimento/teste, sem geração visual integrada. |
-| Produção BL04/BL05 | Worker local pode interpretar com Jev mediante autorização TypeSafe e orçamento; briefing privado consulta acervo, com revalidação e resposta simulada. A BL04.2 iniciou autorização visual independente, captura pontual de contexto, reserva transacional e isolamento das tentativas de prévia. | Desligado por padrão, somente desenvolvimento/teste; precisa avaliação PT-BR, atendimento de esclarecimentos, imagem integrada e jornada completa. Prévia com briefing permanece bloqueada. |
+| Produção BL04/BL05 | Worker local pode interpretar com Jev mediante autorização TypeSafe e orçamento; briefing privado consulta acervo. A BL04.2 prepara referências e pedido visual e exercita uma prévia simulada privada com reserva e revisão. | Desligado por padrão, somente desenvolvimento/teste; geração real segue bloqueada até fechar atomicidade, orçamento global e tratamento de incerteza. Ainda precisa avaliar qualidade e completar a jornada. |
 | Infraestrutura F08 | Compose, CI e workflow de deploy preparado | AWS/staging, backup/restore, observabilidade operacional e capacidade não provisionados/homologados. |
 
 Os ensaios em [evals](evals/) não são features do produto nem aceites comerciais.
@@ -67,6 +71,14 @@ Organização e negócio ativos são compartilhados entre as telas, com seleçã
 memória; autorização permanece na API/RLS. `/app/content` é a rota vigente;
 `/app/ideas` redireciona para ela e `/app/guide` para Início. `/app/phone` continua
 como rota utilitária, acessível pela configuração WhatsApp.
+
+No fluxo visual simulado, solicitar a retirada de autorização impede novas
+admissões, cancela logicamente a fila não iniciada e aguarda apenas trabalhos
+admitidos. A prévia que termina durante a pendência continua visível; sua
+aprovação/publicação após a retirada está bloqueada. O dispatcher atualiza
+fisicamente as filas canceladas quando as encontra. Conclusão incerta exige
+verificação; ainda não há reconciliação automática. O mesmo comportamento ainda
+precisa ser integrado ao provedor real.
 
 Gerar ideia manualmente, aceitar/editar roteiro e operar ajustes técnicos do
 renderer ficam em `/app/editorial-lab`, disponível somente no build de

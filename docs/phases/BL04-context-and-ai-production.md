@@ -38,8 +38,9 @@ O nome do item ativo e versionado pode servir de fonte factual do roteiro, com
 identificador vinculado à versão do acervo e nova validação na edição. Nomes que
 contenham alegações comerciais exigem outro fato confirmado; preços e ofertas não
 são inferidos do nome. A pergunta simulada é genérica e não mantém uma conversa completa.
-Prévia com este briefing fica bloqueada até BL04.2. Kit é congelado na proposta;
-as referências fotográficas ainda não são enviadas a um gerador visual. Portanto
+Prévia real com este briefing permanece bloqueada; há apenas o modo simulado da
+BL04.2. Kit é congelado na proposta; as referências fotográficas ainda não são
+enviadas a um gerador visual. Portanto
 não afirmar que o fluxo completo ou a qualidade comercial estão concluídos.
 
 ### Andamento da BL04.2
@@ -53,18 +54,61 @@ imagens ainda está em preparação. O serviço registra as mudanças por negóc
 mantém isolamento entre organizações. O modo visual continua desligado por
 padrão e restrito a desenvolvimento/teste.
 
-O ledger aceita reservas dentro de uma transação existente, preparando a
-integração com o fence e a intenção de envio; essa ligação **ainda não está
-implementada**. As prévias locais passaram a usar arquivos distintos por
-tentativa, evitando que uma execução vencida apague a prévia vencedora. Nenhuma
-dessas mudanças conecta o gerador de imagem ao briefing ou autoriza publicação.
-Uma captura pontual interna valida proprietário, consentimento, briefing e kit
-e calcula uma impressão digital dos documentos e referências. Ela não armazena
-um snapshot de tentativa nem verifica os bytes, e não autoriza efeito externo;
-por enquanto bloqueia mídia original do WhatsApp que não tenha normalização
-comprovada. Ainda faltam persistência e revalidação das fontes, integração
-atômica, chamada com adapter falso, tratamento de resultado incerto e teste
-integrado de geração. Os limites da BL04.1 continuam em aberto.
+Há uma jornada simulada em desenvolvimento/teste: captura o contexto, lê até
+uma foto enviada pelo WhatsApp e fotos pertinentes do item e do espaço, confere
+hashes, normaliza orientação e remove metadados das cópias; preserva o original.
+O pedido usa o kit, fato e CTA conferidos. Uma tentativa com fence e reserva
+transacional produz um arquivo explicitamente marcado como simulação, privado e
+sujeito a revisão. Isso **não é uma imagem criada pela OpenAI** e não comprova
+qualidade. O resultado é revalidado antes do acesso e da decisão.
+
+Para testes técnicos, `MEU_BRACO_DIREITO_VISUAL_AI_MODE=fake` e um teto mensal
+positivo `MEU_BRACO_DIREITO_VISUAL_AI_MONTHLY_BUDGET_USD_MICROS` habilitam a
+simulação apenas em desenvolvimento/teste. A reserva fictícia é de um
+milionésimo de dólar e liquidada em zero; não aciona a OpenAI. A interface
+identifica o arquivo como simulação e ele não deve ser publicado. A seleção
+manual de modo é feita pela API; no worker, o modo fake é escolhido para proposta
+com briefing quando configurado. O padrão permanece desligado. Não alterar para
+`openai` para tentar usar essa rota: o fluxo real continua bloqueado.
+
+A intenção e a reserva são atômicas com o fence, mas a verificação das fontes e
+do consentimento ainda ocorre em outra transação, sob outra role. Não habilitar
+chamadas reais enquanto essa lacuna persistir. A [proposta para atomicidade](../design/BL04-atomicity-proposal.md)
+registra uma alternativa para revisão: uma tentativa de migração de permissões
+foi rejeitada pela revisão automática do ambiente. Faltam ainda teto global do
+ensaio de US$ 1, tratamento completo de respostas incertas, integração real com
+provedor, validação de qualidade e custo. O fluxo de foto sem legenda ou produto
+identificado continua dependente de um briefing BL04.1 válido. O pedido usa a
+paleta e a composição do kit, mas ainda não aplica as fontes, o nome, a tagline
+ou o logo; o hash do logo apenas participa da validação. Isso é uma lacuna de
+fidelidade, não um kit aplicado integralmente.
+
+### Retirada de autorização visual — decisão do produto
+
+Quando o cliente solicitar a retirada, impedir imediatamente novas admissões
+para geração; os trabalhos que ainda aguardam na fila devem ser cancelados. As
+gerações que já começaram a usar as fotos podem terminar e a interface deve
+informar que a retirada está pendente até seu encerramento. Sem uma tentativa
+em andamento, retirar imediatamente. O estado pendente deve ser durável e
+isolado por negócio, inclusive após reinício do worker. Resultado desconhecido
+por falha não comprova conclusão: bloquear novos inícios e indicar que o pedido
+está em verificação. A prévia de uma geração já iniciada que terminar durante a
+pendência continuará visível para revisão do cliente após a retirada; isso não
+autoriza uma nova geração nem equivale à aprovação ou publicação.
+
+O fluxo **simulado** implementa esse controle com admissão e pedido serializados
+por negócio, sem manter transação aberta durante o processamento. Trabalhos não
+admitidos são ocultados imediatamente e o dispatcher os marca como falhos quando
+os encontra. Somente a prévia comprovadamente concluída durante a pendência pode
+ser consultada depois da retirada, inclusive após nova concessão; as demais
+fontes continuam sujeitas à revalidação. A decisão de publicação após a retirada
+continua bloqueada. Processos em estado incerto não são encerrados por timeout:
+exigem verificação e não possuem reconciliação automática nesta entrega.
+
+Essa implementação não autoriza contornar os limites de acesso existentes e
+**não está conectada ao provedor real**. Não comprova exclusão de dados no
+fornecedor. URLs privadas já emitidas mantêm sua validade limitada prevista;
+o gate não revoga retroativamente um link já entregue.
 
 
 1. **BL04.1 — Interpretação e contexto:** interpretar intenção e formato dentro das opções efetivamente disponíveis; localizar candidatos no acervo do mesmo negócio com produtos/aliases ativos e validade no fuso do negócio. Correspondência lexical é só candidato: negação, ambiguidade ou ausência de fonte não autorizam escolher produto automaticamente. Fotografias precisam de direito válido; dados de outro tenant, item arquivado e preços vencidos não podem compor o briefing. Kit confirmado, fatos, itens e mídias devem ter versões e proveniência verificáveis. Revalidar antes de efeito externo e antes de liberar o resultado; revogação, exclusão e alteração invalidam as dependências afetadas.

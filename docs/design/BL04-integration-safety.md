@@ -1,9 +1,9 @@
 # BL04 — integração segura de IA visual à prévia
 
-Estado: **implementação iniciada, geração ainda não integrada**. Há consentimento
-visual independente, reserva utilizável na transação do chamador e isolamento de
-arquivos por tentativa; adapter e resolução de candidatos continuam isolados.
-Não há geração visual integrada ou homologada. Este documento detalha
+Estado: **implementação iniciada, geração real ainda não integrada**. Há
+consentimento visual independente, preparação de fontes e um fluxo simulado de
+prévia com reserva e fence; a chamada real ao adapter permanece bloqueada. Não há
+geração visual real integrada ou homologada. Este documento detalha
 a ordem necessária e complementa [BL04](../phases/BL04-context-and-ai-production.md).
 
 ## Alcance da primeira integração
@@ -58,6 +58,13 @@ ledger. Não manter transação ou lock abertos durante download, chamada de IA,
 renderização ou upload. Uma revogação que ocorra durante uma chamada em trânsito
 não pode ser desfeita retroativamente: descartar o resultado e registrar o custo.
 
+Atualização de produto: quando o proprietário solicitar a
+retirada, impedir imediatamente novas admissões e cancelar o que ainda está na
+fila; a retirada efetiva aguardará somente os processos já iniciados. Até que o
+protocolo de admissão e retirada esteja ligado ao provedor real, somente a
+simulação implementa essa regra. Esta decisão não libera a chamada visual real
+nem resolve por si só mudanças concorrentes de fotos, kit ou plano.
+
 O interpretador do acervo recebe texto do cliente e nomes de candidatos. Seu
 contrato interno não verifica consentimento, orçamento nem idempotência; a
 integração deve comprovar esses requisitos antes de qualquer chamada externa.
@@ -98,9 +105,9 @@ O ledger mínimo usa micros de USD e limite técnico mensal por tenant, padrão
 zero; não representa franquia comercial nem todo o custo do cliente. A reserva
 precisa ser criada antes de qualquer envio e a decisão deve ser atômica com a
 revalidação do `dispatch_fence` e a gravação durável da intenção de envio. O
-ledger oferece `reserve_in_transaction`, mas o fluxo de prévia ainda precisa
-chamá-lo na **mesma transação** da tentativa; a existência do método não prova
-que fence e intenção já estão integrados. Usar uma operação
+fluxo simulado usa `reserve_in_transaction` na mesma transação que o fence e a
+intenção; porém a validação das fontes ainda ocorre em outra sessão. Isso não
+autoriza efeito externo. Usar uma operação
 estável por tentativa lógica, não o número de fence, que muda no redispatch.
 
 Somente o criador de uma reserva nova pode iniciar a chamada. Replay de uma

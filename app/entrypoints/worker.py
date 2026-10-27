@@ -62,7 +62,7 @@ async def run_worker() -> None:
             else None
         )
         media_activities = (
-            MediaPreviewActivities(MediaPreviewService(settings, material_database, MaterialStore(settings)))
+            MediaPreviewActivities(MediaPreviewService(settings, material_database, MaterialStore(settings), database))
             if material_database
             else None
         )

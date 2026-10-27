@@ -222,14 +222,20 @@ class ContentDeliveryService:
                 .mappings()
                 .one()
             )
-            inputs = await MediaPreviewService(self.settings, self.app_database)._inputs(
-                session,
-                proposal,
-                emphasis=preview["emphasis"],
-                parent_preview_id=preview["parent_preview_id"],
-                candidate=True,
-            )
-            if inputs.render_key != preview["render_key"] or preview["sha256"] is None:
+            preview_service = MediaPreviewService(self.settings, self.app_database)
+            if preview["generation_mode"] == "visual_fake":
+                await preview_service._validate_visual(preview, actor)
+                valid_inputs = True
+            else:
+                inputs = await preview_service._inputs(
+                    session,
+                    proposal,
+                    emphasis=preview["emphasis"],
+                    parent_preview_id=preview["parent_preview_id"],
+                    candidate=True,
+                )
+                valid_inputs = inputs.render_key == preview["render_key"]
+            if not valid_inputs or preview["sha256"] is None:
                 raise AuthError("CANDIDATE_INVALID", 409)
             # Use the transaction clock for immediate publication. Application and
             # database clocks can differ enough to leave an approved item not due.

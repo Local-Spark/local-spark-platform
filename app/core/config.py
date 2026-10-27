@@ -66,7 +66,7 @@ class Settings(BaseSettings):
     intent_ai_daily_budget_usd_micros: int = Field(default=0, ge=0)
     # The reviewed Jev price may be raised conservatively, never understated.
     intent_ai_input_rate_usd_micros: int = Field(default=42_000, ge=42_000)
-    visual_ai_mode: Literal["disabled", "openai"] = "disabled"
+    visual_ai_mode: Literal["disabled", "fake", "openai"] = "disabled"
     visual_ai_monthly_budget_usd_micros: int = Field(default=0, ge=0, le=1_000_000_000_000)
     jwt_secret: SecretStr = Field(min_length=32)
     jwt_issuer: str = "meu-braco-direito-local"
@@ -196,6 +196,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def editorial_ai_safety(self) -> "Settings":
+        if self.visual_ai_mode == "fake" and self.environment not in {"development", "testing"}:
+            raise ValueError("Fake visual AI is restricted to development and testing")
         if self.visual_ai_mode == "openai":
             if self.environment not in {"development", "testing"}:
                 raise ValueError("Visual AI is restricted to development and testing")

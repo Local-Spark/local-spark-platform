@@ -1,6 +1,5 @@
 """Visual consent is explicit, separately scoped, and revocable when disabled."""
 
-from contextlib import asynccontextmanager
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 from uuid import uuid4
@@ -14,49 +13,39 @@ from app.schemas.media_previews import VisualAIConsent
 from app.services.visual_consent import VisualConsentService
 
 
-class Database:
-    def __init__(self, session):
-        self.session = session
-
-    @asynccontextmanager
-    async def transaction(self, *_):
-        yield self.session
-
-
-@pytest.mark.parametrize("accepted,enabled", [(None, False), (True, True), (False, False)])
-async def test_status_preserves_existing_consent_and_reports_configuration(settings, monkeypatch, accepted, enabled):
-    owner = AsyncMock()
-    monkeypatch.setattr("app.services.visual_consent.WhatsAppMaterialsService._require_owner", owner)
-    session = SimpleNamespace(scalar=AsyncMock(return_value=accepted))
+@pytest.mark.parametrize("state,enabled", [("revoked", False), ("active", True), ("revocation_pending", False)])
+async def test_status_delegates_to_gate_and_reports_configuration(settings, monkeypatch, state, enabled):
+    gate = SimpleNamespace(status=AsyncMock(return_value=state))
+    database = object()
+    monkeypatch.setattr("app.services.visual_consent.VisualConsentGate", lambda db: gate if db is database else None)
     cfg = settings.model_copy(update={"visual_ai_mode": "openai" if enabled else "disabled"})
     ids = [uuid4() for _ in range(3)]
-    assert await VisualConsentService(cfg, Database(session)).status(*ids) == {
-        "accepted": bool(accepted),
+    assert await VisualConsentService(cfg, database).status(*ids) == {
+        "accepted": state == "active",
+        "state": state,
         "provider_enabled": enabled,
     }
-    owner.assert_awaited_once_with(session, *ids)
+    gate.status.assert_awaited_once_with(*ids)
 
 
-@pytest.mark.parametrize("accepted,changed", [(True, 1), (False, 1), (True, None), (False, None)])
-async def test_changed_consent_is_audited_atomically_and_unchanged_state_is_not(
-    settings, monkeypatch, accepted, changed
-):
-    monkeypatch.setattr("app.services.visual_consent.WhatsAppMaterialsService._require_owner", AsyncMock())
-    session = SimpleNamespace(scalar=AsyncMock(return_value=changed), execute=AsyncMock())
+@pytest.mark.parametrize("accepted,state", [(True, "active"), (False, "revoked"), (False, "revocation_pending")])
+async def test_set_delegates_to_correct_gate_action_and_returns_effective_state(settings, monkeypatch, accepted, state):
+    gate = SimpleNamespace(enable=AsyncMock(return_value=state), request_withdrawal=AsyncMock(return_value=state))
+    database = object()
+    monkeypatch.setattr("app.services.visual_consent.VisualConsentGate", lambda db: gate if db is database else None)
     ids = [uuid4() for _ in range(3)]
-    result = await VisualConsentService(settings, Database(session)).set(*ids, accepted)
-    assert result == {"accepted": accepted, "provider_enabled": False}
-    assert session.execute.await_count == int(changed is not None)
-    if changed:
-        assert session.execute.await_args.args[1]["action"] == (
-            "visual.ai_accepted" if accepted else "visual.ai_revoked"
-        )
+    result = await VisualConsentService(settings, database).set(*ids, accepted)
+    assert result == {"accepted": state == "active", "state": state, "provider_enabled": False}
+    selected = gate.enable if accepted else gate.request_withdrawal
+    other = gate.request_withdrawal if accepted else gate.enable
+    selected.assert_awaited_once_with(*ids)
+    other.assert_not_awaited()
 
 
 async def test_routes_delegate_authenticated_owner_and_preserve_result(monkeypatch):
     tenant, business, actor = uuid4(), uuid4(), uuid4()
-    status = AsyncMock(return_value={"accepted": False, "provider_enabled": True})
-    update = AsyncMock(return_value={"accepted": True, "provider_enabled": True})
+    status = AsyncMock(return_value={"accepted": False, "state": "revoked", "provider_enabled": True})
+    update = AsyncMock(return_value={"accepted": True, "state": "active", "provider_enabled": True})
     monkeypatch.setattr(media_previews, "VisualConsentService", lambda *_: SimpleNamespace(status=status, set=update))
     request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(settings=object(), database=object())))
     assert not (await media_previews.visual_consent_status(tenant, business, request, actor))["accepted"]

@@ -159,7 +159,7 @@ class ContentCandidateActivities:
             row = (
                 (
                     await session.execute(
-                        text("""SELECT tenant_id,business_id,actor_id FROM editorial_proposals
+                        text("""SELECT tenant_id,business_id,actor_id,briefing_required FROM editorial_proposals
                           WHERE id=:id AND source_asset_id=:source AND state='completed'"""),
                         {"id": proposal, "source": event},
                     )
@@ -174,7 +174,13 @@ class ContentCandidateActivities:
                 row["tenant_id"],
                 row["business_id"],
                 row["actor_id"],
-                PreviewRequest(operation_id=uuid5(NAMESPACE_URL, f"candidate-preview:{event}"), proposal_id=proposal),
+                PreviewRequest(
+                    operation_id=uuid5(NAMESPACE_URL, f"candidate-preview:{event}"),
+                    proposal_id=proposal,
+                    generation_mode="visual_fake"
+                    if self.settings.visual_ai_mode == "fake" and row["briefing_required"]
+                    else "local",
+                ),
             )
         except AuthError:
             return "blocked"

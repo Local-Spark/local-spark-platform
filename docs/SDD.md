@@ -217,18 +217,27 @@ como receitas separadas e submeter a versão final à aprovação. Permissões, 
 custos e canal determinam elegibilidade. Voz sintética é uma hipótese distinta,
 com consentimento específico e liberação comercial somente na F05 posterior ao
 piloto. Ver [plano de vídeo real e voz](design/video-real-and-voice.md).
+Para motion com mídia real, HyperFrames e Remotion são candidatos a comparação
+posterior; a [avaliação de licenças e POC](design/video-tool-candidates-2026-10-27.md)
+não implica implementação. A licença dos pesos do VoiceStudio precisa ser
+validada para uso comercial, e voz continua após o piloto.
 
-A execução e os limites da fase ativa estão no [SDD BL04](phases/BL04-context-and-ai-production.md). Em desenvolvimento/teste, o worker pode usar Jev com consentimento TypeSafe separado, reserva financeira e snapshots revalidados; permanece desligado por padrão. Bloqueio de orçamento antes de submissão tem retomada segura e limitada; respostas incertas não são reenviadas. Esclarecimentos usam entrega local simulada e prévias com esse briefing são bloqueadas até BL04.2. A [comparação Jev/OpenAI](evals/intent-comparison-2026-10-27.md) não prova conversa com memória nem homologação comercial. A oferta inicial de R$ 99 admite foto e story, sem franquia de quantidade definida; vídeo e planos adicionais ainda serão definidos. O nome versionado de um item ativo pode fundamentar o roteiro, sem converter preço ou oferta em fato nem criar registro artificial no contexto do negócio.
+A execução e os limites da fase ativa estão no [SDD BL04](phases/BL04-context-and-ai-production.md). Em desenvolvimento/teste, o worker pode usar Jev com consentimento TypeSafe separado, reserva financeira e snapshots revalidados; permanece desligado por padrão. Bloqueio de orçamento antes de submissão tem retomada segura e limitada; respostas incertas não são reenviadas. Esclarecimentos usam entrega local simulada; prévias com esse briefing são apenas simuladas e a geração real está bloqueada. A [comparação Jev/OpenAI](evals/intent-comparison-2026-10-27.md) não prova conversa com memória nem homologação comercial. A oferta inicial de R$ 99 admite foto e story, sem franquia de quantidade definida; vídeo e planos adicionais ainda serão definidos. O nome versionado de um item ativo pode fundamentar o roteiro, sem converter preço ou oferta em fato nem criar registro artificial no contexto do negócio.
 
-A BL04.2 iniciou o consentimento específico para uso de IA visual, independente
-do consentimento de texto, e a captura pontual da impressão digital do contexto
-confirmado; essa captura não é snapshot durável nem autoriza chamada externa.
-A reserva financeira agora pode participar da mesma
-transação que a intenção de envio, mas a chamada pelo worker, o snapshot visual
-e a verificação do fence ainda não estão integrados. O armazenamento da prévia
-local usa chave distinta por tentativa para evitar perda em corridas. A geração
-visual permanece em preparação e desligada por padrão; esses fundamentos não
-comprovam qualidade, custo comercial ou publicação automática.
+A retirada de autorização visual bloqueia novos inícios, cancela logicamente
+trabalhos ainda na fila e aguarda os trabalhos já admitidos. O estado pendente
+é apresentado ao cliente; prévias concluídas durante a pendência permanecem
+visíveis. Processos com conclusão incerta exigem verificação. O gate está ligado
+ao fluxo simulado; integração e garantias para o provedor real ainda faltam.
+
+A BL04.2 tem consentimento visual independente e preparação de fontes com kit,
+foto de WhatsApp e fotos do acervo, com verificações e minimização de metadados.
+Um caminho de teste gera apenas uma imagem marcada como simulação e exercita
+reserva, fence, prévia privada e decisão. A reserva e o fence estão ligados na
+mesma transação, mas a validação das fontes usa outra sessão; isso ainda não
+autoriza uma chamada real. A [proposta de atomicidade](design/BL04-atomicity-proposal.md)
+registra a alteração de segurança pendente. A geração visual continua desligada
+por padrão e sem qualidade ou custo comercial comprovados.
 
 **Gate BL04 por receita:** fontes/direitos válidos, texto/preço/CTA corretos,
 fidelidade a produto/local, acabamento e legibilidade no celular, avaliação

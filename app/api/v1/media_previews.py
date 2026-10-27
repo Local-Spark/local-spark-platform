@@ -21,7 +21,9 @@ def service(request: Request) -> MediaPreviewService:
 
 
 @previews_router.get("/visual-consent", response_model=VisualAIStatus)
-async def visual_consent_status(tenant_id: UUID, business_id: UUID, request: Request, actor: Actor) -> dict[str, bool]:
+async def visual_consent_status(
+    tenant_id: UUID, business_id: UUID, request: Request, actor: Actor
+) -> dict[str, bool | str]:
     return await VisualConsentService(request.app.state.settings, request.app.state.database).status(
         tenant_id, business_id, actor
     )
@@ -30,7 +32,7 @@ async def visual_consent_status(tenant_id: UUID, business_id: UUID, request: Req
 @previews_router.put("/visual-consent", response_model=VisualAIStatus)
 async def set_visual_consent(
     tenant_id: UUID, business_id: UUID, body: VisualAIConsent, request: Request, actor: Actor
-) -> dict[str, bool]:
+) -> dict[str, bool | str]:
     return await VisualConsentService(request.app.state.settings, request.app.state.database).set(
         tenant_id, business_id, actor, body.accepted
     )
