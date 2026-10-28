@@ -41,7 +41,7 @@ async def test_owner_request_is_private_and_purge_retries_storage(admin, databas
             await connection.execute(
                 text("""INSERT INTO whatsapp_material_assets
                   (id,tenant_id,business_id,kind,ciphertext,object_key,mime_type)
-                  VALUES(:id,:tenant,:business,'image','cipher',:key,'image/png')"""),
+                  VALUES(:id,:tenant,:business,'video','cipher',:key,'video/mp4')"""),
                 {"id": asset, "tenant": tenant, "business": business, "key": key},
             )
     app = create_app(settings, database, auth_database)
@@ -92,6 +92,53 @@ async def test_owner_request_is_private_and_purge_retries_storage(admin, databas
             )
     finally:
         await router.close()
+
+
+async def test_whatsapp_photo_cannot_be_deleted_via_api(admin, database, auth_database, seeded, settings):
+    business, photo = uuid4(), uuid4()
+    async with admin.begin() as connection:
+        await connection.execute(
+            text("INSERT INTO businesses(id,tenant_id,name,timezone) VALUES(:id,:tenant,'Test','UTC')"),
+            {"id": business, "tenant": seeded["t1"]},
+        )
+        await connection.execute(
+            text("""INSERT INTO business_profiles(tenant_id,business_id,category,city,description,phone,brand_color)
+              VALUES(:tenant,:business,'Food','Rio','Test','+5511999999999','#6557ed')"""),
+            {"tenant": seeded["t1"], "business": business},
+        )
+        await connection.execute(
+            text("""INSERT INTO whatsapp_material_assets
+              (id,tenant_id,business_id,kind,ciphertext,object_key,mime_type)
+              VALUES(:id,:tenant,:business,'image','cipher','private/photo','image/png')"""),
+            {"id": photo, "tenant": seeded["t1"], "business": business},
+        )
+    app = create_app(settings, database, auth_database)
+    base = f"/api/v1/organizations/{seeded['t1']}/businesses/{business}/whatsapp-materials"
+    owner = {"Authorization": f"Bearer {access_token(settings, seeded['a1'])}"}
+    foreign = {"Authorization": f"Bearer {access_token(settings, seeded['a2'])}"}
+    async with (
+        app.router.lifespan_context(app),
+        httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url="http://test") as client,
+    ):
+        assert (await client.delete(f"{base}/{photo}", headers=foreign)).status_code == 403
+        assert (await client.delete(f"{base}/{uuid4()}", headers=owner)).status_code == 404
+        for _ in range(2):
+            response = await client.delete(f"{base}/{photo}", headers=owner)
+            assert response.status_code == 409
+            assert response.json()["error_code"] == "WHATSAPP_PHOTO_DELETE_UNAVAILABLE"
+        assert [item["id"] for item in (await client.get(base, headers=owner)).json()["items"]] == [str(photo)]
+    async with admin.connect() as connection:
+        assert await connection.scalar(
+            text("SELECT delete_requested_at IS NULL FROM whatsapp_material_assets WHERE id=:id"), {"id": photo}
+        )
+        assert (
+            await connection.scalar(
+                text("""SELECT count(*) FROM audit_events
+              WHERE operation_id=:id AND action='whatsapp.material_delete_requested'"""),
+                {"id": photo},
+            )
+            == 0
+        )
 
 
 async def test_expiry_claim_fencing_and_raw_cleanup(admin, seeded, settings):

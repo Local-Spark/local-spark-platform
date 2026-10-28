@@ -11,6 +11,13 @@ As mutações antigas de WhatsApp, áudio e Jev usam agora o mesmo bloqueio por
 negócio do aceite. O endpoint público de aceite, sua integração à web e o
 tratamento dos registros antigos continuam pendentes.
 
+**Decisão de produto sobre troca de número:** o processamento de um material
+já enviado continua para o mesmo negócio, mesmo que o cliente troque de número
+enquanto aguarda. Após a troca, a prévia e o pedido de aprovação devem seguir
+para o número ativo novo. Não exigir que o cliente espere a conclusão para
+trocar. A correlação e o envio atuais ainda precisam ser adaptados e testados
+para cumprir essa decisão; não declarar o fluxo como implementado.
+
 ## Objetivo
 
 A partir de um pedido livre e de informações autorizadas do negócio, identificar o que o cliente pretende divulgar, selecionar somente as fontes pertinentes e produzir uma prévia privada com identidade visual e IA. A revisão e eventual publicação permanecem ações distintas. O WhatsApp real depende de homologação Meta; os testes usam entradas sintéticas e mocks.
@@ -80,6 +87,11 @@ simulada com kit e decisão de revisão. Interpretador e armazenamento são stub
 e Meta/OpenAI não são chamados. O teste começa com o material já processado;
 ele não homologa o webhook WhatsApp nem a geração de imagem real.
 
+Um teste complementar combina o preparo de fontes, kit, reserva e adapter de
+imagem com uma resposta HTTP simulada e guarda simulada. Ele verifica o encaixe
+entre os componentes sem rede ou cobrança; não implementa a guarda real, não
+liga o dispatcher e não prova segurança de concorrência ou qualidade visual.
+
 Para testes técnicos, `MEU_BRACO_DIREITO_VISUAL_AI_MODE=fake` e um teto mensal
 positivo `MEU_BRACO_DIREITO_VISUAL_AI_MONTHLY_BUDGET_USD_MICROS` habilitam a
 simulação apenas em desenvolvimento/teste. A reserva fictícia é de um
@@ -140,16 +152,17 @@ permanece desconectado, e a disponibilidade da prévia preservada continua sujei
 O tratamento de exclusão de material WhatsApp e da prévia sem origem tem uma
 [proposta específica](../design/BL04-whatsapp-deletion-review-proposal.md), ainda
 não implementada.
-O proprietário definiu que, se a retenção de uma foto WhatsApp vencer enquanto
-uma geração já iniciada a usa, a origem privada deve aguardar a conclusão e ser
-excluída em seguida; resultado incerto fica em verificação. A prévia concluída
-deverá permanecer disponível para revisão depois da exclusão da origem. A regra
-ainda não está implementada nos processos de retenção.
-Se a retenção da foto e o prazo da própria prévia vencerem durante a geração,
-ela deve permanecer para revisão por sete dias a partir da conclusão persistida.
-A retirada das autorizações de processamento WhatsApp e IA de
-texto também deve aguardar gerações iniciadas, impedir novos usos e cancelar a
-fila.
+**Decisão posterior do proprietário:** materiais enviados devem ser preservados
+para formar contexto do negócio; ele não deseja oferecer exclusão de uma foto
+recebida como solução para uma peça ruim. Isso substitui a premissa de expirar
+automaticamente a foto que originou a exceção anterior de sete dias. O código
+ainda tem prazos legados; a preservação e o uso automático no contexto precisam
+ser implementados. A interface e a API não permitem excluir fotos do histórico
+do WhatsApp, e a remoção de fotos desatualizadas do acervo continua disponível.
+A [proposta de preservação](../design/BL04-whatsapp-durable-materials.md)
+detalha as dependências. A retenção geral das prévias não foi
+definida. As demais regras aprovadas para mudanças durante criações continuam
+aplicáveis enquanto seus respectivos recursos existirem.
 
 **Retirada de IA textual — não concluída:** o comportamento atual ainda revoga
 imediatamente; não existe espera segura para a criação visual ou chamada

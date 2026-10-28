@@ -208,17 +208,19 @@ class WhatsAppMaterialsService:
             changed = await session.scalar(
                 text("""UPDATE whatsapp_material_assets SET delete_requested_at=now()
                   WHERE tenant_id=:tenant AND business_id=:business AND id=:event
-                    AND delete_requested_at IS NULL RETURNING id"""),
+                    AND kind <> 'image' AND delete_requested_at IS NULL RETURNING id"""),
                 {"tenant": tenant, "business": business, "event": event},
             )
             if changed is None:
                 found = await session.scalar(
-                    text("""SELECT 1 FROM whatsapp_material_assets
+                    text("""SELECT kind FROM whatsapp_material_assets
                       WHERE tenant_id=:tenant AND business_id=:business AND id=:event"""),
                     {"tenant": tenant, "business": business, "event": event},
                 )
                 if found is None:
                     raise AuthError("MATERIAL_NOT_FOUND", 404)
+                if found == "image":
+                    raise AuthError("WHATSAPP_PHOTO_DELETE_UNAVAILABLE", 409)
             else:
                 await session.execute(
                     text("""INSERT INTO audit_events(tenant_id,actor_id,operation_id,action,resource_id)

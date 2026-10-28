@@ -4,6 +4,12 @@ Data: 27/10/2026. Estado: BL03.1/BL03.2 implementadas localmente e verificadas; 
 Complementa a [trilha BL](BL-brand-library.md), o [SDD](../SDD.md) e a
 [jornada completa de entrega](../design/delivery-roadmap-2026-10-27.md).
 
+**Decisão posterior:** o cliente pode remover fotos desatualizadas deste
+acervo, por exemplo após mudar a aparência da loja. Isso é diferente do histórico
+de fotos enviadas pelo WhatsApp, que deve ser preservado sem opção de exclusão
+de fotos. A preservação automática dos envios ainda não foi implementada e não
+significa cadastrá-los automaticamente como produtos.
+
 ## Resultado e limites
 
 O proprietário pode cadastrar produtos, serviços, promoções e fotos reais do

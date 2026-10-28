@@ -16,6 +16,16 @@ resultados observáveis. Também deve propor conteúdo quando o cliente não env
 material novo, dentro da cadência aceita e da franquia. A rotina não exige saber
 usar editor, escrever prompt ou conhecer modelos de IA.
 
+**Decisão de produto posterior:** os materiais enviados pelo cliente devem ser
+preservados para compor o contexto do seu negócio. Não oferecer a exclusão de
+fotos no histórico de envios do WhatsApp; se não gostar da peça, o cliente pode
+enviar outra. O acervo em Sobre meu negócio é diferente: o cliente pode remover
+fotos desatualizadas, como as de uma loja que mudou de aparência. Guardar material e construir uma memória ou skill utilizável são
+etapas diferentes: a incorporação automática ao contexto ainda precisa ser
+implementada. A [proposta de preservação](design/BL04-whatsapp-durable-materials.md)
+detalha a mudança e as pendências antes da migração. Prazo após encerramento da conta, descarte técnico e outras ações
+de gestão de dados não foram definidos por essa decisão.
+
 **Decisão de produto atual:** IA é parte do serviço contratado. A contratação
 apresenta uma explicação e termos únicos; não pedir que o cliente habilite
 OpenAI, TypeSafe, imagem ou transcrição separadamente. Contas já criadas verão
@@ -43,6 +53,12 @@ do número oficial do Meu Braço Direito. Aceitar mais de um número por negóci
 uma evolução futura; como vincular pessoas, compartilhar histórico e distribuir
 mensagens será decidido nessa etapa. A limitação não restringe o número de contas
 proprietárias na web nem resolve a pendência entre proprietários descrita abaixo.
+
+Se o cliente trocar o número enquanto um material já enviado está sendo
+processado, o processamento continua para o mesmo negócio. Quando a troca
+estiver concluída, a prévia e o pedido de aprovação devem seguir para o número
+ativo novo, sem pedir que o cliente espere o processamento terminar para trocar.
+Esse comportamento ainda precisa ser implementado e validado de ponta a ponta.
 
 Para vídeo, priorizar a hipótese de orientação de gravação e material real do
 negócio: cliente pode solicitar roteiro ou recebê-lo como sugestão consentida.
@@ -72,7 +88,7 @@ escala atual. Alcance e engajamento não comprovam faturamento nem causalidade.
 | --- | --- | --- |
 | Fundação e identidade | FastAPI, PostgreSQL/RLS, auth própria, sessões, recuperação, e-mail HTML, onboarding, operador com MFA e convites | Staging, operação e segurança de produção ainda precisam de homologação. |
 | Cobrança | Stripe Checkout sandbox, webhook assinado, jobs, reconciliação, assinatura de teste e patrocínio separados, painel de oportunidades | Franquias comerciais, custos completos e homologação de produção pendentes. Cadastro não ativa plano. |
-| WhatsApp e materiais | Inbox assinada/criptografada, vínculo, consentimentos, correlação, processamento, retenção/exclusão e transcrição opcional | Meta real não homologada; conversa automática ainda é limitada. SMS verificado não equivale a vínculo WhatsApp. |
+| WhatsApp e materiais | Inbox assinada/criptografada, vínculo, correlação, processamento, expiração/exclusão e transcrição | O armazenamento durável automático desejado ainda não existe; a implementação atual expira e permite excluir materiais. Meta real não homologada. |
 | Contexto e texto | Fatos/preferências versionados, propostas e roteiros, adapter OpenAI, reservas/tokens e projeção administrativa limitada | Não há agente geral, pesquisa automática de concorrentes, skills executáveis por cliente nem geração visual integrada. |
 | Kits BL01/BL02 | Vitrine fictícia de cafeteria, seleção por negócio, edição guiada de cores/fontes/logo/textos/composição, prévia, rascunho, confirmação e histórico | Kit `public_demo` somente para teste; direitos e qualidade comercial pendentes. A prévia simulada aplica o kit; a produção real ainda não. |
 | Conteúdos F04/F06 | Prévias técnicas estáticas/vídeo, candidata, decisão explícita e publicação falsa com validação de versão/hash | Renderers Pillow/FFmpeg não são receitas aprovadas. Ajuste ainda não regenera automaticamente; envio de candidata e publicação reais pendentes. |
@@ -103,10 +119,10 @@ No acervo, o autor pode descartar um upload incerto após vencer a reserva e
 liberar o negócio; o objeto fica privado em quarentena, sem limpeza física
 automática. A atualização exige drenagem e avaliação de órfãos legados; outro
 owner ainda não recupera uma pendência cujo autor perdeu acesso.
-Se a retenção da foto WhatsApp e o prazo da prévia vencerem durante a criação,
-a decisão é manter a prévia por sete dias após a conclusão. A
-retenção e a espera ao retirar consentimentos de WhatsApp e IA de texto ainda
-precisam ser implementadas e testadas.
+A decisão posterior de preservar materiais enviados substitui a premissa de
+expiração automática da foto que motivou a exceção de sete dias. O código ainda
+aplica a retenção antiga; não afirmar que o armazenamento durável já funciona.
+A política geral de retenção das prévias não foi definida por essa mudança.
 O ledger também possui teto mensal agregado para reservas OpenAI, separado do
 teto por tenant; não limita despesas fora do próprio ledger e não ativa o worker.
 A consulta a um perfil público não concede direitos sobre material ou aprovação
@@ -156,8 +172,10 @@ O acervo é contexto recuperado automaticamente, sem seleção obrigatória de i
 por pedido. “Crie uma imagem de um croissant” deve resolver o produto, as fotos e
 os fatos pertinentes do mesmo negócio. Para mostrar o café real, a edição deve
 partir de foto real do espaço e preservar o produto; fonte insuficiente exige
-pergunta curta ou conceito identificado. Material temporário só vira acervo
-permanente com aceite específico.
+pergunta curta ou conceito identificado. Os envios deverão ser preservados
+automaticamente como contexto, sem classificá-los como produtos ou fatos
+confirmados. Hoje a cópia de foto ao acervo ainda é manual e a preservação
+durável automática dos envios não está implementada.
 
 Antes do piloto comercial: fechar BL03–BL05 para as receitas prometidas, obter
 avaliação consentida de qualidade, medir custo por peça aceita e franquia F07,

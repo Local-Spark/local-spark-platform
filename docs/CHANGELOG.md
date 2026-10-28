@@ -1,5 +1,64 @@
 # Registro de mudanças
 
+## 2026-10-28 — Troca de número durante o processamento
+
+- O proprietário definiu que um material já enviado continua sendo processado
+  para o mesmo negócio se houver troca de número. Após a troca, a prévia e o
+  pedido de aprovação devem ir para o novo número ativo; o cliente não precisa
+  esperar a conclusão do processamento para trocar.
+- Decisão registrada; o envio para o número ativo e a continuidade após a
+  troca ainda não foram implementados e validados no percurso completo.
+
+## 2026-10-28 — Materiais enviados como contexto durável
+
+- O proprietário definiu que o material enviado pelo cliente deve ser
+  preservado para contexto e que enviar outra foto é a saída para uma peça de
+  que ele não gostou. A expiração automática da foto que motivou a exceção de
+  sete dias deixa de ser premissa de produto.
+- A interface do histórico já não oferece exclusão de fotos; seu teste passou
+  com 29 casos. A API recusa a exclusão de fotos; passaram sete testes
+  unitários e quatro testes de integração em PostgreSQL temporário isolado. A
+  retenção automática permanece. A [proposta técnica](design/BL04-whatsapp-durable-materials.md)
+  descreve o restante da mudança.
+- A preservação durável ainda não foi implementada: o código mantém retenção e a
+  cópia de fotos do WhatsApp para o acervo é manual. Memória ou skills por
+  negócio também não são construídas automaticamente. Nenhuma estrutura ou
+  dado foi removido nesta revisão. O proprietário esclareceu que a exclusão de
+  fotos permanece no acervo para retirar imagens desatualizadas; no histórico
+  do WhatsApp não haverá opção de excluir fotos. O comportamento após o
+  encerramento da conta segue para definição.
+
+## 2026-10-28 — Coordenação visual aprovada para desenvolvimento com mocks
+
+- O proprietário aprovou desenvolver e testar a coordenação de geração e
+  alterações com travas e ledger existentes, sem criar tabelas nem ampliar
+  permissões. A geração real permanece desligada; a retenção de fotos do
+  WhatsApp ainda exige uma solução técnica revisada.
+- A autorização não substitui a revisão automática nem habilita o POST de
+  aceite rejeitado. A revisão automática também rejeitou a extração proposta
+  da barreira de geração; nenhuma mudança correspondente foi aplicada.
+- Testes diagnósticos na base `_test`, sem rede, reproduziram a inversão entre
+  as travas visual e comercial e verificaram que edição de roteiro ou exclusão
+  de material WhatsApp podem tornar a prévia indisponível. O primeiro ensaio de
+  roteiro usa prévia local sintética, não geração real por IA. As evidências e
+  os limites estão no SDD; a correção e a retenção ainda não estão implementadas.
+
+## 2026-10-28 — BL04.2: validação de integração e revisão de bloqueios
+
+- Um teste sintético encadeia briefing, foto, kit, preparo do pedido, reserva e
+  adapter de imagem com `httpx.MockTransport`. A resposta, o armazenamento e a
+  guarda são simulados; não há rede nem cobrança. Isso valida o encaixe dos
+  componentes, não a atomicidade nem a integração ao fluxo do cliente.
+- Um teste independente demonstra a visibilidade das evidências de operações
+  em andamento com as roles reais e o isolamento entre tenants. Não prova a
+  autenticidade completa dos eventos nem autoriza reativar capacidades.
+- A revisão automática rejeitou o POST de aceite com reativação de permissões
+  legadas por risco de ativação e verificações ainda não comprovadas. O endpoint,
+  a tela e os controles existentes permanecem como estavam. A proposta de
+  coordenação sem novos grants continua em revisão e não habilita a geração real.
+- Validação: ambos os testes direcionados passaram em `_test`, com Ruff; não
+  houve chamada paga ou alteração do banco de desenvolvimento.
+
 ## 2026-10-28 — Migrations locais até 0057
 
 - Após revisão, o proprietário aprovou aplicar a sequência 0051, 0053, 0054,

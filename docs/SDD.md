@@ -42,6 +42,11 @@ não restringe contas proprietárias na web nem resolve automaticamente operaç�
 pendentes solicitadas por proprietários diferentes. A integração real do percurso
 WhatsApp continua sujeita à homologação Meta.
 
+Ao trocar o número, um material já enviado em processamento continua associado
+ao mesmo negócio. Após a troca, a prévia e o pedido de aprovação devem ir ao
+número ativo novo; a troca não exige esperar a conclusão desse processamento.
+É uma decisão de produto, ainda não uma capacidade implementada ou homologada.
+
 Instagram é o primeiro destino pretendido. Simuladores de Instagram, Facebook
 e TikTok na vitrine não são integrações com essas redes. Avatar/voz do cliente
 (F05) ficam **após o primeiro piloto comercial** e a validação de imagens/vídeos
@@ -145,7 +150,7 @@ Quatro conceitos permanecem distintos:
 
 | Conceito | Contrato | Estado |
 | --- | --- | --- |
-| Material WhatsApp | Entrada temporária, consentida, com retenção/exclusão e origem | Implementado localmente. |
+| Material WhatsApp | Material preservado como fonte de contexto do negócio, com origem | A implementação atual ainda tem expiração/exclusão e não o preserva automaticamente no acervo; precisa ser alinhada à decisão posterior. |
 | Contexto do negócio | Fatos confirmados, preferências e hipóteses separados; versão fixada na geração | Implementado localmente. |
 | Kit fictício/aplicado | Vitrine pública imutável; seleção/overrides privados e versionados por negócio | BL01/BL02 locais. |
 | Acervo durável | Produtos/serviços, promoções e fotos reais de item/espaço, opcionais e confirmados | BL03.1/BL03.2 implementadas localmente; BL03.3 importação posterior. |
@@ -289,11 +294,15 @@ negócio e mantendo a chave privada em quarentena; a limpeza física automática
 a recuperação por outro proprietário permanecem pendentes. Provas persistidas
 distinguem novos PUTs de tentativa única de registros legados. A atualização
 exige drenagem e avaliação de órfãos legados antes do uso.
-Se a retenção da foto e a prévia vencerem durante a criação, a prévia deve
-permanecer para revisão por sete dias após a conclusão. A foto de WhatsApp cuja retenção vencer deve aguardar a
-conclusão antes da exclusão; a prévia permanece para revisão. A espera também se
-aplica à retirada de consentimento de WhatsApp e de IA textual. Esses fluxos de
-retenção e consentimento ainda não foram implementados para a geração visual.
+Decisão posterior: preservar os materiais enviados para contexto do negócio;
+não oferecer exclusão da foto recebida apenas por insatisfação com uma peça. A
+premissa de expiração automática da foto que motivou a exceção de sete dias foi
+superada. O armazenamento e a consulta duráveis ainda não estão implementados;
+os prazos antigos continuam no código. A interface oculta a exclusão de fotos
+do WhatsApp e a API recusa essa ação; a exclusão no acervo continua disponível.
+Ver [proposta de preservação](design/BL04-whatsapp-durable-materials.md). Isso não
+define a política geral de prévias, dados após encerramento da conta ou descarte
+técnico de uploads incompletos.
 
 **Gate BL04 por receita:** fontes/direitos válidos, texto/preço/CTA corretos,
 fidelidade a produto/local, acabamento e legibilidade no celular, avaliação

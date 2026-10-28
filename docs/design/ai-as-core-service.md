@@ -10,7 +10,8 @@ O proprietário confirmou expressamente que a transcrição por IA dos áudios
 enviados ao WhatsApp integra o serviço contratado, sem confirmação separada.
 Também definiu que cada negócio terá sua própria conta, organização, aceite e
 cobrança. A cobrança atual é por organização; a garantia de um único negócio
-por organização está em [revisão](one-business-per-organization.md).
+por organização está implementada e aplicada à base local, conforme o
+[registro](one-business-per-organization.md).
 
 O cadastro do negócio ocorre antes da contratação. Os termos de onboarding
 `2026-10` são de validação local e não descrevem a oferta comercial de IA; não
@@ -49,6 +50,13 @@ considerados antes de ligar essa exigência.
 O aviso é somente de validação local e seu hash não representa os documentos
 comerciais definitivos. A migration `0056` foi aplicada ao banco de
 desenvolvimento; isso não ativa o POST nem conecta a tela.
+
+Na revisão de 28/10, a tentativa de expor o POST com reativação de permissões
+anteriores foi rejeitada pela revisão automática por risco de ativar serviços e
+por verificações ainda não comprovadas. Um teste isolado confirmou que algumas
+evidências de atividades iniciadas são visíveis com RLS, mas não comprova que
+os eventos sejam uma prova suficiente para liberar a transição. A experiência
+de aceite único continua pendente, sem ligar fornecedores automaticamente.
 
 Hoje o backend ainda verifica autorizações por fornecedor e finalidade em tabelas
 distintas. Retirar seus botões sem substituir essas verificações impediria o uso;

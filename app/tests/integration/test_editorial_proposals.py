@@ -658,7 +658,7 @@ async def test_material_source_is_private_and_deletion_removes_derived_idea(admi
     tenant, actor = seeded["t1"], seeded["a1"]
     key = Fernet.generate_key().decode()
     config = settings.model_copy(update={"meta_encryption_key": SecretStr(key)})
-    source = await _asset(admin, tenant, business, key, kind="image", body="Foto do lanche")
+    source = await _asset(admin, tenant, business, key, kind="text", body="Mensagem sobre o lanche")
     api_db, worker_db = Database(config), Database(config, correlator=True)
     service = EditorialProposalService(config, api_db)
     worker = EditorialProposalService(config, worker_db)
@@ -685,6 +685,31 @@ async def test_material_source_is_private_and_deletion_removes_derived_idea(admi
     finally:
         await api_db.close()
         await worker_db.close()
+
+
+async def test_photo_delete_rejected_without_removing_derived_proposal(admin, seeded, settings):
+    business = await _business(admin, seeded)
+    tenant, actor = seeded["t1"], seeded["a1"]
+    key = Fernet.generate_key().decode()
+    config = settings.model_copy(update={"meta_encryption_key": SecretStr(key)})
+    source = await _asset(admin, tenant, business, key, kind="image", body="Foto do lanche")
+    api_db = Database(config)
+    service = EditorialProposalService(config, api_db)
+    try:
+        proposal = await service.request(
+            tenant, business, actor, ProposalRequest(operation_id=uuid4(), source_asset_id=source)
+        )
+        materials = WhatsAppMaterialsService(config, api_db)
+        with pytest.raises(AuthError, match="WHATSAPP_PHOTO_DELETE_UNAVAILABLE"):
+            await materials.delete_material(tenant, business, actor, source)
+        assert [item.id for item in await service.list(tenant, business, actor)] == [proposal.id]
+        async with admin.connect() as connection:
+            assert await connection.scalar(
+                text("SELECT delete_requested_at IS NULL FROM whatsapp_material_assets WHERE id=:id"),
+                {"id": source},
+            )
+    finally:
+        await api_db.close()
 
 
 async def test_queued_proposals_fail_closed_on_access_consent_expiry_and_missing_inputs(admin, seeded, settings):

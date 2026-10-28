@@ -65,7 +65,7 @@ async def test_audio_consent_is_owner_only_audited_and_requires_material_consent
 async def test_delete_material_replay_and_missing_record(settings):
     tenant, business, actor, event = [uuid4() for _ in range(4)]
     session = Mock()
-    session.scalar = AsyncMock(side_effect=[1, None, 1, 1, None, None])
+    session.scalar = AsyncMock(side_effect=[1, None, "video", 1, None, None])
     session.execute = AsyncMock()
     service = WhatsAppMaterialsService(settings, database_with(session))
     assert await service.delete_material(tenant, business, actor, event) == {"status": "scheduled"}
@@ -73,6 +73,18 @@ async def test_delete_material_replay_and_missing_record(settings):
         await service.delete_material(tenant, business, actor, event)
     session.execute.assert_awaited_once()
     assert "DELETE FROM editorial_proposals" in str(session.execute.await_args.args[0])
+
+
+async def test_delete_photo_is_rejected_without_side_effects(settings):
+    tenant, business, actor, event = [uuid4() for _ in range(4)]
+    session = Mock()
+    session.scalar = AsyncMock(side_effect=[1, None, "image"])
+    session.execute = AsyncMock()
+    service = WhatsAppMaterialsService(settings, database_with(session))
+    with pytest.raises(AuthError, match="WHATSAPP_PHOTO_DELETE_UNAVAILABLE") as error:
+        await service.delete_material(tenant, business, actor, event)
+    assert error.value.status == 409
+    session.execute.assert_not_awaited()
 
 
 async def test_delete_material_first_request_records_audit(settings):
