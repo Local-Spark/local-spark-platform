@@ -82,7 +82,7 @@ async def test_photo_crud_http_audit_versions_owner_rls_and_product_state(
     from app.api.v1 import business_collection as routes
 
     business = await _business(admin, seeded)
-    second_business = await _business(admin, seeded, "Second business")
+    second_business = await _business(admin, {**seeded, "t1": seeded["t2"]}, "Second business")
     tenant, actor = seeded["t1"], seeded["a1"]
     store = Store()
     service = BusinessCollectionService(settings, database, store)
@@ -121,15 +121,17 @@ async def test_photo_crud_http_audit_versions_owner_rls_and_product_state(
     assert wrong_operation.json()["error_code"] == "COLLECTION_PHOTO_OPERATION_CONFLICT"
     stale = await api.patch(f"{path}/{photo}", headers=owner, json={**change, "operation_id": str(uuid4())})
     assert stale.json()["error_code"] == "COLLECTION_PHOTO_VERSION_CONFLICT"
-    cross_path = path.replace(str(business), str(second_business))
-    assert (await api.get(f"{cross_path}/{photo}/url", headers=owner)).status_code == 404
-    assert (await api.get(f"{cross_path}/{photo}/history", headers=owner)).status_code == 404
+    cross_path = f"/api/v1/organizations/{seeded['t2']}/businesses/{second_business}/collection/photos"
+    other_owner = {"Authorization": f"Bearer {access_token(settings, seeded['a2'])}"}
+    assert (await api.get(f"{cross_path}/{photo}/url", headers=owner)).status_code == 403
+    assert (await api.get(f"{cross_path}/{photo}/url", headers=other_owner)).status_code == 404
+    assert (await api.get(f"{cross_path}/{photo}/history", headers=other_owner)).status_code == 404
     assert (
-        await api.patch(f"{cross_path}/{photo}", headers=owner, json={**change, "operation_id": str(uuid4())})
+        await api.patch(f"{cross_path}/{photo}", headers=other_owner, json={**change, "operation_id": str(uuid4())})
     ).status_code == 404
     assert (
         await api.delete(
-            f"{cross_path}/{photo}", headers=owner, params={"operation_id": str(uuid4()), "expected_version": 2}
+            f"{cross_path}/{photo}", headers=other_owner, params={"operation_id": str(uuid4()), "expected_version": 2}
         )
     ).status_code == 404
     assert len((await api.get(path, headers=owner)).json()) == 1
@@ -155,7 +157,9 @@ async def test_photo_crud_http_audit_versions_owner_rls_and_product_state(
     item_body = upload(space_kind=None, item_id=str(offering.id))
     item_photo = await service.upload(tenant, business, actor, item_body)
     with pytest.raises(AuthError, match="COLLECTION_ITEM_NOT_ACTIVE"):
-        await service.upload(tenant, second_business, actor, item_body.model_copy(update={"operation_id": uuid4()}))
+        await service.upload(
+            seeded["t2"], second_business, seeded["a2"], item_body.model_copy(update={"operation_id": uuid4()})
+        )
     await catalog.update(
         tenant,
         business,
@@ -223,7 +227,7 @@ async def test_whatsapp_promotion_is_explicit_private_copy_and_survives_original
     settings,
 ):
     business = await _business(admin, seeded)
-    other_business = await _business(admin, seeded, "Other")
+    other_business = await _business(admin, {**seeded, "t1": seeded["t2"]}, "Other")
     tenant, actor, material = seeded["t1"], seeded["a1"], uuid4()
     store = Store()
     raw = picture()
@@ -258,7 +262,9 @@ async def test_whatsapp_promotion_is_explicit_private_copy_and_survives_original
         keep_in_collection=True,
     )
     with pytest.raises(AuthError, match="COLLECTION_SOURCE_NOT_AVAILABLE"):
-        await service.promote(tenant, other_business, actor, body.model_copy(update={"operation_id": uuid4()}))
+        await service.promote(
+            seeded["t2"], other_business, seeded["a2"], body.model_copy(update={"operation_id": uuid4()})
+        )
     copy = await service.promote(tenant, business, actor, body)
     assert copy.source == "whatsapp" and copy.source_material_id == material
     assert copy.source_sha256 == hashlib.sha256(raw).hexdigest()

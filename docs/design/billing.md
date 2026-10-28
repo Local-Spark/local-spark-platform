@@ -2,6 +2,13 @@
 
 Versão 0.3, 21/10/2026. Código local validado; F01.5 aberta até sandbox/staging.
 
+**Decisão posterior do proprietário em 28/10:** cada negócio terá conta e
+organização próprias, com cobrança própria. A cobrança descrita abaixo já é
+por organização e pode ser reaproveitada quando a regra de um negócio por
+organização estiver garantida. O [desenho para revisão](one-business-per-organization.md)
+trata a integridade e os dados locais. Nenhuma migração de cobrança foi
+aprovada ou aplicada nesta revisão.
+
 ## Decisões
 
 Stripe é o primeiro adapter, com o mesmo contrato em teste e produção e credenciais

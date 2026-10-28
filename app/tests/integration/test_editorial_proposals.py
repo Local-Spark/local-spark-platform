@@ -1207,7 +1207,7 @@ async def test_unconfirmed_material_abstains_without_spending_and_admin_projecti
             )
             await connection.execute(
                 text("INSERT INTO businesses(id,tenant_id,name,timezone) VALUES(:id,:tenant,'Second','UTC')"),
-                {"id": other_business, "tenant": tenant},
+                {"id": other_business, "tenant": seeded["t2"]},
             )
             await connection.execute(
                 text("""INSERT INTO editorial_proposals
@@ -1215,9 +1215,9 @@ async def test_unconfirmed_material_abstains_without_spending_and_admin_projecti
                   VALUES(:id,:tenant,:business,:actor,:operation,:digest,0)"""),
                 {
                     "id": other_proposal,
-                    "tenant": tenant,
+                    "tenant": seeded["t2"],
                     "business": other_business,
-                    "actor": actor,
+                    "actor": seeded["a2"],
                     "operation": operation_id,
                     "digest": "a" * 64,
                 },
@@ -1225,7 +1225,12 @@ async def test_unconfirmed_material_abstains_without_spending_and_admin_projecti
             await connection.execute(
                 text("""INSERT INTO audit_events(tenant_id,actor_id,operation_id,action,resource_id)
                   VALUES(:tenant,:actor,:proposal,'editorial.proposal_requested',:business)"""),
-                {"tenant": tenant, "actor": actor, "proposal": other_proposal, "business": other_business},
+                {
+                    "tenant": seeded["t2"],
+                    "actor": seeded["a2"],
+                    "proposal": other_proposal,
+                    "business": other_business,
+                },
             )
         other_events = await api.get(
             f"/api/v1/admin/editorial-operations/{other_proposal}/events", headers=staff_headers

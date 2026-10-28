@@ -23,6 +23,7 @@ pytestmark = pytest.mark.integration
 
 async def test_agreement_is_per_business_and_rechecked_before_paid_editorial_effect(admin, database, seeded, settings):
     tenant, actor = seeded["t1"], seeded["a1"]
+    other_tenant, other_actor = seeded["t2"], seeded["a2"]
     business = await _business(admin, seeded)
     other_business = uuid4()
     await _enable(admin, tenant, business, actor)
@@ -30,13 +31,18 @@ async def test_agreement_is_per_business_and_rechecked_before_paid_editorial_eff
     async with admin.begin() as connection:
         await connection.execute(
             text("INSERT INTO businesses(id,tenant_id,name,timezone) VALUES(:id,:tenant,'Other','UTC')"),
-            {"id": other_business, "tenant": tenant},
+            {"id": other_business, "tenant": other_tenant},
         )
         await connection.execute(
             text("""INSERT INTO business_profiles
               (tenant_id,business_id,category,city,description,phone,phone_verified,brand_color)
               VALUES(:tenant,:business,'Food','Rio','Other','+5511999999999',true,'#6557ed')"""),
-            {"tenant": tenant, "business": other_business},
+            {"tenant": other_tenant, "business": other_business},
+        )
+        await connection.execute(
+            text("""INSERT INTO billing_sponsorships(id,tenant_id,actor_id,idempotency_key,reason)
+              VALUES(:id,:tenant,:actor,'other-agreement-test','Test')"""),
+            {"id": uuid4(), "tenant": other_tenant, "actor": other_actor},
         )
         await connection.execute(
             text("UPDATE business_profiles SET phone_verified=true WHERE tenant_id=:tenant AND business_id=:business"),
@@ -61,7 +67,7 @@ async def test_agreement_is_per_business_and_rechecked_before_paid_editorial_eff
         )
     proposal = await owner.request(tenant, business, actor, request)
     with pytest.raises(AuthError, match="SERVICE_AGREEMENT_REQUIRED"):
-        await owner.request(tenant, other_business, actor, ProposalRequest(operation_id=uuid4()))
+        await owner.request(other_tenant, other_business, other_actor, ProposalRequest(operation_id=uuid4()))
 
     worker = Database(cfg, correlator=True)
     provider = SimpleNamespace(propose=AsyncMock())
@@ -79,6 +85,10 @@ async def test_agreement_is_per_business_and_rechecked_before_paid_editorial_eff
         async with worker.sessions() as session, session.begin():
             assert await processor._eligible(session, inbound)
             assert not await processor._eligible(session, {**inbound, "business_id": other_business})
+        async with worker.sessions() as session, session.begin():
+            assert not await processor._eligible(
+                session, {**inbound, "tenant_id": other_tenant, "business_id": other_business}
+            )
 
         claims = await claim_proposals(worker, uuid4())
         assert any(claim.id == proposal.id for claim in claims)

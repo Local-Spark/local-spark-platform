@@ -5,6 +5,7 @@ import json
 from uuid import UUID, uuid4
 
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.business import BusinessCreate, BusinessCreated, BusinessPage, BusinessRead
@@ -15,6 +16,10 @@ class AccessDenied(Exception):
 
 
 class IdempotencyConflict(Exception):
+    pass
+
+
+class BusinessAlreadyExists(Exception):
     pass
 
 
@@ -44,54 +49,96 @@ async def create_business(
     operation_id, business_id = uuid4(), uuid4()
     scope = f"{actor_id}:POST:/api/v1/businesses"
     digest = fingerprint(payload)
-    inserted = await session.scalar(
-        text("""INSERT INTO idempotency_records
-          (tenant_id, scope, key, request_hash, operation_id)
-          VALUES (:tenant, :scope, :key, :hash, :operation)
-          ON CONFLICT (tenant_id, scope, key) DO NOTHING RETURNING operation_id"""),
-        {"tenant": tenant_id, "scope": scope, "key": key, "hash": digest, "operation": operation_id},
+    # Serialize distinct commands for the same tenant. The database constraint
+    # remains a second defense once its migration is applied.
+    await session.execute(
+        text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 57))"),
+        {"key": f"business-create:{tenant_id}"},
     )
-    if inserted is None:
-        previous = (
-            (
-                await session.execute(
-                    text(
-                        "SELECT request_hash, response FROM idempotency_records "
-                        "WHERE tenant_id=:tenant AND scope=:scope AND key=:key"
-                    ),
-                    {"tenant": tenant_id, "scope": scope, "key": key},
-                )
+    previous = (
+        (
+            await session.execute(
+                text(
+                    "SELECT request_hash, response FROM idempotency_records "
+                    "WHERE tenant_id=:tenant AND scope=:scope AND key=:key"
+                ),
+                {"tenant": tenant_id, "scope": scope, "key": key},
             )
-            .mappings()
-            .one()
         )
+        .mappings()
+        .one_or_none()
+    )
+    if previous is not None:
         if previous["request_hash"] != digest:
             raise IdempotencyConflict
         return BusinessCreated.model_validate({**previous["response"], "replayed": True})
 
-    row = (
-        (
-            await session.execute(
-                text("""INSERT INTO businesses (id, tenant_id, name, timezone)
-             VALUES (:id, :tenant, :name, :timezone) RETURNING *"""),
-                {"id": business_id, "tenant": tenant_id, **payload.model_dump()},
+    existing = await session.scalar(
+        text("SELECT 1 FROM businesses WHERE tenant_id=:tenant LIMIT 1"), {"tenant": tenant_id}
+    )
+    if existing is not None:
+        raise BusinessAlreadyExists
+
+    try:
+        # If a legacy writer bypasses the advisory lock, the unique constraint
+        # can reject the insert. Roll back the reservation along with it, even
+        # when the caller handles the resulting domain error in this transaction.
+        async with session.begin_nested():
+            inserted = await session.scalar(
+                text("""INSERT INTO idempotency_records
+                  (tenant_id, scope, key, request_hash, operation_id)
+                  VALUES (:tenant, :scope, :key, :hash, :operation)
+                  ON CONFLICT (tenant_id, scope, key) DO NOTHING RETURNING operation_id"""),
+                {"tenant": tenant_id, "scope": scope, "key": key, "hash": digest, "operation": operation_id},
             )
-        )
-        .mappings()
-        .one()
-    )
-    response = BusinessCreated(business=BusinessRead.model_validate(row), operation_id=operation_id)
-    await session.execute(
-        text("""INSERT INTO audit_events (tenant_id, actor_id, operation_id, action, resource_id)
-             VALUES (:tenant, :actor, :operation, 'business.created', :resource)"""),
-        {"tenant": tenant_id, "actor": actor_id, "operation": operation_id, "resource": business_id},
-    )
-    await session.execute(
-        text("""UPDATE idempotency_records SET response=CAST(:response AS jsonb)
-             WHERE tenant_id=:tenant AND scope=:scope AND key=:key"""),
-        {"response": response.model_dump_json(), "tenant": tenant_id, "scope": scope, "key": key},
-    )
-    return response
+            if inserted is None:
+                previous = (
+                    (
+                        await session.execute(
+                            text(
+                                "SELECT request_hash, response FROM idempotency_records "
+                                "WHERE tenant_id=:tenant AND scope=:scope AND key=:key"
+                            ),
+                            {"tenant": tenant_id, "scope": scope, "key": key},
+                        )
+                    )
+                    .mappings()
+                    .one()
+                )
+                if previous["request_hash"] != digest:
+                    raise IdempotencyConflict
+                return BusinessCreated.model_validate({**previous["response"], "replayed": True})
+
+            row = (
+                (
+                    await session.execute(
+                        text("""INSERT INTO businesses (id, tenant_id, name, timezone)
+                     VALUES (:id, :tenant, :name, :timezone) RETURNING *"""),
+                        {"id": business_id, "tenant": tenant_id, **payload.model_dump()},
+                    )
+                )
+                .mappings()
+                .one()
+            )
+            response = BusinessCreated(business=BusinessRead.model_validate(row), operation_id=operation_id)
+            await session.execute(
+                text("""INSERT INTO audit_events (tenant_id, actor_id, operation_id, action, resource_id)
+                     VALUES (:tenant, :actor, :operation, 'business.created', :resource)"""),
+                {"tenant": tenant_id, "actor": actor_id, "operation": operation_id, "resource": business_id},
+            )
+            await session.execute(
+                text("""UPDATE idempotency_records SET response=CAST(:response AS jsonb)
+                     WHERE tenant_id=:tenant AND scope=:scope AND key=:key"""),
+                {"response": response.model_dump_json(), "tenant": tenant_id, "scope": scope, "key": key},
+            )
+            return response
+    except IntegrityError as error:
+        original = error.orig
+        cause = getattr(original, "__cause__", None)
+        constraint = getattr(original, "constraint_name", None) or getattr(cause, "constraint_name", None)
+        if getattr(original, "sqlstate", None) == "23505" and constraint == "one_business_per_tenant":
+            raise BusinessAlreadyExists from error
+        raise
 
 
 async def list_businesses(

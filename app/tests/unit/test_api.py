@@ -5,7 +5,7 @@ import pytest
 
 from app.main import create_app
 from app.schemas.business import BusinessCreated, BusinessRead
-from app.services.business import AccessDenied, IdempotencyConflict
+from app.services.business import AccessDenied, BusinessAlreadyExists, IdempotencyConflict
 from app.tests.unit.test_core import access_token
 
 
@@ -52,6 +52,21 @@ def test_sanitized_service_errors(client, settings, monkeypatch, exception, code
     assert "secret" not in response.text
     if code == 500:
         assert response.json()["request_id"] == response.headers["X-Request-ID"]
+
+
+def test_second_business_has_specific_conflict_error(client, settings, monkeypatch):
+    monkeypatch.setattr("app.api.v1.api.create_business", AsyncMock(side_effect=BusinessAlreadyExists))
+    response = client.post(
+        "/api/v1/businesses",
+        headers={
+            "Authorization": f"Bearer {access_token(settings)}",
+            "X-Tenant-ID": str(uuid4()),
+            "Idempotency-Key": "business-response-001",
+        },
+        json={"name": "Outro"},
+    )
+    assert response.status_code == 409
+    assert response.json() == {"error_code": "BUSINESS_ALREADY_EXISTS"}
 
 
 def test_production_docs_disabled(settings, fake_database):

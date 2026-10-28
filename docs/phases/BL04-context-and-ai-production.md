@@ -7,6 +7,9 @@ por fornecedor ou modalidade serão substituídos por uma jornada contratual ún
 apresentada também uma vez às contas já existentes. A descrição abaixo dos
 controles por fornecedor registra o funcionamento atual, não o objetivo da
 jornada; consultar [decisão e transição](../design/ai-as-core-service.md).
+As mutações antigas de WhatsApp, áudio e Jev usam agora o mesmo bloqueio por
+negócio do aceite. O endpoint público de aceite, sua integração à web e o
+tratamento dos registros antigos continuam pendentes.
 
 ## Objetivo
 

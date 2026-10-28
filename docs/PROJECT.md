@@ -24,6 +24,19 @@ ainda possui controles separados: sua substituição deve preservar evidências 
 ser implementada junto com a web, sem presumir que já foi concluída. Ver
 [uso de IA como parte do serviço](design/ai-as-core-service.md).
 
+O proprietário definiu **uma conta e organização por negócio**, com cobrança e
+aceite próprios. A cobrança atual é por organização e pode ser reaproveitada;
+o código local da API bloqueia outro negócio e a migration correspondente foi
+aplicada ao banco de desenvolvimento. O
+[desenho atualizado](design/one-business-per-organization.md) registra como
+garantir a regra e a situação dos dados locais. Os dois negócios de teste
+duplicados foram removidos com autorização e backup; a sequência de migrations
+foi aplicada localmente após revisão e aprovação do proprietário.
+O reaproveitamento da tabela existente `0056` para o aceite por negócio foi
+aprovado; a integração do aceite único ainda está pendente. As alterações
+antigas de WhatsApp, áudio e Jev agora compartilham o bloqueio transacional do
+aceite; isso não habilita o aceite nem substitui os controles atuais.
+
 Na versão inicial, cada negócio poderá vincular **um número de WhatsApp ativo**
 para conversar com a plataforma. Este é o número do cliente autorizado, distinto
 do número oficial do Meu Braço Direito. Aceitar mais de um número por negócio é

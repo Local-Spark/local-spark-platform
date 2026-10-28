@@ -1,12 +1,19 @@
 import asyncio
+import importlib
 from uuid import uuid4
 
 import pytest
 from sqlalchemy import text
-from sqlalchemy.exc import DBAPIError
+from sqlalchemy.exc import DBAPIError, IntegrityError
 
 from app.schemas.business import BusinessCreate
-from app.services.business import AccessDenied, IdempotencyConflict, create_business, list_businesses
+from app.services.business import (
+    AccessDenied,
+    BusinessAlreadyExists,
+    IdempotencyConflict,
+    create_business,
+    list_businesses,
+)
 from app.tests.unit.test_core import access_token
 
 pytestmark = pytest.mark.integration
@@ -40,6 +47,118 @@ async def test_concurrent_same_command_has_one_effect(database, seeded, admin):
     async with admin.connect() as connection:
         assert await connection.scalar(text("SELECT count(*) FROM businesses")) == 1
         assert await connection.scalar(text("SELECT count(*) FROM outbox_events")) == 0
+
+
+async def test_concurrent_distinct_commands_create_at_most_one_business(database, seeded, admin):
+    async def request(index):
+        async with database.transaction(seeded["t1"], seeded["a1"]) as session:
+            return await create_business(
+                session, seeded["t1"], seeded["a1"], f"distinct-{index}", BusinessCreate(name=f"Dog {index}")
+            )
+
+    results = await asyncio.gather(*(request(index) for index in range(12)), return_exceptions=True)
+    assert sum(not isinstance(result, BaseException) for result in results) == 1
+    assert sum(isinstance(result, BusinessAlreadyExists) for result in results) == 11
+    async with admin.connect() as connection:
+        assert await connection.scalar(text("SELECT count(*) FROM businesses")) == 1
+        assert await connection.scalar(text("SELECT count(*) FROM idempotency_records")) == 1
+        assert await connection.scalar(text("SELECT count(*) FROM audit_events")) == 1
+
+
+async def test_rejected_creation_leaves_no_partial_reservation_when_error_is_caught(database, seeded, admin):
+    tenant, actor = seeded["t1"], seeded["a1"]
+    async with database.transaction(tenant, actor) as session:
+        await create_business(session, tenant, actor, "first-command", BusinessCreate(name="First"))
+    async with database.transaction(tenant, actor) as session:
+        with pytest.raises(BusinessAlreadyExists):
+            await create_business(session, tenant, actor, "rejected-command", BusinessCreate(name="Second"))
+    async with admin.connect() as connection:
+        assert await connection.scalar(text("SELECT count(*) FROM idempotency_records")) == 1
+        assert not await connection.scalar(
+            text("SELECT EXISTS(SELECT 1 FROM idempotency_records WHERE tenant_id=:tenant AND key='rejected-command')"),
+            {"tenant": tenant},
+        )
+
+
+async def test_legacy_writer_race_rolls_back_reservation_even_when_conflict_is_caught(database, seeded, admin):
+    tenant, actor, winner = seeded["t1"], seeded["a1"], uuid4()
+    entered, resume = asyncio.Event(), asyncio.Event()
+
+    async def request():
+        async with database.transaction(tenant, actor) as session:
+            execute = session.execute
+
+            async def pause_business_insert(statement, *args, **kwargs):
+                if "INSERT INTO businesses" in str(statement):
+                    entered.set()
+                    await resume.wait()
+                return await execute(statement, *args, **kwargs)
+
+            session.execute = pause_business_insert
+            with pytest.raises(BusinessAlreadyExists):
+                await create_business(session, tenant, actor, "racing-command", BusinessCreate(name="Delayed"))
+
+    task = asyncio.create_task(request())
+    try:
+        await asyncio.wait_for(entered.wait(), 5)
+        async with admin.begin() as connection:
+            await connection.execute(
+                text("INSERT INTO businesses(id,tenant_id,name,timezone) VALUES (:id,:tenant,'Legacy','UTC')"),
+                {"id": winner, "tenant": tenant},
+            )
+    finally:
+        resume.set()
+        await asyncio.wait_for(task, 5)
+    async with admin.connect() as connection:
+        assert (
+            await connection.scalar(text("SELECT id FROM businesses WHERE tenant_id=:tenant"), {"tenant": tenant})
+            == winner
+        )
+        assert await connection.scalar(text("SELECT count(*) FROM idempotency_records")) == 0
+        assert await connection.scalar(text("SELECT count(*) FROM audit_events")) == 0
+
+
+async def test_database_constraint_rejects_second_business_even_outside_api(database, seeded, admin):
+    async with database.transaction(seeded["t1"], seeded["a1"]) as session:
+        await create_business(session, seeded["t1"], seeded["a1"], "first-business", BusinessCreate(name="Dog"))
+    with pytest.raises(IntegrityError):
+        async with admin.begin() as connection:
+            await connection.execute(
+                text("INSERT INTO businesses(id,tenant_id,name,timezone) VALUES (:id,:tenant,'Second','UTC')"),
+                {"id": uuid4(), "tenant": seeded["t1"]},
+            )
+
+
+async def test_migration_rejects_legacy_duplicates_without_deleting_them(admin, seeded):
+    from alembic.migration import MigrationContext
+    from alembic.operations import Operations
+
+    migration = importlib.import_module("migrations.versions.0057_one_business_per_tenant")
+
+    def upgrade(connection):
+        with Operations.context(MigrationContext.configure(connection)):
+            migration.upgrade()
+
+    async with admin.connect() as connection:
+        transaction = await connection.begin()
+        try:
+            await connection.execute(text("ALTER TABLE businesses DROP CONSTRAINT one_business_per_tenant"))
+            for name in ("One", "Two"):
+                await connection.execute(
+                    text("INSERT INTO businesses(id,tenant_id,name,timezone) VALUES (:id,:tenant,:name,'UTC')"),
+                    {"id": uuid4(), "tenant": seeded["t1"], "name": name},
+                )
+            with pytest.raises(DBAPIError, match="ONE_BUSINESS_PER_TENANT_REQUIRES_LEGACY_REVIEW"):
+                async with connection.begin_nested():
+                    await connection.run_sync(upgrade)
+            assert (
+                await connection.scalar(
+                    text("SELECT count(*) FROM businesses WHERE tenant_id=:tenant"), {"tenant": seeded["t1"]}
+                )
+                == 2
+            )
+        finally:
+            await transaction.rollback()
 
 
 async def test_rls_read_write_and_pool_reuse(database, seeded):
@@ -84,17 +203,16 @@ async def test_authorization_rechecked_before_replay(api, headers, seeded, admin
 
 
 async def test_pagination_and_validation(api, headers):
-    for number in range(3):
-        response = await api.post(
-            "/api/v1/businesses",
-            headers={**headers, "Idempotency-Key": f"create-business-{number}"},
-            json={"name": f"Store {number}"},
-        )
-        assert response.status_code == 201
+    response = await api.post("/api/v1/businesses", headers=headers, json={"name": "Store"})
+    assert response.status_code == 201
+    other = await api.post(
+        "/api/v1/businesses", headers={**headers, "Idempotency-Key": "create-another"}, json={"name": "Other"}
+    )
+    assert other.status_code == 409 and other.json()["error_code"] == "BUSINESS_ALREADY_EXISTS"
     first = (await api.get("/api/v1/businesses?limit=2", headers=headers)).json()
-    second = (await api.get(f"/api/v1/businesses?after={first['next_cursor']}&limit=2", headers=headers)).json()
-    assert len(first["items"]) == 2 and len(second["items"]) == 1
-    assert second["next_cursor"] is None
+    second = (await api.get(f"/api/v1/businesses?after={first['items'][0]['id']}&limit=2", headers=headers)).json()
+    assert len(first["items"]) == 1 and not second["items"]
+    assert first["next_cursor"] is None and second["next_cursor"] is None
     assert (await api.get("/api/v1/businesses?limit=101", headers=headers)).status_code == 422
     assert (await api.post("/api/v1/businesses", headers=headers, json={"name": "  "})).status_code == 422
     assert (await api.get("/health/ready")).status_code == 200
@@ -122,15 +240,14 @@ async def test_service_replay_conflict_and_pagination(database, seeded):
     with pytest.raises(IdempotencyConflict):
         async with database.transaction(tenant, actor) as session:
             await create_business(session, tenant, actor, "service-create-1", BusinessCreate(name="Changed"))
-    async with database.transaction(tenant, actor) as session:
-        second = await create_business(session, tenant, actor, "service-create-2", BusinessCreate(name="Cafe"))
+    with pytest.raises(BusinessAlreadyExists):
+        async with database.transaction(tenant, actor) as session:
+            await create_business(session, tenant, actor, "service-create-2", BusinessCreate(name="Cafe"))
     async with database.transaction(tenant, actor) as session:
         page1 = await list_businesses(session, tenant, actor, 1, None)
-        page2 = await list_businesses(session, tenant, actor, 1, page1.next_cursor)
-        empty = await list_businesses(session, tenant, actor, 1, max(first.business.id, second.business.id))
-    assert page1.next_cursor == page1.items[0].id
-    assert page2.next_cursor is None
-    assert {item.id for item in page1.items + page2.items} == {first.business.id, second.business.id}
+        empty = await list_businesses(session, tenant, actor, 1, first.business.id)
+    assert page1.next_cursor is None
+    assert [item.id for item in page1.items] == [first.business.id]
     assert empty.items == [] and empty.next_cursor is None
 
 

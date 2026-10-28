@@ -149,8 +149,9 @@ async def test_catalog_progressive_crud_confirm_archive_replay_and_immutable_his
 
 async def test_catalog_concurrency_and_operation_reuse_across_businesses(admin, api, seeded, settings):
     tenant, actor = seeded["t1"], seeded["a1"]
+    other_tenant, other_actor = seeded["t2"], seeded["a2"]
     business = await _business(admin, tenant)
-    other_business = await _business(admin, tenant)
+    other_business = await _business(admin, other_tenant)
     base, headers = _base(tenant, business), _headers(settings, actor)
     payload = _payload()
     simultaneous = await asyncio.gather(*[api.put(base, headers=headers, json=payload) for _ in range(2)])
@@ -158,10 +159,11 @@ async def test_catalog_concurrency_and_operation_reuse_across_businesses(admin, 
     assert simultaneous[0].json() == simultaneous[1].json()
     competing = await asyncio.gather(*[api.put(base, headers=headers, json=_next(payload, 1)) for _ in range(2)])
     assert sorted(response.status_code for response in competing) == [200, 409]
-    wrong_business = await api.put(_base(tenant, other_business), headers=headers, json=payload)
-    assert wrong_business.json()["error_code"] == "CATALOG_OPERATION_CONFLICT"
-    # Different businesses may independently start at version zero with fresh operations.
-    assert (await api.put(_base(tenant, other_business), headers=headers, json=_next(payload, 0))).status_code == 200
+    wrong_account = await api.put(_base(other_tenant, other_business), headers=headers, json=payload)
+    assert wrong_account.status_code == 403
+    # Separate accounts may independently use the same operation identifier.
+    other_headers = _headers(settings, other_actor)
+    assert (await api.put(_base(other_tenant, other_business), headers=other_headers, json=payload)).status_code == 200
     async with admin.connect() as connection:
         assert await connection.scalar(text("SELECT count(*) FROM business_catalog_versions")) == 3
         assert await connection.scalar(text("SELECT count(*) FROM audit_events WHERE action='catalog.updated'")) == 3
@@ -205,7 +207,6 @@ async def test_catalog_owner_only_rls_composite_references_and_history_permissio
 ):
     tenant, actor = seeded["t1"], seeded["a1"]
     business = await _business(admin, tenant)
-    other_business = await _business(admin, tenant)
     foreign_business = await _business(admin, seeded["t2"])
     headers, base = _headers(settings, actor), _base(tenant, business)
     payload = _payload()
@@ -244,7 +245,7 @@ async def test_catalog_owner_only_rls_composite_references_and_history_permissio
         async with database.transaction(tenant, seeded["a2"]) as session:
             await session.execute(
                 text("INSERT INTO business_catalog_heads(tenant_id,business_id) VALUES(:t,:b)"),
-                {"t": tenant, "b": other_business},
+                {"t": tenant, "b": foreign_business},
             )
     with pytest.raises(DBAPIError):
         async with database.transaction(tenant, actor) as session:
@@ -252,25 +253,20 @@ async def test_catalog_owner_only_rls_composite_references_and_history_permissio
     with pytest.raises(DBAPIError):
         async with database.transaction(tenant, actor) as session:
             await session.execute(text("DELETE FROM business_offerings"))
-    # A promotion cannot point to an offering from a different business, even inside one tenant.
+    # A promotion cannot point to an offering from a different account.
     async with admin.begin() as connection:
-        await connection.execute(
-            text("INSERT INTO business_catalog_heads(tenant_id,business_id) VALUES(:t,:b)"),
-            {"t": tenant, "b": other_business},
-        )
-        await connection.execute(
-            text("""INSERT INTO business_catalog_versions
-          (tenant_id,business_id,version,operation_id,actor_id,request_hash,document)
-          VALUES(:t,:b,1,:op,:actor,:hash,'{}'::jsonb)"""),
-            {"t": tenant, "b": other_business, "op": uuid4(), "actor": actor, "hash": "a" * 64},
-        )
         with pytest.raises(DBAPIError):
             async with connection.begin_nested():
                 await connection.execute(
                     text("""INSERT INTO business_offering_promotions
                   (tenant_id,business_id,id,offering_id,title,state,starts_at,ends_at,version)
                   VALUES(:t,:b,:id,:offering,'Wrong business','draft',now(),now()+interval '1 day',1)"""),
-                    {"t": tenant, "b": other_business, "id": uuid4(), "offering": payload["offerings"][0]["id"]},
+                    {
+                        "t": seeded["t2"],
+                        "b": foreign_business,
+                        "id": uuid4(),
+                        "offering": payload["offerings"][0]["id"],
+                    },
                 )
 
 

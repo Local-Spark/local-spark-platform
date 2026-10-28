@@ -8,6 +8,9 @@ plataforma, dentro do serviço apresentado ao cliente.
 
 O proprietário confirmou expressamente que a transcrição por IA dos áudios
 enviados ao WhatsApp integra o serviço contratado, sem confirmação separada.
+Também definiu que cada negócio terá sua própria conta, organização, aceite e
+cobrança. A cobrança atual é por organização; a garantia de um único negócio
+por organização está em [revisão](one-business-per-organization.md).
 
 O cadastro do negócio ocorre antes da contratação. Os termos de onboarding
 `2026-10` são de validação local e não descrevem a oferta comercial de IA; não
@@ -38,9 +41,14 @@ versionado e a aceitação transacional interna foram exercitadas na base `_test
 O endpoint público ainda não oferece POST, e a exigência está desativada por
 padrão em desenvolvimento. A tela preparada não está ligada à jornada, e os
 controles separados ainda existem. Não ativar enforcement no WhatsApp: uma
-mensagem sem aceite pode ser marcada como falha definitiva, sem retomada segura.
+mensagem sem aceite pode ser marcada como falha definitiva. O proprietário
+esclareceu que não há clientes em produção e que o canal será conectado após
+contratação e aceite; não será criada uma fila especial para mensagens anteriores.
+Os vínculos e mensagens já existentes no ambiente de teste precisam ser
+considerados antes de ligar essa exigência.
 O aviso é somente de validação local e seu hash não representa os documentos
-comerciais definitivos. A migration não foi aplicada ao banco de desenvolvimento.
+comerciais definitivos. A migration `0056` foi aplicada ao banco de
+desenvolvimento; isso não ativa o POST nem conecta a tela.
 
 Hoje o backend ainda verifica autorizações por fornecedor e finalidade em tabelas
 distintas. Retirar seus botões sem substituir essas verificações impediria o uso;

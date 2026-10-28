@@ -24,8 +24,10 @@ class JevConsentService:
             return {"accepted": bool(accepted), "provider_enabled": self.settings.intent_ai_mode == "jev"}
 
     async def set(self, tenant: UUID, business: UUID, actor: UUID, accepted: bool) -> dict[str, bool]:
+        from app.services.visual_consent_gate import VisualConsentGate
+
         async with self.database.transaction(tenant, actor) as session:
-            await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
+            await VisualConsentGate._lock(session, tenant, business, actor)
             params = {"tenant": tenant, "business": business, "actor": actor, "accepted": accepted}
             changed = await session.scalar(
                 text("""INSERT INTO intent_jev_consents(tenant_id,business_id,actor_id,revoked_at)

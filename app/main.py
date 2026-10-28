@@ -37,7 +37,7 @@ from app.core.logging import configure_logging, request_id, request_id_context
 from app.db.session import Database
 from app.services.auth import AuthError, AuthService
 from app.services.billing import BillingError
-from app.services.business import AccessDenied, IdempotencyConflict
+from app.services.business import AccessDenied, BusinessAlreadyExists, IdempotencyConflict
 
 logger = logging.getLogger("meu_braco_direito.api")
 
@@ -170,6 +170,10 @@ def create_app(
     @application.exception_handler(IdempotencyConflict)
     async def conflict(request: Request, exc: IdempotencyConflict) -> JSONResponse:
         return JSONResponse(status_code=409, content={"error_code": "IDEMPOTENCY_CONFLICT"})
+
+    @application.exception_handler(BusinessAlreadyExists)
+    async def business_exists(request: Request, exc: BusinessAlreadyExists) -> JSONResponse:
+        return JSONResponse(status_code=409, content={"error_code": "BUSINESS_ALREADY_EXISTS"})
 
     @application.get("/", include_in_schema=False)
     async def root() -> RedirectResponse:

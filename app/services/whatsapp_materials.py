@@ -48,8 +48,10 @@ class WhatsAppMaterialsService:
         return {"accepted": bool(accepted)}
 
     async def set_audio_consent(self, tenant: UUID, business: UUID, actor: UUID, accepted: bool) -> dict[str, bool]:
+        from app.services.visual_consent_gate import VisualConsentGate
+
         async with self.database.transaction(tenant, actor) as session:
-            await self._require_owner(session, tenant, business, actor)
+            await VisualConsentGate._lock(session, tenant, business, actor)
             changed = await session.scalar(
                 text("""UPDATE whatsapp_processing_consents SET
                   audio_transcription_accepted_at=CASE WHEN :accepted THEN now() ELSE NULL END
@@ -82,8 +84,10 @@ class WhatsAppMaterialsService:
         return {"accepted": accepted}
 
     async def accept_consent(self, tenant: UUID, business: UUID, actor: UUID) -> dict[str, bool]:
+        from app.services.visual_consent_gate import VisualConsentGate
+
         async with self.database.transaction(tenant, actor) as session:
-            await self._require_owner(session, tenant, business, actor)
+            await VisualConsentGate._lock(session, tenant, business, actor)
             changed = await session.scalar(
                 text("""INSERT INTO whatsapp_processing_consents(tenant_id,business_id,actor_id)
                   VALUES(:tenant,:business,:actor)
@@ -102,8 +106,10 @@ class WhatsAppMaterialsService:
         return {"accepted": True}
 
     async def revoke_consent(self, tenant: UUID, business: UUID, actor: UUID) -> dict[str, bool]:
+        from app.services.visual_consent_gate import VisualConsentGate
+
         async with self.database.transaction(tenant, actor) as session:
-            await self._require_owner(session, tenant, business, actor)
+            await VisualConsentGate._lock(session, tenant, business, actor)
             changed = await session.scalar(
                 text("""UPDATE whatsapp_processing_consents SET revoked_at=now(),audio_transcription_accepted_at=NULL
                   WHERE tenant_id=:tenant AND business_id=:business AND revoked_at IS NULL RETURNING business_id"""),

@@ -9,7 +9,7 @@ from pydantic import SecretStr
 from sqlalchemy import text
 
 from app.services.auth import AuthError
-from app.services.service_agreement import SERVICE_AGREEMENT_HASH, SERVICE_AGREEMENT_VERSION
+from app.services.service_agreement import SERVICE_AGREEMENT_HASH, SERVICE_AGREEMENT_VERSION, ServiceAgreementService
 from app.services.visual_consent_gate import VisualConsentGate
 from app.services.whatsapp_link import WhatsAppLinkService
 from app.tests.integration.test_editorial_briefings import _enable
@@ -103,6 +103,50 @@ async def test_connect_and_confirmation_require_current_agreement(admin, databas
             },
         )
     assert await service.start(tenant, business, actor) == {"status": "linked"}
+
+
+async def test_agreement_for_one_business_cannot_enable_another_business_link(admin, database, seeded, settings):
+    tenant, actor = seeded["t1"], seeded["a1"]
+    other_tenant, other_actor = seeded["t2"], seeded["a2"]
+    first, second = await _business(admin, seeded), uuid4()
+    await _enable(admin, tenant, first, actor)
+    async with admin.begin() as connection:
+        await connection.execute(
+            text("INSERT INTO businesses(id,tenant_id,name,timezone) VALUES(:id,:tenant,'Other','UTC')"),
+            {"id": second, "tenant": other_tenant},
+        )
+        await connection.execute(
+            text("""INSERT INTO business_profiles
+              (tenant_id,business_id,category,city,description,phone,brand_color,phone_verified)
+              VALUES(:tenant,:business,'Food','Rio','Test','+5511988888888','#6557ed',true)"""),
+            {"tenant": other_tenant, "business": second},
+        )
+        await connection.execute(
+            text("""INSERT INTO billing_sponsorships(id,tenant_id,actor_id,idempotency_key,reason)
+              VALUES(:id,:tenant,:actor,'other-agreement-test','Test')"""),
+            {"id": uuid4(), "tenant": other_tenant, "actor": other_actor},
+        )
+        await connection.execute(
+            text("UPDATE business_profiles SET phone_verified=true WHERE tenant_id=:tenant AND business_id=:business"),
+            {"tenant": tenant, "business": first},
+        )
+    cfg = settings.model_copy(
+        update={"service_agreement_required": True, "meta_webhook_mode": "cloud", "meta_public_phone": "+5511988887777"}
+    )
+    agreement = ServiceAgreementService(cfg, database)
+    assert (await agreement.accept(tenant, first, actor, SERVICE_AGREEMENT_VERSION, SERVICE_AGREEMENT_HASH))["accepted"]
+    link = WhatsAppLinkService(cfg, database, database)
+    assert await link.start(tenant, first, actor) == {"status": "linked"}
+    for action in (link.start, link.confirm):
+        with pytest.raises(AuthError, match="SERVICE_AGREEMENT_REQUIRED"):
+            await action(other_tenant, second, other_actor)
+    async with admin.connect() as connection:
+        assert not await connection.scalar(
+            text(
+                "SELECT EXISTS(SELECT 1 FROM whatsapp_channel_links WHERE tenant_id=:tenant AND business_id=:business)"
+            ),
+            {"tenant": other_tenant, "business": second},
+        )
 
 
 async def test_disconnect_during_proof_cannot_reactivate_channel(admin, database, seeded, settings, monkeypatch):

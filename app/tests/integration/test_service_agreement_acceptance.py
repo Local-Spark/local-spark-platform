@@ -10,10 +10,52 @@ from app.services.auth import AuthError
 from app.services.jev_consent import JevConsentService
 from app.services.service_agreement import SERVICE_AGREEMENT_HASH, SERVICE_AGREEMENT_VERSION, ServiceAgreementService
 from app.services.visual_consent_gate import VisualConsentGate
+from app.services.whatsapp_materials import WhatsAppMaterialsService
 from app.tests.integration.test_editorial_proposals import _business
 from app.tests.integration.test_visual_attempts import preview
 
 pytestmark = pytest.mark.integration
+
+
+@pytest.mark.parametrize("operation", ["jev", "audio", "whatsapp_accept", "whatsapp_revoke"])
+async def test_legacy_mutations_wait_for_business_agreement_transaction(
+    admin, database, seeded, settings, monkeypatch, operation
+):
+    tenant, actor = seeded["t1"], seeded["a1"]
+    business = await _business(admin, seeded)
+    agreement = ServiceAgreementService(settings, database)
+    entered, resume = asyncio.Event(), asyncio.Event()
+    initialize = agreement._initialize_absent_consents
+
+    async def paused_initialize(session, params, operation_id):
+        entered.set()
+        await resume.wait()
+        await initialize(session, params, operation_id)
+
+    monkeypatch.setattr(agreement, "_initialize_absent_consents", paused_initialize)
+    acceptance = asyncio.create_task(
+        agreement.accept(tenant, business, actor, SERVICE_AGREEMENT_VERSION, SERVICE_AGREEMENT_HASH)
+    )
+    mutation = None
+    try:
+        await asyncio.wait_for(entered.wait(), 5)
+        whatsapp = WhatsAppMaterialsService(settings, database)
+        if operation == "jev":
+            call = JevConsentService(settings, database).set(tenant, business, actor, False)
+        elif operation == "audio":
+            call = whatsapp.set_audio_consent(tenant, business, actor, False)
+        elif operation == "whatsapp_accept":
+            call = whatsapp.accept_consent(tenant, business, actor)
+        else:
+            call = whatsapp.revoke_consent(tenant, business, actor)
+        mutation = asyncio.create_task(call)
+        done, _ = await asyncio.wait({mutation}, timeout=0.2)
+        assert not done, "legacy mutation must not pass the in-progress business acceptance"
+    finally:
+        resume.set()
+        await asyncio.wait_for(acceptance, 5)
+        if mutation is not None:
+            await asyncio.wait_for(mutation, 5)
 
 
 async def test_acceptance_is_explicit_idempotent_scoped_and_preserves_later_withdrawal(
@@ -103,38 +145,39 @@ async def test_terms_may_be_accepted_without_a_plan_but_do_not_activate_access(a
     assert status["accepted"] and not status["access_active"]
 
 
-async def test_same_owner_must_accept_each_business_and_tampered_version_fails_closed(
+async def test_each_account_must_accept_its_business_and_tampered_version_fails_closed(
     admin, database, seeded, settings
 ):
     tenant, actor = seeded["t1"], seeded["a1"]
+    other_tenant, other_actor = seeded["t2"], seeded["a2"]
     first, second = await _business(admin, seeded), uuid4()
     async with admin.begin() as connection:
         await connection.execute(
             text("INSERT INTO businesses(id,tenant_id,name,timezone) VALUES(:id,:tenant,'Other','UTC')"),
-            {"id": second, "tenant": tenant},
+            {"id": second, "tenant": other_tenant},
         )
         await connection.execute(
             text("""INSERT INTO business_profiles
           (tenant_id,business_id,category,city,description,phone,brand_color)
           VALUES(:tenant,:business,'Food','Rio','Test','+5511999999999','#6557ed')"""),
-            {"tenant": tenant, "business": second},
+            {"tenant": other_tenant, "business": second},
         )
     service = ServiceAgreementService(settings, database)
     assert (await service.accept(tenant, first, actor, SERVICE_AGREEMENT_VERSION, SERVICE_AGREEMENT_HASH))["accepted"]
-    assert not (await service.status(tenant, second, actor))["accepted"]
+    assert not (await service.status(other_tenant, second, other_actor))["accepted"]
     async with admin.begin() as connection:
         await connection.execute(
             text("""INSERT INTO service_agreement_acceptances
           (tenant_id,business_id,actor_id,version,notice_hash) VALUES(:tenant,:business,:actor,:version,:hash)"""),
             {
-                "tenant": tenant,
+                "tenant": other_tenant,
                 "business": second,
-                "actor": actor,
+                "actor": other_actor,
                 "version": SERVICE_AGREEMENT_VERSION,
                 "hash": "0" * 64,
             },
         )
     with pytest.raises(AuthError, match="SERVICE_AGREEMENT_VERSION_CONFLICT"):
-        await service.status(tenant, second, actor)
+        await service.status(other_tenant, second, other_actor)
     with pytest.raises(AuthError, match="SERVICE_AGREEMENT_VERSION_CONFLICT"):
-        await service.accept(tenant, second, actor, SERVICE_AGREEMENT_VERSION, SERVICE_AGREEMENT_HASH)
+        await service.accept(other_tenant, second, other_actor, SERVICE_AGREEMENT_VERSION, SERVICE_AGREEMENT_HASH)

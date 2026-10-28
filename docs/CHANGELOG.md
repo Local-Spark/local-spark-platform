@@ -1,5 +1,86 @@
 # Registro de mudanças
 
+## 2026-10-28 — Migrations locais até 0057
+
+- Após revisão, o proprietário aprovou aplicar a sequência 0051, 0053, 0054,
+  0055, 0056 e 0057 e revisar os controles antigos de IA depois. A base local
+  está em `0057_one_business_per_tenant`, com unicidade por organização e
+  tabela de aceite; o aceite único ainda não está ligado à jornada.
+- Um backup privado posterior à limpeza foi restaurado e migrado em base
+  isolada antes da atualização local. Filas, efeitos incertos e Temporal foram
+  verificados; API e workers foram pausados e retomados. Foram confirmados
+  histórico, RLS e permissões relevantes da tabela de aceite, além de 200 em
+  `/health/ready` e `/docs`. A restauração em teste não validou owner/ACLs e o
+  backup não inclui objetos ou estado Temporal.
+
+## 2026-10-28 — Limpeza local autorizada de negócios de teste
+
+- O proprietário autorizou remover `Local Spark - validacao local` e `Local
+  demo shop`. Os dois registros e suas duas respostas de idempotência foram
+  removidos em uma única transação com pré-condições, sem cascata; organização,
+  auditorias, eventos processados e patrocínio revogado foram preservados.
+- Antes da alteração, foi criado backup privado do PostgreSQL, restaurado em
+  base temporária; a limpeza foi validada na cópia. O backup não inclui o
+  armazenamento de objetos nem o estado do Temporal. A base permanece em 0050;
+  nenhuma migration foi aplicada nesta operação.
+
+## 2026-10-28 — Proteção de um negócio por organização
+
+- Com aprovação do proprietário, a API recusa nova criação com
+  `BUSINESS_ALREADY_EXISTS` e serializa pedidos simultâneos por organização;
+  replay idempotente e conflito de conteúdo são preservados, sem gravação
+  parcial ao recusar a criação. A migration `0057` acrescenta unicidade por
+  organização e interrompe antes de mudar o banco se encontrar duplicatas.
+- A migration foi aplicada somente à base `_test`; a base de desenvolvimento
+  segue em `0050` e contém uma organização com dois negócios. A decisão sobre
+  esses registros e a aplicação local das migrations permanece pendente. A
+  prontidão exige que a base esteja no head do código.
+- Os testes antigos que usavam múltiplos negócios por organização foram
+  adaptados para contas distintas, preservando os testes de isolamento. Não
+  houve chamada paga nem alteração de assinaturas.
+- A violação da restrição por um processo antigo concorrente é convertida para
+  o mesmo erro de negócio, com rollback da operação no savepoint. Passaram 23
+  testes de integração de cadastro e onboarding, 23 unitários relacionados e
+  33 testes de integração adaptados. O CI completo passou com 1.530 testes e
+  100% de cobertura, além de Ruff e mypy.
+
+## 2026-10-28 — Uma organização por negócio
+
+- O proprietário definiu uma conta e uma organização para cada negócio. Assim,
+  a cobrança já vinculada à organização poderá ser reaproveitada. A proposta
+  anterior de adaptar as tabelas de cobrança para vários negócios foi superada.
+- A [revisão atual](design/one-business-per-organization.md) apresenta a
+  garantia da regra e registra que há uma organização local com dois negócios
+  e patrocínio histórico inativo. Nada foi alterado na base; o tratamento dos
+  dados existentes e a restrição de unicidade dependem de revisão e aprovação.
+
+## 2026-10-28 — Transição para aceite único: concorrência
+
+- As alterações existentes de autorização de WhatsApp, transcrição e Jev passam
+  a compartilhar o bloqueio transacional por negócio já usado pelo aceite. Isso
+  evita que uma delas ocorra simultaneamente ao registro do aceite; não muda
+  a decisão do cliente nem altera tabelas ou credenciais.
+- Validação: quatro cenários de concorrência passaram na base `_test`, sete
+  testes unitários relacionados e Ruff passaram. Nenhum provedor foi chamado.
+  O POST do aceite e sua integração à web
+  continuam pendentes, assim como o tratamento dos registros antigos e a
+  cobrança por negócio. A migration 0056 não foi aplicada à base local. A
+  proposta de cobrança foi detalhada para revisão, sem executar migrações.
+
+## 2026-10-28 — Decisão: cobrança e aceite por negócio
+
+- O proprietário definiu cobrança e aceite separados por negócio, mesmo quando
+  a mesma pessoa possui vários negócios. A implementação ainda cobra por
+  organização; nenhuma alteração de banco, cobrança ou integração foi feita.
+- A [proposta de revisão](design/review-billing-and-agreement-per-business.md)
+  compara o aceite histórico com `0056` e descreve alternativas de cobrança para
+  o proprietário decidir antes da implementação. O proprietário aprovou usar
+  `0056` e preservar `consents`; a integração ainda está pendente. Os controles
+  de IA de Sobre meu negócio deverão sair junto com a jornada de aceite único
+  funcional. O proprietário esclareceu que, na jornada comercial inicial,
+  o WhatsApp será conectado após contratação e aceite; não se propõe uma fila
+  especial para mensagens anteriores ao aceite.
+
 ## 2026-10-28 — IA como parte do serviço contratado
 
 - O proprietário corrigiu a jornada: não exigir que o cliente escolha OpenAI,
@@ -18,9 +99,11 @@
 - Foi preparada a leitura versionada e uma transação interna de aceite por
   negócio, testada em `_test`; o POST e a tela única ainda não estão conectados.
   A confirmação explícita inclui transcrição de áudio. A entrada do WhatsApp
-  pode marcar mensagem sem aceite como falha definitiva e precisa de retomada
-  segura antes de ativar enforcement. A migration 0056 não foi aplicada à base
-  de desenvolvimento. Documentos apresentados seguem como validação local.
+  pode marcar mensagem sem aceite como falha definitiva. A decisão posterior
+  determina conectar o canal após contratação e aceite, sem criar fila especial
+  para mensagens anteriores; os dados locais existentes seguem em revisão.
+  A migration 0056 não foi aplicada à base de desenvolvimento. Documentos
+  apresentados seguem como validação local.
 - A primeira ativação conjunta foi rejeitada pela revisão automática por falta
   de decisão explícita sobre áudio e gates integrados; o proprietário confirmou
   a inclusão do áudio e a alternativa reduzida foi testada, mas não exposta.

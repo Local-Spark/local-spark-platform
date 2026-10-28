@@ -31,7 +31,8 @@ async def test_owner_required_and_changes_are_audited(settings):
     session.scalar.side_effect = [1, ids[1], 1, ids[1]]
     assert await service.accept_consent(*ids) == {"accepted": True}
     assert await service.revoke_consent(*ids) == {"accepted": False}
-    assert session.execute.await_count == 3
+    audits = [call for call in session.execute.await_args_list if "INSERT INTO audit_events" in str(call.args[0])]
+    assert len(audits) == 2
 
 
 async def test_repeated_consent_actions_do_not_duplicate_audit(settings):
@@ -42,7 +43,7 @@ async def test_repeated_consent_actions_do_not_duplicate_audit(settings):
     service = WhatsAppMaterialsService(settings, database_with(session))
     assert await service.accept_consent(*ids) == {"accepted": True}
     assert await service.revoke_consent(*ids) == {"accepted": False}
-    session.execute.assert_not_awaited()
+    assert not any("INSERT INTO audit_events" in str(call.args[0]) for call in session.execute.await_args_list)
 
 
 async def test_audio_consent_is_owner_only_audited_and_requires_material_consent(settings):

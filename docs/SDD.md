@@ -9,6 +9,13 @@ e evals continuam válidos como detalhe, respeitando as decisões atuais.
 
 ## 1. Objetivo e fronteira do produto
 
+**Decisão de produto:** cada negócio terá conta e organização próprias, com
+cobrança e aceite próprios. A cobrança por organização pode ser reaproveitada;
+o bloqueio na API e a restrição de banco estão implementados, e a migration foi
+aplicada localmente. Os registros locais duplicados foram removidos
+após autorização, com backup e preservação de histórico. O
+[desenho](design/one-business-per-organization.md) registra a transição pendente.
+
 **Decisão atual de contratação:** IA faz parte do serviço. Explicar seu uso uma
 vez nos termos da contratação e substituir escolhas de fornecedor ou modalidade
 por uma jornada única; contas existentes verão a versão atualizada uma vez antes
@@ -16,6 +23,9 @@ de usar o serviço. As verificações separadas que ainda existem descrevem o
 estado atual, não a experiência desejada. Implementação e migração devem seguir
 [uso de IA como parte do serviço](design/ai-as-core-service.md), preservar
 registros e não converter aceites ou recusas anteriores silenciosamente.
+As alterações antigas de WhatsApp, áudio e Jev compartilham o bloqueio por
+negócio do aceite. O endpoint público de aceite e a transição dos registros
+anteriores ainda não estão implementados.
 
 Receber ideias e material pelo WhatsApp, recuperar contexto autorizado do
 negócio, produzir conteúdo com qualidade, pedir aprovação específica, publicar
