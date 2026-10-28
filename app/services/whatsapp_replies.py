@@ -68,6 +68,15 @@ async def _defer_to_tomorrow(session: Any, reply_id: UUID, *, ack: bool) -> None
     )
 
 
+async def _defer_for_agreement(session: Any, reply_id: UUID, *, ack: bool) -> None:
+    """Let another business progress while this business awaits its agreement."""
+    column = "ack_next_attempt_at" if ack else "next_attempt_at"
+    await session.execute(
+        text(f"UPDATE editorial_whatsapp_replies SET {column}=now()+interval '1 minute' WHERE id=:id"),
+        {"id": reply_id},
+    )
+
+
 async def claim_reply(database: Database, settings: Settings) -> ClaimedReply | None:
     async with database.sessions() as session, session.begin():
         await session.execute(
@@ -93,7 +102,7 @@ async def claim_reply(database: Database, settings: Settings) -> ClaimedReply | 
         row = (
             (
                 await session.execute(
-                    text("""SELECT r.id,r.tenant_id,r.recipient_ciphertext,d.reply
+                    text("""SELECT r.id,r.tenant_id,r.business_id,r.recipient_ciphertext,d.reply
                       FROM editorial_whatsapp_replies r JOIN editorial_conversation_decisions d ON d.id=r.id
                       JOIN whatsapp_channel_links l ON l.tenant_id=r.tenant_id
                         AND l.business_id=r.business_id AND l.sender_hash=r.sender_hash
@@ -122,6 +131,14 @@ async def claim_reply(database: Database, settings: Settings) -> ClaimedReply | 
         )
         if row is None:
             return None
+        if settings.service_agreement_required or settings.environment == "production":
+            from app.services.service_agreement import service_agreement_allowed
+
+            if not await service_agreement_allowed(
+                session, settings, row["tenant_id"], row["business_id"], worker=True
+            ):
+                await _defer_for_agreement(session, row["id"], ack=False)
+                return None
         if not await _within_daily_limit(session, row["tenant_id"], settings.meta_daily_message_limit):
             await _defer_to_tomorrow(session, row["id"], ack=False)
             await _audit_reply(session, row["id"], "whatsapp.reply_budget_deferred")
@@ -140,7 +157,7 @@ async def claim_ack(database: Database, settings: Settings) -> ClaimedReply | No
         row = (
             (
                 await session.execute(
-                    text("""SELECT r.id,r.tenant_id,r.recipient_ciphertext,d.reply
+                    text("""SELECT r.id,r.tenant_id,r.business_id,r.recipient_ciphertext,d.reply
                       FROM editorial_whatsapp_replies r JOIN editorial_conversation_decisions d ON d.id=r.id
                       JOIN whatsapp_channel_links l ON l.tenant_id=r.tenant_id
                         AND l.business_id=r.business_id AND l.sender_hash=r.sender_hash
@@ -169,6 +186,14 @@ async def claim_ack(database: Database, settings: Settings) -> ClaimedReply | No
         )
         if row is None:
             return None
+        if settings.service_agreement_required or settings.environment == "production":
+            from app.services.service_agreement import service_agreement_allowed
+
+            if not await service_agreement_allowed(
+                session, settings, row["tenant_id"], row["business_id"], worker=True
+            ):
+                await _defer_for_agreement(session, row["id"], ack=True)
+                return None
         if not await _within_daily_limit(session, row["tenant_id"], settings.meta_daily_message_limit):
             await _defer_to_tomorrow(session, row["id"], ack=True)
             await _audit_reply(session, row["id"], "whatsapp.ack_budget_deferred")

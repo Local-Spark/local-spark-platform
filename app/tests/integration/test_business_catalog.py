@@ -9,7 +9,9 @@ from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 
 from app.schemas.business_catalog import CatalogUpdate
+from app.services.auth import AuthError
 from app.services.business_catalog import BusinessCatalogService
+from app.services.visual_consent_gate import VisualConsentGate
 from app.tests.unit.test_core import access_token
 
 pytestmark = pytest.mark.integration
@@ -93,6 +95,7 @@ async def test_catalog_progressive_crud_confirm_archive_replay_and_immutable_his
         "promotions": [],
         "version": 0,
         "updated_at": None,
+        "pending_change": None,
     }
     assert (await api.get(base + "/history", headers=headers)).json() == []
     assert (await api.get(base + "/versions/1", headers=headers)).status_code == 404
@@ -162,6 +165,39 @@ async def test_catalog_concurrency_and_operation_reuse_across_businesses(admin, 
     async with admin.connect() as connection:
         assert await connection.scalar(text("SELECT count(*) FROM business_catalog_versions")) == 3
         assert await connection.scalar(text("SELECT count(*) FROM audit_events WHERE action='catalog.updated'")) == 3
+
+
+async def test_catalog_change_waits_for_admitted_work_and_is_applied_once(admin, database, seeded):
+    tenant, actor = seeded["t1"], seeded["a1"]
+    business = await _business(admin, tenant)
+    service, gate = BusinessCatalogService(database), VisualConsentGate(database)
+    first = _payload()
+    assert (await service.update(tenant, business, actor, CatalogUpdate.model_validate(first))).version == 1
+    await gate.enable(tenant, business, actor)
+    run, operation = uuid4(), uuid4()
+    assert await gate.admit(tenant, business, actor, run, operation, 1)
+    changed = _next(first, 1)
+    changed["offerings"][0]["price_minor"] = 2200
+    changed["promotions"][0]["price_minor"] = 1900
+    request = CatalogUpdate.model_validate(changed)
+    pending = await service.update(tenant, business, actor, request)
+    assert pending.version == 1 and pending.offerings[0].price_minor == 1800
+    assert pending.pending_change is not None and pending.pending_change.operation_id == request.operation_id
+    assert (await service.update(tenant, business, actor, request)) == pending
+    assert (await service.read(tenant, business, actor)).pending_change == pending.pending_change
+    assert (await service.read(tenant, business, actor, 1)).pending_change is None
+    with pytest.raises(AuthError, match="VISUAL_CHANGE_PENDING"):
+        await gate.admit(tenant, business, actor, uuid4(), uuid4(), 1)
+    conflicting = _next(first, 1)
+    with pytest.raises(AuthError, match="VISUAL_CHANGE_ALREADY_PENDING"):
+        await service.update(tenant, business, actor, CatalogUpdate.model_validate(conflicting))
+    await gate.finish(tenant, business, actor, operation, 1)
+    updated = await service.read(tenant, business, actor)
+    assert updated.version == 2 and updated.pending_change is None
+    assert updated.offerings[0].price_minor == 2200 and updated.promotions[0].price_minor == 1900
+    assert (await service.update(tenant, business, actor, request)) == updated
+    async with admin.connect() as connection:
+        assert await connection.scalar(text("SELECT count(*) FROM business_catalog_versions")) == 2
 
 
 async def test_catalog_owner_only_rls_composite_references_and_history_permissions(

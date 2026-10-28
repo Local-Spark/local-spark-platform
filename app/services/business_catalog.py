@@ -67,7 +67,14 @@ class BusinessCatalogService:
             row = await self._version(session, tenant, business, version)
             if version is not None and row is None:
                 raise AuthError("CATALOG_VERSION_NOT_FOUND", 404)
-            return self._present(row)
+            current = self._present(row)
+            if version is None:
+                from app.services.visual_pending_changes import VisualPendingChanges
+
+                pending = await VisualPendingChanges.status_in_session(session, tenant, business, "catalog")
+                if pending:
+                    return CatalogRead.model_validate({**current.model_dump(), "pending_change": pending})
+            return current
 
     async def history(self, tenant: UUID, business: UUID, actor: UUID) -> list[CatalogHistoryItem]:
         async with self.database.transaction(tenant, actor) as session:
@@ -140,61 +147,110 @@ class BusinessCatalogService:
                 {**promotion.model_dump(), "tenant": tenant, "business": business, "version": version},
             )
 
+    @staticmethod
+    async def _save_in_session(
+        session: Any, tenant: UUID, business: UUID, actor: UUID, payload: CatalogUpdate
+    ) -> CatalogRead:
+        replay = await BusinessCatalogService._replay(session, tenant, business, payload)
+        if replay is not None:
+            return replay
+        # Serialize mutations even across different businesses sharing an operation id.
+        await session.execute(
+            text("SELECT pg_advisory_xact_lock(hashtextextended(:key,0))"),
+            {"key": f"catalog:{tenant}:{payload.operation_id}"},
+        )
+        replay = await BusinessCatalogService._replay(session, tenant, business, payload)
+        if replay is not None:
+            return replay
+        await session.execute(
+            text("""INSERT INTO business_catalog_heads(tenant_id,business_id)
+                  VALUES(:tenant,:business) ON CONFLICT DO NOTHING"""),
+            {"tenant": tenant, "business": business},
+        )
+        version = await session.scalar(
+            text("""UPDATE business_catalog_heads SET version=version+1
+                  WHERE tenant_id=:tenant AND business_id=:business AND version=:expected RETURNING version"""),
+            {"tenant": tenant, "business": business, "expected": payload.expected_version},
+        )
+        if version is None:
+            raise AuthError("CATALOG_VERSION_CONFLICT", 409)
+        previous = await BusinessCatalogService._version(session, tenant, business, version - 1)
+        if previous is not None:
+            for key in ("offerings", "promotions"):
+                existing = {item["id"] for item in previous["document"][key]}
+                incoming = {str(item.id) for item in getattr(payload, key)}
+                if not existing <= incoming:
+                    raise AuthError("CATALOG_ARCHIVE_REQUIRED", 409)
+        content = CatalogContent(offerings=payload.offerings, promotions=payload.promotions)
+        row = (
+            (
+                await session.execute(
+                    text("""INSERT INTO business_catalog_versions
+                          (tenant_id,business_id,version,operation_id,actor_id,request_hash,document)
+                          VALUES(:tenant,:business,:version,:operation,:actor,:digest,CAST(:document AS jsonb))
+                          RETURNING version,document,created_at"""),
+                    {
+                        "tenant": tenant,
+                        "business": business,
+                        "version": version,
+                        "operation": payload.operation_id,
+                        "actor": actor,
+                        "digest": _digest(payload),
+                        "document": content.model_dump_json(),
+                    },
+                )
+            )
+            .mappings()
+            .one()
+        )
+        await BusinessCatalogService._project(session, tenant, business, version, content)
+        await audit_catalog_change(session, tenant, business, actor, payload.operation_id, "catalog.updated")
+        return BusinessCatalogService._present(row)
+
+    @staticmethod
+    async def apply_pending_in_session(session: Any, tenant: UUID, business: UUID, row: Any) -> None:
+        payload = CatalogUpdate.model_validate(row["payload"])
+        if payload.operation_id != row["operation_id"] or _digest(payload) != row["request_hash"]:
+            raise AuthError("VISUAL_CHANGE_OPERATION_CONFLICT", 409)
+        await require_catalog_owner(session, tenant, business, row["actor_id"])
+        await BusinessCatalogService._save_in_session(session, tenant, business, row["actor_id"], payload)
+
     async def update(self, tenant: UUID, business: UUID, actor: UUID, payload: CatalogUpdate) -> CatalogRead:
+        from app.services.visual_consent_gate import VisualConsentGate
+        from app.services.visual_pending_changes import VisualPendingChanges
+
         async with self.database.transaction(tenant, actor) as session:
             await require_catalog_owner(session, tenant, business, actor)
+            await VisualConsentGate._lock(session, tenant, business, actor)
             replay = await self._replay(session, tenant, business, payload)
             if replay is not None:
                 return replay
-            # Serialize mutations even across different businesses sharing an operation id.
-            await session.execute(
-                text("SELECT pg_advisory_xact_lock(hashtextextended(:key,0))"),
-                {"key": f"catalog:{tenant}:{payload.operation_id}"},
-            )
-            replay = await self._replay(session, tenant, business, payload)
-            if replay is not None:
-                return replay
-            await session.execute(
-                text("""INSERT INTO business_catalog_heads(tenant_id,business_id)
-                  VALUES(:tenant,:business) ON CONFLICT DO NOTHING"""),
-                {"tenant": tenant, "business": business},
-            )
-            version = await session.scalar(
-                text("""UPDATE business_catalog_heads SET version=version+1
-                  WHERE tenant_id=:tenant AND business_id=:business AND version=:expected RETURNING version"""),
-                {"tenant": tenant, "business": business, "expected": payload.expected_version},
-            )
-            if version is None:
+            previous = await self._version(session, tenant, business)
+            current = self._present(previous)
+            if current.version != payload.expected_version:
                 raise AuthError("CATALOG_VERSION_CONFLICT", 409)
-            previous = await self._version(session, tenant, business, version - 1)
             if previous is not None:
                 for key in ("offerings", "promotions"):
                     existing = {item["id"] for item in previous["document"][key]}
                     incoming = {str(item.id) for item in getattr(payload, key)}
                     if not existing <= incoming:
                         raise AuthError("CATALOG_ARCHIVE_REQUIRED", 409)
-            content = CatalogContent(offerings=payload.offerings, promotions=payload.promotions)
-            row = (
-                (
-                    await session.execute(
-                        text("""INSERT INTO business_catalog_versions
-                          (tenant_id,business_id,version,operation_id,actor_id,request_hash,document)
-                          VALUES(:tenant,:business,:version,:operation,:actor,:digest,CAST(:document AS jsonb))
-                          RETURNING version,document,created_at"""),
-                        {
-                            "tenant": tenant,
-                            "business": business,
-                            "version": version,
-                            "operation": payload.operation_id,
-                            "actor": actor,
-                            "digest": _digest(payload),
-                            "document": content.model_dump_json(),
-                        },
-                    )
-                )
-                .mappings()
-                .one()
+            deferred = await VisualPendingChanges.enqueue_in_session(
+                session,
+                tenant,
+                business,
+                actor,
+                payload.operation_id,
+                "catalog_update",
+                "catalog",
+                _digest(payload),
+                payload.model_dump(mode="json"),
             )
-            await self._project(session, tenant, business, version, content)
-            await audit_catalog_change(session, tenant, business, actor, payload.operation_id, "catalog.updated")
-            return self._present(row)
+            if deferred:
+                return CatalogRead.model_validate(
+                    {
+                        **current.model_dump(),
+                        "pending_change": {"operation_id": payload.operation_id, "status": "pending"},
+                    }
+                )
+            return await self._save_in_session(session, tenant, business, actor, payload)

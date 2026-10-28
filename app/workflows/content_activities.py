@@ -57,6 +57,14 @@ class ContentCandidateActivities:
             )
         if row is None:
             return "skipped"
+        if self.settings.intent_ai_mode == "jev" or self.settings.editorial_ai_mode == "openai":
+            from app.services.service_agreement import service_agreement_allowed
+
+            async with self.app_database.transaction(row["tenant_id"], row["actor_id"]) as owner_session:
+                if not await service_agreement_allowed(
+                    owner_session, self.settings, row["tenant_id"], row["business_id"]
+                ):
+                    return "skipped"
         if row["kind"] == "text":
             cipher = Fernet(self.settings.meta_encryption_key.get_secret_value().encode())  # type: ignore[union-attr]
             content = cipher.decrypt(row["ciphertext"].encode()).decode().strip().casefold()
@@ -154,6 +162,10 @@ class ContentCandidateActivities:
 
     @activity.defn
     async def request_candidate_preview(self, ids: list[str]) -> str:
+        # OpenAI mode is not connected to a reviewed effect guard. Returning a
+        # locally rendered placeholder here would falsely imply real AI output.
+        if self.settings.visual_ai_mode == "openai":
+            return "blocked"
         event, proposal = UUID(ids[0]), UUID(ids[1])
         async with self.worker_database.sessions() as session, session.begin():
             row = (

@@ -104,6 +104,8 @@ class BrandKitState(BaseModel):
     head_version: int
     confirmed: BrandKitVersion | None = None
     draft: BrandKitVersion | None = None
+    pending_change: bool = False
+    pending_change_error: str | None = None
 
 
 class BrandKitOptions(BaseModel):

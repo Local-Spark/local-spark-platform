@@ -38,7 +38,8 @@ async def admin():
         await connection.execute(
             text(
                 "TRUNCATE user_accounts, tenants, memberships, businesses, idempotency_records, "
-                "outbox_events, audit_events, processed_events, auth_limits, billing_jobs, whatsapp_inbox CASCADE"
+                "outbox_events, audit_events, processed_events, auth_limits, billing_jobs, whatsapp_inbox, "
+                "visual_global_monthly_budget CASCADE"
             )
         )
     try:

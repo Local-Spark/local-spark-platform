@@ -31,3 +31,8 @@ async def link_start(tenant_id: UUID, business_id: UUID, request: Request, actor
 @whatsapp_link_router.post("/confirm")
 async def link_confirm(tenant_id: UUID, business_id: UUID, request: Request, actor: Actor) -> dict[str, str]:
     return await service(request).confirm(tenant_id, business_id, actor)
+
+
+@whatsapp_link_router.delete("")
+async def link_disconnect(tenant_id: UUID, business_id: UUID, request: Request, actor: Actor) -> dict[str, str]:
+    return await service(request).disconnect(tenant_id, business_id, actor)

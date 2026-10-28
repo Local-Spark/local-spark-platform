@@ -30,7 +30,9 @@ async def _setup(admin, seeded, settings):
     tenant, actor = seeded["t1"], seeded["a1"]
     business = await _business(admin, tenant)
     item, operation = await preview(admin, tenant, business, actor), uuid4()
-    cfg = settings.model_copy(update={"visual_ai_monthly_budget_usd_micros": 100})
+    cfg = settings.model_copy(
+        update={"visual_ai_monthly_budget_usd_micros": 100, "visual_ai_global_monthly_budget_usd_micros": 100}
+    )
     db = Database(cfg, correlator=True)
     request = VisualRequest(
         prompt="fictitious",
@@ -144,5 +146,44 @@ async def test_failure_after_claim_cannot_cause_a_second_submission(admin, seede
                 )
                 == "uncertain"
             )
+    finally:
+        await db.close()
+
+
+@pytest.mark.parametrize("mutation", ["deactivate", "change_role", "deactivate_user"])
+async def test_owner_lost_after_reservation_cannot_claim_or_call_provider(admin, seeded, settings, mutation):
+    cfg, db, identity, prepared, attempt = await _setup(admin, seeded, settings)
+    provider = MagicMock()
+    provider.generate = AsyncMock()
+    params = {"tenant": identity.tenant, "actor": identity.actor}
+    async with admin.begin() as conn:
+        if mutation == "deactivate":
+            await conn.execute(
+                text("UPDATE memberships SET active=false WHERE tenant_id=:tenant AND actor_id=:actor"), params
+            )
+        elif mutation == "change_role":
+            await conn.execute(
+                text("UPDATE memberships SET role='viewer' WHERE tenant_id=:tenant AND actor_id=:actor"), params
+            )
+        else:
+            await conn.execute(text("UPDATE user_accounts SET active=false WHERE id=:actor"), params)
+    try:
+        with pytest.raises(VisualSubmissionError, match="VISUAL_SUBMISSION_NOT_NEW"):
+            await execute_visual_submission(
+                identity=identity,
+                prepared=prepared,
+                signing_key="synthetic-key",
+                attempt=attempt,
+                provider=provider,
+                ledger=VisualCostLedger(cfg, db),
+                claims=VisualSubmissionClaims(db),
+            )
+        provider.generate.assert_not_awaited()
+        async with admin.connect() as conn:
+            state = await conn.scalar(
+                text("SELECT state FROM visual_cost_reservations WHERE tenant_id=:tenant AND id=:reservation"),
+                {"tenant": identity.tenant, "reservation": attempt.reservation.id},
+            )
+            assert state == "submitted"
     finally:
         await db.close()

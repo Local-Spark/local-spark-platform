@@ -87,9 +87,16 @@ class CatalogUpdate(CatalogContent):
     expected_version: int = Field(ge=0, strict=True)
 
 
+class PendingCatalogChange(BaseModel):
+    operation_id: UUID
+    status: Literal["pending", "failed"] = "pending"
+    error_code: str | None = None
+
+
 class CatalogRead(CatalogContent):
     version: int
     updated_at: datetime | None = None
+    pending_change: PendingCatalogChange | None = None
 
 
 class CatalogHistoryItem(BaseModel):

@@ -68,6 +68,7 @@ def test_explicit_live_configuration_and_environment_isolation(config):
     safe = {
         **config.model_dump(),
         "environment": "production",
+        "service_agreement_required": True,
         "temporal_tls": True,
         "public_web_url": "https://meu-braco-direito.example",
         "auth_encryption_key": "c2VjdXJlLXRlc3Qta2V5LTAwMDAwMDAwMDAwMDAwMDA=",

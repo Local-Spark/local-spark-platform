@@ -219,7 +219,7 @@ async def test_proposal_rejects_unready_or_foreign_source_briefing(
     briefing = uuid4()
     session = SimpleNamespace(
         execute=AsyncMock(return_value=mapped(None)),
-        scalar=AsyncMock(side_effect=[True, True, source if source_matches else uuid4()]),
+        scalar=AsyncMock(side_effect=[0, True, True, source if source_matches else uuid4()]),
     )
     database = MemoryDatabase(session)
     monkeypatch.setattr("app.services.whatsapp_materials.WhatsAppMaterialsService._require_owner", AsyncMock())

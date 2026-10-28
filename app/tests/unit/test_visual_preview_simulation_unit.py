@@ -1,12 +1,14 @@
 """Failure and replay behavior of the explicitly simulated visual pipeline."""
 
 import asyncio
+import io
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
+from PIL import Image
 from pydantic import ValidationError
 
 from app.schemas.media_previews import PreviewRequest
@@ -33,9 +35,19 @@ def visual_case(settings, monkeypatch):
         context=context, request_hash="a" * 64, request=SimpleNamespace(size="1024x1280", model="test")
     )
     cfg = settings.model_copy(update={"visual_ai_mode": "fake", "visual_ai_monthly_budget_usd_micros": 100})
-    prepare = AsyncMock(return_value=prepared)
-    monkeypatch.setattr("app.services.visual_requests.VisualRequestService.prepare", prepare)
+    prepare = AsyncMock(return_value=SimpleNamespace(request=prepared))
+    monkeypatch.setattr("app.services.visual_brand_finish.VisualBrandFinishService.prepare", prepare)
+    monkeypatch.setattr(
+        "app.services.visual_brand_finish.VisualBrandFinishService.finish",
+        AsyncMock(side_effect=lambda actor, brand, scene, *, candidate: scene),
+    )
     monkeypatch.setattr("app.services.visual_context.VisualContextService.capture", AsyncMock(return_value=context))
+    monkeypatch.setattr(
+        "app.services.visual_context.VisualContextService.capture_in_transaction", AsyncMock(return_value=context)
+    )
+    monkeypatch.setattr(
+        "app.services.visual_pending_changes.VisualPendingChanges.has_pending_in_session", AsyncMock(return_value=False)
+    )
     monkeypatch.setattr("app.services.media_previews.WhatsAppMaterialsService._require_owner", AsyncMock())
     monkeypatch.setattr("app.services.media_previews._audit", AsyncMock())
     monkeypatch.setattr("app.services.visual_consent_gate.VisualConsentGate.status", AsyncMock(return_value="active"))
@@ -92,6 +104,42 @@ async def test_withdrawal_blocks_queued_visual_before_any_photo_is_loaded(visual
     service._fail.assert_awaited_once_with(service._fail.await_args.args[0], 1, "VISUAL_AI_CONSENT_REQUIRED", False)
 
 
+@pytest.mark.parametrize("allowed", [False, True])
+async def test_visual_fake_request_checks_agreement_before_context_or_admission(visual_case, monkeypatch, allowed):
+    c = visual_case
+    c.cfg = c.cfg.model_copy(update={"service_agreement_required": True})
+    check = AsyncMock(return_value=allowed)
+    monkeypatch.setattr("app.services.service_agreement.service_agreement_allowed", check)
+    monkeypatch.setattr(
+        "app.services.visual_consent_gate.VisualConsentGate.status", AsyncMock(return_value="revocation_pending")
+    )
+    db, _ = _database([])
+    error = "VISUAL_AI_CONSENT_REQUIRED" if allowed else "SERVICE_AGREEMENT_REQUIRED"
+    with pytest.raises(AuthError, match=error):
+        await MediaPreviewService(c.cfg, db).request_candidate(c.tenant, c.business, c.actor, c.body)
+    check.assert_awaited_once()
+    c.prepare.assert_not_awaited()
+
+
+@pytest.mark.parametrize("allowed", [False, True])
+async def test_visual_fake_worker_checks_agreement_before_admission(visual_case, monkeypatch, allowed):
+    c = visual_case
+    c.cfg = c.cfg.model_copy(update={"service_agreement_required": True})
+    check = AsyncMock(return_value=allowed)
+    admit = AsyncMock(return_value=False)
+    monkeypatch.setattr("app.services.service_agreement.service_agreement_allowed", check)
+    monkeypatch.setattr("app.services.visual_consent_gate.VisualConsentGate.admit", admit)
+    db, _ = _database([c.row])
+    service = MediaPreviewService(c.cfg, db, AsyncMock())
+    service._fail = AsyncMock(return_value="failed")
+    preview = uuid4()
+    assert await service._render_visual_fake(preview, 1) == "failed"
+    error = "VISUAL_OUTCOME_UNCERTAIN" if allowed else "SERVICE_AGREEMENT_REQUIRED"
+    service._fail.assert_awaited_once_with(preview, 1, error, False)
+    assert admit.await_count == int(allowed)
+    c.prepare.assert_not_awaited()
+
+
 async def test_existing_admission_never_starts_a_second_execution(visual_case, monkeypatch):
     c = visual_case
     admit = AsyncMock(return_value=False)
@@ -115,6 +163,22 @@ async def test_queue_creation_rechecks_consent_under_business_lock(visual_case, 
     with pytest.raises(AuthError, match="VISUAL_AI_CONSENT_REQUIRED"):
         await MediaPreviewService(c.cfg, db).request_candidate(c.tenant, c.business, c.actor, c.body)
     c.prepare.assert_not_awaited()
+
+
+async def test_queue_creation_blocks_pending_change_and_changed_context(visual_case, monkeypatch):
+    c = visual_case
+    pending = AsyncMock(return_value=True)
+    monkeypatch.setattr("app.services.visual_pending_changes.VisualPendingChanges.has_pending_in_session", pending)
+    db, _ = _database([])
+    with pytest.raises(AuthError, match="VISUAL_CHANGE_PENDING"):
+        await MediaPreviewService(c.cfg, db).request_candidate(c.tenant, c.business, c.actor, c.body)
+    pending.return_value = False
+    monkeypatch.setattr(
+        "app.services.visual_context.VisualContextService.capture_in_transaction",
+        AsyncMock(return_value=SimpleNamespace(fingerprint="changed")),
+    )
+    with pytest.raises(AuthError, match="PREVIEW_INPUT_CHANGED"):
+        await MediaPreviewService(c.cfg, db).request_candidate(c.tenant, c.business, c.actor, c.body)
 
 
 async def test_read_only_validation_passes_preview_identity_to_context(visual_case, monkeypatch):
@@ -198,6 +262,55 @@ async def test_visual_validation_fails_closed_on_mode_and_changed_context(settin
         await service._validate_visual(c.row, c.actor)
 
 
+@pytest.mark.parametrize("view_only", [True, False])
+async def test_visual_validation_does_not_bypass_unrelated_authorization_errors(visual_case, monkeypatch, view_only):
+    c = visual_case
+    monkeypatch.setattr(
+        "app.services.visual_context.VisualContextService.capture",
+        AsyncMock(side_effect=AuthError("PLAN_REQUIRED", 403)),
+    )
+    db, _ = _database([])
+    with pytest.raises(AuthError, match="PLAN_REQUIRED"):
+        await MediaPreviewService(c.cfg, db)._validate_visual({**c.row, "id": uuid4()}, c.actor, view_only=view_only)
+
+
+@pytest.mark.parametrize("missing", ["state", "sha256", "object_key"])
+async def test_old_visual_without_completed_object_cannot_use_change_proof(visual_case, monkeypatch, missing):
+    c = visual_case
+    monkeypatch.setattr(
+        "app.services.visual_context.VisualContextService.capture",
+        AsyncMock(side_effect=AuthError("VISUAL_KIT_CHANGED", 409)),
+    )
+    row = {**c.row, "id": uuid4(), "state": "completed", "sha256": "a" * 64, "object_key": "preview.jpg"}
+    row[missing] = "failed" if missing == "state" else None
+    db, _ = _database([])
+    with pytest.raises(AuthError, match="PREVIEW_INPUT_CHANGED"):
+        await MediaPreviewService(c.cfg, db)._validate_visual(row, c.actor, view_only=True)
+
+
+@pytest.mark.parametrize("source", [None, {"source_asset_id": uuid4()}])
+async def test_old_visual_requires_proof_for_the_same_source_and_script(visual_case, monkeypatch, source):
+    c = visual_case
+    monkeypatch.setattr(
+        "app.services.visual_context.VisualContextService.capture",
+        AsyncMock(side_effect=AuthError("VISUAL_KIT_CHANGED", 409)),
+    )
+    row = {
+        **c.row,
+        "id": uuid4(),
+        "state": "completed",
+        "sha256": "a" * 64,
+        "object_key": "preview.jpg",
+        "dispatch_fence": 1,
+        "script_version": 1,
+        "source_asset_id": uuid4(),
+    }
+    db, session = _database([source])
+    session.scalar.return_value = True
+    with pytest.raises(AuthError, match="PREVIEW_INPUT_CHANGED"):
+        await MediaPreviewService(c.cfg, db)._validate_visual(row, c.actor, view_only=True)
+
+
 async def test_visual_render_guards_replays_changed_sources_and_fence(settings, monkeypatch, visual_case):
     c = visual_case
     preview = uuid4()
@@ -227,7 +340,7 @@ async def test_visual_render_guards_replays_changed_sources_and_fence(settings, 
     finish = AsyncMock()
     monkeypatch.setattr("app.services.visual_cost_ledger.VisualCostLedger.finish", finish)
     changed = SimpleNamespace(request_hash="different")
-    c.prepare.side_effect = [c.prepared, changed]
+    c.prepare.side_effect = [SimpleNamespace(request=c.prepared), SimpleNamespace(request=changed)]
     db, _ = _database([c.row])
     service = MediaPreviewService(c.cfg, db, AsyncMock())
     service._fail = AsyncMock(return_value="failed")
@@ -257,3 +370,48 @@ async def test_cleanup_failure_does_not_override_preview_failure(visual_case, mo
     assert await service._render_visual_fake(uuid4(), 1) == "failed"
     service._fail.assert_awaited_once()
     store.delete.assert_awaited_once()
+
+
+async def test_simulated_preview_runs_brand_finish_and_marks_image_as_simulation(visual_case, monkeypatch):
+    c = visual_case
+    db, _ = _database([c.row, c.row])
+    store = AsyncMock()
+    finish_brand = AsyncMock(side_effect=lambda actor, brand, scene, *, candidate: scene)
+    monkeypatch.setattr("app.services.visual_brand_finish.VisualBrandFinishService.finish", finish_brand)
+    monkeypatch.setattr(
+        "app.services.visual_attempts.VisualAttemptService.reserve",
+        AsyncMock(return_value=SimpleNamespace(created=True, reservation=SimpleNamespace(id=uuid4()))),
+    )
+    monkeypatch.setattr("app.services.visual_cost_ledger.VisualCostLedger.finish", AsyncMock())
+    assert await MediaPreviewService(c.cfg, db, store)._render_visual_fake(uuid4(), 1) == "completed"
+    finish_brand.assert_awaited_once()
+    media = store.put.await_args.args[1]
+    assert media.mime_type == "image/jpeg"
+    with Image.open(io.BytesIO(media.data)) as image:
+        assert image.size == (1024, 1280)
+        assert all(value < 100 for value in image.getpixel((4, 4)))
+        # The band is not merely a dark rectangle: its visible white text is
+        # present in the exported image, independent of UI labeling.
+        assert max(channel[1] for channel in image.crop((0, 0, 1024, 53)).getextrema()) > 230
+
+
+async def test_brand_finishing_failure_never_uploads_simulated_preview(visual_case, monkeypatch):
+    from app.adapters.brand_overlay import BrandOverlayError
+
+    c = visual_case
+    db, _ = _database([c.row])
+    store = AsyncMock()
+    monkeypatch.setattr(
+        "app.services.visual_brand_finish.VisualBrandFinishService.finish",
+        AsyncMock(side_effect=BrandOverlayError("BRAND_COPY_TOO_LONG")),
+    )
+    monkeypatch.setattr(
+        "app.services.visual_attempts.VisualAttemptService.reserve",
+        AsyncMock(return_value=SimpleNamespace(created=True, reservation=SimpleNamespace(id=uuid4()))),
+    )
+    monkeypatch.setattr("app.services.visual_cost_ledger.VisualCostLedger.finish", AsyncMock())
+    service = MediaPreviewService(c.cfg, db, store)
+    service._fail = AsyncMock(return_value="failed")
+    assert await service._render_visual_fake(uuid4(), 1) == "failed"
+    assert service._fail.await_args.args[2] == "BRAND_COPY_TOO_LONG"
+    store.put.assert_not_awaited()

@@ -14,9 +14,13 @@ class VisualConsentService:
     async def status(self, tenant: UUID, business: UUID, actor: UUID) -> dict[str, bool | str]:
         state = await VisualConsentGate(self.database).status(tenant, business, actor)
         return {
-            "accepted": state == "active",
+            # Withdrawal remains effective only after admitted work finishes;
+            # `state` controls whether new work may be admitted.
+            "accepted": state != "revoked",
             "state": state,
-            "provider_enabled": self.settings.visual_ai_mode == "openai",
+            # A configured credential alone does not mean the real preview
+            # worker is connected or its effect guard has been validated.
+            "provider_enabled": False,
         }
 
     async def set(self, tenant: UUID, business: UUID, actor: UUID, accepted: bool) -> dict[str, bool | str]:
@@ -25,7 +29,7 @@ class VisualConsentService:
             gate.enable(tenant, business, actor) if accepted else gate.request_withdrawal(tenant, business, actor)
         )
         return {
-            "accepted": state == "active",
+            "accepted": state != "revoked",
             "state": state,
-            "provider_enabled": self.settings.visual_ai_mode == "openai",
+            "provider_enabled": False,
         }

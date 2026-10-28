@@ -17,7 +17,7 @@ from app.services.jev_interpreter import BudgetedJevInterpreter
 class Database:
     @asynccontextmanager
     async def transaction(self, *_):
-        yield object()
+        yield SimpleNamespace(execute=AsyncMock())
 
 
 @pytest.mark.parametrize("missing", ["typesafe_api_key", "meta_encryption_key"])

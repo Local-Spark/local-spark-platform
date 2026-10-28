@@ -531,6 +531,34 @@ async def test_retention_hides_and_erases_private_output(admin, seeded, settings
         await worker.close()
 
 
+@pytest.mark.parametrize("mode", ["local", "visual_fake"])
+async def test_retention_deletes_the_recorded_fenced_attempt_key(admin, seeded, settings, mode):
+    tenant, business, actor, _, proposal, _ = await _accepted_case(admin, seeded)
+    owner_db = Database(settings)
+    worker = Database(settings, correlator=True)
+    try:
+        preview = await MediaPreviewService(settings, owner_db).request(
+            tenant, business, actor, PreviewRequest(operation_id=uuid4(), proposal_id=proposal)
+        )
+        stored_key = f"previews/{tenant}/{business}/{preview.id}/attempt-3/committed.jpg"
+        async with admin.begin() as conn:
+            await conn.execute(
+                text("""UPDATE media_previews SET state='completed',object_key=:key,sha256=:sha,
+                  expires_at=now()-interval '1 second',generation_mode=:mode,
+                  visual_fingerprint=CASE WHEN :mode='visual_fake' THEN CAST(:fingerprint AS char(64)) ELSE NULL END
+                  WHERE id=:id"""),
+                {"key": stored_key, "sha": "a" * 64, "fingerprint": "a" * 64, "id": preview.id, "mode": mode},
+            )
+        store = AsyncMock()
+        assert await purge_expired_previews(worker, store, uuid4()) == 1
+        store.delete.assert_awaited_once_with(stored_key)
+        async with admin.connect() as conn:
+            assert await conn.scalar(text("SELECT count(*) FROM media_previews WHERE id=:id"), {"id": preview.id}) == 0
+    finally:
+        await owner_db.close()
+        await worker.close()
+
+
 async def test_static_preview_owner_lifecycle_and_tenant_isolation(admin, api, database, seeded, settings, monkeypatch):
     business = await _business(admin, seeded)
     tenant, actor = seeded["t1"], seeded["a1"]

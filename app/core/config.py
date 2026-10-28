@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     )
 
     environment: Literal["development", "testing", "staging", "production"] = "development"
+    # Development/test migration switch; production must enforce the agreement.
+    service_agreement_required: bool = False
     project_name: str = "Meu Braço Direito API"
     database_url: SecretStr
     relay_database_url: SecretStr | None = None
@@ -68,6 +70,7 @@ class Settings(BaseSettings):
     intent_ai_input_rate_usd_micros: int = Field(default=42_000, ge=42_000)
     visual_ai_mode: Literal["disabled", "fake", "openai"] = "disabled"
     visual_ai_monthly_budget_usd_micros: int = Field(default=0, ge=0, le=1_000_000_000_000)
+    visual_ai_global_monthly_budget_usd_micros: int = Field(default=0, ge=0, le=1_000_000_000_000)
     jwt_secret: SecretStr = Field(min_length=32)
     jwt_issuer: str = "meu-braco-direito-local"
     jwt_audience: str = "meu-braco-direito-api"
@@ -114,6 +117,12 @@ class Settings(BaseSettings):
                 raise ValueError("A private auth encryption key is required")
             if not self.smtp_starttls or not self.smtp_username or self.smtp_password is None:
                 raise ValueError("Authenticated TLS mail delivery is required")
+        return self
+
+    @model_validator(mode="after")
+    def service_agreement_safety(self) -> "Settings":
+        if self.environment == "production" and not self.service_agreement_required:
+            raise ValueError("Production requires service agreement enforcement")
         return self
 
     @model_validator(mode="after")

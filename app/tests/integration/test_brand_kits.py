@@ -80,7 +80,13 @@ async def test_kit_catalog_draft_confirm_replay_cas_and_snapshot(admin, api, dat
     assert kit["default_overrides"]["brand_name"] == "A"
     assert all("post-" not in value for value in kit["preview_images"].values())
     assert kit["options"]["layouts"]["feed"] == ["photo_focus", "offer_focus"]
-    assert (await api.get(base, headers=owner)).json() == {"head_version": 0, "confirmed": None, "draft": None}
+    assert (await api.get(base, headers=owner)).json() == {
+        "head_version": 0,
+        "confirmed": None,
+        "draft": None,
+        "pending_change": False,
+        "pending_change_error": None,
+    }
     assert (await api.get(base, headers=viewer)).status_code == 403
     assert (await api.get(base, headers=other)).status_code == 403
 

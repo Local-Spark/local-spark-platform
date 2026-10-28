@@ -66,10 +66,17 @@ class ContextRestore(BaseModel):
     operation_id: UUID
 
 
+class PendingContextChange(BaseModel):
+    operation_id: UUID
+    status: Literal["pending", "failed"] = "pending"
+    error_code: str | None = None
+
+
 class ContextRead(ContextContent):
     version: int
     updated_at: datetime | None = None
     hypotheses: list[str] = Field(default_factory=list)
+    pending_change: PendingContextChange | None = None
 
 
 class ContextHistoryItem(BaseModel):

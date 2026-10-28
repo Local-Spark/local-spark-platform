@@ -14,6 +14,8 @@ from app.schemas.editorial_proposals import ProposalRequest
 from app.services import brand_kits as kits
 from app.services.auth import AuthError
 from app.services.editorial_proposals import EditorialProposalService
+from app.services.visual_consent_gate import VisualConsentGate
+from app.services.visual_pending_changes import VisualPendingChanges
 from app.services.whatsapp_materials import WhatsAppMaterialsService
 
 
@@ -99,6 +101,9 @@ def _ids():
 
 def _owner(monkeypatch):
     monkeypatch.setattr(kits.BrandKitService, "_owner", AsyncMock())
+    monkeypatch.setattr(VisualConsentGate, "_lock", AsyncMock())
+    monkeypatch.setattr(VisualPendingChanges, "status_in_session", AsyncMock(return_value=None))
+    monkeypatch.setattr(VisualPendingChanges, "enqueue_in_session", AsyncMock(return_value=False))
 
 
 async def test_empty_kit_state_and_versioned_history(monkeypatch):
@@ -203,15 +208,13 @@ async def test_confirm_requires_a_real_draft_and_cas(monkeypatch):
         await service.confirm(tenant, business, actor, body)
     assert failure.value.code == "BRAND_KIT_NOT_SELECTABLE"
     for row in (None, {"state": "confirmed", "document": {}}):
-        service, _, _ = _service(Session(results=[Rows(row)]))
+        session = Session(results=[Rows(row)])
         with pytest.raises(AuthError) as failure:
-            await service.confirm(tenant, business, actor, body)
+            await kits.BrandKitService._confirm_in_session(session, tenant, business, actor, body)
         assert failure.value.code == "BRAND_KIT_DRAFT_REQUIRED"
-    service, _, _ = _service(
-        Session(results=[Rows({"state": "draft", "document": _row()["document"]})], scalars=[None])
-    )
+    session = Session(results=[Rows({"state": "draft", "document": _row()["document"]})], scalars=[None])
     with pytest.raises(AuthError) as failure:
-        await service.confirm(tenant, business, actor, body)
+        await kits.BrandKitService._confirm_in_session(session, tenant, business, actor, body)
     assert failure.value.code == "BRAND_KIT_VERSION_CONFLICT"
 
 
@@ -220,17 +223,82 @@ async def test_confirm_cas_replay_and_success(monkeypatch):
     tenant, business, actor = _ids()
     body = BrandKitConfirmRequest(operation_id=uuid4(), expected_version=1)
     state = BrandKitState(head_version=2)
+    monkeypatch.setattr(kits.BrandKitService, "_replay", AsyncMock(return_value=state))
+    assert await kits.BrandKitService._confirm_in_session(Session(), tenant, business, actor, body) == state
     monkeypatch.setattr(kits.BrandKitService, "_replay", AsyncMock(side_effect=[None, state]))
     session = Session(results=[Rows({"state": "draft", "document": _row()["document"]})], scalars=[None])
-    service, _, _ = _service(session)
-    assert await service.confirm(tenant, business, actor, body) == state
+    assert await kits.BrandKitService._confirm_in_session(session, tenant, business, actor, body) == state
     monkeypatch.setattr(kits.BrandKitService, "_replay", AsyncMock(return_value=None))
     monkeypatch.setattr(kits.BrandKitService, "_state", AsyncMock(return_value=state))
     monkeypatch.setattr(kits.BrandKitService, "_record", AsyncMock())
     monkeypatch.setattr(kits.BrandKitService, "_save_response", AsyncMock())
     session = Session(results=[Rows({"state": "draft", "document": _row()["document"]})], scalars=[2])
-    service, _, _ = _service(session)
-    assert await service.confirm(tenant, business, actor, body) == state
+    assert await kits.BrandKitService._confirm_in_session(session, tenant, business, actor, body) == state
+
+
+@pytest.mark.parametrize("pending", [True, False])
+async def test_confirm_reports_pending_or_applies_after_validation(monkeypatch, pending):
+    _owner(monkeypatch)
+    tenant, business, actor = _ids()
+    body = BrandKitConfirmRequest(operation_id=uuid4(), expected_version=1)
+    current = BrandKitState(head_version=1, draft=kits.BrandKitService._version(_row(1)))
+    done = BrandKitState(head_version=2)
+    monkeypatch.setattr(kits.BrandKitService, "_state", AsyncMock(return_value=current))
+    monkeypatch.setattr(kits.BrandKitService, "_replay", AsyncMock(return_value=None))
+    monkeypatch.setattr(VisualPendingChanges, "enqueue_in_session", AsyncMock(return_value=pending))
+    apply = AsyncMock(return_value=done)
+    monkeypatch.setattr(kits.BrandKitService, "_confirm_in_session", apply)
+    service, _, _ = _service()
+    result = await service.confirm(tenant, business, actor, body)
+    if pending:
+        assert result.pending_change and result.head_version == 1
+        apply.assert_not_awaited()
+    else:
+        assert result == done
+        apply.assert_awaited_once()
+
+
+@pytest.mark.parametrize(
+    "previous,expected", [(True, "BRAND_KIT_VERSION_CONFLICT"), (False, "BRAND_KIT_DRAFT_REQUIRED")]
+)
+async def test_confirm_rejects_noncurrent_draft(monkeypatch, previous, expected):
+    _owner(monkeypatch)
+    tenant, business, actor = _ids()
+    body = BrandKitConfirmRequest(operation_id=uuid4(), expected_version=1)
+    monkeypatch.setattr(kits.BrandKitService, "_state", AsyncMock(return_value=BrandKitState(head_version=2)))
+    monkeypatch.setattr(kits.BrandKitService, "_replay", AsyncMock(return_value=None))
+    service, _, _ = _service(Session(scalars=[1 if previous else None]))
+    with pytest.raises(AuthError, match=expected):
+        await service.confirm(tenant, business, actor, body)
+
+
+async def test_confirm_rejects_current_head_without_draft(monkeypatch):
+    _owner(monkeypatch)
+    tenant, business, actor = _ids()
+    body = BrandKitConfirmRequest(operation_id=uuid4(), expected_version=1)
+    monkeypatch.setattr(kits.BrandKitService, "_state", AsyncMock(return_value=BrandKitState(head_version=1)))
+    monkeypatch.setattr(kits.BrandKitService, "_replay", AsyncMock(return_value=None))
+    service, _, _ = _service()
+    with pytest.raises(AuthError, match="BRAND_KIT_DRAFT_REQUIRED"):
+        await service.confirm(tenant, business, actor, body)
+
+
+async def test_draft_and_read_report_pending_failure(monkeypatch):
+    _owner(monkeypatch)
+    tenant, business, actor = _ids()
+    monkeypatch.setattr(kits.BrandKitService, "_replay", AsyncMock(return_value=None))
+    monkeypatch.setattr(VisualPendingChanges, "status_in_session", AsyncMock(return_value={"status": "pending"}))
+    service, _, _ = _service()
+    with pytest.raises(AuthError, match="VISUAL_CHANGE_ALREADY_PENDING"):
+        await service.draft(tenant, business, actor, _draft())
+    assert (await service.read(tenant, business, actor)).pending_change
+    monkeypatch.setattr(
+        VisualPendingChanges,
+        "status_in_session",
+        AsyncMock(return_value={"status": "failed", "error_code": "BRAND_KIT_VERSION_CONFLICT"}),
+    )
+    state = await service.read(tenant, business, actor)
+    assert not state.pending_change and state.pending_change_error == "BRAND_KIT_VERSION_CONFLICT"
 
 
 async def test_logo_rejects_unavailable_demo_and_deleted_intent(monkeypatch):
@@ -368,8 +436,8 @@ async def test_editorial_proposal_blocks_demo_kit_in_production(monkeypatch):
     monkeypatch.setattr(WhatsAppMaterialsService, "_require_owner", AsyncMock())
     tenant, business, actor = _ids()
     session = Session(
-        results=[Rows(), Rows({"version": 2, "document": _row(2, "confirmed")["document"]})],
-        scalars=[True, 0],
+        results=[Rows(), Rows(), Rows({"version": 2, "document": _row(2, "confirmed")["document"]})],
+        scalars=[0, True, 0],
     )
     settings = SimpleNamespace(environment="production", editorial_ai_mode="deterministic")
     service = EditorialProposalService(settings, Database(session), provider=object())

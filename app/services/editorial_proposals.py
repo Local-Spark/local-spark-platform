@@ -34,6 +34,7 @@ from app.schemas.editorial_proposals import (
 from app.services.auth import AuthError
 from app.services.brand_kits import kit_commercially_available
 from app.services.plan_capabilities import INITIAL_PLAN_INTENT_FORMATS
+from app.services.service_agreement import service_agreement_allowed
 from app.services.whatsapp_materials import WhatsAppMaterialsService
 
 
@@ -140,21 +141,32 @@ class EditorialProposalService:
             return {"accepted": bool(accepted), "provider_enabled": self.settings.editorial_ai_mode == "openai"}
 
     async def set_consent(self, tenant: UUID, business: UUID, actor: UUID, accepted: bool) -> dict[str, bool]:
+        from app.services.visual_consent_gate import VisualConsentGate
+
         async with self.database.transaction(tenant, actor) as session:
-            await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
+            await VisualConsentGate._lock(session, tenant, business, actor)
             current = await session.scalar(
                 text("""SELECT revoked_at IS NULL FROM editorial_ai_consents
               WHERE tenant_id=:tenant AND business_id=:business FOR UPDATE"""),
                 {"tenant": tenant, "business": business},
             )
             if current is not None and bool(current) == accepted:
-                return {"accepted": accepted, "provider_enabled": self.settings.editorial_ai_mode == "openai"}
+                return {
+                    "accepted": accepted,
+                    "provider_enabled": self.settings.editorial_ai_mode == "openai",
+                }
             if current is None and not accepted:
-                return {"accepted": False, "provider_enabled": self.settings.editorial_ai_mode == "openai"}
+                return {
+                    "accepted": False,
+                    "provider_enabled": self.settings.editorial_ai_mode == "openai",
+                }
             await session.execute(
                 text("""INSERT INTO editorial_ai_consents(tenant_id,business_id,actor_id)
               VALUES(:tenant,:business,:actor) ON CONFLICT(tenant_id,business_id) DO UPDATE SET
-              actor_id=EXCLUDED.actor_id,accepted_at=now(),revoked_at=CASE WHEN :accepted THEN NULL ELSE now() END"""),
+              actor_id=EXCLUDED.actor_id,accepted_at=CASE WHEN :accepted THEN now()
+                ELSE editorial_ai_consents.accepted_at END,
+              generation=editorial_ai_consents.generation+CASE WHEN :accepted THEN 0 ELSE 1 END,
+              revoked_at=CASE WHEN :accepted THEN NULL ELSE now() END"""),
                 {"tenant": tenant, "business": business, "actor": actor, "accepted": accepted},
             )
             await _audit(
@@ -162,7 +174,10 @@ class EditorialProposalService:
                 {"tenant_id": tenant, "business_id": business, "actor_id": actor},
                 "editorial.ai_consent_accepted" if accepted else "editorial.ai_consent_revoked",
             )
-            return {"accepted": accepted, "provider_enabled": self.settings.editorial_ai_mode == "openai"}
+            return {
+                "accepted": accepted,
+                "provider_enabled": self.settings.editorial_ai_mode == "openai",
+            }
 
     async def request(
         self, tenant: UUID, business: UUID, actor: UUID, payload: ProposalRequest, *, briefing_id: UUID | None = None
@@ -186,6 +201,16 @@ class EditorialProposalService:
                     )
                     if already_requires:
                         raise AuthError("BRIEFING_REQUIRED", 409)
+            # The epoch read and request insertion share the withdrawal lock.
+            await session.execute(
+                text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 48))"),
+                {"key": f"visual-consent:{tenant}:{business}"},
+            )
+            generation = await session.scalar(
+                text("""SELECT coalesce((SELECT generation FROM editorial_ai_consents
+                  WHERE tenant_id=:tenant AND business_id=:business), 0)"""),
+                {"tenant": tenant, "business": business},
+            )
             existing = (
                 (
                     await session.execute(
@@ -198,11 +223,21 @@ class EditorialProposalService:
                 .one_or_none()
             )
             if existing is not None:
+                if (
+                    self.settings.editorial_ai_mode == "openai"
+                    and existing["state"] in {"pending", "dispatching"}
+                    and existing["consent_generation"] != generation
+                ):
+                    raise AuthError("EDITORIAL_REQUEST_CANCELLED", 409)
                 return _replay(existing, digest)
             if not await session.scalar(
                 text(_access_sql()), {"tenant": tenant, "live": self.settings.environment == "production"}
             ):
                 raise AuthError("PLAN_REQUIRED", 403)
+            if self.settings.editorial_ai_mode == "openai" and not await service_agreement_allowed(
+                session, self.settings, tenant, business
+            ):
+                raise AuthError("SERVICE_AGREEMENT_REQUIRED", 409)
             if self.settings.editorial_ai_mode == "openai" and not await self._consented(session, tenant, business):
                 raise AuthError("EDITORIAL_AI_CONSENT_REQUIRED", 409)
             if payload.source_asset_id is not None:
@@ -258,9 +293,9 @@ class EditorialProposalService:
                     await session.execute(
                         text("""INSERT INTO editorial_proposals
               (id,tenant_id,business_id,actor_id,operation_id,request_hash,context_version,source_asset_id,
-               brand_kit_version,brand_kit_document,briefing_id,briefing_required)
+               brand_kit_version,brand_kit_document,briefing_id,briefing_required,consent_generation)
               VALUES(:id,:tenant,:business,:actor,:operation,:digest,:version,:source,:kit_version,
-                     CAST(:kit_document AS jsonb),:briefing_id,:briefing_required)
+                     CAST(:kit_document AS jsonb),:briefing_id,:briefing_required,:generation)
               ON CONFLICT(tenant_id,business_id,operation_id) DO NOTHING RETURNING *"""),
                         {
                             "id": proposal,
@@ -273,6 +308,7 @@ class EditorialProposalService:
                             "source": payload.source_asset_id,
                             "briefing_id": briefing_id,
                             "briefing_required": briefing_id is not None,
+                            "generation": generation if self.settings.editorial_ai_mode == "openai" else None,
                             "kit_version": kit["version"] if kit is not None else None,
                             "kit_document": (
                                 json.dumps(kit["document"], ensure_ascii=False) if kit is not None else None
@@ -980,6 +1016,23 @@ class EditorialProposalService:
                 text(_access_sql()), {"tenant": row["tenant_id"], "live": self.settings.environment == "production"}
             ):
                 return await self._reject(session, row, "PLAN_INACTIVE")
+            # Serialize the durable submission against a pending withdrawal;
+            # the provider is called only after this transaction commits.
+            await session.execute(
+                text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 48))"),
+                {"key": f"visual-consent:{row['tenant_id']}:{row['business_id']}"},
+            )
+            if self.settings.editorial_ai_mode == "openai" and not await service_agreement_allowed(
+                session, self.settings, row["tenant_id"], row["business_id"], worker=True
+            ):
+                return await self._reject(session, row, "SERVICE_AGREEMENT_REQUIRED")
+            generation = await session.scalar(
+                text("""SELECT coalesce((SELECT generation FROM editorial_ai_consents
+                  WHERE tenant_id=:tenant AND business_id=:business), 0)"""),
+                {"tenant": row["tenant_id"], "business": row["business_id"]},
+            )
+            if self.settings.editorial_ai_mode == "openai" and row["consent_generation"] != generation:
+                return await self._reject(session, row, "EDITORIAL_REQUEST_CANCELLED")
             if self.settings.editorial_ai_mode == "openai" and not await self._consented(
                 session, row["tenant_id"], row["business_id"]
             ):
@@ -1077,7 +1130,12 @@ class EditorialProposalService:
             await session.execute(
                 text("""UPDATE editorial_ai_usage SET state=:state,
               input_tokens=:input,output_tokens=:output WHERE proposal_id=:id"""),
-                {"id": proposal_id, "state": state, "input": input_tokens, "output": output_tokens},
+                {
+                    "id": proposal_id,
+                    "state": state,
+                    "input": input_tokens,
+                    "output": output_tokens,
+                },
             )
             await _audit(session, row, f"editorial.proposal_{state}")
             return state

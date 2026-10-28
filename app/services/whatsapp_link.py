@@ -73,7 +73,55 @@ class WhatsAppLinkService:
             "destination": self.settings.meta_public_phone,
         }
 
+    async def disconnect(self, tenant: UUID, business: UUID, actor: UUID) -> dict[str, str]:
+        """Disconnect the channel without withdrawing the service agreement."""
+        from app.services.visual_consent_gate import VisualConsentGate
+        from app.services.visual_pending_changes import VisualPendingChanges
+
+        async with self.database.transaction(tenant, actor) as session:
+            await VisualConsentGate._lock(session, tenant, business, actor)
+            params = {"tenant": tenant, "business": business, "actor": actor}
+            if await VisualPendingChanges.has_pending_in_session(session, tenant, business):
+                raise AuthError("SERVICE_AGREEMENT_CHANGE_PENDING", 409)
+            if await session.scalar(
+                text("""SELECT 1 FROM visual_consent_runs
+              WHERE tenant_id=:tenant AND business_id=:business AND state='in_flight' LIMIT 1"""),
+                params,
+            ):
+                raise AuthError("SERVICE_AGREEMENT_CHANGE_PENDING", 409)
+            # An orphaned audio submission cannot safely be associated with a
+            # single business after its event is purged, so it remains blocking.
+            if await session.scalar(
+                text("""SELECT 1 FROM audit_events a
+              LEFT JOIN whatsapp_material_events e ON e.id=a.resource_id AND e.tenant_id=a.tenant_id
+              WHERE a.tenant_id=:tenant AND a.action='whatsapp.audio_submitted'
+                AND (e.business_id=:business OR e.id IS NULL)
+                AND NOT EXISTS(SELECT 1 FROM audit_events done WHERE done.tenant_id=a.tenant_id
+                  AND done.resource_id=a.resource_id AND done.action='whatsapp.audio_completed') LIMIT 1"""),
+                params,
+            ):
+                raise AuthError("SERVICE_AGREEMENT_CHANGE_PENDING", 409)
+            changed = await session.scalar(
+                text("""UPDATE whatsapp_channel_links SET active=false
+              WHERE tenant_id=:tenant AND business_id=:business AND active RETURNING 1"""),
+                params,
+            )
+            await session.execute(
+                text("""UPDATE whatsapp_link_challenges SET state='cancelled'
+              WHERE tenant_id=:tenant AND business_id=:business AND state='pending'"""),
+                params,
+            )
+            if changed:
+                await session.execute(
+                    text("""INSERT INTO audit_events(tenant_id,actor_id,operation_id,action,resource_id)
+                  VALUES(:tenant,:actor,:operation,'whatsapp.channel_disconnected',:business)"""),
+                    {**params, "operation": uuid4()},
+                )
+        return {"status": "disconnected"}
+
     async def start(self, tenant: UUID, business: UUID, actor: UUID) -> dict[str, str]:
+        from app.services.visual_consent_gate import VisualConsentGate
+
         if self.settings.meta_webhook_mode != "cloud" or self.meta_database is None:
             raise AuthError("WHATSAPP_UNAVAILABLE", 503)
         if not self.settings.meta_public_phone:
@@ -82,7 +130,12 @@ class WhatsAppLinkService:
         digest = hashlib.sha256(token.encode()).hexdigest()
         request = uuid4()
         async with self.database.transaction(tenant, actor) as session:
+            await VisualConsentGate._lock(session, tenant, business, actor)
             phone = await self._owner_phone(session, tenant, business, actor)
+            from app.services.service_agreement import service_agreement_allowed
+
+            if not await service_agreement_allowed(session, self.settings, tenant, business):
+                raise AuthError("SERVICE_AGREEMENT_REQUIRED", 409)
             consented = await session.scalar(
                 text("""SELECT 1 FROM whatsapp_processing_consents
                   WHERE tenant_id=:tenant AND business_id=:business AND revoked_at IS NULL"""),
@@ -154,10 +207,17 @@ class WhatsAppLinkService:
         return None
 
     async def confirm(self, tenant: UUID, business: UUID, actor: UUID) -> dict[str, str]:
+        from app.services.visual_consent_gate import VisualConsentGate
+
         if self.settings.meta_webhook_mode != "cloud" or self.meta_database is None:
             raise AuthError("WHATSAPP_UNAVAILABLE", 503)
         async with self.database.transaction(tenant, actor) as session:
+            await VisualConsentGate._lock(session, tenant, business, actor)
             phone = await self._owner_phone(session, tenant, business, actor)
+            from app.services.service_agreement import service_agreement_allowed
+
+            if not await service_agreement_allowed(session, self.settings, tenant, business):
+                raise AuthError("SERVICE_AGREEMENT_REQUIRED", 409)
             challenge = (
                 (
                     await session.execute(
@@ -187,7 +247,10 @@ class WhatsAppLinkService:
             raise AuthError("WHATSAPP_PROOF_NOT_RECEIVED", 409)
         try:
             async with self.database.transaction(tenant, actor) as session:
+                await VisualConsentGate._lock(session, tenant, business, actor)
                 phone = await self._owner_phone(session, tenant, business, actor)
+                if not await service_agreement_allowed(session, self.settings, tenant, business):
+                    raise AuthError("SERVICE_AGREEMENT_REQUIRED", 409)
                 if not hmac.compare_digest(challenge["sender_hash"], sender_hash(self.settings, phone) or ""):
                     raise AuthError("WHATSAPP_LINK_RETRY", 409)
                 changed = await session.scalar(

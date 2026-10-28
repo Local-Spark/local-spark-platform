@@ -139,6 +139,43 @@ async def test_candidate_preview_guards_and_states(settings, monkeypatch):
     assert await adapter.candidate_preview_state(str(preview)) == "completed"
 
 
+@pytest.mark.parametrize("briefing", [False, True])
+async def test_openai_visual_mode_fails_closed_without_creating_a_local_preview(settings, monkeypatch, briefing):
+    adapter, worker, _ = activities(settings)
+    adapter.settings = adapter.settings.model_copy(update={"visual_ai_mode": "openai"})
+    worker.session.row = {
+        "tenant_id": uuid4(),
+        "business_id": uuid4(),
+        "actor_id": uuid4(),
+        "briefing_required": briefing,
+    }
+    request = AsyncMock(return_value=SimpleNamespace(id=uuid4()))
+    monkeypatch.setattr(content_activities.MediaPreviewService, "request_candidate", request)
+    assert await adapter.request_candidate_preview([str(uuid4()), str(uuid4())]) == "blocked"
+    request.assert_not_awaited()
+
+
+@pytest.mark.parametrize(
+    "mode,briefing,expected", [("disabled", True, "local"), ("fake", False, "local"), ("fake", True, "visual_fake")]
+)
+async def test_explicit_local_and_fake_modes_keep_their_existing_preview_behavior(
+    settings, monkeypatch, mode, briefing, expected
+):
+    adapter, worker, _ = activities(settings)
+    adapter.settings = adapter.settings.model_copy(update={"visual_ai_mode": mode})
+    worker.session.row = {
+        "tenant_id": uuid4(),
+        "business_id": uuid4(),
+        "actor_id": uuid4(),
+        "briefing_required": briefing,
+    }
+    preview = uuid4()
+    request = AsyncMock(return_value=SimpleNamespace(id=preview))
+    monkeypatch.setattr(content_activities.MediaPreviewService, "request_candidate", request)
+    assert await adapter.request_candidate_preview([str(uuid4()), str(uuid4())]) == str(preview)
+    assert request.await_args.args[3].generation_mode == expected
+
+
 async def test_delivery_and_publication_activity_results(settings, monkeypatch):
     adapter, _, _ = activities(settings)
     record = AsyncMock(return_value=None)

@@ -116,6 +116,18 @@ async def test_changed_state_after_preflight_prevents_submission(settings, monke
     provider.transcribe.assert_not_awaited()
 
 
+async def test_revocation_during_preflight_prevents_reservation(settings, monkeypatch):
+    row = audio_row()
+    service, session, processor, provider = service_with(settings, monkeypatch, [row, row])
+    processor._eligible.side_effect = [True, False]
+    assert await service.run(uuid4()) == "skipped"
+    assert processor._eligible.await_count == 2
+    provider.transcribe.assert_not_awaited()
+    assert all(
+        "INSERT INTO audio_transcription_usage" not in str(call.args[0]) for call in session.execute.await_args_list
+    )
+
+
 async def test_lost_asset_after_provider_is_uncertain(settings, monkeypatch):
     row = audio_row()
     service, _, _, provider = service_with(settings, monkeypatch, [row, row, None])

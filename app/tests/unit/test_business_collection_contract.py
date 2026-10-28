@@ -192,6 +192,7 @@ def test_photo_http_operations_share_owner_business_scope(monkeypatch, settings)
         upload=AsyncMock(return_value=saved),
         promote=AsyncMock(return_value=saved),
         update=AsyncMock(return_value=saved),
+        resume_upload=AsyncMock(return_value=saved),
         url=AsyncMock(return_value=CollectionPhotoUrl(url="https://private.invalid/photo")),
         history=AsyncMock(
             return_value=[
@@ -228,6 +229,7 @@ def test_photo_http_operations_share_owner_business_scope(monkeypatch, settings)
         )
         assert client.patch(f"{path}/{saved.id}", json=update.model_dump(mode="json")).status_code == 200
         assert client.get(f"{path}/{saved.id}/url").json()["expires_in_seconds"] == 120
+        assert client.post(f"{path}/{saved.id}/resume").json()["id"] == str(saved.id)
         assert client.get(f"{path}/{saved.id}/history").json()[0]["version"] == 1
         assert (
             client.delete(
@@ -242,6 +244,7 @@ def test_photo_http_operations_share_owner_business_scope(monkeypatch, settings)
         fake.upload,
         fake.promote,
         fake.update,
+        fake.resume_upload,
         fake.url,
         fake.history,
         fake.delete,

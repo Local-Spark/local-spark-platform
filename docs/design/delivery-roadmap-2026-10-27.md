@@ -51,6 +51,12 @@ cobertura de testes. O piloto não exige avatar do cliente (decisão P15).
 O produto continua sendo operado e melhorado após a conclusão desse escopo.
 Não prometer datas ou percentuais de prontidão sem medir gates e dependências.
 
+**Evolução futura sem fase definida:** permitir mais de um número WhatsApp ativo
+por negócio. Na versão inicial, manter um número ativo; a forma de vincular cada
+pessoa, compartilhar histórico e direcionar mensagens será definida antes dessa
+evolução. Isso é independente da quantidade de proprietários com conta web e não
+encerra a pendência de operações entre proprietários diferentes.
+
 O [plano de vídeo real e voz](video-real-and-voice.md) detalha roteiro sob pedido
 ou proativo, gravação de mãos/produto/ambiente, preservação do original, edição
 leve e motion. A entrega de voz sintética continua F05 após o piloto (P15), com

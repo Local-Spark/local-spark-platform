@@ -13,7 +13,7 @@ from typing import Any, Literal
 from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 from zoneinfo import ZoneInfo
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 from sqlalchemy import text
 
 from app.adapters.material_media import FetchedMedia, MaterialError, MaterialStore
@@ -90,9 +90,15 @@ class MediaPreviewService:
             raise AuthError("PREVIEW_SCRIPT_NOT_ACCEPTED", 409)
         if proposal["expires_at"] <= datetime.now(proposal["expires_at"].tzinfo):
             raise AuthError("PREVIEW_SCRIPT_EXPIRED", 409)
+        if await session.scalar(
+            text("""SELECT 1 FROM editorial_ai_consents WHERE tenant_id=:tenant AND business_id=:business
+              AND withdrawal_requested_at IS NOT NULL"""),
+            {"tenant": proposal["tenant_id"], "business": proposal["business_id"]},
+        ):
+            raise AuthError("EDITORIAL_WITHDRAWAL_PENDING", 409)
         if proposal["model"] not in (None, "baseline-v1") and not await session.scalar(
             text("""SELECT 1 FROM editorial_ai_consents WHERE tenant_id=:tenant
-              AND business_id=:business AND revoked_at IS NULL"""),
+              AND business_id=:business AND revoked_at IS NULL AND withdrawal_requested_at IS NULL"""),
             {"tenant": proposal["tenant_id"], "business": proposal["business_id"]},
         ):
             raise AuthError("EDITORIAL_AI_CONSENT_REQUIRED", 409)
@@ -401,9 +407,17 @@ class MediaPreviewService:
         """Explicitly simulated preview: no external visual provider is called."""
         from app.services.visual_consent_gate import VisualConsentGate
         from app.services.visual_context import VisualContextService
+        from app.services.visual_pending_changes import VisualPendingChanges
 
         if self.settings.environment not in {"development", "testing"} or self.settings.visual_ai_mode != "fake":
             raise AuthError("VISUAL_FAKE_DISABLED", 409)
+        from app.services.service_agreement import service_agreement_allowed
+
+        if self.settings.service_agreement_required or self.settings.environment == "production":
+            async with self.owner_database.transaction(tenant, actor) as session:
+                await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
+                if not await service_agreement_allowed(session, self.settings, tenant, business):
+                    raise AuthError("SERVICE_AGREEMENT_REQUIRED", 409)
         if await VisualConsentGate(self.owner_database).status(tenant, business, actor) != "active":
             raise AuthError("VISUAL_AI_CONSENT_REQUIRED", 409)
         # Queueing validates only metadata; image bytes are read by the admitted
@@ -420,6 +434,13 @@ class MediaPreviewService:
             await gate._lock(session, tenant, business, actor)
             if await gate._state(session, tenant, business) != "active":
                 raise AuthError("VISUAL_AI_CONSENT_REQUIRED", 409)
+            if await VisualPendingChanges.has_pending_in_session(session, tenant, business):
+                raise AuthError("VISUAL_CHANGE_PENDING", 409)
+            current = await VisualContextService(self.settings, self.owner_database).capture_in_transaction(
+                session, tenant, business, actor, payload.proposal_id, candidate=candidate
+            )
+            if current.fingerprint != context.fingerprint:
+                raise AuthError("PREVIEW_INPUT_CHANGED", 409)
             existing = (
                 (
                     await session.execute(
@@ -532,36 +553,128 @@ class MediaPreviewService:
             )
         visible = []
         for row in rows:
+            created_before_change = False
             if row["generation_mode"] == "visual_fake":
                 try:
-                    await self._validate_visual(row, actor, view_only=True)
+                    created_before_change = await self._validate_visual(row, actor, view_only=True)
                 except AuthError:
                     continue
-            visible.append(PreviewRead.model_validate(row))
+            visible.append(PreviewRead.model_validate({**row, "created_before_change": created_before_change}))
         return visible
 
-    async def _validate_visual(self, row: Any, actor: UUID, *, view_only: bool = False) -> None:
+    async def _validate_visual(self, row: Any, actor: UUID, *, view_only: bool = False) -> bool:
         from app.services.visual_context import VisualContextService
 
         if row["generation_mode"] != "visual_fake" or self.settings.visual_ai_mode != "fake":
             raise AuthError("VISUAL_FAKE_DISABLED", 409)
-        if view_only:
+        try:
             current = await VisualContextService(self.settings, self.owner_database).capture(
                 row["tenant_id"],
                 row["business_id"],
                 actor,
                 row["proposal_id"],
                 candidate=row["candidate"],
-                completed_preview_id=row["id"],
+                completed_preview_id=row["id"] if view_only else None,
             )
-        else:
-            current = await VisualContextService(self.settings, self.owner_database).capture(
-                row["tenant_id"], row["business_id"], actor, row["proposal_id"], candidate=row["candidate"]
-            )
-        if current.fingerprint != row["visual_fingerprint"]:
+            if current.fingerprint == row["visual_fingerprint"]:
+                if view_only:
+                    async with self.owner_database.transaction(row["tenant_id"], actor) as session:
+                        before_withdrawal = await session.scalar(
+                            text("""SELECT 1 FROM visual_change_completed_previews v
+                              JOIN editorial_ai_consents c ON c.tenant_id=v.tenant_id AND c.business_id=v.business_id
+                              WHERE v.tenant_id=:tenant AND v.business_id=:business AND v.actor_id=:actor
+                                AND v.preview_id=:preview AND v.editorial_consent_accepted_at=c.accepted_at
+                                AND c.revoked_at IS NOT NULL"""),
+                            {
+                                "tenant": row["tenant_id"],
+                                "business": row["business_id"],
+                                "actor": actor,
+                                "preview": row["id"],
+                            },
+                        )
+                    return bool(before_withdrawal)
+                return False
+        except AuthError as exc:
+            if not view_only or exc.code not in {
+                "VISUAL_AI_CONSENT_REQUIRED",
+                "VISUAL_BRIEFING_CHANGED",
+                "VISUAL_KIT_CHANGED",
+                "VISUAL_LOGO_CHANGED",
+                "VISUAL_CONTEXT_CHANGED",
+            }:
+                raise
+        if not view_only or row["state"] != "completed" or not row["sha256"] or not row["object_key"]:
             raise AuthError("PREVIEW_INPUT_CHANGED", 409)
+        async with self.owner_database.transaction(row["tenant_id"], actor) as session:
+            await WhatsAppMaterialsService._require_owner(session, row["tenant_id"], row["business_id"], actor)
+            proof = await session.scalar(
+                text("""SELECT 1 FROM visual_change_completed_previews v
+                  JOIN visual_consent_runs r ON r.tenant_id=v.tenant_id AND r.business_id=v.business_id
+                    AND r.preview_id=v.preview_id AND r.operation_id=v.operation_id
+                    AND r.actor_id=v.actor_id AND r.fence=v.fence AND r.state='finished'
+                  JOIN visual_ai_consents c ON c.tenant_id=v.tenant_id AND c.business_id=v.business_id
+                  WHERE v.tenant_id=:tenant AND v.business_id=:business AND v.actor_id=:actor
+                    AND v.preview_id=:preview AND v.fence=:fence AND v.sha256=:sha
+                    AND v.visual_fingerprint=:fingerprint
+                    AND ((c.revoked_at IS NULL AND c.accepted_at=v.consent_accepted_at)
+                      OR (r.finished_during_withdrawal AND r.completed_sha256=v.sha256))"""),
+                {
+                    "tenant": row["tenant_id"],
+                    "business": row["business_id"],
+                    "actor": actor,
+                    "preview": row["id"],
+                    "fence": row["dispatch_fence"],
+                    "sha": row["sha256"],
+                    "fingerprint": row["visual_fingerprint"],
+                },
+            )
+            if proof:
+                # Preserving an earlier image does not bypass plan, current
+                # editorial/WhatsApp permission, source lifetime or script state.
+                from app.services.editorial_briefings import EditorialBriefingService
 
-    async def file_key(self, tenant: UUID, business: UUID, actor: UUID, preview_id: UUID) -> str:
+                source = (
+                    (
+                        await session.execute(
+                            text("""SELECT b.source_asset_id, EXISTS(
+                      SELECT 1 FROM editorial_intent_usage u WHERE u.tenant_id=b.tenant_id
+                        AND u.operation_id=b.operation_id AND u.provider='typesafe') AS used_jev
+                      FROM editorial_proposals e JOIN editorial_briefings b
+                        ON b.id=e.briefing_id AND b.tenant_id=e.tenant_id AND b.business_id=e.business_id
+                      WHERE e.id=:proposal AND e.tenant_id=:tenant AND e.business_id=:business
+                        AND e.state='completed' AND e.script_version=:version
+                        AND ((:candidate AND e.review_state IS NULL)
+                          OR (NOT :candidate AND e.review_state='accepted'))"""),
+                            {
+                                "proposal": row["proposal_id"],
+                                "tenant": row["tenant_id"],
+                                "business": row["business_id"],
+                                "version": row["script_version"],
+                                "candidate": row["candidate"],
+                            },
+                        )
+                    )
+                    .mappings()
+                    .one_or_none()
+                )
+                if source is None or source["source_asset_id"] != row["source_asset_id"]:
+                    raise AuthError("PREVIEW_INPUT_CHANGED", 409)
+                await EditorialBriefingService(self.settings, self.owner_database)._source(
+                    session,
+                    row["tenant_id"],
+                    row["business_id"],
+                    actor,
+                    source["source_asset_id"],
+                    jev=source["used_jev"],
+                    review_preview=row["id"],
+                )
+        if not proof:
+            raise AuthError("PREVIEW_INPUT_CHANGED", 409)
+        return True
+
+    async def file_key(
+        self, tenant: UUID, business: UUID, actor: UUID, preview_id: UUID, *, review: bool = False
+    ) -> str:
         async with self.database.transaction(tenant, actor) as session:
             await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
             row = (
@@ -582,7 +695,7 @@ class MediaPreviewService:
                 raise AuthError("PREVIEW_NOT_READY", 404)
             if row["generation_mode"] == "visual_fake":
                 try:
-                    await self._validate_visual(row, actor, view_only=True)
+                    await self._validate_visual(row, actor, view_only=review)
                 except AuthError as exc:
                     raise AuthError("PREVIEW_NOT_READY", 404) from exc
                 return str(row["object_key"])
@@ -649,11 +762,13 @@ class MediaPreviewService:
 
     async def _render_visual_fake(self, preview_id: UUID, fence: int) -> str:
         """Exercise the visual lifecycle with a clearly simulated image, never an external call."""
+        from app.adapters.brand_overlay import BrandOverlayError
+        from app.services.editorial_consent_scope import VisualRunScope, admitted_visual_run
         from app.services.visual_attempts import VisualAttemptService
+        from app.services.visual_brand_finish import VisualBrandFinishService
         from app.services.visual_consent_gate import VisualConsentGate
         from app.services.visual_context import VisualContextService
         from app.services.visual_cost_ledger import VisualCostError, VisualCostLedger
-        from app.services.visual_requests import VisualRequestService
 
         if self.settings.environment not in {"development", "testing"} or self.settings.visual_ai_mode != "fake":
             return await self._fail(preview_id, fence, "VISUAL_FAKE_DISABLED", False)
@@ -671,7 +786,7 @@ class MediaPreviewService:
             )
         if row is None:
             return "skipped"
-        request_service = VisualRequestService(self.settings, self.owner_database, self.store)
+        brand_service = VisualBrandFinishService(self.settings, self.owner_database, self.store)
         operation = uuid5(NAMESPACE_URL, f"visual-preview:{preview_id}")
         gate = VisualConsentGate(self.owner_database)
         admitted = False
@@ -679,13 +794,29 @@ class MediaPreviewService:
         completed = False
         reservation = None
         upload_started = False
+        consent_scope = None
         key = f"previews/{row['tenant_id']}/{row['business_id']}/{preview_id}/attempt-{fence}/{row['render_key']}.jpg"
         try:
+            from app.services.service_agreement import service_agreement_allowed
+
+            if self.settings.service_agreement_required or self.settings.environment == "production":
+                async with self.owner_database.transaction(row["tenant_id"], row["actor_id"]) as session:
+                    await WhatsAppMaterialsService._require_owner(
+                        session, row["tenant_id"], row["business_id"], row["actor_id"]
+                    )
+                    if not await service_agreement_allowed(
+                        session, self.settings, row["tenant_id"], row["business_id"]
+                    ):
+                        raise AuthError("SERVICE_AGREEMENT_REQUIRED", 409)
             admitted = await gate.admit(
                 row["tenant_id"], row["business_id"], row["actor_id"], preview_id, operation, fence
             )
             if not admitted:
                 return await self._fail(preview_id, fence, "VISUAL_OUTCOME_UNCERTAIN", False)
+            consent_scope = admitted_visual_run(
+                VisualRunScope(row["tenant_id"], row["business_id"], row["actor_id"], operation, fence)
+            )
+            consent_scope.__enter__()
             # A job left in the queue across withdrawal and re-grant must not
             # begin using images from the new consent generation.
             metadata = await VisualContextService(self.settings, self.owner_database).capture(
@@ -697,7 +828,7 @@ class MediaPreviewService:
             )
             if metadata.fingerprint != row["visual_fingerprint"]:
                 raise AuthError("PREVIEW_INPUT_CHANGED", 409)
-            prepared = await request_service.prepare(
+            brand = await brand_service.prepare(
                 row["tenant_id"],
                 row["business_id"],
                 row["actor_id"],
@@ -705,6 +836,7 @@ class MediaPreviewService:
                 row["operation_id"],
                 candidate=row["candidate"],
             )
+            prepared = brand.request
             if (
                 _visual_render_key(prepared.context.fingerprint, row["operation_id"], row["candidate"])
                 != row["render_key"]
@@ -727,15 +859,37 @@ class MediaPreviewService:
                 return await self._fail(preview_id, fence, "VISUAL_OUTCOME_UNCERTAIN", False)
             reservation = attempt.reservation.id
             width, height = (int(value) for value in prepared.request.size.split("x"))
-            image = Image.new("RGB", (width, height), "#e8e6f8")
-            ImageDraw.Draw(image).text((40, 40), "SIMULACAO - NAO PUBLICAR", fill="#272044")
-            output = io.BytesIO()
-            image.save(output, format="JPEG", quality=80)
+            # No provider is invoked: this neutral scene makes it possible to
+            # exercise the same validated brand finishing without implying that
+            # the visual itself was generated by AI.
+            scene_image = Image.new("RGB", (width, height), "#e8e6f8")
+            scene_bytes = io.BytesIO()
+            scene_image.save(scene_bytes, format="PNG")
+            scene = scene_bytes.getvalue()
+            finished_media = await brand_service.finish(
+                row["actor_id"],
+                brand,
+                FetchedMedia(data=scene, mime_type="image/png", sha256=hashlib.sha256(scene).hexdigest()),
+                candidate=row["candidate"],
+            )
+            with Image.open(io.BytesIO(finished_media.data)) as rendered:
+                image = rendered.convert("RGB")
+                draw = ImageDraw.Draw(image)
+                band_height = max(50, height // 24)
+                draw.rectangle((0, 0, width, band_height), fill="#272044")
+                draw.text(
+                    (width // 40, band_height // 5),
+                    "SIMULACAO - NAO PUBLICAR",
+                    fill="white",
+                    font=ImageFont.load_default(size=max(18, width // 44)),
+                )
+                output = io.BytesIO()
+                image.save(output, format="JPEG", quality=90)
             data = output.getvalue()
             media = FetchedMedia(data=data, mime_type="image/jpeg", sha256=hashlib.sha256(data).hexdigest())
             upload_started = True
             await self.store.put(key, media)
-            current = await request_service.prepare(
+            current = await brand_service.prepare(
                 row["tenant_id"],
                 row["business_id"],
                 row["actor_id"],
@@ -743,7 +897,7 @@ class MediaPreviewService:
                 row["operation_id"],
                 candidate=row["candidate"],
             )
-            if current.request_hash != prepared.request_hash:
+            if current.request.request_hash != prepared.request_hash:
                 raise AuthError("PREVIEW_INPUT_CHANGED", 409)
             async with self.database.sessions() as session, session.begin():
                 finished = (
@@ -773,12 +927,14 @@ class MediaPreviewService:
             await self._discard_visual_object(key)
             terminal = True
             return "skipped"
-        except (AuthError, MaterialError, VisualCostError) as exc:
+        except (AuthError, BrandOverlayError, MaterialError, VisualCostError) as exc:
             if upload_started:
                 await self._discard_visual_object(key)
             terminal = True
             return await self._fail(preview_id, fence, getattr(exc, "code", str(exc)), False)
         finally:
+            if consent_scope is not None:
+                consent_scope.__exit__(None, None, None)
             try:
                 if reservation is not None:
                     await VisualCostLedger(self.settings, self.database).finish(

@@ -45,6 +45,7 @@ class PreviewRead(BaseModel):
     revision: int
     state: Literal["pending", "rendering", "completed", "failed"]
     generation_mode: Literal["local", "visual_fake"] = "local"
+    created_before_change: bool = False
     error_code: str | None
     context_version: int
     source_asset_id: UUID | None

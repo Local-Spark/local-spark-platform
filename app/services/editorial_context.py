@@ -56,7 +56,14 @@ class EditorialContextService:
             row = await self._version(session, tenant, business, version)
             if version is not None and row is None:
                 raise AuthError("CONTEXT_VERSION_NOT_FOUND", 404)
-            return self._present(row)
+            current = self._present(row)
+            if version is None:
+                from app.services.visual_pending_changes import VisualPendingChanges
+
+                pending = await VisualPendingChanges.status_in_session(session, tenant, business, "context")
+                if pending:
+                    return ContextRead.model_validate({**current.model_dump(), "pending_change": pending})
+            return current
 
     async def history(self, tenant: UUID, business: UUID, actor: UUID) -> list[ContextHistoryItem]:
         async with self.database.transaction(tenant, actor) as session:
@@ -93,8 +100,8 @@ class EditorialContextService:
             raise AuthError("CONTEXT_OPERATION_CONFLICT", 409)
         return EditorialContextService._present(row)
 
+    @staticmethod
     async def _save(
-        self,
         session: Any,
         tenant: UUID,
         business: UUID,
@@ -104,7 +111,7 @@ class EditorialContextService:
         digest: str,
         content: ContextContent,
     ) -> ContextRead:
-        replay = await self._replay(session, tenant, business, operation, digest)
+        replay = await EditorialContextService._replay(session, tenant, business, operation, digest)
         if replay is not None:
             return replay
         await session.execute(
@@ -118,7 +125,7 @@ class EditorialContextService:
             {"tenant": tenant, "business": business, "expected": expected},
         )
         if version is None:
-            replay = await self._replay(session, tenant, business, operation, digest)
+            replay = await EditorialContextService._replay(session, tenant, business, operation, digest)
             if replay is not None:
                 return replay
             raise AuthError("CONTEXT_VERSION_CONFLICT", 409)
@@ -149,22 +156,83 @@ class EditorialContextService:
               VALUES(:tenant,:actor,:operation,'editorial.context_updated',:business)"""),
             {"tenant": tenant, "actor": actor, "operation": operation, "business": business},
         )
-        return self._present(row)
+        return EditorialContextService._present(row)
+
+    @staticmethod
+    async def apply_pending_in_session(session: Any, tenant: UUID, business: UUID, row: Any) -> None:
+        payload: ContextUpdate | ContextRestore
+        if row["kind"] == "context_update":
+            payload = ContextUpdate.model_validate(row["payload"])
+            content = ContextContent.model_validate(payload.model_dump(exclude={"expected_version", "operation_id"}))
+        else:
+            payload = ContextRestore.model_validate(row["payload"])
+            source = await EditorialContextService._version(session, tenant, business, payload.target_version)
+            if source is None:
+                raise AuthError("CONTEXT_VERSION_NOT_FOUND", 404)
+            content = ContextContent.model_validate(source["document"])
+        if payload.operation_id != row["operation_id"] or _digest(payload) != row["request_hash"]:
+            raise AuthError("VISUAL_CHANGE_OPERATION_CONFLICT", 409)
+        await EditorialContextService._save(
+            session,
+            tenant,
+            business,
+            row["actor_id"],
+            payload.expected_version,
+            payload.operation_id,
+            row["request_hash"],
+            content,
+        )
+
+    async def _queue_or_save(
+        self,
+        session: Any,
+        tenant: UUID,
+        business: UUID,
+        actor: UUID,
+        payload: ContextUpdate | ContextRestore,
+        content: ContextContent,
+        kind: str,
+    ) -> ContextRead:
+        from app.services.visual_pending_changes import VisualPendingChanges
+
+        digest = _digest(payload)
+        replay = await self._replay(session, tenant, business, payload.operation_id, digest)
+        if replay is not None:
+            return replay
+        # This lock serializes the version check with run admission and edits.
+        from app.services.visual_consent_gate import VisualConsentGate
+
+        await VisualConsentGate._lock(session, tenant, business, actor)
+        replay = await self._replay(session, tenant, business, payload.operation_id, digest)
+        if replay is not None:
+            return replay
+        current = self._present(await self._version(session, tenant, business))
+        if current.version != payload.expected_version:
+            raise AuthError("CONTEXT_VERSION_CONFLICT", 409)
+        deferred = await VisualPendingChanges.enqueue_in_session(
+            session,
+            tenant,
+            business,
+            actor,
+            payload.operation_id,
+            kind,
+            "context",
+            digest,
+            payload.model_dump(mode="json"),
+        )
+        if deferred:
+            return ContextRead.model_validate(
+                {**current.model_dump(), "pending_change": {"operation_id": payload.operation_id, "status": "pending"}}
+            )
+        return await self._save(
+            session, tenant, business, actor, payload.expected_version, payload.operation_id, digest, content
+        )
 
     async def update(self, tenant: UUID, business: UUID, actor: UUID, payload: ContextUpdate) -> ContextRead:
         content = ContextContent.model_validate(payload.model_dump(exclude={"expected_version", "operation_id"}))
         async with self.database.transaction(tenant, actor) as session:
             await self._owner(session, tenant, business, actor)
-            return await self._save(
-                session,
-                tenant,
-                business,
-                actor,
-                payload.expected_version,
-                payload.operation_id,
-                _digest(payload),
-                content,
-            )
+            return await self._queue_or_save(session, tenant, business, actor, payload, content, "context_update")
 
     async def restore(self, tenant: UUID, business: UUID, actor: UUID, payload: ContextRestore) -> ContextRead:
         async with self.database.transaction(tenant, actor) as session:
@@ -176,13 +244,4 @@ class EditorialContextService:
             if source is None:
                 raise AuthError("CONTEXT_VERSION_NOT_FOUND", 404)
             content = ContextContent.model_validate(source["document"])
-            return await self._save(
-                session,
-                tenant,
-                business,
-                actor,
-                payload.expected_version,
-                payload.operation_id,
-                _digest(payload),
-                content,
-            )
+            return await self._queue_or_save(session, tenant, business, actor, payload, content, "context_restore")

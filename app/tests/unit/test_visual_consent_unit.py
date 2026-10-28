@@ -13,17 +13,17 @@ from app.schemas.media_previews import VisualAIConsent
 from app.services.visual_consent import VisualConsentService
 
 
-@pytest.mark.parametrize("state,enabled", [("revoked", False), ("active", True), ("revocation_pending", False)])
-async def test_status_delegates_to_gate_and_reports_configuration(settings, monkeypatch, state, enabled):
+@pytest.mark.parametrize("state,mode", [("revoked", "disabled"), ("active", "openai"), ("revocation_pending", "fake")])
+async def test_status_delegates_to_gate_and_reports_runtime_unavailable(settings, monkeypatch, state, mode):
     gate = SimpleNamespace(status=AsyncMock(return_value=state))
     database = object()
     monkeypatch.setattr("app.services.visual_consent.VisualConsentGate", lambda db: gate if db is database else None)
-    cfg = settings.model_copy(update={"visual_ai_mode": "openai" if enabled else "disabled"})
+    cfg = settings.model_copy(update={"visual_ai_mode": mode})
     ids = [uuid4() for _ in range(3)]
     assert await VisualConsentService(cfg, database).status(*ids) == {
-        "accepted": state == "active",
+        "accepted": state != "revoked",
         "state": state,
-        "provider_enabled": enabled,
+        "provider_enabled": False,
     }
     gate.status.assert_awaited_once_with(*ids)
 
@@ -35,11 +35,22 @@ async def test_set_delegates_to_correct_gate_action_and_returns_effective_state(
     monkeypatch.setattr("app.services.visual_consent.VisualConsentGate", lambda db: gate if db is database else None)
     ids = [uuid4() for _ in range(3)]
     result = await VisualConsentService(settings, database).set(*ids, accepted)
-    assert result == {"accepted": state == "active", "state": state, "provider_enabled": False}
+    assert result == {"accepted": state != "revoked", "state": state, "provider_enabled": False}
     selected = gate.enable if accepted else gate.request_withdrawal
     other = gate.request_withdrawal if accepted else gate.enable
     selected.assert_awaited_once_with(*ids)
     other.assert_not_awaited()
+
+
+async def test_setting_openai_mode_does_not_advertise_unwired_provider_when_consent_changes(settings, monkeypatch):
+    gate = SimpleNamespace(
+        enable=AsyncMock(return_value="active"), request_withdrawal=AsyncMock(return_value="revoked")
+    )
+    monkeypatch.setattr("app.services.visual_consent.VisualConsentGate", lambda _: gate)
+    service = VisualConsentService(settings.model_copy(update={"visual_ai_mode": "openai"}), object())
+    ids = [uuid4() for _ in range(3)]
+    assert await service.set(*ids, True) == {"accepted": True, "state": "active", "provider_enabled": False}
+    assert await service.set(*ids, False) == {"accepted": False, "state": "revoked", "provider_enabled": False}
 
 
 async def test_routes_delegate_authenticated_owner_and_preserve_result(monkeypatch):
@@ -77,6 +88,7 @@ def test_visual_mode_requires_dev_or_test_with_credential_and_budget(settings):
     assert Settings(_env_file=None, **values).visual_ai_mode == "openai"
     values.update(
         environment="production",
+        service_agreement_required=True,
         temporal_tls=True,
         public_web_url="https://example.test",
         jwt_secret=SecretStr("a" * 32),

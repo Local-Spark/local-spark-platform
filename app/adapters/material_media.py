@@ -171,10 +171,13 @@ class MetaMediaClient:
 
 
 class MaterialStore:
+    # This adapter uses a single S3 PUT; never assume this for injected stores.
+    single_attempt_put = True
+
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
 
-    def _client(self, *, public: bool = False) -> Any:
+    def _client(self, *, public: bool = False, single_attempt: bool = False) -> Any:
         return boto3.client(
             "s3",
             region_name=self.settings.material_storage_region,
@@ -191,7 +194,7 @@ class MaterialStore:
                 signature_version="s3v4",
                 connect_timeout=10,
                 read_timeout=60,
-                retries={"max_attempts": 2},
+                retries={"total_max_attempts": 1} if single_attempt else {"max_attempts": 2},
             ),
         )
 
@@ -200,7 +203,10 @@ class MaterialStore:
             raise MaterialError("MATERIAL_STORAGE_NOT_CONFIGURED")
 
         def upload() -> None:
-            self._client().put_object(
+            # A timed-out earlier retry can finish after a later success and
+            # recreate a deleted object. One request makes success definitive;
+            # an ambiguous failure remains quarantined instead of retried.
+            self._client(single_attempt=True).put_object(
                 Bucket=self.settings.material_storage_bucket,
                 Key=key,
                 Body=media.data,
@@ -238,18 +244,20 @@ class MaterialStore:
         except Exception as exc:
             raise MaterialError("MATERIAL_STORAGE_UNAVAILABLE", retryable=True) from exc
 
-    async def get_image(self, key: str) -> bytes:
+    async def get_image(self, key: str, *, max_bytes: int = MAX_BYTES["image"]) -> bytes:
         if not self.settings.material_storage_bucket:
             raise MaterialError("MATERIAL_STORAGE_NOT_CONFIGURED")
+        if not 0 < max_bytes <= 8 * 1024 * 1024:
+            raise MaterialError("MEDIA_SIZE_EXCEEDED")
 
         def download() -> bytes:
             response = self._client().get_object(Bucket=self.settings.material_storage_bucket, Key=key)
             body = response["Body"]
             try:
-                if response.get("ContentLength", 0) > MAX_BYTES["image"]:
+                if response.get("ContentLength", 0) > max_bytes:
                     raise MaterialError("MEDIA_SIZE_EXCEEDED")
-                data = cast(bytes, body.read(MAX_BYTES["image"] + 1))
-                if len(data) > MAX_BYTES["image"]:
+                data = cast(bytes, body.read(max_bytes + 1))
+                if len(data) > max_bytes:
                     raise MaterialError("MEDIA_SIZE_EXCEEDED")
                 return data
             finally:

@@ -47,6 +47,7 @@ def test_jev_requires_explicit_sandbox_credentials_budget_and_pinned_model(setti
     values["intent_ai_input_rate_usd_micros"] = 42000
     values.update(
         environment="production",
+        service_agreement_required=True,
         temporal_tls=True,
         public_web_url="https://example.test",
         jwt_secret=SecretStr("a" * 32),

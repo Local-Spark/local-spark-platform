@@ -1,7 +1,9 @@
-"""Internal per-tenant visual cost reservations; no provider calls or retry decisions.
+"""Internal visual cost reservations; no provider calls or retry decisions.
 
 USD amounts are integer millionths. The UTC calendar-month ceiling is an
 operational guard, not a commercial plan or a complete measure of COGS.
+The separate aggregate OpenAI ceiling covers only reservations in this ledger;
+actual charges and calls made elsewhere can exceed it.
 Only a freshly created and committed reservation grants permission to dispatch
 an effect; a reservation inside an uncommitted transaction is not authorization.
 """
@@ -141,6 +143,24 @@ class VisualCostLedger:
         )
         if used + reserved_usd_micros > self.settings.visual_ai_monthly_budget_usd_micros:
             raise VisualCostError("VISUAL_BUDGET_EXCEEDED")
+        if provider == "openai":
+            ceiling = self.settings.visual_ai_global_monthly_budget_usd_micros
+            if ceiling <= 0:
+                raise VisualCostError("VISUAL_GLOBAL_BUDGET_DISABLED")
+            month = "date_trunc('month',now() AT TIME ZONE 'UTC')::date"
+            await session.execute(
+                text(f"INSERT INTO visual_global_monthly_budget(month) VALUES({month}) ON CONFLICT DO NOTHING")
+            )
+            total = await session.scalar(
+                text(f"SELECT committed_usd_micros FROM visual_global_monthly_budget WHERE month={month} FOR UPDATE")
+            )
+            if total + reserved_usd_micros > ceiling:
+                raise VisualCostError("VISUAL_GLOBAL_BUDGET_EXCEEDED")
+            await session.execute(
+                text(f"""UPDATE visual_global_monthly_budget SET committed_usd_micros=committed_usd_micros+:amount,
+                  updated_at=now() WHERE month={month}"""),
+                {"amount": reserved_usd_micros},
+            )
         row = (
             (
                 await session.execute(
@@ -196,6 +216,16 @@ class VisualCostLedger:
             state = "uncertain" if actual_usd_micros is None else "completed"
             if row["state"] == "uncertain" and state == "uncertain":
                 return _result(row, False)
+            if row["provider"] == "openai" and actual_usd_micros is not None:
+                changed = await session.scalar(
+                    text("""UPDATE visual_global_monthly_budget SET
+                      committed_usd_micros=committed_usd_micros+:delta, updated_at=now()
+                      WHERE month=date_trunc('month',CAST(:created AS timestamptz) AT TIME ZONE 'UTC')::date
+                      RETURNING 1"""),
+                    {"delta": actual_usd_micros - row["reserved_usd_micros"], "created": row["created_at"]},
+                )
+                if changed is None:
+                    raise VisualCostError("VISUAL_GLOBAL_BUDGET_INCONSISTENT")
             row = (
                 (
                     await session.execute(

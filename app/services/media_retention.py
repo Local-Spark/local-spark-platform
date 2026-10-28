@@ -39,7 +39,8 @@ async def claim_expired_previews(database: Database, owner: UUID, limit: int = 5
                         dispatch_lease_until=now()+interval '3 minutes',
                         dispatch_fence=p.dispatch_fence+1,updated_at=now()
                       FROM due WHERE p.id=due.id
-                      RETURNING p.id,p.tenant_id,p.business_id,p.render_key,p.mime_type,p.dispatch_fence"""),
+                      RETURNING p.id,p.tenant_id,p.business_id,p.render_key,p.mime_type,
+                        p.object_key,p.dispatch_fence"""),
                     {"owner": owner, "limit": limit},
                 )
             )
@@ -51,8 +52,11 @@ async def claim_expired_previews(database: Database, owner: UUID, limit: int = 5
                 row["id"],
                 owner,
                 row["dispatch_fence"],
-                f"previews/{row['tenant_id']}/{row['business_id']}/{row['id']}/{row['render_key']}"
-                f".{'mp4' if row['mime_type'] == 'video/mp4' else 'jpg'}",
+                row["object_key"]
+                or (
+                    f"previews/{row['tenant_id']}/{row['business_id']}/{row['id']}/{row['render_key']}"
+                    f".{'mp4' if row['mime_type'] == 'video/mp4' else 'jpg'}"
+                ),
             )
             for row in rows
         ]

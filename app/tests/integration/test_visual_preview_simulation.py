@@ -1,17 +1,20 @@
 """The simulated visual journey exercises real source and role checks, with no paid calls."""
 
 import asyncio
+import io
 import json
 from dataclasses import replace
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 from uuid import UUID, uuid4
 
 import pytest
 from cryptography.fernet import Fernet
+from PIL import Image
 from pydantic import SecretStr
 from sqlalchemy import text
 
+from app.adapters.brand_overlay import render_brand_overlay
 from app.db.session import Database
 from app.schemas.business_catalog import CatalogUpdate
 from app.schemas.content_deliveries import ContentDecision
@@ -82,6 +85,8 @@ async def test_visual_fake_preview_uses_fenced_attempt_and_blocks_revoked_access
     )
     worker = Database(cfg, correlator=True)
     store = SimpleNamespace(put=AsyncMock(), delete=AsyncMock())
+    overlay = Mock(wraps=render_brand_overlay)
+    monkeypatch.setattr("app.services.visual_brand_finish.render_brand_overlay", overlay)
     try:
         activity = ContentCandidateActivities(cfg, database, worker, interpreter=interpreter)
         proposal = UUID(await activity.request_candidate_proposal(str(source)))
@@ -102,6 +107,13 @@ async def test_visual_fake_preview_uses_fenced_attempt_and_blocks_revoked_access
         service = MediaPreviewService(cfg, worker, store, database)
         assert await service.render(preview.id, claim.fence) == "completed"
         assert store.put.await_count == 1
+        assert overlay.call_count == 1
+        assert overlay.call_args.kwargs["kit"].brand_name == _overrides()["brand_name"]
+        simulated_media = store.put.await_args.args[1]
+        assert simulated_media.mime_type == "image/jpeg"
+        with Image.open(io.BytesIO(simulated_media.data)) as picture:
+            assert picture.size == (1024, 1280)
+            assert all(value < 100 for value in picture.getpixel((4, 4)))
         assert (await owner_service.file_key(tenant, business, actor, preview.id)).endswith(".jpg")
         assert [p.id for p in await owner_service.list(tenant, business, actor)] == [preview.id]
         deliveries = ContentDeliveryService(cfg, database, worker)
@@ -111,8 +123,8 @@ async def test_visual_fake_preview_uses_fenced_attempt_and_blocks_revoked_access
             tenant, business, actor, delivery, ContentDecision(operation_id=uuid4(), decision="approve")
         )
         assert approved.decision_state == "approved"
-        # A reused operation with a different prepared source fingerprint is a
-        # conflict, even when both requests race to create a preview.
+        # A stale fingerprint is rejected under the gate even if the two
+        # requests race to create a preview for the same operation.
         other = PreviewRequest(operation_id=uuid4(), proposal_id=proposal, generation_mode="visual_fake")
         original = await VisualContextService(cfg, database).capture(tenant, business, actor, proposal, candidate=True)
         changed = replace(original, fingerprint="d" * 64)
@@ -125,7 +137,7 @@ async def test_visual_fake_preview_uses_fenced_attempt_and_blocks_revoked_access
             )
         assert sum(not isinstance(result, Exception) for result in outcomes) == 1
         conflict = next(result for result in outcomes if isinstance(result, AuthError))
-        assert conflict.code == "PREVIEW_OPERATION_CONFLICT"
+        assert conflict.code == "PREVIEW_INPUT_CHANGED"
         async with admin.connect() as conn:
             assert (
                 await conn.scalar(
@@ -168,22 +180,24 @@ async def test_visual_fake_preview_uses_fenced_attempt_and_blocks_revoked_access
         task = asyncio.create_task(service.render(inflight.id, claims[inflight.id].fence))
         try:
             await asyncio.wait_for(entered.wait(), 20)
-            assert (await consent.set(tenant, business, actor, False))["state"] == "revocation_pending"
+            pending = await consent.set(tenant, business, actor, False)
+            assert pending["state"] == "revocation_pending" and pending["accepted"] is True
             visible_while_pending = {item.id for item in await owner_service.list(tenant, business, actor)}
             assert inflight.id in visible_while_pending and queued.id not in visible_while_pending
             assert await service.render(queued.id, claims[queued.id].fence) == "failed"
         finally:
             release.set()
         assert await task == "completed"
-        assert (await consent.status(tenant, business, actor))["state"] == "revoked"
-        assert (await owner_service.file_key(tenant, business, actor, inflight.id)).endswith(".jpg")
+        revoked = await consent.status(tenant, business, actor)
+        assert revoked["state"] == "revoked" and revoked["accepted"] is False
+        assert (await owner_service.file_key(tenant, business, actor, inflight.id, review=True)).endswith(".jpg")
         with pytest.raises(AuthError, match="PREVIEW_NOT_READY"):
             await owner_service.file_key(tenant, business, actor, preview.id)
         assert [item.id for item in await owner_service.list(tenant, business, actor)] == [inflight.id]
         # Re-granting allows new work, but neither invalidates the previously
         # completed preview nor restarts a job queued under the old grant.
         await consent.set(tenant, business, actor, True)
-        assert (await owner_service.file_key(tenant, business, actor, inflight.id)).endswith(".jpg")
+        assert (await owner_service.file_key(tenant, business, actor, inflight.id, review=True)).endswith(".jpg")
         calls_before = store.put.await_count
         assert await service.render(queued_before_regrant.id, claims[queued_before_regrant.id].fence) == "failed"
         assert store.put.await_count == calls_before

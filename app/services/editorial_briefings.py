@@ -36,7 +36,15 @@ class EditorialBriefingService:
         self.settings, self.database, self.interpreter = settings, database, interpreter
 
     async def _source(
-        self, session: Any, tenant: UUID, business: UUID, actor: UUID, source: UUID, *, jev: bool | None = None
+        self,
+        session: Any,
+        tenant: UUID,
+        business: UUID,
+        actor: UUID,
+        source: UUID,
+        *,
+        jev: bool | None = None,
+        review_preview: UUID | None = None,
     ) -> str | None:
         await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
         params = {"tenant": tenant, "business": business, "actor": actor, "source": source}
@@ -95,6 +103,15 @@ class EditorialBriefingService:
                 text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 44))"),
                 {"key": f"candidate-source:{tenant}:{business}:{source}"},
             )
+            await session.execute(
+                text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 48))"),
+                {"key": f"visual-consent:{tenant}:{business}"},
+            )
+            if self.settings.intent_ai_mode == "jev":
+                from app.services.service_agreement import service_agreement_allowed
+
+                if not await service_agreement_allowed(session, self.settings, tenant, business):
+                    raise AuthError("SERVICE_AGREEMENT_REQUIRED", 409)
             message = await self._source(session, tenant, business, actor, source)
             row = (
                 (
@@ -263,7 +280,12 @@ class EditorialBriefingService:
             return BriefingResult(row["id"], row["state"])
 
     async def read_valid(
-        self, session: Any, tenant: UUID, business: UUID, actor: UUID, briefing_id: UUID
+        self,
+        session: Any,
+        tenant: UUID,
+        business: UUID,
+        actor: UUID,
+        briefing_id: UUID,
     ) -> tuple[Literal["prepared", "needs_clarification", "context_changed", "unavailable"], dict[str, object] | None]:
         await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
         row = (

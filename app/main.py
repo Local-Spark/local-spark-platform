@@ -27,6 +27,7 @@ from app.api.v1.media_previews import previews_router
 from app.api.v1.onboarding import onboarding_router
 from app.api.v1.phone_verification import phone_router
 from app.api.v1.reference import reference_router
+from app.api.v1.service_agreement import agreement_router
 from app.api.v1.staff import staff_router
 from app.api.v1.whatsapp import whatsapp_router
 from app.api.v1.whatsapp_link import whatsapp_link_router
@@ -92,6 +93,7 @@ def create_app(
     application.include_router(catalog_router)
     application.include_router(collection_router)
     application.include_router(reference_router)
+    application.include_router(agreement_router)
     application.include_router(billing_router)
     application.include_router(staff_router)
     application.include_router(phone_router)

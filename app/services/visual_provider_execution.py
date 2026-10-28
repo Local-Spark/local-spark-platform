@@ -85,7 +85,11 @@ class VisualSubmissionClaims:
                     AND a.dispatch_fence=:fence AND a.request_hash=:request_hash
                     AND a.reservation_id=:reservation AND r.actor_id=:actor AND r.business_id=:business
                     AND r.operation_id=:operation AND r.state='submitted' AND r.provider=:provider
-                    AND r.model=:model FOR UPDATE OF p"""),
+                    AND r.model=:model
+                    AND EXISTS (SELECT 1 FROM memberships m WHERE m.tenant_id=:tenant
+                      AND m.actor_id=:actor AND m.role='owner' AND m.active)
+                    AND EXISTS (SELECT 1 FROM user_accounts u WHERE u.id=:actor AND u.active)
+                  FOR UPDATE OF p"""),
                 params,
             )
             if row is None:

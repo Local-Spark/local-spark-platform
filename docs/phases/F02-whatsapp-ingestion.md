@@ -1,5 +1,18 @@
 # F02 — WhatsApp, recebimento e histórico de envios
 
+## Decisão de produto — número por negócio (28/10/2026)
+
+Na versão inicial, o negócio vincula **um número ativo de WhatsApp do cliente**
+para trocar mensagens com o número oficial do Meu Braço Direito. O vínculo local
+existente tem essa limitação; isso não comprova que a conversa real ponta a ponta
+esteja homologada. Uma futura evolução poderá permitir vários números ativos por
+negócio. Nessa etapa serão decididos vínculo e autorização de cada pessoa, o que
+será compartilhado como histórico e como serão endereçadas mensagens e
+notificações; não presumir que conversas individuais distintas já compartilham
+histórico automaticamente. O limite de números WhatsApp não limita contas de
+proprietários na web nem encerra o problema conhecido de pedidos pendentes entre
+proprietários diferentes.
+
 ## Navegação do cliente — P1 aprovado em 27/10/2026
 
 O menu passa a se chamar **WhatsApp** e prioriza vínculo, situação do canal e

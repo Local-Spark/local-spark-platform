@@ -31,6 +31,7 @@ async def test_context_owner_history_restore_and_conflicts(admin, api, seeded, s
         "version": 0,
         "updated_at": None,
         "hypotheses": [],
+        "pending_change": None,
     }
     assert (await api.get(base, headers=viewer)).status_code == 403
     assert (await api.get(base, headers=other)).status_code == 403

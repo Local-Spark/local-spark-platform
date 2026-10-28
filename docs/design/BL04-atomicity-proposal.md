@@ -5,6 +5,12 @@ não autoriza uma chamada real. Esta proposta descreve o objetivo e o alcance de
 uma possível alteração de permissões; não constitui migração pronta nem prova
 de que seja a única alternativa.
 
+Em 28/10/2026, o proprietário alterou a regra: pedidos de mudança de fonte ou
+retirada aguardam as criações já iniciadas, cancelam a fila ainda não iniciada e
+impedem novos inícios até sua aplicação. Isso substitui a alteração imediata de
+kit/foto descrita anteriormente e exige reavaliar as alternativas abaixo; elas
+são hipóteses históricas, não a única solução ou requisito de grants amplos.
+
 ## Problema
 
 O worker que reserva valores usa a role do correlator. O briefing, kit, acervo
@@ -46,21 +52,20 @@ versões imutáveis, registros ausentes e todos os escritores antes de definir o
 conjunto mínimo. As tabelas `visual_cost_reservations` e `visual_ai_attempts`
 armazenam reserva e intenção.
 
-Após o commit, a chamada é considerada em trânsito. O produto decidiu que uma
-retirada solicitada enquanto a tentativa já está em andamento aguarda sua
-conclusão e permite visualizar a prévia terminada; bloqueia novas admissões.
-Alterações de outras fontes ou direitos continuam exigindo revalidação. O gate
-que coordena essa retirada existe no fluxo simulado e ainda precisa ser ligado
-e validado no provedor real; não elimina a necessidade de coordenar outras
-fontes com a reserva. Resposta perdida ou timeout não deve levar a reenvio
-automático; o custo fica reservado até conciliação. O teto global do ensaio
-sintético é um controle separado, também pendente antes de chamadas pagas.
-
-Decisão do proprietário: alterações do kit e exclusões de fotos entram em vigor
-imediatamente; uma prévia ainda em criação que depende da versão antiga deve ser
-descartada. A retirada de autorização visual, por outro lado, segue pendente até
-as criações já iniciadas terminarem. Essa decisão não elimina as verificações
-anteriores ao envio nem a necessidade de revalidar fontes após o retorno.
+Após a admissão e confirmação do início de uma criação, pedidos de alteração
+do kit, foto ou contexto e retirada visual devem ficar pendentes até seu término;
+nenhuma nova criação deve ser admitida enquanto existir pedido pendente, e as
+que aguardam na fila devem ser canceladas. Não manter transação ou lock aberto
+durante a chamada: a pendência e seus efeitos precisam ser duráveis. Uma resposta
+perdida ou timeout não prova conclusão; não reenviar automaticamente e manter o
+pedido em verificação até haver solução segura. A prévia que conclui enquanto
+se aguarda a retirada de autorização permanece disponível. A prévia concluída
+antes da alteração de uma fonte também permanece disponível para revisão,
+identificada como criada antes da mudança; publicação exige direitos e aprovação.
+O gate de retirada existe apenas no
+fluxo simulado; a espera por mudança de fonte ainda não está implementada.
+Direitos, expiração, acesso e demais eventos fora de uma solicitação de mudança
+seguem exigindo verificações apropriadas; a decisão não autoriza uso sem direito.
 
 ## Alternativa a avaliar: locks cooperativos, sem novas permissões
 

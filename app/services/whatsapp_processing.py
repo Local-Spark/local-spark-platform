@@ -109,6 +109,12 @@ class MaterialProcessor:
         self.settings, self.database, self.media, self.store = settings, database, media, store
 
     async def _eligible(self, session, row) -> bool:  # type: ignore[no-untyped-def]
+        from app.services.service_agreement import service_agreement_allowed
+
+        if not await service_agreement_allowed(
+            session, self.settings, row["tenant_id"], row["business_id"], worker=True
+        ):
+            return False
         return bool(
             await session.scalar(
                 text("""SELECT EXISTS(

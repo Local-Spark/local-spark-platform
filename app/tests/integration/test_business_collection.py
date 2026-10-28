@@ -37,6 +37,9 @@ async def _business(admin, seeded, name="Collection business"):
 
 
 class Store:
+    # This fake performs exactly one write per put call.
+    single_attempt_put = True
+
     def __init__(self):
         self.objects = {}
         self.reads = 0
@@ -49,9 +52,14 @@ class Store:
         await asyncio.sleep(0)
         self.objects[key] = media.data
 
-    async def get_image(self, key):
+    async def get_image(self, key, *, max_bytes=5 * 1024 * 1024):
         self.reads += 1
-        return self.objects[key]
+        if key not in self.objects:
+            raise MaterialError("MATERIAL_STORAGE_UNAVAILABLE", retryable=True)
+        value = self.objects[key]
+        if len(value) > max_bytes:
+            raise MaterialError("MEDIA_SIZE_EXCEEDED")
+        return value
 
     async def signed_url(self, key, mime):
         assert key in self.objects and mime == "image/png"
@@ -192,9 +200,16 @@ async def test_concurrent_photo_upload_and_edit_have_one_identity_and_cas(admin,
     retry_body = upload()
     with pytest.raises(MaterialError):
         await service.upload(tenant, business, actor, retry_body)
-    assert len(await service.list_photos(tenant, business, actor)) == 1
+    pending = [photo for photo in await service.list_photos(tenant, business, actor) if photo.version == 0]
+    assert len(pending) == 1
+    async with admin.begin() as connection:
+        await connection.execute(
+            text("UPDATE business_collection_photos SET upload_lease_until=now()-interval '1 minute' WHERE id=:id"),
+            {"id": pending[0].id},
+        )
+    assert (await service.delete(tenant, business, actor, pending[0].id, uuid4(), 0)).status == "quarantined"
     store.fail_put = False
-    with pytest.raises(AuthError, match="COLLECTION_PHOTO_RETIRED"):
+    with pytest.raises(AuthError, match="COLLECTION_PHOTO_BUSY"):
         await service.upload(tenant, business, actor, retry_body)
     assert (
         await service.upload(tenant, business, actor, retry_body.model_copy(update={"operation_id": uuid4()}))
@@ -305,7 +320,6 @@ async def test_delete_tombstone_retry_and_abandoned_intent_cleanup(admin, databa
             text("""UPDATE business_collection_photos SET created_at=now()-interval '2 hours',
           upload_lease_until=now()-interval '1 hour' WHERE state='pending'""")
         )
-    assert await service.reconcile(tenant, business, actor) == 1
     assert await service.reconcile(tenant, business, actor) == 0
     with pytest.raises(AuthError, match="COLLECTION_PHOTO_RETIRED"):
         await service.upload(tenant, business, actor, bad)
@@ -352,7 +366,7 @@ async def test_same_operation_never_starts_a_second_writer(admin, database, seed
 
 @pytest.mark.parametrize("fail_compensation", [False, True])
 @pytest.mark.parametrize("outcome", ["success", "ambiguous", "cancelled"])
-async def test_delayed_put_reopens_durable_cleanup_after_original_cleanup(
+async def test_delayed_put_is_not_cleaned_before_writer_stops(
     admin,
     database,
     seeded,
@@ -371,7 +385,7 @@ async def test_delayed_put_reopens_durable_cleanup_after_original_cleanup(
             text("""UPDATE business_collection_photos SET created_at=now()-interval '2 hours',
           upload_lease_until=now()-interval '1 hour' WHERE state='pending'""")
         )
-    assert await service.reconcile(tenant, business, actor) == 1
+    assert await service.reconcile(tenant, business, actor) == 0
     assert store.objects == {}
     store.fail_delete = fail_compensation
     store.release.set()
@@ -381,17 +395,15 @@ async def test_delayed_put_reopens_durable_cleanup_after_original_cleanup(
     else:
         with pytest.raises(MaterialError if outcome == "ambiguous" else asyncio.CancelledError):
             await task
-    assert (await service.removals(tenant, business, actor))["pending"] == int(fail_compensation)
-    if fail_compensation:
-        assert len(store.objects) == 1
-        store.fail_delete = False
-        async with admin.begin() as connection:
-            await connection.execute(
-                text("""UPDATE business_collection_photos
-              SET delete_lease_until=now()-interval '1 minute' WHERE state='deleting'""")
-            )
-        assert await service.reconcile(tenant, business, actor) == 1
-    assert store.objects == {} and await service.list_photos(tenant, business, actor) == []
+    # Neither a timeout nor an expired lease proves that a storage write has
+    # stopped. The owner may discard the intent while its private key remains
+    # quarantined for later, separately verified cleanup.
+    assert len(store.objects) == 1
+    pending = (await service.list_photos(tenant, business, actor))[0]
+    assert pending.pending_uncertain and pending.pending_cancelable
+    assert (await service.delete(tenant, business, actor, pending.id, uuid4(), 0)).status == "quarantined"
+    assert len(store.objects) == 1
+    assert (await service.list_photos(tenant, business, actor))[0].pending_quarantined
     assert (await service.removals(tenant, business, actor))["pending"] == 0
 
 
@@ -426,7 +438,7 @@ async def test_operation_reuse_across_photos_is_conflict_before_mutation(admin, 
         await service.upload(tenant, business, actor, upload(operation_id=str(concurrent.operation_id)))
 
 
-async def test_cancelled_threaded_put_is_drained_before_compensation(admin, database, seeded, settings):
+async def test_cancelled_threaded_put_is_drained_and_private_key_is_preserved(admin, database, seeded, settings):
     class ThreadStore(Store):
         def __init__(self):
             super().__init__()
@@ -464,4 +476,12 @@ async def test_cancelled_threaded_put_is_drained_before_compensation(admin, data
         store.release.set()
     with pytest.raises(asyncio.CancelledError):
         await asyncio.wait_for(task, timeout=5)
-    assert store.objects == {} and (await service.removals(tenant, business, actor))["pending"] == 0
+    assert len(store.objects) == 1 and (await service.removals(tenant, business, actor))["pending"] == 0
+    pending = (await service.list_photos(tenant, business, actor))[0]
+    async with admin.begin() as connection:
+        await connection.execute(
+            text("UPDATE business_collection_photos SET upload_lease_until=now()-interval '1 minute' WHERE id=:id"),
+            {"id": pending.id},
+        )
+    assert (await service.delete(tenant, business, actor, pending.id, uuid4(), 0)).status == "quarantined"
+    assert len(store.objects) == 1

@@ -54,6 +54,6 @@ async def list_previews(tenant_id: UUID, business_id: UUID, request: Request, ac
 async def download_link(
     tenant_id: UUID, business_id: UUID, preview_id: UUID, request: Request, actor: Actor
 ) -> dict[str, str]:
-    key = await service(request).file_key(tenant_id, business_id, actor, preview_id)
+    key = await service(request).file_key(tenant_id, business_id, actor, preview_id, review=True)
     mime_type = "video/mp4" if key.endswith(".mp4") else "image/jpeg"
     return {"url": await MaterialStore(request.app.state.settings).signed_url(key, mime_type)}

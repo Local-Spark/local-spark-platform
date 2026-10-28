@@ -1,6 +1,7 @@
-"""A confirmed change invalidates an in-flight simulated visual preview."""
+"""Changes wait for an admitted simulated visual preview to finish."""
 
 import asyncio
+from copy import deepcopy
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 from uuid import UUID, uuid4
@@ -13,6 +14,7 @@ from sqlalchemy import text
 from app.db.session import Database
 from app.schemas.brand_kits import BrandKitConfirmRequest, BrandKitDraftRequest
 from app.schemas.business_catalog import CatalogUpdate
+from app.schemas.business_collection import CollectionPhotoUpdate
 from app.schemas.media_previews import PreviewRequest
 from app.services.auth import AuthError
 from app.services.brand_kits import BrandKitService
@@ -50,8 +52,8 @@ class PausingStore(Store):
             await self.release.wait()
 
 
-@pytest.mark.parametrize("change", ["kit", "photo"])
-async def test_kit_or_photo_change_during_processing_discards_preview(change, admin, database, seeded, settings):
+@pytest.mark.parametrize("change", ["kit", "photo", "photo_update", "catalog"])
+async def test_kit_or_photo_change_waits_and_preview_remains_reviewable(change, admin, database, seeded, settings):
     tenant, actor = seeded["t1"], seeded["a1"]
     business = await _business(admin, seeded)
     await _enable(admin, tenant, business, actor)
@@ -120,7 +122,7 @@ async def test_kit_or_photo_change_during_processing_discards_preview(change, ad
                     5,
                 )
                 assert changed.draft is not None
-                await asyncio.wait_for(
+                confirmation = await asyncio.wait_for(
                     kits.confirm(
                         tenant,
                         business,
@@ -129,21 +131,87 @@ async def test_kit_or_photo_change_during_processing_discards_preview(change, ad
                     ),
                     5,
                 )
-            else:
+                assert confirmation.pending_change is True
+                assert (await kits.read(tenant, business, actor)).pending_change is True
+            elif change == "photo":
                 deleted = await asyncio.wait_for(
                     collection.delete(tenant, business, actor, photo.id, uuid4(), photo.version), 5
                 )
-                assert deleted.status == "deleted"
-            assert not task.done(), "The edit must not wait for rendering to finish"
+                assert deleted.status == "waiting_for_generation"
+                assert (await collection.list_photos(tenant, business, actor))[0].pending_change is True
+            elif change == "photo_update":
+                updated = await collection.update(
+                    tenant,
+                    business,
+                    actor,
+                    photo.id,
+                    CollectionPhotoUpdate(
+                        operation_id=uuid4(),
+                        expected_version=photo.version,
+                        title="Foto atualizada",
+                        item_id=photo.item_id,
+                        space_kind=photo.space_kind,
+                        sort_order=photo.sort_order,
+                        status="active",
+                    ),
+                )
+                assert updated.pending_change is True and updated.title == photo.title
+            elif change == "catalog":
+                update = deepcopy(catalog)
+                update["operation_id"] = str(uuid4())
+                update["expected_version"] = 1
+                update["offerings"][0]["price_minor"] = 2200
+                update["promotions"][0]["price_minor"] = 1900
+                pending = await BusinessCatalogService(database).update(
+                    tenant, business, actor, CatalogUpdate.model_validate(update)
+                )
+                assert pending.version == 1 and pending.pending_change is not None
+            assert not task.done(), "The change must remain pending while rendering is active"
         finally:
             store.release.set()
-        assert await task == "failed"
-        assert store.preview_key is not None and store.preview_key not in store.objects
-        assert await owner.list(tenant, business, actor) == []
-        with pytest.raises(AuthError, match="PREVIEW_NOT_READY"):
-            await owner.file_key(tenant, business, actor, preview.id)
+        assert await task == "completed"
+        assert store.preview_key is not None and store.preview_key in store.objects
+        visible = await owner.list(tenant, business, actor)
+        assert len(visible) == 1 and visible[0].created_before_change is True
+        assert await owner.file_key(tenant, business, actor, preview.id, review=True) == store.preview_key
         async with admin.connect() as conn:
             state = await conn.scalar(text("SELECT state FROM media_previews WHERE id=:id"), {"id": preview.id})
-            assert state == "failed"
+            assert state == "completed"
+        if change == "kit":
+            updated = await kits.read(tenant, business, actor)
+            assert not updated.pending_change
+            assert updated.confirmed is not None and updated.confirmed.overrides.brand_name == "Novo nome"
+            # The preserved-preview proof must match the actual image and must
+            # not bypass a later withdrawal of editorial permission.
+            async with admin.begin() as conn:
+                await conn.execute(
+                    text("UPDATE visual_change_completed_previews SET sha256=:sha WHERE preview_id=:id"),
+                    {"id": preview.id, "sha": "0" * 64},
+                )
+            with pytest.raises(AuthError, match="PREVIEW_NOT_READY"):
+                await owner.file_key(tenant, business, actor, preview.id, review=True)
+            async with admin.begin() as conn:
+                await conn.execute(
+                    text("""UPDATE visual_change_completed_previews v SET sha256=p.sha256
+                      FROM media_previews p WHERE p.id=v.preview_id AND v.preview_id=:id"""),
+                    {"id": preview.id},
+                )
+                await conn.execute(
+                    text(
+                        "UPDATE editorial_ai_consents SET revoked_at=now() "
+                        "WHERE tenant_id=:tenant AND business_id=:business"
+                    ),
+                    {"tenant": tenant, "business": business},
+                )
+            with pytest.raises(AuthError, match="PREVIEW_NOT_READY"):
+                await owner.file_key(tenant, business, actor, preview.id, review=True)
+        elif change == "photo":
+            assert await collection.list_photos(tenant, business, actor) == []
+        elif change == "photo_update":
+            updated = await collection.list_photos(tenant, business, actor)
+            assert len(updated) == 1 and updated[0].title == "Foto atualizada" and not updated[0].pending_change
+        elif change == "catalog":
+            updated_catalog = await BusinessCatalogService(database).read(tenant, business, actor)
+            assert updated_catalog.version == 2 and updated_catalog.offerings[0].price_minor == 2200
     finally:
         await worker.close()

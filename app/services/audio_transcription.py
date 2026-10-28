@@ -135,7 +135,13 @@ class AudioTranscriptionService:
 
         async with self.processor.database.sessions() as session, session.begin():
             row = await self._row(session, event)
-            if row is None or row["transcription_state"] is not None or not await self._eligible(session, row):
+            if row is None or row["transcription_state"] is not None:
+                return "skipped"
+            await session.execute(
+                text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 48))"),
+                {"key": f"visual-consent:{row['tenant_id']}:{row['business_id']}"},
+            )
+            if not await self._eligible(session, row):
                 return "skipped"
             await session.execute(
                 text("SELECT pg_advisory_xact_lock(hashtextextended(:tenant,0))"),

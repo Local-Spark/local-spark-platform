@@ -53,12 +53,19 @@ class CollectionPhoto(BaseModel):
     status: Literal["active", "archived", "deleted"]
     source: Literal["upload", "whatsapp"]
     source_material_id: UUID | None
-    mime_type: str
-    sha256: str
+    mime_type: str | None
+    sha256: str | None
     source_sha256: str | None
-    size_bytes: int
+    size_bytes: int | None
     created_at: datetime
     updated_at: datetime
+    pending_change: bool = False
+    pending_change_error: str | None = None
+    pending_activation: bool = False
+    pending_recovery: bool = False
+    pending_cancelable: bool = False
+    pending_uncertain: bool = False
+    pending_quarantined: bool = False
 
 
 class CollectionPhotoVersion(BaseModel):
@@ -74,4 +81,4 @@ class CollectionPhotoUrl(BaseModel):
 
 
 class CollectionPhotoDeletion(BaseModel):
-    status: Literal["deleted", "deleting"]
+    status: Literal["deleted", "deleting", "waiting_for_generation", "quarantined"]

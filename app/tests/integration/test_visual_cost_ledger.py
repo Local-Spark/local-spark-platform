@@ -115,3 +115,49 @@ async def test_budget_race_validation_and_disabled_default(admin, seeded, settin
         assert sum(isinstance(x, VisualCostError) and "EXCEEDED" in str(x) for x in outcomes) == 1
     finally:
         await worker_db.close()
+
+
+async def test_openai_global_ceiling_is_atomic_across_tenants_and_uncertain_cost_stays_reserved(
+    admin, seeded, settings
+):
+    t1, a1, t2, a2 = seeded["t1"], seeded["a1"], seeded["t2"], seeded["a2"]
+    b1, b2 = await _business(admin, t1), await _business(admin, t2)
+    cfg = settings.model_copy(
+        update={"visual_ai_monthly_budget_usd_micros": 100, "visual_ai_global_monthly_budget_usd_micros": 100}
+    )
+    worker, app = Database(cfg, correlator=True), Database(cfg)
+    ledger = VisualCostLedger(cfg, worker)
+
+    async def reserve(tenant, business, actor, amount):
+        return await ledger.reserve(tenant, business, actor, uuid4(), "openai", "test", "a" * 64, amount)
+
+    try:
+        disabled = VisualCostLedger(cfg.model_copy(update={"visual_ai_global_monthly_budget_usd_micros": 0}), worker)
+        with pytest.raises(VisualCostError, match="GLOBAL_BUDGET_DISABLED"):
+            await disabled.reserve(t1, b1, a1, uuid4(), "openai", "test", "a" * 64, 1)
+        results = await asyncio.gather(reserve(t1, b1, a1, 60), reserve(t2, b2, a2, 60), return_exceptions=True)
+        assert (
+            sum(isinstance(result, VisualCostError) and "GLOBAL_BUDGET_EXCEEDED" in str(result) for result in results)
+            == 1
+        )
+        index = next(i for i, result in enumerate(results) if not isinstance(result, Exception))
+        first = results[index]
+        tenant, actor = ((t1, a1), (t2, a2))[index]
+        other_tenant, other_business, other_actor = ((t2, b2, a2), (t1, b1, a1))[index]
+        await ledger.finish(tenant, actor, first.id, actual_usd_micros=None)
+        with pytest.raises(VisualCostError, match="GLOBAL_BUDGET_EXCEEDED"):
+            await reserve(other_tenant, other_business, other_actor, 41)
+        await ledger.finish(tenant, actor, first.id, actual_usd_micros=20)
+        second = await reserve(t2, b2, a2, 80)
+        async with admin.connect() as connection:
+            assert await connection.scalar(text("SELECT committed_usd_micros FROM visual_global_monthly_budget")) == 100
+        with pytest.raises(ProgrammingError):
+            async with app.transaction(t1, a1) as session:
+                await session.execute(text("SELECT * FROM visual_global_monthly_budget"))
+        async with admin.begin() as connection:
+            await connection.execute(text("DELETE FROM visual_global_monthly_budget"))
+        with pytest.raises(VisualCostError, match="GLOBAL_BUDGET_INCONSISTENT"):
+            await ledger.finish(t2, a2, second.id, actual_usd_micros=50)
+    finally:
+        await worker.close()
+        await app.close()

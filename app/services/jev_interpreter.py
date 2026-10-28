@@ -52,6 +52,16 @@ class BudgetedJevInterpreter:
 
         try:
             async with self.database.transaction(self.tenant, self.actor) as session:
+                from sqlalchemy import text
+
+                from app.services.service_agreement import service_agreement_allowed
+
+                await session.execute(
+                    text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 48))"),
+                    {"key": f"visual-consent:{self.tenant}:{self.business}"},
+                )
+                if not await service_agreement_allowed(session, self.settings, self.tenant, self.business):
+                    raise AuthError("SERVICE_AGREEMENT_REQUIRED", 409)
                 current = await EditorialBriefingService(self.settings, self.database)._source(
                     session, self.tenant, self.business, self.actor, self.source
                 )

@@ -22,7 +22,8 @@ class VisualConsentGate:
     def __init__(self, database: Database) -> None:
         self.database = database
 
-    async def _lock(self, session: AsyncSession, tenant: UUID, business: UUID, actor: UUID) -> None:
+    @staticmethod
+    async def _lock(session: AsyncSession, tenant: UUID, business: UUID, actor: UUID) -> None:
         await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
         await session.execute(
             text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 48))"),
@@ -151,6 +152,19 @@ class VisualConsentGate:
                 return False
             if await self._state(session, tenant, business) != "active":
                 raise AuthError("VISUAL_AI_CONSENT_REQUIRED", 409)
+            from app.services.visual_pending_changes import VisualPendingChanges
+
+            if await VisualPendingChanges.has_pending_in_session(session, tenant, business):
+                raise AuthError("VISUAL_CHANGE_PENDING", 409)
+            cancelled = await session.scalar(
+                text("""SELECT 1 FROM media_previews p
+              JOIN business_visual_pending_changes c ON c.tenant_id=p.tenant_id AND c.business_id=p.business_id
+              WHERE p.tenant_id=:tenant AND p.business_id=:business AND p.id=:preview
+                AND p.created_at<=c.requested_at LIMIT 1"""),
+                params,
+            )
+            if cancelled:
+                raise AuthError("VISUAL_CHANGE_QUEUE_CANCELLED", 409)
             accepted_at = await session.scalar(
                 text("""SELECT accepted_at FROM visual_ai_consents WHERE tenant_id=:tenant AND business_id=:business
                   AND revoked_at IS NULL"""),
@@ -199,6 +213,7 @@ class VisualConsentGate:
                   AND fence=:fence AND state='in_flight' RETURNING 1"""),
                 {**params, "eligible": bool(eligible_sha), "sha": eligible_sha},
             )
+            finished_now = bool(found)
             if not found:
                 found = await session.scalar(
                     text("""SELECT 1 FROM visual_consent_runs WHERE tenant_id=:tenant
@@ -208,6 +223,29 @@ class VisualConsentGate:
                 )
                 if not found:
                     raise AuthError("VISUAL_ADMISSION_NOT_FOUND", 404)
+            from app.services.visual_pending_changes import VisualPendingChanges
+
+            if (
+                finished_now
+                and preview_completed
+                and await VisualPendingChanges.has_pending_in_session(session, tenant, business)
+            ):
+                await session.execute(
+                    text("""INSERT INTO visual_change_completed_previews
+                  (tenant_id,business_id,actor_id,preview_id,operation_id,fence,sha256,visual_fingerprint,
+                   consent_accepted_at)
+                  SELECT r.tenant_id,r.business_id,r.actor_id,r.preview_id,r.operation_id,r.fence,p.sha256,
+                    p.visual_fingerprint,r.consent_accepted_at
+                  FROM visual_consent_runs r JOIN media_previews p ON p.tenant_id=r.tenant_id
+                    AND p.business_id=r.business_id AND p.id=r.preview_id
+                  WHERE r.tenant_id=:tenant AND r.business_id=:business AND r.actor_id=:actor
+                    AND r.operation_id=:operation AND r.fence=:fence AND r.state='finished'
+                    AND p.actor_id=r.actor_id AND p.dispatch_fence=r.fence AND p.state='completed'
+                    AND p.generation_mode='visual_fake' AND p.sha256 IS NOT NULL
+                    AND p.visual_fingerprint IS NOT NULL AND p.object_key IS NOT NULL
+                  ON CONFLICT DO NOTHING"""),
+                    params,
+                )
             if state == "revocation_pending":
                 count = await session.scalar(
                     text("""SELECT count(*) FROM visual_consent_runs
@@ -226,7 +264,9 @@ class VisualConsentGate:
                         params,
                     )
                     await self._audit(session, tenant, business, actor, "visual.ai_revoked")
+                    await VisualPendingChanges.apply_pending_in_session(session, tenant, business)
                     return "revoked"
+            await VisualPendingChanges.apply_pending_in_session(session, tenant, business)
             return state
 
     async def withdrawn_preview_consent(

@@ -234,7 +234,13 @@ class BrandKitService:
     async def read(self, tenant: UUID, business: UUID, actor: UUID) -> BrandKitState:
         async with self.database.transaction(tenant, actor) as session:
             await self._owner(session, tenant, business, actor)
-            return await self._state(session, tenant, business)
+            from app.services.visual_pending_changes import VisualPendingChanges
+
+            state = await self._state(session, tenant, business)
+            pending = await VisualPendingChanges.status_in_session(session, tenant, business, "kit")
+            state.pending_change = pending is not None and pending["status"] == "pending"
+            state.pending_change_error = pending["error_code"] if pending and pending["status"] == "failed" else None
+            return state
 
     async def history(self, tenant: UUID, business: UUID, actor: UUID) -> list[BrandKitVersion]:
         async with self.database.transaction(tenant, actor) as session:
@@ -304,12 +310,19 @@ class BrandKitService:
         )
 
     async def draft(self, tenant: UUID, business: UUID, actor: UUID, body: BrandKitDraftRequest) -> BrandKitState:
+        from app.services.visual_consent_gate import VisualConsentGate
+        from app.services.visual_pending_changes import VisualPendingChanges
+
         digest = _digest(body.model_dump(mode="json"))
         async with self.database.transaction(tenant, actor) as session:
             await self._owner(session, tenant, business, actor)
+            await VisualConsentGate(self.database)._lock(session, tenant, business, actor)
             replay = await self._replay(session, tenant, business, body.operation_id, digest)
             if replay is not None:
                 return replay
+            pending = await VisualPendingChanges.status_in_session(session, tenant, business, "kit")
+            if pending is not None and pending["status"] == "pending":
+                raise AuthError("VISUAL_CHANGE_ALREADY_PENDING", 409)
             if not self._selectable:
                 raise AuthError("BRAND_KIT_NOT_SELECTABLE", 409)
             if body.overrides.logo_asset_id is not None and not await session.scalar(
@@ -358,58 +371,100 @@ class BrandKitService:
             await self._save_response(session, tenant, business, version, state)
             return state
 
+    @staticmethod
+    async def _confirm_in_session(
+        session: Any, tenant: UUID, business: UUID, actor: UUID, body: BrandKitConfirmRequest
+    ) -> BrandKitState:
+        digest = _digest(body.model_dump(mode="json"))
+        replay = await BrandKitService._replay(session, tenant, business, body.operation_id, digest)
+        if replay is not None:
+            return replay
+        draft = (
+            (
+                await session.execute(
+                    text("""SELECT state,document FROM business_brand_kit_versions
+                          WHERE tenant_id=:tenant AND business_id=:business AND version=:version"""),
+                    {"tenant": tenant, "business": business, "version": body.expected_version},
+                )
+            )
+            .mappings()
+            .one_or_none()
+        )
+        if draft is None or draft["state"] != "draft":
+            raise AuthError("BRAND_KIT_DRAFT_REQUIRED", 409)
+        version = await session.scalar(
+            text("""UPDATE business_brand_kit_heads
+                  SET version=version+1,confirmed_version=version+1
+                  WHERE tenant_id=:tenant AND business_id=:business AND version=:expected
+                  RETURNING version"""),
+            {"tenant": tenant, "business": business, "expected": body.expected_version},
+        )
+        if version is None:
+            replay = await BrandKitService._replay(session, tenant, business, body.operation_id, digest)
+            if replay is not None:
+                return replay
+            raise AuthError("BRAND_KIT_VERSION_CONFLICT", 409)
+        await session.execute(
+            text("""INSERT INTO business_brand_kit_versions
+                  (tenant_id,business_id,version,operation_id,actor_id,request_hash,state,document)
+                  VALUES(:tenant,:business,:version,:operation,:actor,:digest,'confirmed',CAST(:document AS jsonb))"""),
+            {
+                "tenant": tenant,
+                "business": business,
+                "version": version,
+                "operation": body.operation_id,
+                "actor": actor,
+                "digest": digest,
+                "document": json.dumps(draft["document"], ensure_ascii=False),
+            },
+        )
+        await BrandKitService._record(
+            session, tenant, business, actor, body.operation_id, "brand_kit.confirmed", version
+        )
+        state = await BrandKitService._state(session, tenant, business)
+        await BrandKitService._save_response(session, tenant, business, version, state)
+        return state
+
     async def confirm(self, tenant: UUID, business: UUID, actor: UUID, body: BrandKitConfirmRequest) -> BrandKitState:
+        from app.services.visual_consent_gate import VisualConsentGate
+        from app.services.visual_pending_changes import VisualPendingChanges
+
         digest = _digest(body.model_dump(mode="json"))
         async with self.database.transaction(tenant, actor) as session:
             await self._owner(session, tenant, business, actor)
+            await VisualConsentGate(self.database)._lock(session, tenant, business, actor)
             replay = await self._replay(session, tenant, business, body.operation_id, digest)
             if replay is not None:
                 return replay
             if not self._selectable:
                 raise AuthError("BRAND_KIT_NOT_SELECTABLE", 409)
-            draft = (
-                (
-                    await session.execute(
-                        text("""SELECT state,document FROM business_brand_kit_versions
-                          WHERE tenant_id=:tenant AND business_id=:business AND version=:version"""),
-                        {"tenant": tenant, "business": business, "version": body.expected_version},
-                    )
+            current = await self._state(session, tenant, business)
+            if current.head_version != body.expected_version:
+                previous = await session.scalar(
+                    text("""SELECT 1 FROM business_brand_kit_versions WHERE tenant_id=:tenant
+                      AND business_id=:business AND version=:version AND state='draft'"""),
+                    {"tenant": tenant, "business": business, "version": body.expected_version},
                 )
-                .mappings()
-                .one_or_none()
-            )
-            if draft is None or draft["state"] != "draft":
+                if previous:
+                    raise AuthError("BRAND_KIT_VERSION_CONFLICT", 409)
                 raise AuthError("BRAND_KIT_DRAFT_REQUIRED", 409)
-            version = await session.scalar(
-                text("""UPDATE business_brand_kit_heads
-                  SET version=version+1,confirmed_version=version+1
-                  WHERE tenant_id=:tenant AND business_id=:business AND version=:expected
-                  RETURNING version"""),
-                {"tenant": tenant, "business": business, "expected": body.expected_version},
+            if current.draft is None:
+                raise AuthError("BRAND_KIT_DRAFT_REQUIRED", 409)
+            pending = await VisualPendingChanges.enqueue_in_session(
+                session,
+                tenant,
+                business,
+                actor,
+                body.operation_id,
+                "kit_confirm",
+                "kit",
+                digest,
+                body.model_dump(mode="json"),
             )
-            if version is None:
-                replay = await self._replay(session, tenant, business, body.operation_id, digest)
-                if replay is not None:
-                    return replay
-                raise AuthError("BRAND_KIT_VERSION_CONFLICT", 409)
-            await session.execute(
-                text("""INSERT INTO business_brand_kit_versions
-                  (tenant_id,business_id,version,operation_id,actor_id,request_hash,state,document)
-                  VALUES(:tenant,:business,:version,:operation,:actor,:digest,'confirmed',CAST(:document AS jsonb))"""),
-                {
-                    "tenant": tenant,
-                    "business": business,
-                    "version": version,
-                    "operation": body.operation_id,
-                    "actor": actor,
-                    "digest": digest,
-                    "document": json.dumps(draft["document"], ensure_ascii=False),
-                },
-            )
-            await self._record(session, tenant, business, actor, body.operation_id, "brand_kit.confirmed", version)
-            state = await self._state(session, tenant, business)
-            await self._save_response(session, tenant, business, version, state)
-            return state
+            if pending:
+                current.pending_change = True
+                return current
+            return await self._confirm_in_session(session, tenant, business, actor, body)
 
     @staticmethod
     async def _logo_row(session: Any, tenant: UUID, business: UUID, operation: UUID) -> Any:

@@ -105,6 +105,7 @@ def test_safe_production_configuration(settings):
         **{
             **settings.model_dump(),
             "environment": "production",
+            "service_agreement_required": True,
             "temporal_tls": True,
             "public_web_url": "https://meu-braco-direito.example",
             "auth_encryption_key": "c2VjdXJlLXRlc3Qta2V5LTAwMDAwMDAwMDAwMDAwMDA=",

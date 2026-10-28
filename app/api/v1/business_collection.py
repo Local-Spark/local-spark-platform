@@ -108,6 +108,13 @@ async def photo_url(
     return await service(request).url(tenant_id, business_id, actor, photo_id)
 
 
+@collection_router.post("/{photo_id}/resume", response_model=CollectionPhoto)
+async def photo_resume(
+    tenant_id: UUID, business_id: UUID, photo_id: UUID, request: Request, actor: Actor
+) -> CollectionPhoto:
+    return await service(request).resume_upload(tenant_id, business_id, actor, photo_id)
+
+
 @collection_router.get("/{photo_id}/history", response_model=list[CollectionPhotoVersion])
 async def photo_history(
     tenant_id: UUID,
@@ -127,6 +134,6 @@ async def photo_delete(
     request: Request,
     actor: Actor,
     operation_id: UUID = Query(),
-    expected_version: int = Query(ge=1),
+    expected_version: int = Query(ge=0),
 ) -> CollectionPhotoDeletion:
     return await service(request).delete(tenant_id, business_id, actor, photo_id, operation_id, expected_version)

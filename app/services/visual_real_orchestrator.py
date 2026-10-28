@@ -105,6 +105,20 @@ def _verify_finished(media: FetchedMedia, expected: tuple[int, int]) -> None:
         raise VisualRunError("VISUAL_OUTPUT_INVALID") from exc
 
 
+def _encode_preview(media: FetchedMedia) -> FetchedMedia:
+    """Convert an already-validated, RGB finished image to the preview contract."""
+    try:
+        with Image.open(io.BytesIO(media.data)) as image:
+            output = io.BytesIO()
+            image.convert("RGB").save(output, format="JPEG", quality=95, subsampling=0, optimize=True)
+    except (OSError, UnidentifiedImageError, Image.DecompressionBombError) as exc:
+        raise VisualRunError("VISUAL_OUTPUT_INVALID") from exc
+    data = output.getvalue()
+    if not 0 < len(data) <= 15 * 1024 * 1024:
+        raise VisualRunError("VISUAL_OUTPUT_INVALID")
+    return FetchedMedia(data, "image/jpeg", hashlib.sha256(data).hexdigest())
+
+
 class VisualRealOrchestrator[BrandT: PreparedBrand]:
     """Coordinates an effect only with an explicit injected authorization guard."""
 
@@ -137,6 +151,8 @@ class VisualRealOrchestrator[BrandT: PreparedBrand]:
         submission_possible = False
         response_received = False
         uploaded_key: str | None = None
+        commit_started = False
+        commit_resolved = False
         try:
             brand = await self.brand.prepare(
                 scope.tenant, scope.business, scope.actor, scope.proposal, scope.operation, candidate=scope.candidate
@@ -188,37 +204,51 @@ class VisualRealOrchestrator[BrandT: PreparedBrand]:
             scene = FetchedMedia(result.content, result.mime_type, result.sha256)
             media = await self.brand.finish(scope.actor, brand, scene, candidate=scope.candidate)
             _verify_finished(media, (result.width, result.height))
+            media = _encode_preview(media)
             if not await self.guard.current(scope, prepared):
                 known_terminal = True
                 return "stale"
             uploaded_key = (
-                f"previews/{scope.tenant}/{scope.business}/{scope.preview}/attempt-{scope.fence}/{media.sha256}.png"
+                f"previews/{scope.tenant}/{scope.business}/{scope.preview}/attempt-{scope.fence}/{media.sha256}.jpg"
             )
             await self.store.put(uploaded_key, media)
-            if not await self.guard.current(scope, prepared) or not await self.guard.commit(
-                scope, uploaded_key, media, result.width, result.height
-            ):
+            if not await self.guard.current(scope, prepared):
                 await self.store.delete(uploaded_key)
                 uploaded_key = None
                 known_terminal = True
+                return "stale"
+            # A lost commit acknowledgement must not delete an object that may
+            # already be referenced by a committed preview. Reconciliation is
+            # required when commit outcome is unknown.
+            commit_started = True
+            committed = await self.guard.commit(scope, uploaded_key, media, result.width, result.height)
+            commit_resolved = True
+            if not committed:
+                known_terminal = True
+                await self.store.delete(uploaded_key)
+                uploaded_key = None
                 return "stale"
             completed = known_terminal = True
             return "completed"
         except AuthError:
             # A source or permission changed while preparing/finishing. Once
             # the provider has returned, discarding is a known terminal result.
-            if submission_possible and not response_received:
+            if (submission_possible and not response_received) or (commit_started and not commit_resolved):
                 raise
             known_terminal = True
             return "stale"
         except (BrandOverlayError, VisualRunError):
             # Local output validation/finishing cannot start a provider call.
-            if submission_possible and not response_received:
+            if (submission_possible and not response_received) or (commit_started and not commit_resolved):
                 raise
             known_terminal = True
             raise
         finally:
-            if uploaded_key is not None and not completed:
+            if response_received and not commit_started:
+                # The paid request has definitely finished; local processing or
+                # storage failure cannot keep withdrawal pending indefinitely.
+                known_terminal = True
+            if uploaded_key is not None and not completed and (not commit_started or commit_resolved):
                 try:
                     await self.store.delete(uploaded_key)
                 except Exception:

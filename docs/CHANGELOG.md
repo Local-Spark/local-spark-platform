@@ -1,5 +1,156 @@
 # Registro de mudanças
 
+## 2026-10-28 — IA como parte do serviço contratado
+
+- O proprietário corrigiu a jornada: não exigir que o cliente escolha OpenAI,
+  TypeSafe, imagem ou transcrição como ativações separadas. A contratação deve
+  explicar o uso de IA e registrar uma única versão aplicável do serviço.
+- Contas de teste existentes devem conhecer e aceitar os termos atualizados uma
+  única vez antes do uso. Os termos anteriores de validação local não são
+  convertidos silenciosamente. Preservar registros/tabelas e controles de acesso,
+  orçamento, direitos sobre material e aprovação de publicações.
+- O proprietário confirmou que a transcrição por IA de áudios enviados também
+  integra o serviço, sem confirmação separada. A implementação anterior que
+  tentava ativar as capacidades em conjunto foi rejeitada pela revisão automática
+  enquanto os gates integrados ainda não estavam validados.
+- Os gates por fornecedor permanecem no backend até a substituição funcional;
+  essa decisão não torna a geração visual real pronta para clientes.
+- Foi preparada a leitura versionada e uma transação interna de aceite por
+  negócio, testada em `_test`; o POST e a tela única ainda não estão conectados.
+  A confirmação explícita inclui transcrição de áudio. A entrada do WhatsApp
+  pode marcar mensagem sem aceite como falha definitiva e precisa de retomada
+  segura antes de ativar enforcement. A migration 0056 não foi aplicada à base
+  de desenvolvimento. Documentos apresentados seguem como validação local.
+- A primeira ativação conjunta foi rejeitada pela revisão automática por falta
+  de decisão explícita sobre áudio e gates integrados; o proprietário confirmou
+  a inclusão do áudio e a alternativa reduzida foi testada, mas não exposta.
+  A retirada de um novo endpoint de desconexão também foi rejeitada; a corrida
+  identificada nele foi corrigida e testada com o mesmo lock por negócio.
+- Validação: `make ci` passou com 1.513 testes e 100% de cobertura; a web passou
+  com 353 testes e 100% de cobertura. Não houve chamada paga de IA nesta rodada.
+
+## 2026-10-28 — Acervo: quarentena e recuperação do negócio
+
+- O autor pode descartar um upload de resultado desconhecido após vencer sua
+  reserva e reenviá-lo com nova operação; a chave antiga permanece privada e
+  indisponível. PUTs novos usam uma tentativa e prova durável; registros legados
+  sem prova não são considerados seguros para retomada ou exclusão.
+- A migration 0055 protege a quarentena no banco contra transições de workers
+  antigos. Isso não encerra efeitos externos já em andamento nem prova que
+  objetos legados excluídos não reapareçam; drenagem e reconciliação são
+  obrigatórias. A limpeza física da quarentena e o cancelamento por outro owner
+  seguem pendentes. As migrações foram testadas somente na base `_test`.
+- Validação da rodada: `make ci` passou com 1.462 testes e 100% de cobertura de
+  linhas e branches; a web passou com 336 testes e 100% de cobertura.
+
+## 2026-10-28 — Cancelamento de propostas editoriais após reautorização
+
+- O lock de negócio e uma geração de consentimento impedem reativar propostas
+  enfileiradas para OpenAI antes de uma retirada, mesmo após nova concessão.
+  Propostas antigas sem prova não são enviadas ao provedor; o histórico não é
+  apagado e o processamento local independente continua. A autorização
+  Jev/TypeSafe permanece separada da OpenAI.
+- A espera da retirada editorial foi retirada da implementação: uma cascata pode
+  apagar a proposta que servia como prova do efeito ainda em andamento. A revisão
+  automática rejeitou o grant de leitura para a tabela de uso sem revisão de RLS
+  e rejeitou também uma reversão combinada de barreiras na prévia; por isso a
+  migração 0051 e seus campos de proteção permanecem sem emissor ativo. A retirada
+  atual continua imediata, sem prometer espera. A geração real segue bloqueada.
+- Implantação mista com workers antigos é insegura: parar tráfego e workers,
+  aplicar as migrações e iniciar versões que conheçam o epoch antes do uso.
+
+## 2026-10-28 — BL04.2: execução Temporal de imagem
+
+- Workflow separado com timeout próprio e no máximo uma tentativa, sem alterar
+  o histórico de `StaticPreviewWorkflow`. Teste com Temporal real confirma que
+  uma falha da activity não repete o efeito. O worker ainda não o registra e
+  nenhum provedor foi conectado; a guarda de fontes continua pendente.
+
+## 2026-10-28 — BL04.2: acabamento simulado e ensaio de imagem sintética
+
+- Proprietário definiu que a expiração da retenção de uma foto WhatsApp deve
+  aguardar uma geração já iniciada e excluir a origem em seguida; resultado
+  incerto permanece em verificação. Prévia concluída continua para revisão após
+  excluir a origem. A mesma espera vale para retirar autorização de WhatsApp
+  ou de IA de texto durante geração visual. Essas regras ainda não estão implementadas.
+- Se a retenção da foto e a própria prévia vencerem durante a geração, o
+  proprietário decidiu manter a prévia por sete dias após a conclusão. A regra
+  também aguarda implementação.
+- A inclusão de foto no acervo reserva a mudança antes do upload e aguarda as
+  criações admitidas. Upload com resultado incerto permanece privado e bloqueia
+  o negócio; o cliente é orientado a procurar suporte, pois a reconciliação desse
+  caso ainda não foi implementada. A proteção de fontes WhatsApp segue pendente.
+- Um teste de integração usa Temporal e PostgreSQL reais para percorrer o fluxo
+  sintético até a revisão de uma prévia simulada com kit; não chama Meta ou OpenAI.
+- Validação final: `make ci` passou com 1.444 testes e cobertura de 100% de
+  linhas e branches. Os testes de interface da coleção passaram (28 casos),
+  assim como a verificação de tipos do frontend.
+- O worker `visual_fake` prepara referências e aplica o acabamento do kit sobre
+  uma cena neutra, mantendo marca de simulação. Não gera imagem com IA e não
+  habilita o fornecedor real para dados de clientes.
+- Uma chamada OpenAI isolada foi autorizada até US$ 1 e executada uma única vez
+  com fixture fictícia e foto CC0. O uso estimado foi US$ 0,020615; resultado,
+  limites e evidência estão em [evals](evals/bl042-synthetic-brand-finish-2026-10-28.md).
+  Isso não é integração real nem prova de fatura ou custo por cliente.
+
+## 2026-10-28 — Número WhatsApp por negócio
+
+- Decisão de produto: a versão inicial terá um número WhatsApp ativo de cliente
+  por negócio. Suporte a vários números é uma evolução futura; o compartilhamento
+  de histórico e as regras de mensagens serão definidos nessa fase.
+- A decisão não restringe contas proprietárias na web nem resolve a limitação
+  já identificada para alterações pendentes entre proprietários diferentes.
+  Apenas documentação alterada; nenhuma integração real foi homologada.
+
+## 2026-10-28 — Espera para alterações durante criação visual simulada
+
+- A decisão de mudança imediata foi substituída: pedidos de alteração aguardam
+  criações já iniciadas; trabalhos na fila são cancelados e novos inícios ficam
+  bloqueados. A prévia concluída permanece identificada para revisão.
+- O modo simulado cobre parcialmente contexto editorial, catálogo, confirmação de kit e
+  alteração/exclusão de fotos do acervo. Fila e falhas são persistidas; a
+  interface mostra espera e acompanha o resultado.
+- Limitações: outros escritores de fontes, remoção física automática em todos
+  os casos, pedidos de outro proprietário e geração real seguem pendentes.
+  A revisão automática rejeitou a troca temporária de identidade na sessão por
+  risco de vazamento de autorização; não foi aplicada nem contornada.
+- A retenção passou a usar a chave de objeto efetivamente registrada na prévia;
+  isso corrige a remoção de arquivos sob diretórios de tentativa. Objetos sem
+  chave persistida após resultado incerto ainda exigem reconciliação própria.
+- Validação: `make ci` passou com 1.363 testes e 100% de cobertura de linhas e
+  branches. A migração `0050_visual_pending_changes` foi aplicada à base `_test`
+  e ao banco local de desenvolvimento. Nenhuma chamada paga foi realizada.
+
+## 2026-10-28 — BL04.2: decisão de aguardar criações em andamento
+
+- O proprietário substituiu a decisão de alteração imediata: solicitações de
+  mudança de kit ou contexto e exclusão/alteração de foto aguardam o término
+  das criações já iniciadas. Enquanto pendentes, a fila ainda não iniciada é
+  cancelada e novas criações não começam; depois a mudança é aplicada.
+- A retirada da autorização mantém a regra de espera e a prévia concluída
+  durante essa espera permanece disponível. A prévia concluída antes da mudança
+  de fonte também permanece disponível para revisão e deve ser identificada como
+  anterior à alteração; publicação segue os direitos e a aprovação aplicáveis.
+- Esta entrada registra decisão, não implementação. Os testes anteriores do
+  simulador cobrem a regra substituída e ainda precisam ser atualizados.
+
+## 2026-10-27 — BL04.2: orçamento agregado e endurecimento parcial
+
+- Adicionado teto mensal agregado para reservas OpenAI, separado do teto por
+  tenant, sem armazenar dados de clientes no agregado. Resultado incerto mantém
+  a reserva; chamadas fora deste ledger e diferenças de fatura não estão cobertas.
+- O claim também consulta associação e conta ativa. Esta defesa não serializa
+  alterações concorrentes e não é a guarda completa exigida para envio real.
+- Acabamento experimental produz JPEG compatível com prévias privadas e preserva
+  o objeto em caso de commit incerto; um desenho Temporal separado registra os
+  gates pendentes. O worker real permanece desligado e não há publicação.
+- A disponibilidade visual não é anunciada apenas pela presença de credencial.
+- Validação: Ruff, formatação, mypy e testes focados passaram; 68 testes
+  mediram 100% de linhas e branches nos três serviços de custo, envio e
+  orquestração. A migração `0049` passou por downgrade/upgrade na base `_test`
+  e foi aplicada ao banco local de desenvolvimento. Nenhuma chamada paga foi
+  feita. O CI completo não foi repetido nesta alteração.
+
 ## 2026-10-27 — BL04.2: decisão de alteração imediata de fontes
 
 - Proprietário definiu alteração imediata de kit ou exclusão de foto durante a

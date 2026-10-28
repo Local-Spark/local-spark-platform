@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-from PIL import Image
+from PIL import Image, ImageChops, ImageStat
 
 from app.adapters.brand_overlay import BrandOverlayError
 from app.adapters.material_media import FetchedMedia
@@ -19,6 +19,7 @@ from app.services.visual_real_orchestrator import (
     VisualRealOrchestrator,
     VisualRunError,
     VisualRunScope,
+    _encode_preview,
     _verify_finished,
 )
 
@@ -77,7 +78,12 @@ async def test_success_requires_admission_revalidation_and_commit(case):
     c.submit.assert_awaited_once()
     key, stored = c.store.put.await_args.args
     assert key.startswith(f"previews/{c.scope.tenant}/{c.scope.business}/{c.scope.preview}/attempt-2/")
-    assert key.endswith(f"{c.media.sha256}.png") and stored == c.media
+    assert key.endswith(f"{stored.sha256}.jpg")
+    assert stored.mime_type == "image/jpeg"
+    assert stored.sha256 == hashlib.sha256(stored.data).hexdigest()
+    with Image.open(io.BytesIO(stored.data)) as image:
+        assert image.format == "JPEG" and image.size == (8, 8)
+    assert c.guard.commit.await_args.args[2] == stored
     c.store.delete.assert_not_awaited()
 
 
@@ -103,7 +109,7 @@ async def test_concrete_brand_finish_is_applied_before_private_commit(case, sett
     brand.prepare.assert_awaited()
     assert brand.prepare.await_count == 3
     output = c.store.put.await_args.args[1]
-    assert output.mime_type == "image/png" and output.sha256 == hashlib.sha256(output.data).hexdigest()
+    assert output.mime_type == "image/jpeg" and output.sha256 == hashlib.sha256(output.data).hexdigest()
     assert output.data != data
     c.guard.commit.assert_awaited_once()
 
@@ -188,7 +194,37 @@ async def test_failed_upload_attempts_cleanup_without_claiming_completion(case):
     with pytest.raises(RuntimeError):
         await c.service.run(c.scope)
     c.store.delete.assert_awaited_once()
+    c.guard.finish.assert_awaited_once_with(c.scope, completed=False)
+
+
+@pytest.mark.parametrize("check", [0, 1, 2])
+async def test_failed_revalidation_after_provider_finishes_admission(case, check):
+    c = case
+    c.guard.current.side_effect = [True] * check + [RuntimeError("synthetic")]
+    with pytest.raises(RuntimeError, match="synthetic"):
+        await c.service.run(c.scope)
+    c.guard.finish.assert_awaited_once_with(c.scope, completed=False)
+    assert c.store.delete.await_count == int(check == 2)
+
+
+@pytest.mark.parametrize("error", [RuntimeError("synthetic"), AuthError("synthetic", 409)])
+async def test_unknown_commit_retains_object_and_admission_for_reconciliation(case, error):
+    c = case
+    c.guard.commit.side_effect = error
+    with pytest.raises(type(error)):
+        await c.service.run(c.scope)
+    c.store.put.assert_awaited_once()
+    c.store.delete.assert_not_awaited()
     c.guard.finish.assert_not_awaited()
+
+
+async def test_resolved_rejected_commit_finishes_even_when_cleanup_fails(case):
+    c = case
+    c.guard.commit.return_value = False
+    c.store.delete.side_effect = RuntimeError("synthetic")
+    with pytest.raises(RuntimeError, match="synthetic"):
+        await c.service.run(c.scope)
+    c.guard.finish.assert_awaited_once_with(c.scope, completed=False)
 
 
 async def test_kit_change_after_provider_response_discards_and_finishes(case):
@@ -247,3 +283,35 @@ def test_invalid_output_is_not_accepted(case):
             _verify_finished(media, (8, 8))
     with pytest.raises(VisualRunError, match="VISUAL_OUTPUT_INVALID"):
         _verify_finished(case.media, (9, 8))
+
+
+def test_preview_encoding_rejects_malformed_input():
+    media = FetchedMedia(b"invalid", "image/png", hashlib.sha256(b"invalid").hexdigest())
+    with pytest.raises(VisualRunError, match="VISUAL_OUTPUT_INVALID"):
+        _encode_preview(media)
+
+
+def test_preview_encoding_strips_metadata_and_preserves_synthetic_gradient():
+    image = Image.new("RGB", (128, 128))
+    image.putdata([(x * 2, y * 2, (x + y)) for y in range(128) for x in range(128)])
+    exif = Image.Exif()
+    exif[270] = "private synthetic metadata"
+    original = io.BytesIO()
+    image.save(original, format="PNG", exif=exif, icc_profile=b"private synthetic profile")
+    data = original.getvalue()
+    result = _encode_preview(FetchedMedia(data, "image/png", hashlib.sha256(data).hexdigest()))
+    with Image.open(io.BytesIO(result.data)) as encoded:
+        assert encoded.format == "JPEG"
+        assert not encoded.getexif()
+        assert "icc_profile" not in encoded.info
+        assert max(ImageStat.Stat(ImageChops.difference(image, encoded.convert("RGB"))).mean) < 2
+
+
+@pytest.mark.parametrize("length", [0, 15 * 1024 * 1024 + 1])
+def test_preview_encoding_rejects_empty_or_oversized_output(case, monkeypatch, length):
+    def save(_image, output, **_kwargs):
+        output.write(b"x" * length)
+
+    monkeypatch.setattr(Image.Image, "save", save)
+    with pytest.raises(VisualRunError, match="VISUAL_OUTPUT_INVALID"):
+        _encode_preview(case.media)

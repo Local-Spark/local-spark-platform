@@ -122,6 +122,11 @@ async def test_store_bounded_image_download(settings, monkeypatch):
     assert await store.get_image("image") == b"image"
     body.close.assert_called_once()
     assert body.read.call_args.args == (MAX_BYTES["image"] + 1,)
+    assert await store.get_image("image", max_bytes=8 * 1024 * 1024) == b"image"
+    assert body.read.call_args.args == (8 * 1024 * 1024 + 1,)
+    for limit in (0, 8 * 1024 * 1024 + 1):
+        with pytest.raises(MaterialError, match="MEDIA_SIZE_EXCEEDED"):
+            await store.get_image("image", max_bytes=limit)
     client.get_object.return_value["ContentLength"] = MAX_BYTES["image"] + 1
     with pytest.raises(MaterialError, match="MEDIA_SIZE_EXCEEDED"):
         await store.get_image("image")

@@ -9,12 +9,28 @@ e evals continuam válidos como detalhe, respeitando as decisões atuais.
 
 ## 1. Objetivo e fronteira do produto
 
+**Decisão atual de contratação:** IA faz parte do serviço. Explicar seu uso uma
+vez nos termos da contratação e substituir escolhas de fornecedor ou modalidade
+por uma jornada única; contas existentes verão a versão atualizada uma vez antes
+de usar o serviço. As verificações separadas que ainda existem descrevem o
+estado atual, não a experiência desejada. Implementação e migração devem seguir
+[uso de IA como parte do serviço](design/ai-as-core-service.md), preservar
+registros e não converter aceites ou recusas anteriores silenciosamente.
+
 Receber ideias e material pelo WhatsApp, recuperar contexto autorizado do
 negócio, produzir conteúdo com qualidade, pedir aprovação específica, publicar
 nos canais habilitados e medir sinais observáveis. O cliente não opera um
 pipeline de edição. A web complementa identidade, configuração, kit, acervo e
 revisão. Sem mensagem nova, a plataforma deve propor conteúdo dentro de uma
 cadência aceita e de um orçamento; esta proatividade ainda não está implementada.
+
+**Decisão de 28/10/2026:** a versão inicial admite um número WhatsApp ativo do
+cliente por negócio, vinculado ao número oficial da plataforma. Múltiplos números
+ativos por negócio ficam para evolução futura, com regras de vínculo, histórico
+compartilhado, destinatários e notificações ainda a definir. O limite do canal
+não restringe contas proprietárias na web nem resolve automaticamente operações
+pendentes solicitadas por proprietários diferentes. A integração real do percurso
+WhatsApp continua sujeita à homologação Meta.
 
 Instagram é o primeiro destino pretendido. Simuladores de Instagram, Facebook
 e TikTok na vitrine não são integrações com essas redes. Avatar/voz do cliente
@@ -138,6 +154,8 @@ usa intent de upload, validação de formato/dimensões/direitos e URL temporár
 reconciliação owner-only trata pendências de upload. F03 congela o documento do
 kit confirmado no pedido, sem resolver a versão atual durante execução tardia.
 F04 ainda não aplica esse kit à produção real.
+O fluxo visual simulado aplica o kit e mantém marca explícita de simulação; não
+comprova a geração real integrada nem qualidade comercial.
 
 `cafe-pausas/v1` continua `public_demo`: dez posts, dois stories, reel silencioso
 e seis cenários fictícios. É selecionável em desenvolvimento/teste; uso comercial
@@ -241,11 +259,31 @@ por padrão e sem qualidade ou custo comercial comprovados.
 
 O [ensaio sintético isolado](evals/bl042-guarded-synthetic-feed-2026-10-27.md)
 fez uma chamada real com fixture fictícia, foto CC0 e hold local; não usa o
-worker de clientes. O acabamento de marca e o executor de provedor são componentes
-experimentais isolados; não autorizam envio real nem demonstram margem ou qualidade.
-Kit/foto podem ser alterados imediatamente durante uma criação; o resultado
-antigo deve ser descartado. A regra foi testada em concorrência no fluxo simulado;
-o efeito externo real continua condicionado ao protocolo de fontes.
+worker de clientes. O acabamento de marca é aplicado no worker simulado; o
+executor do provedor real permanece isolado. Eles não autorizam envio real nem
+demonstram margem ou qualidade comercial. O workflow de geração visual possui
+uma única tentativa e prazos próprios; ainda não está registrado no worker nem
+conectado ao dispatcher ou à guarda real.
+Decisão de 28/10: quando o cliente solicitar alteração de kit, foto ou contexto
+enquanto há criação em andamento, registrar a solicitação como pendente, cancelar
+os trabalhos ainda não iniciados e impedir novos inícios até os processos em
+andamento terminarem e a mudança ser aplicada. A prévia concluída antes da mudança
+permanece disponível para revisão e é identificada como criada antes da alteração;
+sua publicação permanece sujeita a direitos e aprovação. O modo simulado cobre
+parcialmente contexto editorial, catálogo, confirmação de kit e inclusão/alteração/exclusão de
+fotos do acervo. Outros escritores, a limpeza física automática de objetos e
+pedidos de outro proprietário ainda têm lacunas. O efeito externo real permanece
+condicionado a autorização, recuperação e controle de fontes.
+O autor pode descartar um upload incerto após vencer a reserva, liberando o
+negócio e mantendo a chave privada em quarentena; a limpeza física automática e
+a recuperação por outro proprietário permanecem pendentes. Provas persistidas
+distinguem novos PUTs de tentativa única de registros legados. A atualização
+exige drenagem e avaliação de órfãos legados antes do uso.
+Se a retenção da foto e a prévia vencerem durante a criação, a prévia deve
+permanecer para revisão por sete dias após a conclusão. A foto de WhatsApp cuja retenção vencer deve aguardar a
+conclusão antes da exclusão; a prévia permanece para revisão. A espera também se
+aplica à retirada de consentimento de WhatsApp e de IA textual. Esses fluxos de
+retenção e consentimento ainda não foram implementados para a geração visual.
 
 **Gate BL04 por receita:** fontes/direitos válidos, texto/preço/CTA corretos,
 fidelidade a produto/local, acabamento e legibilidade no celular, avaliação
@@ -327,6 +365,12 @@ A preservação dessas APIs não as torna todas etapas visíveis para o cliente.
 | IA imagem/vídeo, avatar, pesquisa/Places | Planejados/candidatos com eval; não integrados por constarem nos designs. |
 | Instagram | Aprovação/publicação falsa local; OAuth/publicação/métricas reais pendentes. |
 | AWS/Redis/CDN | Destino de infraestrutura/evolução; não serviços de produção ativos nesta entrega. |
+
+O ledger visual inclui teto mensal agregado de reservas OpenAI, além do teto
+por tenant. É um controle interno baseado em estimativas, não um limite de fatura
+ou de outras chamadas fora do ledger. A migração `0049` cria apenas o agregado;
+o envio visual real segue bloqueado até os gates de fontes e recuperação estarem
+integrados e comprovados.
 
 ## 11. Sequência e condições de liberação
 

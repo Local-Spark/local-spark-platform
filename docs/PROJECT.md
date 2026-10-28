@@ -1,6 +1,6 @@
 # Meu Braço Direito — contexto vigente
 
-Atualizado em **27/10/2026**. Este documento resume o produto, o estado local e
+Atualizado em **28/10/2026**. Este documento resume o produto, o estado local e
 as decisões aceitas. O [SDD](SDD.md) define os contratos; a
 [trilha BL](phases/BL-brand-library.md) e o [índice de fases](phases/README.md)
 definem a sequência. Registros cronológicos anteriores foram preservados
@@ -15,6 +15,21 @@ usa contexto confirmado, kit visual e material autorizado para produzir conteúd
 resultados observáveis. Também deve propor conteúdo quando o cliente não enviar
 material novo, dentro da cadência aceita e da franquia. A rotina não exige saber
 usar editor, escrever prompt ou conhecer modelos de IA.
+
+**Decisão de produto atual:** IA é parte do serviço contratado. A contratação
+apresenta uma explicação e termos únicos; não pedir que o cliente habilite
+OpenAI, TypeSafe, imagem ou transcrição separadamente. Contas já criadas verão
+os termos atualizados uma única vez antes de usar o serviço. O backend atual
+ainda possui controles separados: sua substituição deve preservar evidências e
+ser implementada junto com a web, sem presumir que já foi concluída. Ver
+[uso de IA como parte do serviço](design/ai-as-core-service.md).
+
+Na versão inicial, cada negócio poderá vincular **um número de WhatsApp ativo**
+para conversar com a plataforma. Este é o número do cliente autorizado, distinto
+do número oficial do Meu Braço Direito. Aceitar mais de um número por negócio é
+uma evolução futura; como vincular pessoas, compartilhar histórico e distribuir
+mensagens será decidido nessa etapa. A limitação não restringe o número de contas
+proprietárias na web nem resolve a pendência entre proprietários descrita abaixo.
 
 Para vídeo, priorizar a hipótese de orientação de gravação e material real do
 negócio: cliente pode solicitar roteiro ou recebê-lo como sugestão consentida.
@@ -46,7 +61,7 @@ escala atual. Alcance e engajamento não comprovam faturamento nem causalidade.
 | Cobrança | Stripe Checkout sandbox, webhook assinado, jobs, reconciliação, assinatura de teste e patrocínio separados, painel de oportunidades | Franquias comerciais, custos completos e homologação de produção pendentes. Cadastro não ativa plano. |
 | WhatsApp e materiais | Inbox assinada/criptografada, vínculo, consentimentos, correlação, processamento, retenção/exclusão e transcrição opcional | Meta real não homologada; conversa automática ainda é limitada. SMS verificado não equivale a vínculo WhatsApp. |
 | Contexto e texto | Fatos/preferências versionados, propostas e roteiros, adapter OpenAI, reservas/tokens e projeção administrativa limitada | Não há agente geral, pesquisa automática de concorrentes, skills executáveis por cliente nem geração visual integrada. |
-| Kits BL01/BL02 | Vitrine fictícia de cafeteria, seleção por negócio, edição guiada de cores/fontes/logo/textos/composição, prévia, rascunho, confirmação e histórico | Kit `public_demo` somente para teste; direitos e qualidade comercial pendentes. F03 congela a versão; F04 ainda não a aplica à mídia. |
+| Kits BL01/BL02 | Vitrine fictícia de cafeteria, seleção por negócio, edição guiada de cores/fontes/logo/textos/composição, prévia, rascunho, confirmação e histórico | Kit `public_demo` somente para teste; direitos e qualidade comercial pendentes. A prévia simulada aplica o kit; a produção real ainda não. |
 | Conteúdos F04/F06 | Prévias técnicas estáticas/vídeo, candidata, decisão explícita e publicação falsa com validação de versão/hash | Renderers Pillow/FFmpeg não são receitas aprovadas. Ajuste ainda não regenera automaticamente; envio de candidata e publicação reais pendentes. |
 | Acervo BL03 | Cadastro manual versionado de produtos/serviços/promoções e fotos privadas de item/espaço, com cópia consentida de foto WhatsApp, implementados localmente | Importação automática de cardápio é BL03.3 posterior; o acervo alimenta briefing e roteiro experimentais em desenvolvimento/teste, sem geração visual integrada. |
 | Produção BL04/BL05 | Worker local pode interpretar com Jev mediante autorização TypeSafe e orçamento; briefing privado consulta acervo. A BL04.2 prepara referências e pedido visual e exercita uma prévia simulada privada com reserva e revisão. | Desligado por padrão, somente desenvolvimento/teste; geração real segue bloqueada até fechar atomicidade, orçamento global e tratamento de incerteza. Ainda precisa avaliar qualidade e completar a jornada. |
@@ -56,9 +71,31 @@ Os ensaios em [evals](evals/) não são features do produto nem aceites comercia
 A [amostra sintética BL04.2](evals/bl042-guarded-synthetic-feed-2026-10-27.md)
 é uma chamada real isolada, com estimativa de custo; não usa o worker do cliente
 nem comprova fidelidade, margem ou prontidão comercial.
-A alteração de kit ou exclusão de foto durante a criação deve ter efeito
-imediato e invalidar a prévia antiga; a concorrência foi exercitada no modo
-simulado, sem comprovar ainda o guard de fontes do provedor real.
+A [amostra sintética de 28/10](evals/bl042-synthetic-brand-finish-2026-10-28.md)
+testa uma cena real de IA com acabamento de kit; também é um ensaio isolado.
+Decisão de 28/10: ao solicitar alteração de kit, foto ou contexto durante uma
+criação, a mudança deve aguardar os processos já iniciados. A fila ainda não
+iniciada deve ser cancelada e novas criações bloqueadas enquanto houver mudança
+pendente. A prévia concluída antes da alteração permanece disponível para revisão
+e é identificada como criada antes da mudança; sua publicação depende dos direitos
+e do fluxo de aprovação aplicáveis.
+O modo simulado cobre parcialmente contexto editorial, catálogo de produtos e
+serviços, confirmação de kit e inclusão/alteração/exclusão de fotos do acervo; outros escritores de fontes, limpeza
+física automática e casos com proprietários diferentes permanecem pendentes.
+O provedor real ainda não está conectado. Testes antigos exercitaram a regra
+anterior, de alteração imediata e descarte.
+O workflow Temporal separado para geração real já tem prazos e uma única
+tentativa testados, mas ainda não está conectado ao dispatcher ou ao provedor.
+No acervo, o autor pode descartar um upload incerto após vencer a reserva e
+liberar o negócio; o objeto fica privado em quarentena, sem limpeza física
+automática. A atualização exige drenagem e avaliação de órfãos legados; outro
+owner ainda não recupera uma pendência cujo autor perdeu acesso.
+Se a retenção da foto WhatsApp e o prazo da prévia vencerem durante a criação,
+a decisão é manter a prévia por sete dias após a conclusão. A
+retenção e a espera ao retirar consentimentos de WhatsApp e IA de texto ainda
+precisam ser implementadas e testadas.
+O ledger também possui teto mensal agregado para reservas OpenAI, separado do
+teto por tenant; não limita despesas fora do próprio ledger e não ativa o worker.
 A consulta a um perfil público não concede direitos sobre material ou aprovação
 da titular. Custos de poucas chamadas isoladas não comprovam custo mensal.
 
