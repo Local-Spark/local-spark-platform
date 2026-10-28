@@ -1,7 +1,12 @@
 # F08 — Operação, segurança e escala
 
-Status: Planejada. Atualizado em 20/10/2026.
+Status: Operação de produção planejada; Compose/CI e workflow de deploy locais.
+Atualizado em 28/10/2026.
 Dependências: Integra F00–F07; práticas começam na F00.
+
+AWS/staging, recuperação, observabilidade operacional e capacidade ainda não
+foram provisionados/homologados. Deploy preparado não comprova operação. Ver
+[decisões](../DECISIONS.md) e [BL04 ativa](BL04-context-and-ai-production.md).
 
 ## Objetivo
 
@@ -12,7 +17,14 @@ Comprovar capacidade e recuperação dentro dos limites reais de infraestrutura 
 - Console operacional, retry seguro, pausas, auditoria e ações por escopo.
 - Circuit breakers, rate limiting, bulkheads e fairness medidos por tarefa/provedor.
 - AWS/IaC, OIDC no CI/CD, secret refs e deploy versionado com workers compatíveis.
-- Restore coordenado, retenção, exportação/exclusão e perfis de carga por coorte.
+- Restore coordenado, políticas de retenção e perfis de carga por coorte.
+  Envios WhatsApp associados já são preservados (`0058` aplicada). Prévia sem TTL
+  enquanto a conta está ativa é decisão aprovada ainda por implementar. Política
+  de encerramento/exportação/exclusão da conta será definida na fase própria;
+  não introduzir limpeza automática por encerramento nesta etapa.
+- Recuperação de alteração pendente cujo autor perdeu acesso será exclusiva da
+  equipe da plataforma, com ação registrada/auditada; fluxo ainda não entregue.
+  Outro owner não assume a pendência e staff não recebe acesso irrestrito à mídia.
 - Testar montagem do contexto versionado e fairness dos pools de mídia por coorte,
   incluindo custo por peça/tenant e limites contratados dos fornecedores.
 

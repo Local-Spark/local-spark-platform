@@ -1,6 +1,6 @@
 # Sequência de entrega até produção e evolução do escopo
 
-Atualizado em 27/10/2026. Complementa o [índice](../phases/README.md) e a
+Atualizado em 28/10/2026. Complementa o [índice](../phases/README.md) e a
 [trilha BL](../phases/BL-brand-library.md). F00–F08 representam áreas técnicas;
 BL01–BL06 ordenam o produto. As duas numerações não são projetos concorrentes.
 “Concluído localmente” não significa homologação, qualidade ou operação comercial.
@@ -14,11 +14,22 @@ BL02 entrega escolha e edição guiada do kit. A auditoria P1–P15 simplificou 
 jornada sem apagar os domínios necessários. Nenhuma dessas entregas demonstra
 sozinha uma publicação final com qualidade comercial.
 
+## Ponto de retomada em 28/10
+
+BL03.1/BL03.2 estão implementadas localmente. BL04.1 já oferece retrieval/Jev
+opcionais no worker dev/test, desligados por padrão e sob aceite único. BL04.2
+prepara fontes e prévia fake com kit, mas guarda/dispatcher/worker visuais reais
+seguem desconectados. A próxima fatia implementa [C08/C09/C10](../DECISIONS.md)
+e coordenação de fontes/acesso/orçamento: concluir/revisar após plano vencido,
+preservar prévias enquanto conta ativa e recuperação restrita/auditada por staff.
+Depois conectar real, validar BL04.3 e seguir BL05. Materiais WhatsApp associados
+já são duráveis (0058); isso não implementa retenção de prévias nem memória geral.
+
 ## Ordem até o primeiro piloto comercial
 
 | Ordem | Fase | Entrega e condição de saída |
 | --- | --- | --- |
-| 1 | BL03.1 + BL03.2 | Acervo privado e opcional em Sobre meu negócio: produtos, serviços, promoções, fotos dos itens/local, versão, revisão e aproveitamento consentido de imagem WhatsApp. Sem IA paga no cadastro. |
+| 1 — local | BL03.1 + BL03.2 | Acervo privado e opcional em Sobre meu negócio: produtos, serviços, promoções, fotos dos itens/local, versão, revisão e aproveitamento consentido de imagem WhatsApp. Sem IA paga no cadastro. |
 | 2 | Início BL04 / F03 | Corrigir o contrato criativo para aproveitar título/ângulo/roteiro gerados sem perder validação de fatos; interpretação de pedido livre e recuperação seletiva do contexto/kit/acervo. Comparar decisões/modelos com casos PT-BR. |
 | 3 | BL04 / F04 | Integrar geração/edição visual ao produto, provar post/story novos com kit e material reais; medir fidelidade, legibilidade, taxa de aceite e custo por peça aceita. Cada formato passa por gate próprio; vídeo com material real e animação entram por receitas validadas, não por associação com um kit. |
 | 4 | BL05 / F03 mínimo | Jornada completa com WhatsApp simulado: mensagem/áudio/foto/vídeo → proposta → prévia → ajuste → aprovação → publicação falsa; iniciativa em dia sem mensagem, cadência simples por formato dentro do plano e pausa. |
@@ -83,12 +94,13 @@ não foram implementados só porque seus SDDs existem.
 
 ## JEV e Motion: candidatos dentro dessas etapas
 
-Jev pode ajudar a classificar intenção, ordenar candidatos ou escolher entre
-receitas elegíveis, após avaliação PT-BR com fallback. O fornecedor descreve
+Jev já pode interpretar pedidos e selecionar candidatos no worker local dev/test,
+opcional e desligado por padrão; qualidade/conversa/comercial seguem em avaliação
+PT-BR. Ordenação mais ampla e seleção de receitas permanecem candidatas. O fornecedor descreve
 saídas tipadas e confiança; geração criativa continua em outro modelo. Permissão,
 quota e aprovação permanecem regras do domínio. [Documentação TypeSafe](https://docs.typesafe.ai/introduction).
-A seleção de versão e preço deve ser revisada no benchmark; em 27/10, 1.14 é a
-release mais recente e custa US$ 0,042/1M tokens de entrada, com saída gratuita.
+A seleção de versão e preço deve ser revisada no benchmark; o estudo de 27/10
+registrou a release 1.14 e o preço de US$ 0,042/1M tokens de entrada, com saída gratuita.
 [Modelos oficiais](https://docs.typesafe.ai/models).
 
 Claude Motion é candidato para curadoria/teste de animações de ofertas, textos
@@ -103,3 +115,5 @@ reutilizáveis, parâmetros de kit/texto/mídia e render isolado. Medir qualidad
 custo frente às alternativas. Não executar código arbitrário do modelo no worker
 principal nem contratar outra ferramenta antes desse teste. BL03 não integra
 Jev/Motion, não instala seus SDKs e não chama APIs pagas.
+
+Versão anterior à reconciliação: [snapshot integral de 28/10/2026](../history/2026-10-28-pre-documentation-reconciliation/design/delivery-roadmap-2026-10-27.md).

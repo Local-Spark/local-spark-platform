@@ -1,5 +1,33 @@
 # Registro de mudanças
 
+## 2026-10-28 — Reconciliação de documentação e decisões de continuidade
+
+- PROJECT, SDD, fases, designs, operação e READMEs dos dois repositórios foram
+  alinhados ao código e às decisões vigentes. O registro DECISIONS concentra
+  produto aceito, implementação pendente e perguntas já respondidas.
+- Retiradas das seções normativas as instruções antigas de permissões por
+  fornecedor, retenção/exclusão de envios WhatsApp e propostas de grants/holds
+  superadas. Jev/retrieval opcional no worker, aceite único, 0057/0058 e os
+  limites do fluxo visual simulado são descritos sem tratá-los como homologação.
+- O proprietário confirmou C08/C09/C10: concluir criação iniciada se o plano
+  vencer e permitir revisão privada, bloqueando novas criações/publicação;
+  preservar prévias sem expiração com conta ativa; recuperação de pendência
+  cujo autor perdeu acesso exclusivamente por staff, com ação registrada.
+  As três regras estão aprovadas e ainda precisam de implementação.
+- O prazo de exclusão após encerramento da conta foi adiado para essa fase;
+  não implementar exclusão automática nesta etapa. URL assinada, validade de
+  fatos, preservação do arquivo e aprovação permanecem conceitos distintos.
+- Preservados 52 snapshots backend e quatro frontend, com originais conferidos
+  byte a byte e índices de procedência. Changelogs, auditorias e evals datados
+  conservam seus registros; a pesquisa de IA/skills antiga aponta ao original.
+- Validação documental: 408 links/âncoras locais, integridade dos 56 snapshots,
+  coerência das referências e `git diff --check`. Apenas Markdown alterado;
+  código, testes, configurações, bancos e serviços não foram modificados.
+  Suítes de aplicação não foram repetidas nesta alteração documental.
+- Próxima implementação: C08/C09/C10 e coordenação BL04.2 com mocks antes de
+  conectar o provedor visual real. Franquias e qualidade/custo seguem BL04.3/F07;
+  jornada automática, ajustes e proatividade seguem BL05.
+
 ## 2026-10-28 — Aceite único do serviço na contratação
 
 - POST por negócio registra o aceite explícito do aviso versionado, com hash,

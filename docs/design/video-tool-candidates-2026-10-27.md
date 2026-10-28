@@ -55,3 +55,5 @@ em planejamento, diagnóstico e revisão, mas não cria automaticamente conteúd
 para os clientes. Avaliar skills específicas antes de instalar; preservar as
 instruções do usuário, SDD, política de testes e revisão existentes. Não é
 dependência do runtime do produto.
+
+Versão anterior à reconciliação: [snapshot integral de 28/10/2026](../history/2026-10-28-pre-documentation-reconciliation/design/video-tool-candidates-2026-10-27.md).

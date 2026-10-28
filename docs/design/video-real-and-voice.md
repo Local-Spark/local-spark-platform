@@ -1,6 +1,6 @@
 # Vídeos com gravação real, orientação e voz — proposta de produto
 
-Atualizado em 27/10/2026. Complementa [roadmap](delivery-roadmap-2026-10-27.md),
+Atualizado em 28/10/2026. Complementa [roadmap](delivery-roadmap-2026-10-27.md),
 [BL04](../phases/BL04-context-and-ai-production.md),
 [BL05](../phases/BL-brand-library.md#bl05--jornada-completa-local-ajuste-e-proatividade-mínima)
 e [F05](../phases/F05-avatar-generative-video.md). Este documento especifica
@@ -18,7 +18,12 @@ O primeiro plano de R$ 99 foi definido com **foto e story**; vídeo, quantidade,
 limites e preço não estão definidos. Story não implica direito a vídeo. Uma hipótese
 de vídeo é recomendação de produto, não uma franquia já vendida ou liberada.
 
-## Dois percursos para vídeos com material real
+O aceite único cobre transcrição de áudio comum, sem check por fornecedor ou
+modalidade. Isso não habilita voz sintética/clone/avatar, que têm decisão e
+consentimento próprios quando implementados. Franquia de vídeo continua para
+medição/decisão futura; ver [registro de decisões](../DECISIONS.md).
+
+## Dois percursos para vídeos com material real — futuros
 
 **Pedido do cliente.** Pelo WhatsApp simulado, o cliente pede, por exemplo: “me
 ajuda a mostrar como faço meu cachorro-quente”. Com fatos confirmados e fontes
@@ -76,7 +81,9 @@ o enviou. Legendas devem preservar a fala e permitir revisão de nomes e preços
 
 ## Voz clonada: hipótese, não clonagem do ElevenLabs
 
-O repositório mencionado pelo sócio não foi identificado. Não presumir que uma
+A pesquisa original de 27/10 não identificou o repositório mencionado pelo sócio.
+As licenças/versionamentos citados a seguir são registros daquela pesquisa, sem
+verificação nova nesta revisão; conferir no spike antes de qualquer adoção. Não presumir que uma
 implementação que imite API/interface do ElevenLabs contenha os pesos proprietários,
 mesma qualidade ou licença de uso comercial. Solicitar o link para avaliar o caso
 específico. Candidato independente: [Chatterbox](https://github.com/resemble-ai/chatterbox)
@@ -100,3 +107,5 @@ for possível; comunicação de uso e revisão do áudio são requisitos de prod
 Não usar vozes de terceiros sem autorização nem treinar ou avaliar com material de
 cliente sem base/autorização própria. Verificar licença, restrições de uso e marca
 d'água dos modelos e componentes efetivamente instalados.
+
+Versão anterior à reconciliação: [snapshot integral de 28/10/2026](../history/2026-10-28-pre-documentation-reconciliation/design/video-real-and-voice.md).

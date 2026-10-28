@@ -1,13 +1,15 @@
 # SDD — F01.5: contratação e concessão de acesso
 
-Versão 0.3, 21/10/2026. Código local validado; F01.5 aberta até sandbox/staging.
+Reconciliado em 28/10/2026. Código e sandbox exercitados localmente; homologação
+completa de cenários/staging/produção ainda pendente. A versão 0.3 de 21/10 foi
+a base deste contrato; contagens antigas abaixo são evidência daquela fatia.
 
 **Decisão posterior do proprietário em 28/10:** cada negócio terá conta e
 organização próprias, com cobrança própria. A cobrança descrita abaixo já é
-por organização e pode ser reaproveitada quando a regra de um negócio por
-organização estiver garantida. O [desenho para revisão](one-business-per-organization.md)
-trata a integridade e os dados locais. Nenhuma migração de cobrança foi
-aprovada ou aplicada nesta revisão.
+por organização e foi mantida: API e migration 0057 já garantem no máximo um
+negócio por tenant. O [desenho atual](one-business-per-organization.md) registra a
+integridade/dados locais. O aceite único já está integrado antes de novo checkout;
+não adotar a proposta antiga de migração financeira multinegócio.
 
 ## Decisões
 
@@ -35,12 +37,15 @@ explícita, credencial live, HTTPS e configuração independente da sandbox.
 ## Jornada e fatias
 
 1. Identidade verificada + negócio em setup vinculam o proprietário e a organização.
-2. Proprietário solicita checkout; intenção durável/idempotente retorna pendente.
-3. Worker Temporal cria/reutiliza sessão hospedada; web consulta estado e redireciona.
-4. Retorno do navegador apenas informa que aguardamos confirmação.
-5. Webhook autenticado é persistido antes do ACK, deduplicado e despachado pelo relay.
-6. Activity consulta estado canônico no provedor fora da transação e aplica acesso,
-   auditoria/outbox atomicamente. Evento reordenado não regride por payload antigo.
+2. Em Plano e acesso, owner aceita explicitamente a versão/hash do serviço de IA
+   antes de solicitar novo checkout. A API recusa a contratação sem o aceite atual;
+   registrar o contrato não ativa plano nem reescreve permissões antigas.
+3. Proprietário solicita checkout; intenção durável/idempotente retorna pendente.
+4. Worker Temporal cria/reutiliza sessão hospedada; web consulta estado e redireciona.
+5. Retorno do navegador apenas informa que aguardamos confirmação.
+6. Webhook autenticado é persistido antes do ACK, deduplicado e despachado pelo relay.
+7. Activity consulta estado canônico no provedor fora da transação e aplica acesso
+   e `billing_audit` atomicamente. Evento reordenado não regride por payload antigo.
 
 Primeira fatia mantém o negócio em setup antes do checkout, reaproveitando F01.4.
 Uma jornada de aquisição que inicia pelo plano pode carregar a escolha até esse
@@ -65,11 +70,18 @@ Não cria cobrança, cartão ou renovação paga e não entra em MRR/pagantes.
   Trial, sessão concluída, redirect e promessa de pagamento não concedem acesso pago.
 - Revogação/cancelamento/refund/disputa devem bloquear acesso conforme estado canônico;
   holds financeiros não são removidos por evento posterior de invoice sem conciliação.
-- Concessão não é autorização de gasto: ledger/franquia e consentimentos continuam
-  obrigatórios nas fases de geração/publicação. Nenhum recurso ainda não integrado
+- Concessão não é autorização de gasto: ledger/franquia, aceite único e direitos
+  continuam obrigatórios nas fases de geração/publicação. Nenhum recurso ainda não integrado
   aparece como disponível por existir plano ativo.
 
 ## Operação e critérios de aceite
+
+Decisões novas C08/C09/C10 ainda exigem implementação: criação já admitida termina
+após vencimento do plano e sua prévia permanece revisável; novos trabalhos e
+publicação aguardam renovação. Prévias são preservadas enquanto conta ativa.
+Somente staff pode resolver pendência do autor sem acesso, de forma restrita e
+auditada. Isso não muda o estado financeiro nem concede acesso a owner revogado.
+Ver [registro de decisões](../DECISIONS.md).
 
 Backend: migração reversível, unitários, PostgreSQL restrito, RLS/concorrência,
 webhook inválido/duplicado/reordenado, lease vencida, retry, rollback, patrocínio e
@@ -89,7 +101,7 @@ Prefixo /api/v1:
 | Rota | Contrato |
 | --- | --- |
 | GET /billing/{tenant_id} | Membro ativo: origem/validade do acesso; owner vê checkout |
-| POST /billing/{tenant_id}/checkout | Owner verificado + Idempotency-Key; intenção persistida, 202 |
+| POST /billing/{tenant_id}/checkout | Owner verificado, aceite atual + Idempotency-Key; intenção persistida, 202 |
 | POST /webhooks/stripe | Corpo bruto + Stripe-Signature; deduplica/grava antes do ACK |
 | GET /admin/billing | Staff/MFA: pagantes live, testes, patrocinados, operações pendentes/falhas |
 | GET /admin/billing/opportunities | Staff/MFA: checkouts abertos ou expirados sem acesso ativo, paginação recente e contato cadastrado |
@@ -196,8 +208,8 @@ aguarda sua volta; a expiração durável permanece como segunda oportunidade.
 
 Validação local: 206 testes backend/100% linhas e branches; 84 testes web/100%
 em quatro critérios; cinco jornadas browser com API/SMTP reais. Builds locais
-aprovados. A contratação é por organização; limites de negócios/consumo exigem
-franquia futura. Preço pendente é preservado no pedido, mesmo se mudar configuração.
+aprovados. A contratação é por organização; um negócio por organização é a regra 0057,
+e limites comerciais de consumo ainda exigem franquia futura. Preço pendente é preservado no pedido, mesmo se mudar configuração.
 O worker serializa o início com concessão de patrocínio e revalida elegibilidade;
 entrega tardia não cria checkout depois de conceder acesso patrocinado.
 
@@ -209,7 +221,9 @@ sequenceDiagram
   participant DB as PostgreSQL
   participant Worker as Relay/Temporal
   participant Stripe
-  Cliente->>Web: Solicitar plano
+  Cliente->>Web: Aceitar versão do serviço e solicitar plano
+  Web->>API: Registrar aceite explícito de versão/hash
+  API->>DB: Contrato + auditoria, sem reativar permissões
   Web->>API: Checkout + chave idempotente
   API->>DB: Persistir intenção
   API-->>Web: 202 pendente
@@ -222,6 +236,8 @@ sequenceDiagram
   API->>DB: Inbox deduplicada
   API-->>Stripe: 200 após persistir
   Worker->>Stripe: Consultar estado canônico
-  Worker->>DB: Acesso + auditoria + outbox atômicos
+  Worker->>DB: Acesso + billing_audit atômicos
   Web->>API: Consultar acesso confirmado
 ```
+
+Versão anterior à reconciliação: [snapshot integral de 28/10/2026](../history/2026-10-28-pre-documentation-reconciliation/design/billing.md).

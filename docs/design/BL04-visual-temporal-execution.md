@@ -1,82 +1,70 @@
-# BL04.2 — proposta de execução durável da prévia visual
+# BL04.2 — execução Temporal da prévia visual
 
-Estado: **em implementação**, sem workflow real conectado ao dispatcher nem
-chamadas pagas autorizadas por este documento. `VisualGenerationWorkflow` e sua
-activity agora têm contrato isolado, prazo próprio e uma única tentativa; teste
-com Temporal real verifica que uma falha não repete o efeito. O runner completo
-e a guarda ainda não estão conectados ou registrados no worker. Não modifica o
-workflow existente `StaticPreviewWorkflow`; execuções já iniciadas mantêm seus
-comandos Temporal e continuam usando o caminho local/simulado.
+Atualizado em **28/10/2026**. **Contrato isolado implementado/testado:**
+`VisualGenerationWorkflow` e sua activity usam prazo próprio e uma tentativa.
+**Integração pendente:** workflow não registrado no worker, dispatcher/runner
+não o iniciam e a guarda real não foi implementada. Isso não libera chamadas pagas.
+O caminho existente `StaticPreviewWorkflow` permanece local/simulado; alterar o
+novo fluxo não autoriza quebrar replay de execuções antigas.
 
-## Caminho proposto
+## Percurso a conectar depois da guarda
 
-1. A API persiste uma prévia privada e uma identidade imutável de operação,
-   com tenant, negócio, proprietário, proposta, versão do kit, fontes e formato.
-   O worker despacha um workflow separado, por exemplo
-   `VisualGenerationWorkflow`, com identificador estável para a prévia. A
-   existência do workflow não autoriza envio ao fornecedor.
-2. O dispatcher registra um fence e um prazo de lease. Uma nova activity
-   carrega o registro, prepara fontes e executa a guarda completa: autorizações,
-   isolamento, versões, prazo das fontes, plano, orçamento e claim durável de
-   envio. O protocolo da guarda precisa fechar a lacuna entre as roles antes
-   de esta etapa ser conectada; snapshot ou rechecagem isolada não bastam.
-3. Apenas após a autorização confirmada, a activity chama o adaptador uma vez,
-   sem retry automático. Nenhuma transação ou lock de banco fica aberto durante
-   leitura de arquivos, envio ao provedor ou escrita de objeto. Saída é privada.
-4. Solicitações de alteração de kit, foto ou contexto e de retirada visual
-   aguardam a conclusão das criações já iniciadas; cancelam a fila ainda não
-   iniciada e bloqueiam novas criações. Após resposta conhecida, finalizar a
-   tentativa conforme o consentimento original e então efetivar a solicitação
-   pendente. O commit precisa verificar fence, direitos e condições aplicáveis.
-   A prévia concluída durante retirada continua disponível. A prévia concluída
-   antes de alteração de uma fonte também permanece disponível para revisão,
-   identificada como anterior à mudança; publicação exige direitos e aprovação.
-   Somente após commit confirmado a prévia é legível. A espera de alteração de
-   fontes ainda não foi implementada.
-5. Em caso de cancelamento, timeout, queda ou confirmação de commit perdida,
-   conservar o estado durável e a reserva apropriados; não repetir a geração
-   nem presumir que o objeto é órfão. A reconciliação precisa distinguir uma
-   falha comprovadamente anterior à submissão do resultado desconhecido.
+1. Persistir prévia, identidade imutável de operação, tenant/negócio/owner,
+   proposta, fontes, kit e formato. Schema/API do modo real precisam de contrato
+   específico; hoje existem `local` e `visual_fake`.
+2. Dispatcher reclama fence/lease e inicia workflow estável para a prévia.
+   Activity prepara fontes e executa a guarda completa de contrato único, owner,
+   acesso, direitos, versões, orçamento e claim durável de submissão.
+3. Confirmar admissão/reserva antes da chamada única. Leituras/escritas de
+   arquivos e rede ficam fora de transações e locks. Não executar IO no workflow.
+4. Persistir resultado por operação/fence/hash e liquidar custo conhecido ou
+   manter incerto. Aplicar mudanças pendentes quando todos os trabalhos admitidos
+   tiverem conclusão conhecida. O modo simulado já cobre parte de contexto,
+   catálogo, kit e fotos do acervo; ainda falta cobrir todos os escritores no real.
+5. Preservar prévia privada para revisão, marcando criação anterior à mudança.
+   Vencimento do plano após admissão permite terminar/revisar e bloqueia novas
+   criações e publicação até renovação. Prévias devem deixar de expirar enquanto
+   conta ativa; retenção/acesso atuais ainda exigem essa implementação coordenada.
 
-## Limites temporais propostos
+O aceite é único; retirada individual por fornecedor/modalidade é compatibilidade
+legada, sem etapa nova na experiência. Owner revogado não recebe acesso por causa
+da preservação. Somente staff poderá resolver pendência do autor sem acesso, com
+registro/auditoria e acesso restrito; outro owner não assume a operação. Esse fluxo
+ainda precisa de implementação. Retenção após encerramento fica para sua fase,
+sem exclusão automática agora. Ver [registro](../DECISIONS.md).
 
-- O adaptador atual usa timeout HTTP de 180 s por operação; ele não garante,
-  sozinho, limite de tempo total. Usar também um prazo total explícito, por
-  exemplo 195 s, e considerar cancelamento após início da submissão incerto.
-- Workflow novo: `start_to_close_timeout` inicial de 10 minutos para cobrir
-  preparação, envio e acabamento; `schedule_to_start_timeout` de 1 minuto e
-  `RetryPolicy(maximum_attempts=1)`. Esses valores são orçamento de engenharia,
-  não garantias de capacidade; ajustar depois de medir tempos reais.
-- Lease inicial de 12 minutos para incluir a espera permitida da fila, a
-  activity e margem de reconciliação. Tempos máximos de acesso aos objetos e ao
-  banco também precisam ser limitados; não depender de IO potencialmente
-  infinito. A activity deve conferir lease e fence na admissão e no commit.
-- Em fila congestionada, timeout de agendamento pode ocorrer sem a activity ter
-  começado. Uma nova tentativa só pode ser criada ao comprovar no banco que
-  nenhum claim de submissão foi feito; em outros casos manter incerto. Expirar
-  lease ou receber timeout Temporal não comprova que a IA deixou de processar.
-- Ao vencer lease após um claim, o reconciliador não pode redistribuir nem
-  gastar novamente. Deve sinalizar o estado para recuperação auditável. Antes
-  do claim, o redispatch pode ocorrer com novo fence somente se provar a ausência
-  de efeito. Os casos de atraso na fila e de corrida entre reconciliador e
-  activity exigem teste de integração com Temporal/PostgreSQL.
+## Tempos do contrato isolado e integração restante
 
-O dispatcher atual usa lease de 3 minutos, enquanto `StaticPreviewWorkflow`
-permite apenas 2 minutos de activity; reutilizar esse caminho para a chamada
-visual de 180 s seria incorreto. A proposta não deve ampliar esses prazos no
-workflow histórico sem estratégia de versão e compatibilidade de replay.
+O adapter HTTP usa timeout de 180 s. O desenho isolado usa activity de até dez
+minutos, espera de agendamento de um minuto e `maximum_attempts=1`; lease de doze
+minutos é proposta para cobrir fila, execução e margem. Esses valores precisam
+ser ligados e medidos como conjunto, incluindo limites de banco/storage e prazo
+total da operação HTTP. Não são garantia operacional de produção.
 
-## Formato e critérios para ativação
+O dispatcher atual de prévia usa lease de três minutos e o workflow estático
+permite dois minutos de activity. Reutilizá-los sem mudança coordenada para uma
+chamada visual de 180 s seria incorreto. Não ampliar tempos do workflow histórico
+sem versão/patching e teste de replay.
 
-O acabamento experimental gera PNG; o orquestrador isolado o converte para JPEG
-qualidade 95, sem subsampling, calcula hash dos bytes entregues e não copia
-metadados EXIF/ICC. Um gradiente sintético verificou perda média inferior a dois
-níveis por canal e remoção de metadados; não mede qualidade de fotografias,
-logo ou texto reais. Isso requer avaliação visual BL04.3. A conversão não
-conecta o orquestrador ao worker nem confirma fidelidade comercial.
+Timeout de agendamento pode ocorrer antes do início da activity. Redispatch só
+é seguro quando o estado durável comprovar ausência de claim de submissão.
+Após claim, cancelamento, timeout ou lease vencida não provam que o fornecedor
+parou: preservar estado/reserva e recuperar sem repetir geração. Fence vencido
+impede commit da peça, sem apagar um custo ocorrido ou comprovar custo zero.
+A recuperação ainda precisa ser demonstrada entre PostgreSQL, Temporal e storage.
 
-Antes de ativar: guarda ponta a ponta revisada; schema e API para o modo real;
-worker novo registrado; orçamento por tenant e global; recuperação de resultado
-incerto e de consentimento pendente; testes de races, cancelamento, crash,
-lease e replay; conteúdo e custos reais verificados. A conta Meta não é
-necessária para ensaios locais com provedor simulado.
+## Saída e gate de ativação
+
+O acabamento experimental produz PNG e o orquestrador isolado entrega JPEG
+qualidade 95 sem subsampling/EXIF/ICC, com hash dos bytes finais. Um gradiente
+sintético validou apenas perda técnica de conversão e remoção de metadados;
+não prova qualidade de foto, logo ou texto. O acabamento do modo fake está ligado;
+o provedor real continua isolado.
+
+Antes de registrar o novo worker/dispatcher: implementar e testar
+[coordenação transacional](BL04-atomicity-proposal.md), orçamento por tenant e
+agregado, resultado incerto, fonte mutável, mudança comercial, crash, lease/fence,
+replay, retenção e acesso das prévias. Usar provedores falsos no `_test` e
+Temporal local. Homologação de qualidade/custo é BL04.3, distinta desses testes.
+
+Versão anterior integral: [snapshot de 28/10/2026](../history/2026-10-28-pre-documentation-reconciliation/design/BL04-visual-temporal-execution.md).

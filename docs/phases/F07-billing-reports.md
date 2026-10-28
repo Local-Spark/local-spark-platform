@@ -1,7 +1,27 @@
 # F07 — Franquias, assinatura e relatórios
 
-Status: Parcial; contratação mínima antecipada na F01.5. Atualizado em 20/10/2026.
+Status: Parcial; contratação mínima antecipada na F01.5. Atualizado em 28/10/2026.
 Dependências: F00, F01; integra F03–F06.
+
+## Estado local e decisões correntes
+
+Checkout/webhook Stripe sandbox, pagamento de teste confirmado, reconciliação
+por evento e patrocínio local existem. Billing segue por organização, agora
+limitada a um negócio (`0057` aplicada). O aceite único versionado do serviço
+em Plano e acesso é pré-requisito do checkout; não confirma pagamento e não
+reativa consentimentos antigos. Não há check adicional de modelo, fornecedor ou
+transcrição. Ver [registro de decisões](../DECISIONS.md).
+
+Há reservas técnicas de tokens, segundos de áudio, interpretação e imagem,
+inclusive teto agregado mensal OpenAI no ledger visual. Isso não completa quota
+comercial, tarifa versionada, custo faturado ou margem. Não criar novo agregado
+como se `0049` ainda não existisse; integrá-lo à admissão visual na BL04.
+
+Se o plano vencer durante criação já iniciada, a decisão aprovada é concluir e
+liberar revisão privada, bloqueando novas criações/publicação até renovar. O
+comportamento ainda precisa ser aplicado aos gates atuais. Preservar prévias
+sem TTL com conta ativa também está aprovado e não implementado. A assinatura
+não se renova por uma sugestão de IA nem por terminar um trabalho iniciado.
 
 ## Objetivo
 
@@ -37,13 +57,14 @@ com preço e aceite explícitos; uma sugestão da IA nunca gera cobrança.
 
 F01.5 implementa o primeiro adapter Stripe em modo disabled/test/live, jobs/inbox,
 reconciliação por evento, patrocínio e interfaces mínimas. Ver [SDD billing](../design/billing.md).
-Continuam pendentes: validação real da conta em sandbox/staging, ledger/franquias,
+Continuam pendentes: cenários externos restantes e staging, quota comercial/COGS,
 preços finais, upgrades, cancelamento/portal self-service, conciliação periódica,
 resolução/reprocesso de holds e faturamento/MRR/relatórios. Retry de webhook não
 substitui conciliação operacional. Não habilitar cobrança comercial antes dessas
 condições. Pix e meios adicionais exigem validação/habilitação no provedor.
 
-- Franquias/preços/refações e provedor de cobrança precisam de decisão.
+- Franquias/preços/refações finais dependem de medição e decisão comercial.
+  Stripe é o adapter atual; outros meios/provedores exigem validação própria.
 - As tabelas/reservas mínimas entram antes de habilitar gasto real em fases anteriores.
 
 ## Integração e manutenção
@@ -65,3 +86,7 @@ coletados na F06. Distinguir usuários, organizações, negócios e assinaturas;
 separado de recebimento e custos estimados. Cliente vê apenas seu contexto e
 recebe resumo semanal pelo WhatsApp. Métricas sociais não comprovam vendas;
 faturamento exige integração ou informação declarada com origem e período.
+
+A [versão anterior](../history/2026-10-28-pre-documentation-reconciliation/phases/F07-billing-reports.md)
+preserva o planejamento original; não tratar o sandbox já exercitado como
+pendência integral nem confundir seus dados com faturamento de produção.

@@ -1,182 +1,108 @@
 # BL04 — integração segura de IA visual à prévia
 
-Estado: **implementação iniciada, geração real ainda não integrada**. Há
-consentimento visual independente, preparação de fontes e um fluxo simulado de
-prévia com reserva e fence; a chamada real ao adapter permanece bloqueada. Não há
-geração visual real integrada ou homologada. Este documento detalha
-a ordem necessária e complementa [BL04](../phases/BL04-context-and-ai-production.md).
+Atualizado em **28/10/2026**. Estado: **preparo de fontes e prévia simulada
+implementados; geração real desconectada**. Complementa o
+[SDD BL04](../phases/BL04-context-and-ai-production.md) e a
+[coordenação transacional](BL04-atomicity-proposal.md).
 
-## Alcance da primeira integração
+## O que está ligado e o que está isolado
 
-Criar uma rota interna de prévia de imagem privada para desenvolvimento e teste,
-com a flag desligada por padrão e provedor falso nos testes automatizados.
-Preservar o renderer local e os contratos existentes; não habilitar o modo em
-staging ou produção nem publicação automática. Vídeo, animação e avatar não
-estão incluídos. A resposta só pode ser candidata para revisão humana, sem
-alegar que o resultado retrata fielmente pessoas, produtos ou locais reais.
-A qualidade comercial e o custo por peça aceita dependem de avaliação própria.
+| Componente | Estado atual |
+| --- | --- |
+| Briefing/retrieval | Acervo pertinente e kit congelados; Jev opcional no worker local, desligado por padrão e limitado a desenvolvimento/teste. |
+| Preparação visual | Confere escopo, versões e hashes; normaliza orientação e remove metadados das cópias, preservando originais. |
+| Pedido e ledger | Pedido visual, intenção/fence e reserva transacional; validação das fontes ainda ocorre em outra sessão. |
+| Prévia `visual_fake` | JPEG privado com acabamento do kit e marca de simulação, revisão e decisão; sem IA gerando a cena. |
+| Adapter/orquestrador real | Existem e têm testes com HTTP/guarda simulados; não conectados ao percurso de clientes. |
+| Guarda real | `VisualEffectGuard` é protocolo, sem implementação completa/revisada para efeitos reais. |
+| Temporal visual | Workflow/activity separados testados, sem registro no worker ou ligação ao dispatcher. |
 
-## Intenção e fontes versionadas
+Ensaios com fixtures fictícias fora do worker não comprovam esses gates nem
+homologação comercial. Rede paga precisa de credenciais e orçamento explícitos
+para a execução concreta; autorizações antigas de um ensaio não são recorrentes.
 
-1. A solicitação identifica explicitamente o modo (`local` ou `visual_ai`),
-   mantendo `local` como padrão para registros e clientes anteriores. Incluir
-   modo, receita e versões do briefing e do modelo, configurações, contexto,
-   roteiro, kit selecionado, acervo e referências no hash idempotente e na
-   chave da geração. Repetir operação com payload alterado deve falhar; um
-   novo orçamento ou uma revisão é operação explícita, não retry implícito.
-2. Persistir snapshot mínimo e verificável das fontes autorizadas: IDs,
-   versões e hashes das fotos e do kit, fatos e validades, origem e direitos.
-   A busca lexical do acervo oferece candidatos, não prova intenção ou
-   identidade. Em caso de ambiguidade, falta de fonte ou referência imprópria,
-   interromper e solicitar esclarecimento. Usar somente mídia pertinente e,
-   se necessário, no máximo uma referência do kit do formato correspondente.
-   O snapshot deve ser criado e armazenado de forma íntegra pelo servidor; a
-   revalidação compara os campos estruturados, mas não autentica JSON arbitrário
-   do cliente. Uma descrição livre, mesmo confirmada, não comprova preço vigente.
-3. Uma foto conceitual não é prova de como é o espaço ou o produto real.
-   Preço, promoção, CTA e logo precisam de verificação literal e eventual
-   acabamento determinístico; a imagem gerada não garante esses dados.
-4. Planejar a mudança dos esquemas e dados persistidos, tipos de mídia,
-   dimensões, limpeza, contratos da API e migração sem invalidar prévias
-   antigas. O código atual de prévia conhece nome, cor, fato e possível mídia
-   WhatsApp; ele **não** possui snapshot suficiente de kit e acervo.
+## Contrato de entrada e fontes
 
-## Consentimento e revalidação
+O pedido identifica operação, receita/formato, configuração e versões do briefing,
+roteiro, contexto, kit, acervo e referências. O hash idempotente inclui o modo de
+geração e os campos relevantes; mesmo UUID com conteúdo diferente é conflito.
+A API/schema atuais aceitam `local` e `visual_fake`, sem modo real disponível.
 
-A autorização de gerar imagem e enviar as referências ao fornecedor deve ser
-verificada independentemente de a proposta textual ter sido criada com IA ou
-com baseline. Definir seu contrato e finalidade antes de habilitar a geração,
-incluindo retirada e direitos sobre imagens; não presumir que consentimento
-textual autorize automaticamente uma chamada visual.
+O servidor constrói snapshot mínimo verificável: IDs/versões/hashes, fatos e
+validades, origem e direitos. Não aceitar chave arbitrária de objeto ou JSON
+supostamente autorizado do navegador. Busca lexical encontra candidatos, sem
+provar intenção. Ambiguidade pede esclarecimento; ausência de foto real não
+permite inventar produto/local e apresentá-lo como documental.
 
-Verificar organização, responsável, plano, consentimento aplicável, roteiro e
-seu estado, fatos e datas no fuso do negócio, versões do kit/acervo e direitos,
-disponibilidade e hashes dos arquivos **antes do efeito externo**. Após a
-chamada, revalidar antes de disponibilizar o resultado. Alterações, expiração,
-exclusão ou revogação invalidam a candidata; o custo ocorrido continua no
-ledger. Não manter transação ou lock abertos durante download, chamada de IA,
-renderização ou upload. Uma revogação que ocorra durante uma chamada em trânsito
-não pode ser desfeita retroativamente: descartar o resultado e registrar o custo.
+Enviar somente material pertinente e no máximo uma referência do kit do formato
+escolhido. Normalizar orientação antes de remover EXIF e metadados equivalentes;
+preservar original, registrar hashes e impedir envio de cópia não validada.
+Logo, texto, preço e CTA são conferidos literalmente; kit não prova fatos.
 
-Atualização de produto: quando o proprietário solicitar a
-retirada, impedir imediatamente novas admissões e cancelar o que ainda está na
-fila; a retirada efetiva aguardará somente os processos já iniciados. Até que o
-protocolo de admissão e retirada esteja ligado ao provedor real, somente a
-simulação implementa essa regra. Esta decisão não libera a chamada visual real
-nem resolve por si só mudanças concorrentes de fotos, kit ou plano.
+## Aceite, acesso e alterações
 
-O interpretador do acervo recebe texto do cliente e nomes de candidatos. Seu
-contrato interno não verifica consentimento, orçamento nem idempotência; a
-integração deve comprovar esses requisitos antes de qualquer chamada externa.
-As políticas do ledger isolado restringem o tenant, não validam membership nem
-a autorização do ator sobre o negócio; a activity integrada deve verificá-las
-antes da reserva e dos efeitos, inclusive após revogação.
+O [aceite único](ai-as-core-service.md) é a autoridade para texto, imagem,
+interpretação e transcrição. Não pedir consentimento visual ou TypeSafe separado.
+Direitos sobre fontes, membership, plano, configuração técnica, orçamento e
+aprovação da publicação continuam como verificações internas independentes.
+O ledger isolado não autentica owner nem comprova suas fontes.
 
+Na admissão revalidar tenant, owner ativo, contrato, acesso, roteiro, direitos,
+fontes, versões, validade factual e fence. Mudança solicitada de kit, foto do
+acervo ou contexto aguarda as criações admitidas, cancela fila não iniciada e
+bloqueia novos inícios. O modo simulado cobre parte dos escritores; o protocolo
+completo precisa ser demonstrado. Revisão preservada deve indicar que a peça
+foi criada antes da mudança, com publicação sujeita a direitos e aprovação.
 
-## Atomicidade e permissões para a integração
+O plano vencendo após a admissão permite terminar e revisar a prévia privada;
+novas criações e publicação aguardam renovação. A retenção da prévia deve deixar
+de expirar automaticamente enquanto a conta estiver ativa. Essas decisões são
+**escopo a implementar**, incluindo filtros de acesso, expiração de propostas e
+prévias e `MediaRetention`; 0058 não as resolve. Owner revogado não ganha acesso,
+e a política após encerramento fica para sua fase própria. Só staff poderá
+resolver pendência cujo autor perdeu acesso, com registro/auditoria e acesso
+restrito; esse fluxo ainda precisa ser implementado.
 
-O ledger usa a role `meu_braco_direito_correlator`, enquanto consentimento,
-briefing, kit, catálogo e fotos usam políticas da role do proprietário. Duas
-sessões não compartilham a mesma transação; validar com uma role e reservar com
-outra não garante atomicidade. O método `reserve_in_transaction` pressupõe
-contexto de tenant e ator já configurado e não autentica o proprietário nem
-valida o fence, as fontes ou o consentimento.
+## Coordenação, dinheiro e incerteza
 
-A integração precisa, na mesma transação, verificar o proprietário ativo e as
-permissões atuais, proteger a tentativa contra troca de fence e serializar sua
-validação com alterações ou revogações relevantes, registrar a intenção e
-reservar o custo. Definir ordem consistente dos locks e confirmar que todos os
-escritores participam do protocolo; consultas comuns em READ COMMITTED, ou um
-preflight em outra transação, não impedem essas corridas. Apenas uma reserva
-nova e efetivamente confirmada pelo commit permite uma chamada externa.
+A reserva e o fence são atômicos, mas a verificação de fontes/contrato na sessão
+owner está separada da sessão correlator. Fechar admissão e recuperação dessa
+fronteira com todos os escritores e ordem de locks consistente antes da chamada.
+A autorização de desenvolvimento atual usa travas/ledger existentes, sem tabelas
+ou grants novos; alternativas de privilégio anteriores estão preservadas como
+histórico rejeitado/não aprovado, sem serem requisitos da solução.
 
-São alternativas a avaliar: uma role dedicada à geração visual, com acesso
-mínimo por tenant e proprietário ativo, ou uma função `SECURITY DEFINER` de
-escopo restrito e `search_path` fixo, executada por role sem login e sujeita a
-políticas RLS específicas. Nenhuma deve usar `BYPASSRLS` ou ampliar acesso sem
-necessidade. A estratégia de lock deve considerar que locks de linha exigem
-privilégios adicionais; não conceder atualizações amplas apenas para obtê-los.
-Cobrir isolamento, revogação concorrente, fence, rollback e replay em testes de
-integração antes de habilitar chamadas reais.
+O ledger mantém teto mensal por tenant e agregado OpenAI, padrão desativado,
+em micros USD. Cobre estimativas das operações que o utilizam, sem garantir
+limite de fatura ou custo total do plano. Somente criador de reserva nova pode
+submeter uma vez; replay de intenção acompanha o estado existente. Depois de
+possível envio, timeout, falha de upload, lease vencida ou reinício não autorizam
+reenvio/troca automática de fornecedor nem liberação fictícia do valor reservado.
 
-## Reserva, Temporal e incerteza
+Persistir custo/uso comprovados e estimativas separadamente; excedente ou valor
+incerto exige conciliação. Ainda faltam alerta operacional e recuperação completos.
+A agregação pelo mês UTC da submissão não limita todas as cobranças tardias.
+Tempos de activity, HTTP, lease e reconciliação precisam de perfil próprio:
+[execução Temporal visual](BL04-visual-temporal-execution.md).
 
-O ledger mínimo usa micros de USD e limite técnico mensal por tenant, padrão
-zero; não representa franquia comercial nem todo o custo do cliente. A reserva
-precisa ser criada antes de qualquer envio e a decisão deve ser atômica com a
-revalidação do `dispatch_fence` e a gravação durável da intenção de envio. O
-fluxo simulado usa `reserve_in_transaction` na mesma transação que o fence e a
-intenção; porém a validação das fontes ainda ocorre em outra sessão. Isso não
-autoriza efeito externo. Usar uma operação
-estável por tentativa lógica, não o número de fence, que muda no redispatch.
+## Saída privada, retenção e validação
 
-Somente o criador de uma reserva nova pode iniciar a chamada. Replay de uma
-intenção existente nunca autoriza nova chamada: enquanto houver worker ativo,
-acompanhar; após prazo ou perda de estado, marcar como `uncertain` e manter a
-reserva. A conciliação deve distinguir uma falha comprovadamente anterior ao
-consumo de uma resposta perdida; não presumir que timeout, erro HTTP, falha de
-upload, perda de lease ou reinício do processo signifiquem custo zero. Não
-retentar nem trocar fornecedor automaticamente após possível submissão.
+Objetos de saída são privados e exclusivos por tentativa/fence, com MIME e hash
+conferidos. Worker vencido só pode limpar seu próprio objeto, nunca a chave da
+execução vencedora. Não manter locks durante download, geração, acabamento ou upload.
+Conferir fence, prova de admissão e condições aplicáveis antes da disponibilização.
+Logs usam IDs/campos permitidos, sem prompts, imagens, URL assinada ou segredos.
 
-O custo **efetivamente comprovado** pode liquidar a reserva; custo maior do que
-ela deve ser persistido e alertado. Tokens e metadados de `usage` não são por
-si só o valor faturado: guardar estimativa e tabela de preços separadamente,
-com versão e origem, e manter valor incerto até conciliação quando não houver
-prova. O ledger atual registra evento de excesso, mas não entrega alerta
-operacional nem reconciliação automática. O teto mensal por tenant não impõe
-o teto global do ensaio de até US$ 1 autorizado para dados fictícios: será
-necessário implementá-lo antes de qualquer chamada real desse ensaio.
+Materiais WhatsApp associados são duráveis e não podem ser excluídos pelo
+histórico; limpeza técnica e remoção de foto do acervo são fluxos próprios.
+Prévias geradas têm nova decisão de preservação, ainda não implementada;
+retenção após encerramento da conta foi adiada para a fase de encerramento, sem
+introduzir exclusão automática nesta etapa.
 
-A activity atual tem prazo de 2 minutos, o adapter permite até 180 segundos e
-o dispatcher pode redistribuir depois de 3 minutos. Ajustar e testar esses
-prazos e o comportamento do dispatcher como um conjunto: duração maior não
-substitui o protocolo acima. O fence impede publicação por um worker antigo,
-mas não impede sozinho uma cobrança externa. Um worker tardio pode registrar
-um custo comprovado; só pode disponibilizar a imagem se a tentativa ainda
-possuir fence válido e as fontes e permissões continuarem válidas.
+Antes de conectar o real: testes concorrentes com roles reais `_test`, crash entre
+commits, resultado incerto sem segundo gasto, limites de orçamento, mudança de
+fonte, expiração de plano, revisão preservada, publicação bloqueada, isolamento e
+limpeza de órfãos. Só após segurança integrada avaliar qualidade BL04.3: fidelidade,
+texto/logo, legibilidade móvel, aceite do titular e custo por peça aceita com refações.
 
-O ledger agrega pelo mês UTC de submissão da reserva; uma reserva incerta de
-um mês anterior não ocupa o teto do mês seguinte. Portanto não garante um teto
-mensal pelo faturamento efetivo do provedor nem limita sozinho cobranças tardias.
-A reserva aceita uma estimativa fornecida pelo chamador, que deve usar tabela
-versionada e estimativa conservadora; um valor real maior só é registrado após
-o gasto e exige alerta, reconciliação e bloqueios comerciais apropriados.
-
-## Objetos privados e retenção
-
-O renderer local agora grava em chave privada exclusiva do fence, impedindo que
-um worker antigo apague o arquivo da tentativa vencedora. A integração de IA
-precisará preservar essa propriedade. Gravar o resultado com hash e
-mime conferidos. Um worker vencido deve apagar apenas o objeto que ele próprio
-criou; não usar uma chave compartilhada que permita sobrescrever ou apagar
-resultado de outra tentativa. Adaptar a retenção, exclusão e limpeza de órfãos
-para essas chaves e para referências revogadas. Logs e auditoria não devem
-expor imagens, prompts, credenciais ou conteúdo privado por padrão.
-
-Antes de envio ao fornecedor, verificar autorização e gerar uma cópia privada
-normalizada, removendo metadados como GPS, aparelho e data/hora (EXIF e outros
-metadados equivalentes). Normalizar a orientação visual antes de remover EXIF,
-preservar o original e registrar versão/hash e consentimento da derivada. Testar
-orientação e fidelidade visual com exemplos reais antes de produção. O acervo já
-normaliza imagens; verificar o mesmo requisito para fontes recebidas pelo
-WhatsApp. Se a minimização não tiver sido validada para uma fonte, bloquear o
-envio da imagem não normalizada ao provedor.
-
-## Ordem e testes
-
-1. Fechar contrato de seleção semântica e snapshot, consentimento e migração;
-   manter o caminho local compatível e o modo visual desligado.
-2. Integrar reserva atômica ao controle de tentativa e Temporal. Incluir
-   estados de envio/resultado que não convertam `uncertain` em retry.
-3. Conectar adapter falso e armazenamento privado por tentativa; verificar
-   fontes antes/depois do efeito e impedir disponibilização sem revisão.
-4. Testar corridas pela última reserva e pelo fence, replay com conflito,
-   colisão entre workers, crash antes/depois do envio, timeout, resposta tardia,
-   custo acima da reserva, custo desconhecido, falha de armazenamento, limpeza
-   de órfãos, revogação, alteração de fatos/kit/fotos, validade e isolamento
-   entre tenants. Não usar chamadas pagas em CI.
-5. Um [ensaio sintético isolado](../evals/bl04-visual-synthetic-story-2026-10-27.md)
-   já foi realizado fora do fluxo integrado. Antes de qualquer chamada real pelo
-   fluxo integrado, implementar os controles e o teto global explícito e medir
-   custos. A homologação comercial exige os gates de qualidade e aceite da BL04
-   e não depende apenas de uma resposta do modelo.
+Versão anterior integral: [snapshot de 28/10/2026](../history/2026-10-28-pre-documentation-reconciliation/design/BL04-integration-safety.md).

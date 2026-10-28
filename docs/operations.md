@@ -1,224 +1,200 @@
 # Operação e deploy
 
-F00 é fundação local. Antes de expor a clientes: onboarding/auth completo, app reviews,
-políticas e gates das fases seguintes. Nunca usar `.env.example` em produção.
+Revisado em **28/10/2026** para refletir o código local. Decisões de produto em
+[DECISIONS](DECISIONS.md), contratos no [SDD](SDD.md) e estado em
+[PROJECT](PROJECT.md). O [texto anterior](history/2026-10-28-pre-documentation-reconciliation/operations.md)
+foi preservado; a cronologia de migrations não substitui este procedimento.
+Não houve operação em serviços, dados, credenciais ou infraestrutura nesta revisão.
 
 ## Ambiente local
 
-F01.5 acrescenta o processo `billing` em Compose/debug. Por padrão ele registra
-billing.disabled e não consome jobs no Temporal nem chama Stripe. Login restrito
-meu_braco_direito_payments/meu_braco_direito_billing, separado de auth/app/relay. Setup de
-sandbox, flags live e contratos em [SDD billing](design/billing.md) e README.
-Durante compras na sandbox local, mantenha o listener em execução:
+Configuração e comandos básicos estão no [README](../README.md). PostgreSQL em
+55432, Temporal gRPC 7233/UI 8233, Mailpit HTTP 8025/SMTP 11025 e storage S3 do
+perfil `workers` em 9000, ligados ao loopback. Temporal start-dev é apenas local;
+seu volume conserva histórico de desenvolvimento, sem comprovar HA/backup de produção.
+
+Inicialização PostgreSQL de instalação nova cria logins restritos e o banco
+`meu_braco_direito_platform_test`. Em volume existente, initializer não roda de
+novo; não apagar volume para corrigir a instalação. Scripts específicos de
+logins Meta/correlator existem em `scripts/ensure_local_*_login.sql`; avaliar
+necessidade antes de executá-los no ambiente correto.
+
+API requer o **head Alembic exato**, não apenas a migration que criou uma rota.
+`/health/live` não consulta banco; `/health/ready` verifica schema e conexões
+habilitadas. Código da 0058 entende `expires_at=NULL` nos materiais; versões
+anteriores podem limpar dados ou falhar ao ler esses valores.
+
+## Contratação e acesso
+
+Antes de criar checkout, o owner verificado registra o aceite único por negócio
+em Plano e acesso. A API valida versão/hash e ação explícita. O contrato não
+configura credencial, orçamento, pagamento ou publicação e não reativa linhas
+antigas de consentimento. Não há checklist operacional por fornecedor para o
+cliente. A flag `SERVICE_AGREEMENT_REQUIRED` permite compatibilidade local de
+migração; produção exige enforcement. A web e a criação de checkout já exigem o
+aceite atual mesmo quando a flag local está desligada.
+
+`billing` usa login de pagamentos separado. `BILLING_MODE=disabled` não consome
+jobs de provedor nem chama Stripe. Configuração sandbox/live em
+[cobrança](design/billing.md). Em sandbox local, o listener é:
 
 ```bash
 stripe listen --all-snapshot --forward-to http://localhost:8000/api/v1/webhooks/stripe
 ```
 
-A Stripe pode concluir o pagamento mesmo que esse listener esteja fechado. A volta
-ao site não ativa o plano por si só. O processo billing agenda reconciliação
-canônica de checkouts abertos a cada 30 segundos (até 25 por ciclo, com dedupe por
-janela de cinco minutos), além do timer de expiração. Depois que o worker consulta
-a sessão/assinatura/fatura na Stripe, o acesso pode ser ativado sem o webhook
-perdido. Não repetir a compra; confirmar o estado pelo endpoint de assinatura.
-Reiniciar o listener não retransmite automaticamente eventos perdidos.
-Nunca reprocessar um checkout ambíguo com uma nova chave: consultar estado canônico
-da sessão/assinatura antes de alterar intent, lease ou estado de falha. Jobs de
-cobrança com falha permanecem duráveis e exigem revisão antes de reprocessamento.
-A migração `0038_retire_billing_outbox` preserva os eventos financeiros em
-`billing_audit` e remove a outbox sem consumidor; não há notificações financeiras
-agendadas por ela. Atualizar API e processo `billing` junto da migração, evitando
-executáveis antigos que ainda gravam a tabela retirada. O login de migração
-precisa de BYPASSRLS; permissões de runtime continuam restritas. Não escrever
-eventos financeiros no outbox geral de `business.created`. Nenhuma integração
-comercial está ativa apenas por subir o worker.
+A Stripe pode concluir com listener fechado. Redirect não ativa acesso; billing
+reconcilia estado canônico de sessões/assinaturas/faturas. Checkouts abertos são
+consultados em ciclo de 30 s, até 25 por ciclo, com dedupe por janela de cinco
+minutos. Não repetir compra ou criar nova chave para resolver resultado ambíguo.
+Jobs com falha permanecem duráveis até revisão. A migração 0038 já retirou a
+outbox financeira sem consumidor, preservando `billing_audit`; `billing_jobs`
+permanece. Não redirecionar esses eventos para recibos genéricos de CRUD.
 
-F01.6: convites de staff saem pelo worker `auth-mail` para o e-mail convidado e
-expiram em 48 horas. O operador acessa `/staff-invite`, usa conta com e-mail
-verificado e faz novo login para configurar TOTP. O painel `/admin/staff` exige
-staff/MFA. Revogação encerra sessões. Inspecionar `auth_mail.state=failed` se o
-convite não chegar; não copiar token/ciphertext para logs ou tickets.
-O aceite exige login com o mesmo e-mail que recebeu o convite. A API distingue
-`INVITATION_EMAIL_MISMATCH` de convite inválido/expirado, e a interface orienta
-trocar de conta e reabrir o link original. E-mails de confirmação, recuperação e
-convite usam HTML padronizado com alternativa em texto. O worker reconhece também
-payloads antigos desses três assuntos, desde que tenham link HTTP(S) no corpo.
-Atualizar o worker `auth-mail` para aplicar o template. A migration 0011 é
-necessária para a distinção de e-mail sob RLS; reiniciar a API depois da migration.
-`GET /staff/invitations/pending` só consulta convite da identidade autenticada;
-conta convidada sem negócio vai à orientação de aceite, nunca ao onboarding comercial.
-Esse endpoint também retorna `revoked` para uma conta que já foi operadora. Se o
-acesso foi revogado e não há convite novo, a web mostra `/staff-access-revoked`.
-Um novo convite pendente prevalece sobre a revogação anterior; o aceite reativa
-staff somente após login com o mesmo e-mail e novo login/MFA.
+Patrocínio é concessão distinta de receita, com início/fim e revogação próprios.
+O comportamento aprovado para plano vencido durante criação (C08) ainda precisa
+ser integrado: hoje há revalidações de plano na conclusão e leitura. Não afirmar
+que o runtime já conserva o acesso de revisão após vencimento.
 
-Verificação de telefone usa Twilio Verify e fica desativada por padrão. Após criar
-conta, Verify Service e API key, configurar no backend `MEU_BRACO_DIREITO_PHONE_VERIFY_MODE=twilio`,
-`MEU_BRACO_DIREITO_TWILIO_VERIFY_SERVICE_SID`, `MEU_BRACO_DIREITO_TWILIO_API_KEY` e
-`MEU_BRACO_DIREITO_TWILIO_API_SECRET`. O canal padrão é SMS; `MEU_BRACO_DIREITO_PHONE_VERIFY_CHANNEL`
-pode ser `whatsapp` se o serviço estiver habilitado para isso. Reiniciar API após
-configurar. O número do perfil deve ser brasileiro válido ou E.164; código vence
-em 10 minutos, espera mínima entre envios de 60 segundos e máximo de cinco
-tentativas. Nenhum dado de teste local substitui entrega real. No staging, validar
-envio/recebimento, número trocado, rate limit e falhas do provedor antes do piloto.
-Na tela `/app/phone`, o destino mostra o número com `+55` normalizado antes do
-envio. O proprietário pode corrigir o número pelo `PATCH` no recurso de verificação;
-isso remove a condição de verificado e invalida o código anterior. A migration
-0012 é necessária para a atualização de `business_profiles.phone` pela role runtime.
+## Identidade, convites e telefone
 
-F02.1 usa `GET/POST /api/v1/webhooks/whatsapp` para desafio e eventos da Meta.
-Por padrão `MEU_BRACO_DIREITO_META_WEBHOOK_MODE=disabled`; a rota responde 503. Para
-habilitar em ambiente de teste com App/WABA e número próprios, configurar no
-backend o modo `cloud`, `META_DATABASE_URL` com login exclusivo `meu_braco_direito_ingest`,
-`META_VERIFY_TOKEN`, `META_APP_SECRET`, `META_WABA_ID`, `META_PHONE_NUMBER_ID` e
-`META_ENCRYPTION_KEY` Fernet privada, todos sob prefixo `MEU_BRACO_DIREITO_`. Reiniciar
-API; `/health/ready` exige migration 0013 e acesso ao banco restrito. A URL de
-callback precisa de HTTPS público controlado; não expor um túnel sem assinatura.
-O login recebe `meu_braco_direito_meta`, não `meu_braco_direito_app`/auth/billing. No volume
-local já existente, criar o login e conceder a role uma vez com
-`docker compose exec -T postgres psql -U postgres -d postgres < scripts/ensure_local_meta_login.sql`;
-initializer não roda novamente. Não apagar o volume. O banco de testes também precisa do login
-`TEST_META_DATABASE_URL` na base `_test`.
+Auth nativa exige segredo de assinatura e chave Fernet privada fora do ambiente
+local. Access token permanece em memória na web; refresh HttpOnly e CSRF seguem
+cookies host-only. HTTPS usa prefixo `__Host-`, Secure, path `/`, SameSite=Lax.
+Web e `/api` devem compartilhar origem; proxy preserva Origin/Cookie/Set-Cookie/
+Authorization e não armazena respostas autenticadas em cache.
 
-Cada callback autenticado é gravado na `whatsapp_inbox` cifrada e deduplicada;
-a correlação e o workflow posteriores só operam após vínculo/consentimento.
-Reentrega
-da Meta recebe 200 após commit sem criar duplicata. Falha de banco retorna erro,
-permitindo retry do provedor. Nunca consultar/copiar ciphertext ou payload bruto
-para logs/tickets. Ingressão remove linhas expiradas quando chega novo evento;
-F02.2b acrescenta correlação e processamento. A
-[coleção oficial da Meta](https://www.postman.com/meta/whatsapp-business-platform/overview)
-documenta a configuração do webhook e os formatos de mensagens/status.
+`auth-mail` entrega confirmação, recuperação e convites via SMTP. Convites de
+staff expiram em 48 h; aceite usa a conta com o mesmo e-mail verificado, seguido
+de novo login/MFA. Conta convidada sem negócio não passa pelo onboarding
+comercial. Revogação encerra acesso/sessões; novo convite pendente tem prioridade
+na orientação de recuperação. Diagnóstico usa estado da outbox, sem copiar tokens,
+links, ciphertext ou seed de MFA para logs/tickets.
 
-F02.2a acrescenta a migration 0014. Após backup, aplicá-la antes de iniciar a
-API nova. O proprietário com telefone verificado e plano ativo chama `POST` no
-recurso `/api/v1/organizations/{tenant_id}/businesses/{business_id}/whatsapp-link`,
-envia exatamente a mensagem retornada para o número oficial da plataforma e
-chama `POST` no mesmo recurso com sufixo `/confirm`. O `GET` mostra o status.
-Sem modo Meta `cloud` e webhook real, o vínculo fica indisponível; simulações
-somente no banco `_test`. Trocar o telefone desativa o vínculo. A inbox segue sem
-processamento de material. Rotação da chave `META_ENCRYPTION_KEY` requer migrar
-e reindexar dados antes de aplicá-la, pois também é chave para HMAC do remetente.
+Telefone usa Twilio Verify quando configurado; padrão `disabled`. Serviço/SID e
+API key/secret ficam no backend. SMS é o canal padrão; WhatsApp só se habilitado
+no provedor. Código: 10 min, cooldown 60 s e até cinco tentativas. A tela mostra
+E.164; corrigir telefone invalida código e verificação anteriores e desativa o
+vínculo até nova prova. SMS confirmado não equivale a vínculo WhatsApp.
 
-F02.2b1 adiciona a migration 0015 e o processo `whatsapp-correlator`. Após backup,
-aplicar a migração; no volume PostgreSQL existente, criar o login restrito uma
-vez com `docker compose exec -T postgres psql -U postgres -d postgres <
-scripts/ensure_local_correlator_login.sql`. O processo usa
-`MEU_BRACO_DIREITO_CORRELATOR_DATABASE_URL` e a mesma
-`MEU_BRACO_DIREITO_META_ENCRYPTION_KEY` da API. O processo não precisa das
-credenciais de assinatura do app Meta; ele permanece desativado sem URL do login
-restrito ou chave de criptografia. A API de webhook exige modo Meta `cloud`.
-Sua fila cifrada mantém materiais por até sete dias. Com F02.2b2 ela aciona o
-dispatcher/Temporal apenas quando há consentimento e vínculo válido. Não ligar
-o processo com conteúdo real antes da política de retenção dos assets e do smoke Meta.
+Rotação da chave JWT invalida access tokens antigos; refresh válido pode emitir
+novos. Rotação Fernet exige recriptografia e validação dos dados que a usam.
+Reset de senha não remove MFA. MFA perdido usa recuperação individual ou suporte
+com comprovação e auditoria; não há bypass público.
 
-F02.2b2 adiciona migration 0016 e a tela `/app/whatsapp`. Após backup e migração,
-subir `docker compose --profile workers up -d --build` para iniciar
-`object-storage`, `whatsapp-correlator`, `whatsapp-dispatcher` e o worker Temporal.
-O build `media-worker` inclui ffprobe; a imagem padrão da API não inclui esse
-binário. Na publicação, criar/deployar as duas imagens separadamente.
-O storage local é SeaweedFS/S3 em `localhost:9000`, bucket
-`meu-braco-direito-materials`, com credenciais locais do Compose. API em F5 usa
-`MATERIAL_STORAGE_ENDPOINT=http://localhost:9000`; containers usam
-`http://object-storage:8333`. O endpoint público para URLs assinadas deve ser
-alcançável pelo navegador. Staging/produção exigem bucket privado, endpoints
-HTTPS e credenciais restritas. Nunca usar as credenciais locais fora do Compose.
+## WhatsApp, processamento e armazenamento
 
-Além das chaves F02.1, configurar `META_PUBLIC_PHONE` com o número oficial em E.164,
-`META_ACCESS_TOKEN` de usuário de sistema com permissão de mídia,
-`META_GRAPH_VERSION`, `MATERIAL_STORAGE_BUCKET`,
-`MATERIAL_STORAGE_ACCESS_KEY` e `MATERIAL_STORAGE_SECRET_KEY`. Reiniciar API e
-workers após mudar `.env`; as variáveis com prefixo completo estão em
-`.env.example`. Confirmar no app Meta que callbacks de mensagens chegam pelo
-endpoint público HTTPS. Na web, dono com plano e SMS válido autoriza materiais,
-gera código, envia pelo WhatsApp cadastrado e confirma; então envia ideia, foto,
-áudio e vídeo. O recibo deve aparecer em `/app/whatsapp`; a URL assinada vence
-em dois minutos. Sem App/WABA/HTTPS públicos ainda não é possível homologar a
-integração. O teste local usa somente mensagens e arquivos sintéticos.
+Configurar no backend, sob prefixo `MEU_BRACO_DIREITO_`: modo Meta `cloud`,
+`META_DATABASE_URL`, App/WABA/número, verify token, app secret, Graph token/versão,
+`META_ENCRYPTION_KEY`, número público oficial e storage privado. Segredos ficam
+fora de git/imagens/logs. Callback HTTPS é validado por assinatura; não expor
+endpoint sem essa proteção. A API de webhook usa login de ingestão isolado.
 
-Não há transcrição, resposta automática, geração, publicação nem exclusão de
-assets nesta fatia. Antes de dados reais, definir retenção/apagamento, monitorar
-falhas dos workflows e revisar permissões do bucket. O revogamento impede novos
-downloads pela API, mas uma URL assinada previamente pode durar até dois minutos.
+Callbacks são cifrados/deduplicados na inbox e recebem 200 após commit. Falha de
+persistência permite retry do provedor. Correlator associa origem ao negócio;
+nenhum worker deve inventar associação histórica após troca de número. Um envio
+já associado conserva o negócio e continua processando, mesmo durante troca ou
+indisponibilidade do vínculo. Entrega simulada espera o vínculo novo verificado.
 
-`docker compose up -d postgres temporal mailpit`; migração separada com conexão administrativa.
-O SQL de inicialização cria logins locais sem bypass e banco `meu_braco_direito_platform_test`. As roles
-de acesso são concedidas sem propriedade das tabelas. Se volume já existe, initializer
-não roda novamente; não apagar volumes para corrigir migrações de usuário.
+O owner precisa de acesso, aceite do serviço, telefone verificado e prova de
+vínculo. Na web, gerar código/mensagem, enviar pelo número cadastrado ao oficial
+e confirmar quando a API reconhecer a prova. Desconectar encerra o canal, não o
+contrato de IA nem o histórico. Meta real/candidata/publicação seguem sem
+homologação; não habilitar envios reais apenas para testar uma tela.
 
-PostgreSQL em 55432; Temporal gRPC 7233 e UI 8233, todos ligados ao loopback.
-Temporal start-dev é exclusivamente desenvolvimento/CI, não topologia de produção.
-Seu SQLite fica no volume nomeado `meu-braco-direito-platform_meu-braco-direito-temporal`,
-preservando o histórico ao recriar o container de desenvolvimento.
-Isso não representa persistência/HA de produção nem substitui Temporal Cloud.
-API só sobe após migration; health live não acessa DB, ready exige exatamente o
-head Alembic do código em execução. Durante deploy, migração deve preceder a
-versão nova da API.
+`whatsapp-correlator` e `whatsapp-dispatcher` usam logins/roles restritos, Temporal
+e a mesma chave pertinente à origem. O perfil `workers` sobe também storage e
+worker de mídia. A imagem `media-worker` contém ffprobe/FFmpeg; a API não precisa
+dos binários. API e worker têm imagens/deploys separados.
 
-## Runtime
+Storage local: SeaweedFS/S3, bucket `meu-braco-direito-materials`. F5 usa endpoint
+`http://localhost:9000`; containers usam `http://object-storage:8333`. URL assinada
+deve ser alcançável pelo navegador e tem validade curta, normalmente até dois
+minutos. Staging/produção exigem bucket privado, HTTPS e credenciais mínimas.
+Permissão sobre o arquivo e expiração da URL são verificações distintas.
+
+### Retenção vigente e mudanças ainda pendentes
+
+- Materiais WhatsApp associados e eventos correspondentes são preservados sem
+  expiração automática pela 0058; não há exclusão pelo histórico/API. A inbox
+  preserva mensagens associadas para deduplicação. Status técnicos, registros
+  não atribuídos e uploads órfãos continuam com limpeza própria.
+- Acervo de fotos permite remoção de imagens desatualizadas, com retry e
+  reconciliação próprios; uma cópia do WhatsApp é independente da origem.
+- Prévias devem ser preservadas sem TTL com conta ativa (C09), mas o código
+  ainda usa `expires_at`, propostas e limpeza. Adaptar leitura, proveniência e
+  retenção como um conjunto; não desativar jobs ou editar prazos manualmente
+  como se isso entregasse o contrato.
+- Ao encerrar conta, prazo de exclusão fica pendente da fase específica (P03).
+  O proprietário decidiu não implementar essa exclusão automática nesta etapa.
+- Quarentena de upload incerto não equivale a exclusão física comprovada.
+  Recuperação exclusiva de staff para autor sem acesso foi aprovada (C10), mas
+  o fluxo restrito/auditado ainda não existe. Não assumir a identidade do autor
+  nem conceder leitura irrestrita aos operadores para contornar a pendência.
+
+## IA e falhas externas
+
+Texto, transcrição, interpretação e imagem usam o mesmo aceite contratual;
+adapters, modos, chaves e tetos são configuração interna por capacidade.
+Padrões são desligados e limites zero; configuração por si só não homologa uma
+capacidade. Jev é opcional no worker de desenvolvimento/teste. A prévia visual
+do produto é `visual_fake`; workflow/orquestrador real permanecem desconectados.
+
+Não repetir efeito pago após timeout, perda de lease ou confirmação perdida.
+Registrar operação, fence, estado conhecido/incerto e reserva; reconciliação
+precisa provar o que ocorreu. Rede, storage e render ficam fora de row locks;
+workflows determinísticos não fazem IO. A futura coordenação BL04.2 usará o
+contrato atual e C08/C09/C10, sem reintroduzir permissões por fornecedor.
+
+## Runtime e credenciais por capacidade
+
+| Processo/contexto | Login local de exemplo | Role de acesso |
+| --- | --- | --- |
+| API/domínio e sessões de owner no worker | `meu_braco_direito_runtime` | `meu_braco_direito_app` |
+| Identidade e SMTP | `meu_braco_direito_identity` | `meu_braco_direito_auth` |
+| Billing | `meu_braco_direito_payments` | `meu_braco_direito_billing` |
+| Ingressão Meta | `meu_braco_direito_ingest` | `meu_braco_direito_meta` |
+| Correlação/efeitos de material | `meu_braco_direito_router` | `meu_braco_direito_correlator` |
+| Relay manual legado | `meu_braco_direito_delivery` | `meu_braco_direito_relay` |
+
+Nomes/segredos de produção são próprios. Logins runtime não são donos das tabelas
+nem recebem superuser/BYPASSRLS. `Database.transaction` configura tenant/ator
+localmente à transação; workers usam escopo e papéis do efeito. Credencial
+administrativa serve a migração/provisionamento, não a execução da aplicação.
 
 API: `uvicorn app.main:create_app --factory --host 0.0.0.0 --port 8000 --no-access-log`.
-Worker: `python -m app.entrypoints.worker`. O relay legado
-`python -m app.entrypoints.relay` é manual, exclusivo para recibos históricos;
-não integra mais a inicialização automática `workers` ou o debug. Quando
-necessário, iniciar explicitamente `docker compose up -d relay` (profile
-`legacy-relay`). Novos CRUDs de negócio/kit não geram esses recibos.
-API/worker usam runtime login; o relay manual tem URL específica e só acessa outbox. Owner
-credencial serve apenas a migrações/provisionamento, nunca é variável de runtime.
+Worker: `python -m app.entrypoints.worker`. Relay manual:
+`python -m app.entrypoints.relay`, profile `legacy-relay`, apenas compatibilidade;
+fora do startup comum. Tabelas e handlers históricos ainda não foram removidos.
 
-Outbox fica `failed` após falhas repetidas conhecidas de entrega e precisa intervenção.
-Lease perdido é reivindicável; fencing impede confirmação tardia. Temporal rejeita
-workflow ID repetido inclusive depois de concluído dentro da retenção/contrato; o
-consumer no banco também deduplica o evento, independentemente dessa retenção.
-Expiração do histórico não deve ser usada para repetir operação paga: fases futuras
-mantêm tombstones e operação externa persistente.
+## Migrações, testes e recuperação
+
+Antes de atualizar ambiente com dados: conferir head, inventário de pendências,
+claims e efeitos incertos; planejar pausa/drenagem e backup verificável. Aplicar
+migração e código compatíveis em todos os processos envolvidos. Não executar
+versões mistas que possam apagar materiais duráveis ou ignorar barreiras.
+A 0058 recusa claims/pedidos de exclusão não resolvidos e não recupera objetos
+já apagados. A 0055/quarentena também exige avaliação de efeitos legados.
+
+Backup só de PostgreSQL não inclui objetos, estado Temporal, ACLs ou propriedade
+validada. Restore deve considerar banco, mídia, execução e ledger para não
+repetir gasto/publicação nem perder dados posteriores. F08 ainda precisa
+comprovar recuperação coordenada em staging.
+
+Testes usam banco dedicado terminado em `_test`, nunca o banco da aplicação,
+com migrations no head e logins restritos. `TEST_*` do processo prevalece sobre
+arquivos de exemplo/local de teste. Não executar suítes Python e navegador que
+limpam o mesmo `_test` ao mesmo tempo. Integração indisponível falha.
+Comandos no README; provas datadas no [CHANGELOG](CHANGELOG.md).
 
 ## GitHub Actions / AWS
 
-Configurar environments `staging` e `production` com permissões e revisores conforme
-política do time, OIDC restrito a repo/environment, sem chaves AWS permanentes.
-Variáveis: AWS_REGION, AWS_ROLE_ARN, ECR_REPOSITORY, ECS_CLUSTER, ECS_SERVICE,
-ECS_TASK_FAMILY e ECS_CONTAINER_NAME. Infra cria task definition com secret refs e
-IAM mínimos. TLS Temporal é obrigatório fora de desenvolvimento.
+CI e deploy manual por OIDC/ECR/ECS existem no repositório; não provisionam AWS.
+Staging precede piloto. Environments, IAM mínimos, secrets, SMTP TLS, HTTPS,
+Temporal TLS e tarefas de migração próprias ainda precisam de configuração e
+homologação. Não usar credenciais locais ou `.env.example` em produção.
 
-Auth própria: definir `MEU_BRACO_DIREITO_AUTH_DATABASE_URL` com login restrito distinto
-(`meu_braco_direito_auth`), chave de assinatura aleatória e `MEU_BRACO_DIREITO_AUTH_ENCRYPTION_KEY`
-Fernet privada. Staging/PRD exigem `PUBLIC_WEB_URL` HTTPS, SMTP com STARTTLS/autenticação
-e TLS Temporal. Prefixar as variáveis de aplicação com `MEU_BRACO_DIREITO_`.
-O worker `python -m app.entrypoints.auth_mail` usa apenas o login de auth, sem
-privilégio sobre empresas. Mailpit e exemplos de chave/senha são exclusivamente locais.
-Secrets Manager guarda assinatura, chave Fernet, senha SMTP e credenciais Twilio;
-não versionar valores reais.
-
-Cookies têm prefixo __Host- em HTTPS, path /, Secure e SameSite=Lax; refresh é
-HttpOnly, CSRF é legível pelo browser e vinculado ao registro da sessão. `/api` e
-web devem compartilhar origem. Proxy deve preservar Origin e encaminhar Cookie/
-Set-Cookie e Authorization; desabilitar cache para `/api/*`. Não cachear respostas
-com sessão no CloudFront. Configure o IP real somente com proxies conhecidos;
-limites por IP não devem confiar em X-Forwarded-For arbitrário da internet.
-
-Workers SMTP fazem claim com lease/fencing e retries; falhas terminais ficam em
-`auth_mail.state=failed`, exigindo diagnóstico/reenvio controlado. Não imprimir
-ciphertext de MFA/outbox, tokens, links, senhas ou códigos em diagnósticos.
-Verificação/reset podem gerar e-mails repetidos, mas a ação só é consumida uma vez.
-Chave Fernet não pode ser simplesmente substituída: recriptografar MFA/outbox e
-validar antes da rotação. Atualização da chave JWT invalida access tokens antigos;
-refresh válido emite token novo. MFA perdido exige código de recuperação ou
-procedimento administrativo com comprovação e auditoria, sem bypass público.
-
-Migration 0003 preserva atores, tenants e memberships e cria credenciais sem senha
-para e-mails antigos não ambíguos; o usuário define senha via recuperação. E-mail
-ambíguo exige conciliação manual sem merge automático. Seed só altera as duas
-contas locais conhecidas, e nunca sobrescreve senha/MFA já configurados.
-Nenhum deploy/recurso AWS foi criado nesta entrega. A topologia e IaC continuam
-pendentes e o primeiro destino deve ser staging, antes de piloto com clientes.
-
-`Deploy ECS` é manual, somente main e mesmo SHA de CI verde. Publica tag de commit
-em ECR e atualiza serviço ECS existente. Antes do deploy, aplicar migrações compatíveis
-por tarefa separada com role de migração e confirmar `database_ready`. Não executar
-DDL com login runtime. Workflow não provisiona conta/infra nem garante rollback de
-schema; expand/contract e estratégia de workers ativos fazem parte da F08.
-
-O remoto Git já está configurado. Variáveis, roles e recursos AWS ainda precisam
-ser configurados; o pipeline não foi executado remotamente. Não foi feita nenhuma
-alteração na AWS/GitHub.
+Deploy exige SHA de CI aprovado e recursos existentes. Migração não é executada
+com login runtime. Estratégia de workers ativos, expansão/contração de schema,
+backup/restore, alertas e observabilidade fazem parte da F08. Logs usam eventos
+estáveis e campos permitidos; conteúdo privado, prompts e credenciais não vão
+para stdout, imagens ou relatórios.

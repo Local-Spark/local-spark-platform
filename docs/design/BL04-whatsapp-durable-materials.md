@@ -1,149 +1,71 @@
-# BL04.2 — Preservação dos materiais do WhatsApp: proposta para revisão
+# BL04.2 — materiais WhatsApp duráveis e troca de número
 
-**Estado:** a retenção de materiais associados foi implementada e a migration
-0058 foi aplicada à base local. A entrega real de prévias pelo WhatsApp e o
-uso automático de memória continuam pendentes. As opções abaixo são registros
-do desenho e de limitações, não uma autorização para ativar provedores. O cliente
-decidiu preservar os materiais enviados pelo WhatsApp como contexto do negócio,
-retirar a opção de excluir fotos desse histórico e manter a remoção de fotos
-no acervo, para substituir imagens desatualizadas. Guardar os arquivos não cria
-automaticamente memória pesquisável ou skills; isso requer implementação própria.
+Atualizado em **28/10/2026**. **Implementado localmente:** migration 0058 aplicada,
+preservação dos materiais associados e continuidade após troca de número.
+Complementa o [SDD](../SDD.md), [BL04](../phases/BL04-context-and-ai-production.md)
+e as [decisões vigentes](../DECISIONS.md).
 
-**Decisão posterior:** se o cliente trocar de número enquanto processamos um
-material já enviado, a criação continua para o mesmo negócio. Após a troca, a
-prévia e o pedido de aprovação devem ir para o número ativo novo. O cliente não
-precisa esperar o processamento para trocar o número. A implementação e a
-validação dessa jornada estão pendentes.
+## Contrato atual
 
-## Mudança proposta
+Texto, foto, áudio e vídeo já associados a um negócio são preservados sem prazo
+automático. O histórico WhatsApp é consulta: não oferece exclusão desses envios,
+e a API recusa essa exclusão para todos os tipos. A insatisfação com uma peça pode
+ser resolvida enviando outro material. Direitos sobre conteúdo, aceite do serviço,
+plano e aprovação de uma peça continuam tendo funções próprias.
 
-1. Reutilizar `whatsapp_material_assets` para os materiais já recebidos e seus
-   objetos privados e `whatsapp_material_events` para a ligação ao negócio e
-   processamento, sem criar uma nova tabela de acervo. Não classificar
-   automaticamente uma mensagem ou foto como produto ou fato confirmado.
-2. Preparar uma migração nova, sujeita a revisão, que preserve registros
-   existentes e permita ausência de expiração em `expires_at` dos assets e dos
-   eventos de material. Rever os defaults e a criação dos registros para que
-   novos envios associados ao negócio também não recebam esses prazos. Não
-   eliminar colunas históricas, reescrever migrations antigas ou supor que um
-   objeto já apagado possa ser recuperado.
-3. Ajustar, como uma alteração coordenada, a roteirização, processamento,
-   histórico, download, transcrição, briefing, seleção de referências,
-   propostas e prévias para aceitar materiais sem data de expiração. As
-   verificações existentes de tenant, negócio e permissões permanecem. O
-   prazo próprio de aprovação ou de prévias não é alterado por esta decisão.
-4. Deixar de purgar o material recebido e seu evento devido a 7 ou 30 dias.
-   Manter a limpeza de uploads incompletos e objetos órfãos, sem confundi-los com
-   uma mídia aceita e salva; manter separados callbacks de status e registros
-   estritamente técnicos. A regra de armazenamento após encerramento da conta
-   não foi decidida.
-5. A interface já não oferece **Excluir** para fotos no histórico do WhatsApp
-   e mantém a remoção no acervo. O backend também recusa pedidos de exclusão
-   de fotos por API, sem apagar propostas vinculadas. O tratamento da ação de exclusão atualmente
-   disponível para texto, áudio e vídeo não deve ser ampliado nem presumido
-   apenas por essa definição sobre o botão de fotos.
+O acervo estruturado em **Sobre meu negócio** é outro recurso: fotos desatualizadas
+podem ser removidas. Copiar uma foto WhatsApp ao acervo é uma ação explícita com
+direitos e origem; não classifica automaticamente mensagens como produtos, fatos
+confirmados ou skills. Preservar mensagens não implementa memória pesquisável.
 
-## Inbox e idempotência: ponto técnico a fechar antes de migrar
+A 0058 aceita ausência de expiração em assets/eventos associados e ajusta seus
+consumidores e limpeza. A deduplicação das mensagens associadas é preservada.
+Limpeza de status, eventos descartados/não atribuídos e uploads órfãos continua
+separada. O banco de desenvolvimento e a base `_test` receberam a migration;
+isso não demonstra que outros ambientes tenham sido atualizados.
 
-A inbox atual guarda a chave única que deduplica callbacks; ao expirar após sete
-dias, um reenvio tardio pode virar um novo evento. O evento de material também
-expira em sete dias, mesmo quando pendente ou falho. Só desativar o worker de
-limpeza, ou apenas trocar o prazo do asset, deixa filtros, joins e a
-idempotência incorretos.
+## Troca de número
 
-A opção inicial a avaliar, sem tabela nova ou ampliação de grants, é manter na
-inbox os **registros de mensagem** já vinculados a materiais, enquanto existirem
-seus materiais/eventos, preservando a chave de deduplicação. Não tratar todos os
-registros `linked` como material: também existem callbacks de status com esse
-estado. A limpeza dos status pode permanecer técnica e separada.
+Cada negócio tem **um número WhatsApp ativo**. O evento já associado conserva
+seu tenant/negócio de origem e continua sendo processado após a troca ou durante
+um intervalo sem vínculo ativo. A entrega simulada revalida o destinatário atual:
+espera o novo vínculo verificado e envia para o número ativo novo, sem reutilizar
+como destino o remetente do material original. Não exigir que o cliente espere
+uma criação terminar para trocar o número.
 
-É necessário fechar a preservação das mensagens válidas ainda em `quarantined`
-quando o correlator está atrasado, inclusive a concorrência com alteração do
-vínculo do número. Hoje a mensagem chega sem negócio e o vínculo atual é
-sobrescrito ao trocar número; uma mensagem anterior ainda não processada pode
-perder a associação. A solução precisa ser revisada antes da implantação. A limpeza atual ocorre também no recebimento pela role Meta,
-e não apenas no dispatcher; não se deve dar à role Meta leitura ampla de
-negócios ou eventos para resolver isso. Avaliar centralizar a limpeza em
-componente que já tenha permissões adequadas, mantendo separada a quarentena de
-mensagens ainda não associadas a negócio. Conferir políticas RLS reais e testar
-as roles antes de escolher SQL; se a solução exigir novos grants ou outra
-estrutura, voltar para revisão. Não presumir que um payload em quarentena já
-represente um arquivo baixado.
+Esse percurso está implementado e testado no processamento e na entrega falsa.
+O envio real de prévia e aprovação pelo WhatsApp ainda precisa ser integrado e
+homologado. Uma tabela histórica de períodos de vínculo não é requisito aprovado;
+o [desenho anterior](BL04-whatsapp-link-history-review.md) permanece uma hipótese
+para lacunas de correlação, sem autorizar schema ou grants novos.
 
-## Evidências do rascunho de retenção
+## Limites e trabalho restante
 
-Um rascunho parcial foi preparado fora do repositório. Em PostgreSQL descartável,
-passou por testes de texto, foto, áudio e vídeo com 40 dias simulados, deduplicação
-e isolamento; também preservou registros sintéticos na transição 0057 → 0058 e
-recusou uma foto com exclusão pendente. Ele não foi aplicado: ainda faltam cobrir
-mudança de número, quarentena e implantação coordenada. Não recupera arquivos que
-já tenham sido fisicamente apagados. O rascunho de retenção foi exercitado em
-95 testes direcionados com PostgreSQL descartável e roles restritas; a reversão
-da migration foi experimentada separadamente sem apagar os dados de origem. A
-integração com troca de número e o CI completo ainda não foram validados.
+- Mensagens ainda não atribuídas, quarentena e callbacks tardios exigem análise
+  própria: não presumir associação retrospectiva ao negócio apenas pelo número
+  atualmente ativo. Não reconstruir vínculos antigos por suposição.
+- Só é possível preservar a mídia efetivamente recebida e salva. Um download que
+  falhou ou um objeto já removido não é recuperado pela migration.
+- O uso automático dos envios como contexto recuperável/memória continua pendente;
+  não confundir armazenamento com interpretação, indexação ou treinamento.
+- A decisão posterior de preservar **prévias geradas** enquanto a conta estiver
+  ativa ainda requer alterar retenção e acesso das prévias. A 0058 não a implementa.
+- A política após encerramento da conta será definida na fase de encerramento,
+  conforme decisão do proprietário; não introduzir exclusão automática nesta etapa.
+  Não aplicar aos materiais duráveis a exceção antiga de revisão por sete dias.
 
-## Troca de número — solução técnica ainda em análise
+## Implantação e evidências
 
-A troca hoje sobrescreve o vínculo anterior. Mesmo quando um material foi
-salvo, algumas consultas usam apenas o vínculo atual; além disso, uma mensagem
-recebida pouco antes da troca pode ainda não estar associada ao negócio. A
-preservação precisa abranger os dois casos, sem habilitar dois números ativos.
+A atualização local ocorreu após pausa coordenada dos processos e backup; o
+[CHANGELOG](../CHANGELOG.md) conserva validações e limites. Para outro ambiente,
+inventariar claims de exclusão, efeitos desconhecidos e versões em execução;
+a 0058 bloqueia claims antigos não resolvidos. API, ingest, correlator, retenção,
+processamento e workers devem usar código compatível com materiais sem expiração.
+Reverter cegamente código ou backup pode apagar ou perder mensagens posteriores.
 
-Uma hipótese técnica ainda não aprovada é manter o vínculo atual e guardar os
-intervalos dos vínculos anteriores ([proposta detalhada](BL04-whatsapp-link-history-review.md)),
-para comprovar a origem de cada envio e recuperar o contexto depois de trocar
-o número. Não presumir que essa estrutura seja necessária; avaliar primeiro
-o uso seguro das informações já vinculadas ao negócio. Confirmação, desvinculação e alteração do
-telefone precisariam atualizar o histórico de forma consistente. A solução deve
-impedir associação ambígua se um número passar a outro negócio e limitar os
-acessos por tenant e papel; o desenho de tabelas, políticas e privilégios ainda
-precisa ser detalhado e revisado. O histórico que já foi sobrescrito não pode
-ser reconstruído com segurança apenas a partir do vínculo atual.
+Validar em armazenamento falso e PostgreSQL dedicado `_test`, com roles restritas:
+todos os tipos após as janelas antigas, deduplicação, isolamento, concorrência com
+limpeza, processamento após troca de número e entrega ao número novo. Testes e
+mocks locais não homologam Meta nem autorizam chamadas pagas.
 
-A alternativa antes considerada de fazer o cliente esperar pela associação ou
-pelo processamento para trocar o número não integra a jornada definida.
-Recuperar conteúdo histórico e escolher o número para enviar uma resposta são
-operações diferentes: a prévia e o pedido de aprovação devem usar o número ativo
-novo após a troca, e não o número antigo apenas porque aparece no histórico.
-
-## Ordem segura de implementação e implantação
-
-- Preparar a migration e as alterações de aplicação como um conjunto, com
-  avaliação de consultas e das permissões atuais; não executá-las na base local
-  antes da revisão necessária. Testar em banco separado.
-- Antes de atualizar um ambiente com dados, verificar o inventário de assets,
-  eventos, pedidos de exclusão e uploads pendentes; fazer backup verificável.
-  Decidir como tratar registros com exclusão já em andamento, sem ressuscitar
-  arquivos comprovadamente apagados.
-- Planejar a transição de **todos** os processos que podem apagar ou depender de
-  prazo: API que recebe webhook, correlator, dispatcher/retention e workers.
-  Código antigo não entende `NULL` em vários pontos. Não executar a migração
-  enquanto qualquer processo antigo puder apagar registros ou ler esses valores.
-  O plano de pausa da entrada deve permitir retentativa do provedor sem acusar
-  recebimento de mensagens que não foram salvas; validar no ambiente de teste.
-- Aplicar migration e código compatíveis e retomar serviços de forma controlada,
-  verificando ingestão, processamento, histórico e ausência de descarte. Ter um
-  plano de reversão que considere mensagens recebidas após a atualização: voltar
-  o código ou restaurar backup cegamente pode perder dados mais recentes.
-
-## Verificação necessária
-
-Em banco e armazenamento de teste, sem cobranças reais:
-
-- Receber texto, imagem, áudio e vídeo; simular passagem além de sete e 30 dias;
-  executar as rotinas de limpeza e confirmar consulta, arquivo, transcrição e
-  uso em briefing quando aplicável.
-- Simular mensagem pendente, falha transitória, worker parado e reenvio da mesma
-  mensagem depois de sete dias; confirmar processamento recuperável e uma só
-  cópia por negócio.
-- Verificar isolamento entre negócios, roles existentes e acessos diretos à API;
-  testar concorrência entre limpeza, ingestão e processamento.
-- Confirmar que histórico não oferece nem executa exclusão de fotos e que a
-  remoção de fotos do acervo continua funcionando; não confundir as duas cópias.
-- Verificar que upload órfão é limpo sem apagar um objeto efetivamente salvo e
-  que os prazos próprios de propostas e prévias permanecem como estavam.
-
-A preservação só pode ser garantida depois que o sistema receber e salvar a
-mídia. Se o download falhar e a mídia de origem deixar de estar disponível,
-precisamos registrar o erro e permitir recuperação quando possível; a proposta
-não promete recuperar arquivos que nunca chegaram ao nosso armazenamento.
+Versão anterior integral: [snapshot de 28/10/2026](../history/2026-10-28-pre-documentation-reconciliation/design/BL04-whatsapp-durable-materials.md).

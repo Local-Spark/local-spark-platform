@@ -1,8 +1,11 @@
 # v0 — Workflows, sagas e recuperação de falhas
 
 Decisão: Temporal com SDK Python. Este documento substitui o runner Celery/DB
-descrito na proposta v0.1. Políticas abaixo são parâmetros iniciais a testar, não
-limites universais dos fornecedores.
+descrito na proposta v0.1. Reconciliado em 28/10/2026. Políticas abaixo são desenho/invariantes; parâmetros
+ilustrativos precisam de validação por fluxo e não descrevem configuração atual
+de todos os serviços ou limites universais dos fornecedores. O [SDD](../SDD.md),
+a [fase ativa](../phases/BL04-context-and-ai-production.md) e as
+[decisões](../DECISIONS.md) prevalecem.
 
 Contrato obrigatório complementar: [idempotência, atomicidade, concorrência e logs](v0-consistency-observability.md).
 
@@ -12,7 +15,12 @@ Temporal coordena; activities executam IO e efeitos. Código de workflow não co
 banco, API, relógio externo ou random não determinístico diretamente. Chamadas a IA
 são activities; replay lê resultados registrados, não gera novo roteiro.
 
-| Workflow | Identidade lógica | Escopo |
+A tabela seguinte é conceitual para a evolução; esses nomes não são uma lista
+de workflows registrados no runtime. Os workflows locais efetivos e o visual
+separado/desconectado são descritos na fase ativa e nos entrypoints. Avatar,
+proatividade, relatório e encerramento ainda são entregas futuras.
+
+| Workflow conceitual | Identidade lógica proposta | Escopo futuro |
 | --- | --- | --- |
 | `IngestRequestWorkflow` | `ingest/{tenant}/{request_id}` | Agrupar material, normalizar e montar briefing |
 | `ContentProductionWorkflow` | `content/{tenant}/{version_id}` | Planejar, reservar, gerar, montar e apresentar prévia |
@@ -68,7 +76,10 @@ workflow já terminou, reconciliador trata evento tardio sem reiniciar geração
 Mapeamento de callback sempre verifica provider_account e operação do tenant; ID
 externo vindo do payload não é autorização de acesso.
 
-## 3. DAG da produção
+## 3. DAG conceitual da produção futura
+
+Esse desenho não descreve a integração atual: imagem real não está conectada e
+avatar/voz ficam após o piloto. Foto/story iniciais não habilitam todas as receitas.
 
 ```mermaid
 flowchart TD
@@ -149,7 +160,10 @@ próximo horário elegível ao workflow, que usa timer; não consome tentativas 
 
 ## 6. Timeouts e retry por atividade
 
-Valores de bootstrap, ajustados por integração e medição:
+Valores ilustrativos do estudo original, ajustados por integração/medição; para
+BL04 visual prevalece o [contrato específico](BL04-visual-temporal-execution.md).
+Janela de aprovação/oferta não é retenção do arquivo: prévias devem ser preservadas
+enquanto conta ativa, ainda com implementação pendente de TTL/acesso.
 
 | Categoria | Limite da tentativa | Janela de recuperação | Política inicial |
 | --- | --- | --- | --- |
@@ -173,7 +187,8 @@ em todas as camadas do SDK.
 
 ## 7. Circuit breaker e bulkheads
 
-Breaker no adapter/provider gateway, compartilhado entre workers, por fornecedor +
+Desenho futuro de breaker no adapter/provider gateway, compartilhado entre workers,
+por fornecedor +
 credencial de serviço + família de operação. Erro de uma conta Instagram fica isolado
 naquela conexão; não interrompe todos os clientes. Falhas comuns da API podem ter
 breaker adicional da família global. Não confundir com circuit breaker interno do Temporal.
@@ -196,7 +211,8 @@ Contar timeout/5xx apropriados; 400 de conteúdo não sinaliza indisponibilidade
 Bulkhead é limite de operações simultâneas por provedor/família/tenant, independente
 do breaker. Timeouts/retries têm orçamento agregado para evitar tempestade.
 
-Redis usa operações atômicas e leases. TTL de slot deve cobrir job e renovação;
+Redis não é dependência atual. Se for adotado, usar operações atômicas e leases.
+TTL de slot deve cobrir job e renovação;
 slot local não representa cancelamento remoto. No recovery após perda de Redis,
 reconstruir operações em voo do ledger antes de liberar concorrência paga. Enquanto
 não houver coordenação confiável, pausar novos submits pagos e publicações, permitindo
@@ -222,6 +238,15 @@ retida ou coberta por conta de exposição até decisão de conciliação; expir
 reserva sozinha não deve liberar novo gasto para a mesma operação.
 
 ## 9. Aprovação, cancelamento e revalidação
+
+O aceite único substitui permissões de texto/imagem/interpretação/transcrição por
+fornecedor. Mudanças de fontes aguardam criação admitida e bloqueiam novos inícios;
+cobertura é parcial no fake. Plano vencendo depois do início permite terminar e
+revisar, bloqueando novos trabalhos/publicação até renovar. Prévias são preservadas
+enquanto conta ativa; esses comportamentos ainda precisam de implementação.
+Somente staff poderá recuperar pendência do autor sem acesso, com ação restrita
+e auditada; não transferir autoria para outro owner. Encerramento da conta fica
+para sua fase, sem introduzir exclusão automática agora.
 
 Aprovação associa ator autorizado, consentimento vigente, versão, hashes, conta,
 legenda e janela. Preferir ação com ID assinado de uso único. “OK” textual só vale
@@ -254,3 +279,5 @@ Fontes: [Temporal tasks](https://docs.temporal.io/tasks),
 [SDK Python](https://python.temporal.io/),
 [mensagens](https://docs.temporal.io/develop/python/workflows/message-passing),
 [saga na documentação oficial](https://github.com/temporalio/documentation/blob/main/docs/design-patterns/saga-pattern.mdx).
+
+Versão anterior à reconciliação: [snapshot integral de 28/10/2026](../history/2026-10-28-pre-documentation-reconciliation/design/v0-reliability.md).

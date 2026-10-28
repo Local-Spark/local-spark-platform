@@ -1,14 +1,16 @@
 # BL03 — Acervo opcional em Sobre meu negócio
 
-Data: 27/10/2026. Estado: BL03.1/BL03.2 implementadas localmente e verificadas; BL03.3 planejada.
+Atualizado em **28/10/2026**. Estado: BL03.1/BL03.2 implementadas localmente e verificadas; BL03.3 planejada.
 Complementa a [trilha BL](BL-brand-library.md), o [SDD](../SDD.md) e a
 [jornada completa de entrega](../design/delivery-roadmap-2026-10-27.md).
 
 **Decisão posterior:** o cliente pode remover fotos desatualizadas deste
 acervo, por exemplo após mudar a aparência da loja. Isso é diferente do histórico
-de fotos enviadas pelo WhatsApp, que deve ser preservado sem opção de exclusão
-de fotos. A preservação automática dos envios ainda não foi implementada e não
-significa cadastrá-los automaticamente como produtos.
+de envios pelo WhatsApp, que deve ser preservado sem opção de exclusão
+de texto, foto, áudio e vídeo. Essa preservação já está implementada para envios
+associados, com `0058` aplicada localmente; não significa cadastrá-los
+automaticamente como produtos, fatos ou memória pesquisável. Ver
+[decisões vigentes](../DECISIONS.md).
 
 ## Resultado e limites
 
@@ -18,10 +20,13 @@ progressivo; não exige plano ativo, kit escolhido ou preenchimento completo par
 concluir cadastro/checkout. Sugerir começar por poucos itens, sem um catálogo de
 ecommerce ou novo menu lateral. Nenhuma informação vira postagem nesta fase.
 
-O acervo é fonte de contexto para BL04. Um pedido futuro como “crie uma imagem
-de um croissant” recuperará automaticamente o item e suas fontes; o cliente não
-precisa escolher produto/serviço a cada pedido. Esse retrieval e a geração visual
-não fazem parte da BL03. O cadastro não faz chamadas de IA nem exige Meta.
+O acervo é fonte de contexto para BL04. Um pedido como “crie uma imagem
+de um croissant” deve recuperar automaticamente o item e suas fontes; o cliente
+não precisa escolher produto/serviço a cada pedido. Esse retrieval já existe no
+worker experimental de desenvolvimento/teste da
+[BL04](BL04-context-and-ai-production.md), desligado por padrão; geração visual
+real integrada e qualidade ainda pendem. Não são entrega própria da BL03.
+O cadastro não faz chamadas de IA nem exige Meta.
 
 Fatos livres anteriores continuam em Informações e preferências. Não converter
 texto livre em produto/preço silenciosamente. Antes da geração BL04, ligar fontes
@@ -31,8 +36,9 @@ e resolver conflitos entre fato e cadastro com pergunta quando houver divergênc
 
 A página `/app/context` reúne três seções:
 
-1. **Informações e preferências:** preserva contexto/fatos atuais e consentimento
-   de IA, histórico e alteração de versão.
+1. **Informações e preferências:** contexto/fatos atuais, histórico e alteração
+   de versão. O aceite único de IA fica em **Plano e acesso**; não há permissões
+   por fornecedor ou modalidade nesta seção.
 2. **Produtos e serviços:** criar e editar ficha, confirmar ou arquivar, ordenar,
    promoções separadas com período definido. O histórico de versões está na API;
    uma tela de histórico do catálogo não foi incluída nesta entrega. Foto pode ser
@@ -88,7 +94,7 @@ versão, destino e estado; não persistir URL assinada como identidade da foto.
 | --- | --- |
 | `GET` | Fotos do negócio; estados internos de upload/exclusão não aparecem como arquivo pronto. |
 | `POST` | Conteúdo base64, MIME, destino, título/ordem, operação e aceite explícito de direitos. |
-| `POST /from-whatsapp` | Material de imagem pronto/autorizado do mesmo negócio, confirmação de direitos e de retenção durável. |
+| `POST /from-whatsapp` | Material de imagem pronto/autorizado do mesmo negócio, confirmação de direitos e cópia própria ao acervo. |
 | `PATCH /{id}` | Metadata e active/archived, com operação e versão esperada. |
 | `GET /{id}/url` | URL privada temporária, validade de até 120 segundos. |
 | `GET /{id}/history` | Versões e ações do registro. |
@@ -96,9 +102,9 @@ versão, destino e estado; não persistir URL assinada como identidade da foto.
 | `GET /removals` | Quantidade de remoções pendentes do próprio negócio. |
 | `POST /reconcile` | Recuperação owner-scoped de intents/exclusões pendentes. |
 
-Promoção não é uma referência frágil para o objeto temporário: copia bytes para
-chave própria do acervo, sem baixar URL arbitrária do cliente. A exclusão ou
-expiração do envio original não remove a cópia autorizada. Replay da promoção
+A cópia não é uma referência ao objeto WhatsApp: copia bytes para chave própria
+do acervo, sem baixar URL arbitrária do cliente. O envio associado é preservado;
+remover a foto do acervo não oferece exclusão do envio original. Replay da promoção
 recupera a operação anterior sem depender de o material original ainda existir.
 Origem e hashes permanecem para rastreabilidade, sem expor object keys na web.
 
@@ -118,7 +124,8 @@ funcionar até vencer; arquivamento não é exclusão física.
 - Snapshot, projeções, versão e auditoria na mesma transação; sem workflow-recibo
   de CRUD. IO de mídia tem intenção durável e recuperação limitada ao proprietário.
 - O correlator/LLM não recebe bypass ou acesso global às tabelas nesta fase.
-  A leitura futura BL04 exige contrato próprio e snapshots das fontes.
+  A leitura experimental BL04 já usa escopo próprio e snapshots das fontes,
+  sem acesso global ao correlator/LLM.
 - Biblioteca pública de kits é independente; não copiar fotos de cliente para ela.
 
 ## BL03.3 — Importação automática de fotos de cardápio (planejada)
@@ -182,10 +189,28 @@ e RLS; API pronta e cobrança reconstruída. O bucket local está configurado no
 `.env` de desenvolvimento. Um smoke com imagem sintética verificou upload,
 leitura, URL temporária e remoção apenas do objeto de teste.
 
-Importação automática de cardápio (BL03.3), consulta do acervo pela IA e geração
-visual (BL04) permanecem posteriores. Fotos de entrada: JPEG/PNG/WebP até 2 MiB;
+A evidência acima corresponde ao fechamento original de BL03.1/BL03.2.
+Importação de cardápio (BL03.3) e geração visual real permanecem posteriores;
+a consulta experimental do acervo já foi integrada na BL04. Fotos de entrada:
+JPEG/PNG/WebP até 2 MiB;
 o histórico do catálogo/fotos é oferecido pela API, sem tela de histórico nesta
 fatia. A reconciliação de exclusão é acionada pelo proprietário e no próximo
 upload; varredura automática global e política de capacidade permanecem F08.
 A promoção de fotos reais do WhatsApp precisa da integração Meta homologada ou
 de dados de teste; o teste de navegador usou dados e mídia fictícios.
+
+## Coordenação posterior e decisões ainda por implementar
+
+No modo visual simulado, criação/alteração/exclusão de fotos e mudanças do
+catálogo podem aguardar trabalhos admitidos. A fila é durável, bloqueia novas
+criações e preserva a prévia anterior para revisão. O autor pode descartar upload
+incerto após lease; a chave fica privada em quarentena, sem limpeza física
+automática. Outros escritores e casos de concorrência ainda precisam completar
+a coordenação BL04. Não executar rede sob row lock.
+
+Se o autor perder acesso, a recuperação da alteração pendente será exclusiva da
+equipe da plataforma, por ação registrada/auditada; outro owner não assume a
+pendência. Essa decisão está aprovada, mas o fluxo de staff ainda não existe e
+não concede leitura irrestrita de mídia. Ver [registro](../DECISIONS.md).
+A [versão anterior deste SDD](../history/2026-10-28-pre-documentation-reconciliation/phases/BL03-business-collection.md)
+preserva o estado no fechamento da entrega original.

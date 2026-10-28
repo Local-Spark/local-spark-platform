@@ -1,91 +1,55 @@
 # Uma organização por negócio
 
-Decisão do proprietário em 28/10/2026: cada negócio terá sua própria conta de
-cliente e organização. Negócios distintos, inclusive unidades de franquia,
-usam contas separadas. Cada organização tem sua assinatura ou patrocínio e o
-aceite de seu único negócio. A transcrição e os demais usos de IA integram o
-serviço contratado.
+Atualizado em **28/10/2026**. Decisão aceita e **implementada localmente**:
+cada negócio tem conta/organização, assinatura ou patrocínio e aceite próprios.
+Negócios distintos, inclusive franquias, não compartilham a cobrança dentro de
+um mesmo tenant. Ver [decisões](../DECISIONS.md) e [cobrança](billing.md).
 
-## Situação atual
+## Estado atual e invariantes
 
-- O onboarding já cria organização e negócio juntos e registra uma inscrição
-  por conta. O código local da API agora recusa um segundo negócio na mesma
-  organização; o ambiente em execução precisa ser atualizado para receber essa
-  mudança.
-- Cobrança, checkout, eventos Stripe e patrocínio já são por organização. Com
-  a regra garantida, podem continuar assim; não é necessário adotar o desenho
-  anterior de acrescentar negócio às tabelas de cobrança.
-- O aceite `0056` já é por negócio e foi aprovado para reaproveitamento; a
-  integração do aceite único continua pendente.
-- Inicialmente havia quatro organizações na base local: três com um negócio e
-  uma com dois registros de teste. Após autorização do proprietário, os dois
-  registros de teste e suas respostas de idempotência foram removidos em uma
-  transação; a organização ficou sem negócio. O patrocínio histórico inativo,
-  as auditorias e os eventos entregues e processados foram preservados. Foi
-  criado um backup privado do PostgreSQL e sua restauração validada em base
-  temporária. A migration foi aplicada à base local após aprovação posterior.
-- Operadores e convites administrativos são independentes de cadastro de
-  negócio; o modelo de um negócio por organização de cliente não exige que um
-  operador crie negócio. Não se decide aqui a futura colaboração de usuários
-  no mesmo negócio.
+- O onboarding cria organização e negócio juntos em uma transação. A API recusa
+  um segundo negócio; a constraint de unicidade em `businesses.tenant_id` da
+  `0057_one_business_per_tenant` assegura a regra inclusive em concorrência.
+- Repetição com mesma chave/payload conserva a resposta idempotente, sem criar
+  outro negócio. A migration recusa duplicatas existentes sem limpá-las sozinha.
+- Cobrança, checkout, Stripe e patrocínio continuam por organização. Não implementar
+  a proposta anterior de adicionar `business_id` às tabelas financeiras.
+- `service_agreement_acceptances` da 0056 é reaproveitada para o aceite por negócio;
+  GET/POST e Plano e acesso estão integrados. O contrato não ativa pagamento,
+  credenciais, orçamento, provedores ou publicação.
+- Conta staff/operador não exige negócio. A regra não limita quantos proprietários
+  web podem existir nem resolve recuperação de pendências de outro autor.
+- Um número WhatsApp ativo por negócio é uma limitação independente.
 
-## Proteção aprovada e implementação
+A 0057 foi aplicada ao banco local após aprovação; o estado local avançou depois
+para 0058 de materiais duráveis. Não tratar o nome deste desenho como versão
+corrente do schema. A validação da fatia registrou 1.530 testes backend e 100%
+linhas/branches; é evidência daquela entrega, não contagem atual da suíte.
 
-1. Fazer a API recusar a criação de um segundo negócio na mesma organização.
-   Uma repetição com a mesma chave de idempotência deve continuar devolvendo a
-   resposta original. Em criações concorrentes, somente uma pode ser concluída.
-2. O proprietário aprovou preparar uma restrição de unicidade em
-   `businesses.tenant_id`. A migration `0057_one_business_per_tenant` foi
-   preparada e deve parar caso existam organizações com mais de um negócio,
-   sem alterar esses dados. Ela foi aplicada ao banco local após aprovação
-   específica. A
-   restrição garante no máximo um negócio por organização; o onboarding cria o
-   negócio junto com a organização em uma transação.
+## Dados locais e evidência histórica
 
-   A base local passou de `0050_visual_pending_changes` para
-   `0057_one_business_per_tenant`; o endpoint de prontidão respondeu 200.
-3. Simplificar a interface do cliente para a conta/negócio atual, preservando
-   acesso a informações existentes enquanto a situação local anterior não for
-   resolvida. Organização existente sem negócio deve ter recuperação definida;
-   hoje pode ocorrer um redirecionamento entre seletor e onboarding.
-4. Continuar o aceite único e testar que cobrança, patrocínio e acesso de uma
-   conta não liberam outra. Essa simplificação não resolve automaticamente os
-   registros antigos de autorização nem comprova a geração visual real.
+A organização local de demonstração tinha dois registros de negócios de teste.
+O proprietário autorizou removê-los, preservando organização, patrocínio histórico
+inativo, auditorias e eventos entregues/processados. Houve backup PostgreSQL e
+restauração em base isolada; ele não inclui mídia de objetos ou Temporal.
+A limpeza dos registros e a aplicação das migrations foram operações distintas,
+autorizadas naquele ambiente, sem conceder autorização permanente para repetir.
 
-A organização que tinha dois negócios de teste não os possui mais, após a
-remoção autorizada; o histórico financeiro e as auditorias permanecem. As
-migrations intermediárias foram aplicadas após revisão e aprovação.
-Não cancelar, criar ou atribuir assinaturas automaticamente.
+A [revisão 0050–0057](local-migrations-0050-0057-review.md) e o snapshot anterior
+conservam o inventário detalhado. Não criar/cancelar assinatura ou associar dados
+financeiros históricos automaticamente para preencher organização sem negócio.
 
-### Avaliação local solicitada: manter Local demo shop
+## Trabalho restante
 
-Após avaliar `Local demo shop` e confirmar que os registros eram de teste, o
-proprietário autorizou remover ambos os negócios de `Local demonstration`.
-Eles não possuíam perfil, acervo ou mídia associados, nem proprietário com
-conta de login. Os dois registros e as respostas idempotentes de suas criações
-foram removidos. A organização e seu patrocínio revogado, quatro auditorias e
-dois eventos entregues/processados foram preservados e conferidos.
+Definir recuperação da organização existente sem negócio, evitando redirecionamento
+entre seleção e onboarding e preservando seu histórico. Esse caso é diferente de
+permitir outro negócio num tenant já ocupado. Permanecem pendentes homologação
+comercial da cobrança e recuperação restrita por staff quando o autor da mudança
+perde acesso; outro owner não assume essa pendência. A unicidade e o aceite único
+não implementam esse fluxo de suporte.
 
-Uma cópia privada do PostgreSQL foi criada antes da operação, restaurada em uma
-base temporária e usada para validar a limpeza; ela não inclui mídia no
-armazenamento de objetos nem estado do Temporal. A remoção e a migração foram
-operações separadas, cada uma em sua própria transação.
+Para novas alterações validar replay, concorrência, RLS entre contas, acesso por
+assinatura/patrocínio independente e staff sem negócio. Usar base `_test`, sem
+limpar a base de desenvolvimento ou chamar serviços pagos.
 
-As migrations intermediárias são 0051, 0053, 0054, 0055 e 0056. A 0055 verifica
-exclusões de fotos sem resultado comprovado e pode marcar quarentenas; a 0054
-mantém histórico, mas propostas antigas pendentes podem precisar de revisão.
-As consultas anteriores à atualização não encontraram exclusões incertas nem
-propostas pendentes. A [comparação de cada migration](local-migrations-0050-0057-review.md)
-registra os efeitos e a aprovação da atualização local.
-
-## Validação prevista
-
-Testar cadastro, concorrência, idempotência, isolamento entre contas, Stripe
-sandbox e patrocínio independentes, acesso do operador sem negócio e recuperação
-de dados locais. Preservar históricos, trabalhar na base `_test` para testes e
-não acionar serviços pagos durante a validação.
-
-Resultado desta entrega: CI do backend passou com 1.530 testes e 100% de
-cobertura, incluindo concorrência, replay, isolamento entre contas e preflight
-da migration com duplicatas na base `_test`. A migration foi aplicada também no
-ambiente local; isso não equivale à homologação comercial da cobrança.
+Versão anterior integral: [snapshot de 28/10/2026](../history/2026-10-28-pre-documentation-reconciliation/design/one-business-per-organization.md).

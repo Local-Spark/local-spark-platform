@@ -1,7 +1,8 @@
 # Biblioteca de identidade visual e formatos
 
-Atualizado em 27/10/2026. Estado: **kit demonstrativo, escolha e edição guiada
-implementados localmente; aplicação na mídia e validação comercial pendentes**.
+Atualizado em 28/10/2026. Estado: **kit demonstrativo, escolha e edição guiada
+implementados localmente; acabamento ligado ao modo visual simulado; aplicação
+na geração real e validação comercial pendentes**.
 A web serve a vitrine pública e o editor autenticado do kit `cafe-pausas/v1`.
 Novas propostas F03 congelam a versão confirmada. Complementa o [plano criativo](creative-production-quality.md) e
 o [eval de contexto](../evals/visual-context-eval-v1.md).
@@ -96,8 +97,10 @@ ID, nome, descrição, categoria, estado e versão; preço e
 validade são opcionais, e serviço pode declarar duração/forma de agendamento.
 Promoções têm período e aceite próprios. Fotos do item e do ambiente ficam em
 acervo privado com origem, direitos, hash e aprovação. Uma foto recebida pelo
-WhatsApp não vira acervo permanente automaticamente: a mensagem tem retenção
-limitada e o dono precisa autorizar a promoção da mídia. Cardápio enviado em
+WhatsApp já é preservada como material associado, mas não vira item/foto do acervo
+estruturado automaticamente: o dono precisa autorizar a cópia e os direitos.
+O histórico WhatsApp não oferece exclusão; fotos desatualizadas do acervo continuam
+removíveis. Preservação não implementa memória pesquisável. Cardápio enviado em
 PDF/foto pode sugerir rascunhos, que o dono revisa antes de confirmar.
 
 Em BL04, F03 busca **somente os itens ativos relevantes à pauta**, com fotos/fatos
@@ -110,8 +113,10 @@ café real, usa a foto do ambiente como base da edição e verifica que
 arquitetura/letreiro permaneçam reconhecíveis; referência solta não garante
 fidelidade do local. Preço vencido, foto de
 outro item ou ausência de material essencial bloqueiam a afirmação e geram
-pedido curto de confirmação. O snapshot permite invalidar uma candidata
-quando produto, preço, foto ou kit mudam antes do aceite.
+pedido curto de confirmação. O snapshot permite revalidar a candidata e distinguir a peça anterior a uma
+mudança. Alterações de fontes aguardam criações admitidas e bloqueiam novos inícios.
+A prévia anterior permanece revisável com indicação, mas fatos/direitos/versão
+e aprovação ainda condicionam publicação; essa coordenação é parcial no fake.
 
 ### Simulação da presença futura
 
@@ -121,7 +126,8 @@ Instagram/Facebook/TikTok. O simulador Instagram mostra a
 estrutura familiar de perfil, grade de dez posições, stories separados e reels;
 as abas Facebook/TikTok exibem como **as mesmas amostras genéricas** se
 apresentariam nesses canais. Todas as imagens/vídeos/legendas vêm de arquivos
-pré-gerados do catálogo, via armazenamento/CDN. Não abrir, alterar ou ler a
+pré-gerados do catálogo: no bootstrap atual, servidos no build web; em BL06,
+via armazenamento/CDN. Não abrir, alterar ou ler a
 conta pessoal do cliente. A UI rotula “Exemplo do kit · marca fictícia · ainda
 não publicado” e não inventa seguidores, curtidas, comentários ou resultados.
 O visitante pode conhecer o estilo antes de criar conta; um convite o leva ao
@@ -192,6 +198,11 @@ No começo, recomendações por segmento são hipóteses editoriais curadas. Só
 desempenho agregado como sinal de preferência depois de haver métricas comparáveis,
 permissão e amostra suficiente. Concorrentes podem inspirar **formatos**, nunca
 fornecer template copiado nem afirmar que uma estética causou vendas.
+
+A preservação das prévias enquanto a conta estiver ativa, a conclusão/revisão
+após vencimento do plano e a recuperação exclusiva por staff do autor sem acesso
+são decisões aceitas ainda a implementar. Não confundir prazo de URL/validade
+factual com expiração do artefato. Ver [decisões](../DECISIONS.md).
 
 ## Produção e custo
 
@@ -264,8 +275,9 @@ teste, não economia demonstrada.
   catálogo, não são criadas por F03 com fatos do visitante.
 - **BL03 — acervo privado do negócio:** produtos/serviços, preços com validade,
   promoções aprovadas e fotos autorizadas do item/ambiente são opcionais e
-  versionados por tenant/negócio. Mídia do WhatsApp só vira acervo durável após
-  aceite explícito do dono. A UI de **Sobre meu negócio** permite cadastro e
+  versionados por tenant/negócio. Mídia WhatsApp associada já é durável, e só
+  ganha classificação/cópia no acervo estruturado após ação explícita do dono.
+  A UI de **Sobre meu negócio** permite cadastro e
   manutenção sem exigir seleção manual de item a cada pedido.
 - **BL06 — catálogo público e curadoria/versionamento:** `catalog_kit` com segmento,
   estilo, status, direitos, formatos, versão e disponibilidade por plano;
@@ -282,7 +294,7 @@ teste, não economia demonstrada.
   suportados, entradas exigidas, limites, alternativas visuais e renderer
   `preserve/compose/ai_edit/ai_generate`. Chave idempotente da prévia inclui
   versão do kit, receita, fonte, fato e briefing. Guardar rota e custo de cada
-  tentativa **somente na produção real**. Validar uma nova peça com o kit piloto
+  tentativa, distinguindo custo estimado/real de operação simulada liquidada em zero. Validar uma nova peça com o kit piloto
   antes de expandir para três nichos em BL06. Indicar formatos ainda não
   habilitados no produto, sem prometer publicação automática neles. Resolver
   **zero ou uma**
@@ -318,3 +330,5 @@ logo corretos, aderência à direção, taxa de aceitação sem ajuste, número 
 tentativas, latência, tokens e custo por peça aceita. Uma ótima vitrine não
 valida sozinha a produção personalizada. Sem qualidade >= gate F04 com material
 consentido, corrigir a receita antes de comercializar novos formatos.
+
+Versão anterior à reconciliação: [snapshot integral de 28/10/2026](../history/2026-10-28-pre-documentation-reconciliation/design/brand-library.md).

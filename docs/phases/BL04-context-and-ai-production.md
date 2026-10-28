@@ -1,314 +1,210 @@
 # BL04 — contexto seletivo e produção visual com IA
 
-Estado: **em implementação local**, sem aprovação comercial. Complementa a [trilha BL](BL-brand-library.md#bl04--recuperar-contexto-e-produzir-uma-peça-nova), o [SDD geral](../SDD.md) e os contratos transversais F03/F04.
+Atualizado em **28/10/2026**. Estado: **em implementação local**, sem aprovação
+comercial. Este é o contrato vigente da fase, junto ao [SDD geral](../SDD.md), à
+[trilha BL](BL-brand-library.md#bl04--recuperar-contexto-e-produzir-uma-peça-nova)
+e ao [registro de decisões](../DECISIONS.md). A versão anterior foi preservada
+[integralmente no histórico](../history/2026-10-28-pre-documentation-reconciliation/phases/BL04-context-and-ai-production.md);
+pendências datadas de permissões por fornecedor nesse histórico não são novas
+etapas da jornada contratada.
 
-**Correção de produto:** IA integra a contratação. Os botões atuais separados
-por fornecedor ou modalidade serão substituídos por uma jornada contratual única,
-apresentada também uma vez às contas já existentes. A descrição abaixo dos
-controles por fornecedor registra o funcionamento atual, não o objetivo da
-jornada; consultar [decisão e transição](../design/ai-as-core-service.md).
-O aceite único e sua integração à web substituem os controles individuais;
-registros anteriores são mantidos, sem reativação silenciosa. A geração visual
-real continua desligada e pendente da coordenação BL04.2.
+## Resultado esperado
 
-**Decisão de produto sobre troca de número:** o processamento de um material
-já enviado continua para o mesmo negócio, mesmo que o cliente troque de número
-enquanto aguarda. Após a troca, a prévia e o pedido de aprovação devem seguir
-para o número ativo novo. Não exigir que o cliente espere a conclusão para
-trocar. Para materiais já associados, o processamento continua mesmo sem canal
-ativo e a entrega simulada aguarda o novo vínculo; essa validação local não
-constitui envio real de prévia ou aprovação pelo WhatsApp.
+Um pedido livre identifica o que divulgar, recupera somente fontes pertinentes
+do mesmo negócio e produz uma prévia privada com o kit aplicado. Falta de fonte,
+negação ou ambiguidade pede esclarecimento; material hipotético não vira fato.
+Revisão da peça e autorização de publicação são ações distintas. WhatsApp real
+e publicação oficial continuam dependentes de homologação Meta.
 
-## Aceite único do serviço — 28/10/2026
+## Contrato vigente
 
-O cliente concorda uma vez em **Plano e acesso**, antes da contratação, com o
-uso de IA para texto, imagem, interpretação e transcrição. WhatsApp não oferece
-ativação separada de áudio, e Informações e preferências não oferece permissões
-por fornecedor. A web encaminha quem ainda não aceitou para essa mesma página.
-O POST por negócio grava versão/hash, ator, data e auditoria; não ativa plano,
-provedores ou publicação. Aceite inicial aguarda mudanças e efeitos visuais
-pendentes. Consentimentos legados permanecem como histórico e compatibilidade;
-o novo contrato é autoridade para novos trabalhos, sem reescrever recusas.
-Uma geração contratual distinta impede executar pedidos editoriais antigos como
-se tivessem sido criados após o aceite. As descrições de toggles por fornecedor
-abaixo registram a implementação anterior e não a jornada vigente.
+- **IA integra o serviço.** O cliente aceita uma vez em **Plano e acesso**, antes
+  do checkout, o uso para texto, imagem, interpretação/Jev e transcrição. Contas
+  existentes usam essa mesma jornada. WhatsApp e Informações e preferências não
+  oferecem controles individuais de IA, áudio ou fornecedor. O aceite versionado
+  por negócio registra versão/hash, ator, data e auditoria; não ativa pagamento,
+  provedor ou publicação. Configuração, acesso, plano, orçamento e direitos das
+  fontes permanecem verificações internas.
+- **Compatibilidade preservada.** Registros e APIs antigos de consentimento não
+  são reativados nem reescritos pelo aceite. Após o aceite único, mutações dessas
+  permissões são recusadas com `SERVICE_AGREEMENT_MANAGES_PROCESSING`. Retirada
+  individual por fornecedor não é uma nova funcionalidade a entregar. A geração
+  contratual dos pedidos impede que o aceite reviva trabalho editorial antigo.
+  O aceite inicial aguarda efeitos visuais e alterações legadas pendentes.
+- **Fontes privadas e versionadas.** Kit confirmado, fatos vigentes, itens ativos,
+  direitos, hashes e proveniência acompanham o briefing. Correspondência lexical
+  identifica candidatos; não confirma preço, produto, oferta ou interpretação.
+  Nomes com alegações comerciais exigem fato confirmado adicional. Enviar apenas
+  fotos pertinentes, com no máximo uma referência do kit quando necessária.
+- **WhatsApp preservado; acervo editável.** Envios associados de texto, foto,
+  áudio e vídeo permanecem sem prazo automático e sem exclusão pelo histórico;
+  migration `0058` aplicada localmente. Fotos desatualizadas do acervo podem ser
+  removidas. Preservar envios não implementa memória pesquisável, cadastro de
+  produto ou skill automática. Eventos técnicos não atribuídos e uploads órfãos
+  continuam sujeitos a limpeza; objetos já apagados não são recuperáveis.
+- **Troca de número não interrompe a criação.** Material já associado continua
+  no mesmo negócio. Na entrega simulada, a ausência de canal adia o envio; após
+  vínculo verificado, o destino é o número ativo novo. A origem histórica não
+  fixa o destinatário. Há um número ativo por negócio na versão inicial.
+- **Plano vencido e prévias — decisões aprovadas, implementação pendente.** Se
+  o plano vencer durante uma criação já iniciada, concluí-la e permitir revisão
+  privada; bloquear novas criações e publicação até renovar. Preservar as prévias
+  geradas sem expiração automática enquanto a conta permanecer ativa. O código
+  ainda tem prazos de propostas/prévias, limpeza e gates de acesso pelo plano;
+  `0058` preserva envios WhatsApp, não implementa essas duas mudanças. URL assinada
+  curta, validade factual e prazo de aprovação continuam conceitos separados.
+  Preservar o arquivo não atualiza fatos nem aprova publicação.
+- **Alterações aguardam trabalhos admitidos.** Solicitações de mudança de fonte
+  bloqueiam novas admissões e cancelam a fila não iniciada. Trabalhos já admitidos
+  terminam antes da aplicação da mudança. A prévia concluída permanece para
+  revisão, identificada como anterior à alteração; direitos e publicação seguem
+  suas verificações. A cobertura atual dessa coordenação é parcial, abaixo.
 
-Validação desta fatia: suíte backend de 1.583 testes aprovada e complemento de
-24 testes (sete novos casos) com cobertura final de 100% de linhas e branches;
-web com 360 testes/cobertura integral, build e três jornadas Chromium. RLS e
-Temporal foram exercitados em serviços locais; sem chamadas pagas. A geração
-visual real e os gates de qualidade BL04.3 continuam pendentes.
+## BL04.1 — interpretação e contexto: implementado e limites
 
-## Objetivo
+O worker pode usar **Jev**, opcionalmente em desenvolvimento/teste, desligado por
+padrão. A interpretação usa o aceite único; não pede consentimento TypeSafe
+separado. Uma operação durável reserva orçamento por tenant/dia, revalida ator,
+origem e snapshot e não repete submissão incerta. Recusa de orçamento anterior
+à submissão pode aguardar no workflow em intervalos de uma hora, por até sete
+dias, com nova verificação no ledger e revalidação. Estados incertos antigos
+não são reclassificados como recusa de orçamento.
 
-A partir de um pedido livre e de informações autorizadas do negócio, identificar o que o cliente pretende divulgar, selecionar somente as fontes pertinentes e produzir uma prévia privada com identidade visual e IA. A revisão e eventual publicação permanecem ações distintas. O WhatsApp real depende de homologação Meta; os testes usam entradas sintéticas e mocks.
+A configuração exige `TYPESAFE_API_KEY`,
+`MEU_BRACO_DIREITO_INTENT_AI_MODE=jev`, chave de criptografia e teto positivo
+`MEU_BRACO_DIREITO_INTENT_AI_DAILY_BUDGET_USD_MICROS`. Configurar não homologa
+produção nem autoriza um novo ensaio pago. O teto é conservador por tenant/dia;
+a reserva conhecida ainda conserva o máximo reservado após sucesso, sem provar
+custo faturado ou capacidade em escala.
 
-## Entregas e gates
+O briefing experimental liga intenção, formato, catálogo, kit, fatos e fotos.
+O nome do item ativo pode ser fonte factual versionada; preço e oferta não são
+inferidos dele. O formato inicial definido para a hipótese de R$ 99 é foto/feed
+e story; vídeo e quantidades aguardam decisão comercial. A regra é estática,
+ainda sem franquias persistidas por múltiplos planos.
 
-### Andamento da BL04.1
+A pergunta local é simulada e genérica. Não há conversa completa, memória de
+múltiplas mensagens validada, ferramentas arbitrárias ou pesquisa de concorrentes.
+Os caminhos de conversa e conteúdo ainda precisam coordenar uma única resposta
+por evento antes do envio real. O [ensaio Jev/OpenAI](../evals/intent-comparison-2026-10-27.md)
+identificou erros e saídas incompletas; não é holdout independente nem homologação.
 
-O worker pode usar o **Jev como primeiro candidato** em desenvolvimento/teste,
-desligado por padrão. O proprietário autoriza separadamente o envio de texto e
-nomes de candidatos à TypeSafe. Uma operação durável reserva orçamento por tenant
-antes da chamada; o acesso, origem e snapshot são revalidados, e uma resposta
-incerta não é repetida automaticamente. Recusa de orçamento antes da submissão
-tem estado próprio: a retomada usa verificação no ledger e operação atômica; o
-workflow aguarda em intervalos de uma hora, por até sete dias, revalidando a
-origem e o acesso. Estados `uncertain` antigos não são reclassificados. Um esclarecimento fica registrado no
-adaptador local simulado, sem afirmar envio real pelo WhatsApp. A configuração
-requer `TYPESAFE_API_KEY`, `MEU_BRACO_DIREITO_INTENT_AI_MODE=jev`, chave de
-criptografia e orçamento diário positivo `MEU_BRACO_DIREITO_INTENT_AI_DAILY_BUDGET_USD_MICROS`.
-Esse teto é por tenant/dia, em milionésimos de dólar; é conservador, não uma
-fatura nem um limite global para outras APIs. A chamada real exige autorização de
-gasto específica e uma avaliação PT-BR mais ampla antes de liberar produção.
+## BL04.2 — prévia simulada: implementado e limites
 
-Para a oferta inicial de **R$ 99/mês**, o proprietário definiu foto e story como
-formatos iniciais; vídeo será definido depois. O interpretador consulta essa regra
-única após a verificação do acesso e pede esclarecimento se o formato pedido for
-indisponível. A regra estática descreve somente a oferta inicial e precisa ser
-substituída por permissões persistidas quando houver múltiplos planos. Não define
-quantidade de peças nem autoriza gerar ou publicar.
+O modo `fake` captura snapshot privado, lê até uma foto WhatsApp e fotos
+pertinentes do item/espaço, confere hashes, normaliza orientação e remove
+metadados das cópias. Preserva originais. Usa kit, fato e CTA conferidos;
+identidade durável, fence e reserva transacional protegem a tentativa.
+O acabamento aplica fontes, nome, tagline, logo autorizado e texto do kit sobre
+cena neutra, com marca explícita de **simulação**. Não cria a cena com OpenAI e
+não comprova qualidade comercial. O resultado é revalidado no acesso e na revisão.
 
-Permanecem limites relevantes da BL04.1: a interpretação de formato é experimental,
-sem franquias de quantidade implementadas; preço e agenda não são confirmados pela IA.
-O nome do item ativo e versionado pode servir de fonte factual do roteiro, com
-identificador vinculado à versão do acervo e nova validação na edição. Nomes que
-contenham alegações comerciais exigem outro fato confirmado; preços e ofertas não
-são inferidos do nome. A pergunta simulada é genérica e não mantém uma conversa completa.
-Prévia real com este briefing permanece bloqueada; há apenas o modo simulado da
-BL04.2. Kit é congelado na proposta; as referências fotográficas ainda não são
-enviadas a um gerador visual. Portanto
-não afirmar que o fluxo completo ou a qualidade comercial estão concluídos.
+`MEU_BRACO_DIREITO_VISUAL_AI_MODE=fake` e teto positivo
+`MEU_BRACO_DIREITO_VISUAL_AI_MONTHLY_BUDGET_USD_MICROS` habilitam a simulação
+somente em desenvolvimento/teste. A reserva fictícia é de um milionésimo de dólar,
+liquidada em zero. API/schema oferecem os caminhos local e simulado; mudar a
+configuração para `openai` não conecta o caminho real.
 
-### Andamento da BL04.2
+Um teste sintético usa Temporal e PostgreSQL reais: material já processado,
+contexto/acervo, roteiro, dispatchers, prévia simulada com kit e revisão. Intérprete
+e storage são stubs; não chama Meta/OpenAI e não começa no webhook completo.
+Outros testes unem preparo, reserva, adapter e orquestrador com HTTP/guarda
+simulados; eles não implementam a guarda concreta de concorrência.
 
-O proprietário pode conceder, quando o modo visual estiver configurado, e
-retirar em Sobre meu negócio uma autorização específica para o envio futuro de
-contexto visual e fotos autorizadas à OpenAI; a API permite retirada mesmo com
-o modo desligado.
-É independente do consentimento de texto; a tela informa que a criação de
-imagens ainda está em preparação. O serviço registra as mudanças por negócio e
-mantém isolamento entre organizações. O modo visual continua desligado por
-padrão e restrito a desenvolvimento/teste.
+A fila durável de alterações cobre parcialmente atualização/restauração do
+contexto, catálogo, confirmação de kit e criação/alteração/exclusão de fotos do
+acervo. Bloqueia novas admissões, espera as iniciadas e preserva a prévia anterior
+com indicação visível. Erros previstos mantêm a alteração explícita e o bloqueio.
+Outros escritores, edição de roteiro, logos e transições de acesso/plano ainda
+não estão coordenados integralmente. Ator diferente do último gerador e perda
+de acesso do autor também têm lacunas de implementação. A decisão C10 já
+definiu recuperação exclusiva pela equipe da plataforma, com ação registrada/
+auditada; outro owner não assume autoria, e staff não recebe leitura irrestrita.
 
-Há uma jornada simulada em desenvolvimento/teste: captura o contexto, lê até
-uma foto enviada pelo WhatsApp e fotos pertinentes do item e do espaço, confere
-hashes, normaliza orientação e remove metadados das cópias; preserva o original.
-O pedido usa o kit, fato e CTA conferidos. Uma tentativa com fence e reserva
-transacional produz um arquivo explicitamente marcado como simulação, privado e
-sujeito a revisão. Isso **não é uma imagem criada pela OpenAI** e não comprova
-qualidade. A partir de 28/10, a simulação usa o acabamento experimental para
-aplicar fontes, nome, tagline, logo autorizado e texto do kit sobre uma cena
-neutra, com faixa de simulação; não chama IA para criar a cena. O resultado é
-revalidado antes do acesso e da decisão.
+Upload do acervo reserva a alteração antes de transferir, sem rede sob row lock.
+Após vencer a reserva, o autor pode descartar upload incerto; a chave fica privada
+em quarentena e a próxima operação usa outra chave. Retomada exige prova persistida
+de PUT de tentativa única. Não há limpeza física automática da quarentena nem
+fluxo de suporte para recuperar a pendência se o autor perder acesso. O rollout
+requer drenagem e avaliação dos órfãos legados conforme o [procedimento](../design/BL04-quarantine-rollout.md).
 
-Um teste sintético executa o percurso local com Temporal e PostgreSQL reais:
-material processado, contexto e acervo, roteiro baseline, dispatchers, prévia
-simulada com kit e decisão de revisão. Interpretador e armazenamento são stubs,
-e Meta/OpenAI não são chamados. O teste começa com o material já processado;
-ele não homologa o webhook WhatsApp nem a geração de imagem real.
+## BL04.2 — caminho real ainda não conectado
 
-Um teste complementar combina o preparo de fontes, kit, reserva e adapter de
-imagem com uma resposta HTTP simulada e guarda simulada. Ele verifica o encaixe
-entre os componentes sem rede ou cobrança; não implementa a guarda real, não
-liga o dispatcher e não prova segurança de concorrência ou qualidade visual.
+Há adapter de imagem, executor com CAS no ledger e orquestrador de geração e
+acabamento isolados. `VisualEffectGuard` continua uma interface (`Protocol`),
+sem implementação concreta que coordene fontes, acesso, plano e orçamento.
+O fence/reserva são atômicos entre si; as verificações de fontes ainda ocorrem
+em transações/roles distintas. Checks separados não comprovam serialização de
+revogações ou alterações concorrentes.
 
-Para testes técnicos, `MEU_BRACO_DIREITO_VISUAL_AI_MODE=fake` e um teto mensal
-positivo `MEU_BRACO_DIREITO_VISUAL_AI_MONTHLY_BUDGET_USD_MICROS` habilitam a
-simulação apenas em desenvolvimento/teste. A reserva fictícia é de um
-milionésimo de dólar e liquidada em zero; não aciona a OpenAI. A interface
-identifica o arquivo como simulação e ele não deve ser publicado. A seleção
-manual de modo é feita pela API; no worker, o modo fake é escolhido para proposta
-com briefing quando configurado. O padrão permanece desligado. Não alterar para
-`openai` para tentar usar essa rota: o fluxo real continua bloqueado.
+`VisualGenerationWorkflow` e sua activity têm uma tentativa e prazos próprios,
+testados com Temporal real. O workflow permanece separado, sem registro no worker
+ou ligação ao dispatcher/runner. Preservar históricos do `StaticPreviewWorkflow`
+existente ao integrar o novo caminho. Não há geração visual real pelo fluxo do cliente.
 
-A intenção e a reserva são atômicas com o fence, mas a verificação das fontes e
-do consentimento ainda ocorre em outra transação, sob outra role. Não habilitar
-chamadas reais enquanto essa lacuna persistir. A [proposta para atomicidade](../design/BL04-atomicity-proposal.md)
-registra uma alternativa para revisão: uma tentativa de migração de permissões
-foi rejeitada pela revisão automática do ambiente. Faltam ainda teto global do
-ensaio de US$ 1, tratamento completo de respostas incertas, integração real com
-provedor, validação de qualidade e custo. O fluxo de foto sem legenda ou produto
-identificado continua dependente de um briefing BL04.1 válido. O acabamento do
-kit está ligado somente ao modo simulado, não ao percurso do provedor real.
+O ledger já possui teto mensal agregado de reservas OpenAI, além do teto por
+tenant (`0049`). Valores incertos permanecem reservados. É controle das operações
+que passam por esse ledger, não limite da fatura OpenAI nem cobertura de chamadas
+externas ao fluxo. O controle agregado existente deve ser integrado à admissão;
+não é uma tabela ainda a criar. Resultado desconhecido exige prova/reconciliação;
+lease vencido não demonstra que a chamada terminou. Não repetir nem trocar
+provedor automaticamente após possível submissão paga.
 
-Decisão do proprietário em 28/10/2026, substituindo a regra de 27/10: ao
-solicitar alteração ou exclusão de foto, alteração de kit ou mudança de contexto
-durante uma criação, o cliente aguarda o término dos processos já iniciados.
-Registrar a alteração pendente, cancelar os trabalhos na fila que ainda não
-começaram e não iniciar novas criações até aplicar a mudança. Após a conclusão
-das criações em andamento, efetivar a solicitação e comunicar o resultado ao
-cliente. Sem processo em andamento, a mudança pode ser aplicada sem espera.
-Por decisão do proprietário, a prévia concluída antes da alteração permanece
-disponível para revisão e deve ser identificada como criada antes da mudança;
-sua publicação continua sujeita aos direitos e ao fluxo de aprovação aplicáveis.
-A retirada de autorização conserva a decisão específica de manter disponível a
-prévia que terminou durante a espera. O novo comportamento para fontes ainda precisa ser
-implementado e testado em concorrência; não está concluído no modo simulado.
+O [desenho de atomicidade](../design/BL04-atomicity-proposal.md) registra as
+lacunas e a ordem de locks existente; não copiar uma ordem comercial → visual
+sem resolver as inversões atuais. Não há rede enquanto se mantém row lock.
+Propostas anteriores de grants e retirada de consentimento por modalidade ficam
+como histórico técnico, sem tornar novos controles de IA requisito do produto.
 
-**Progresso local em 28/10:** no modo simulado, atualizações/restauração do
-contexto editorial, alterações do catálogo de produtos/serviços, confirmação do kit e atualização/exclusão de fotos do
-acervo podem aguardar criações admitidas. A fila é durável, bloqueia novas
-admissões e conserva a prévia elegível para revisão com indicação de que é
-anterior à alteração. Erros previstos ficam explícitos e continuam bloqueando
-novas criações até o proprietário corrigir a solicitação. Retirada de
-autorização pendente preserva `accepted=true` até a efetiva retirada; o campo
-`state` distingue essa espera e impede novos inícios.
+## Próxima fatia de desenvolvimento
 
-O upload de fotos do acervo reserva a alteração antes do envio, fora do lock
-durante a transferência. O proprietário autor pode descartar um upload incerto
-após vencer a reserva: a chave é isolada, o negócio é desbloqueado e um novo
-envio usa outra operação. A retomada exige prova persistida de PUT com tentativa
-única; registros legados sem prova ficam em quarentena. A limpeza física da
-quarentena ainda não foi implementada e a interface orienta procurar a equipe.
-Se o autor perder acesso, outro proprietário ainda não pode cancelar. O rollout
-exige drenagem e reconciliação dos efeitos legados, conforme o [procedimento](../design/BL04-quarantine-rollout.md).
+1. Completar a coordenação interna da admissão visual com fontes, aceite único
+   existente, plano/acesso e orçamento por tenant/agregado. Reusar os registros
+   vigentes e definir uma ordem de locks consistente, com prova de concorrência
+   em PostgreSQL restrito. Aplicar também as decisões C08/C09: finalizar criação
+   admitida e liberar revisão privada após vencimento do plano, bloquear novas
+   criações/publicação e preservar prévias sem TTL com conta ativa. Implementar
+   recuperação exclusiva de staff com auditoria para o autor que perdeu acesso
+   (C10). As três decisões já estão respondidas no [registro](../DECISIONS.md). A retenção pós-encerramento foi adiada à fase
+   própria e não cria exclusão automática nesta etapa.
+2. Demonstrar com mocks o bloqueio de novos inícios, cancelamento da fila, espera
+   das admitidas, preservação da prévia, mudanças de fontes/acesso e resultado
+   incerto. Não ampliar concessões de banco ou ligar efeito pago para contornar
+   uma lacuna da coordenação.
+3. Implementar a guarda concreta e conectar dispatcher, workflow e provedor real,
+   preservando idempotência, versão/hash das fontes, orçamento e históricos.
+   Novo ensaio real exige credenciais, orçamento explícito e escopo definido.
+4. Fechar BL04.3 e depois BL05: qualidade, custo por peça aceita, ajustes
+   automáticos e proposta sem nova mensagem. BL03.3 não bloqueia esta sequência.
 
-Este é um recorte, não a regra completa nem a conclusão da BL04.2: material
-WhatsApp e outros escritores de fontes ainda não usam a fila; a limpeza física de foto depende do reconciliador
-existente. Se o pedido é de outro proprietário que não o da última geração,
-ele pode ficar em erro e não ser aplicado automaticamente. O provedor real
-permanece desconectado, e a disponibilidade da prévia preservada continua sujeita
-às permissões e à existência do material original aplicáveis.
-O tratamento de exclusão de material WhatsApp e da prévia sem origem tem uma
-[proposta específica](../design/BL04-whatsapp-deletion-review-proposal.md), ainda
-não implementada.
-**Decisão posterior do proprietário:** materiais enviados devem ser preservados
-para formar contexto do negócio; ele não deseja oferecer exclusão de uma foto
-recebida como solução para uma peça ruim. Isso substitui a premissa de expirar
-automaticamente a foto que originou a exceção anterior de sete dias. O código
-agora preserva materiais já associados sem prazo e a API recusa exclusão de
-qualquer tipo pelo histórico. O uso como memória pesquisável permanece pendente;
-a remoção de fotos desatualizadas do acervo continua disponível.
-A [proposta de preservação](../design/BL04-whatsapp-durable-materials.md)
-detalha as dependências. A retenção geral das prévias não foi
-definida. As demais regras aprovadas para mudanças durante criações continuam
-aplicáveis enquanto seus respectivos recursos existirem.
+## BL04.3 — qualidade e economia: pendente
 
-**Retirada de IA textual — não concluída:** o comportamento atual ainda revoga
-imediatamente; não existe espera segura para a criação visual ou chamada
-textual já iniciada. Uma tentativa de usar apenas o estado da proposta foi
-retirada porque exclusões em cascata poderiam apagar a prova antes do retorno
-do provedor. A revisão automática rejeitou conceder leitura da prova de uso ao
-app sem revisão de privilégios e RLS. Há campos e barreiras da migração 0051
-sem fluxo produtor, preservados enquanto a reversão de uma barreira de revisão
-não foi aprovada; eles não implementam espera nem devem habilitar o provedor.
-Se uma base experimental contiver uma pendência criada por versões de teste,
-o campo residual pode continuar bloqueando prévias mesmo após nova autorização;
-é necessário tratar essa situação antes de atualizar a base de desenvolvimento.
-Uma [proposta de leitura mínima da prova de uso](../design/BL04-editorial-usage-access-proposal.md)
-detalha o grant, a policy e os testes que ainda dependem de revisão; não foi aplicada.
+Gerar ao menos um post e um story novos para um caso com fontes autorizadas;
+revisar no celular com titular. Medir identidade, legibilidade, texto literal,
+fidelidade de produto/local, rejeições, retrabalho, todas as tentativas e custo
+completo por peça aceita. A hipótese econômica é R$ 99/mês e custo total máximo
+pretendido de R$ 50 por cliente/mês, incluindo serviços, infraestrutura e suporte;
+não foi demonstrada. Vídeo, motion e avatar não integram automaticamente essa oferta.
 
-Como recorte independente, propostas editoriais enfileiradas para OpenAI levam
-uma geração de consentimento: retirada e reautorização não revivem pedidos
-antigos, e as propostas anteriores à migração sem essa prova não são enviadas à
-OpenAI. O processamento local independente não é cancelado por essa regra. Jev/TypeSafe
-mantém autorização separada da OpenAI. O rollout exige parar tráfego e workers
-antigos, aplicar as migrações e iniciar apenas versões que conheçam a barreira
-de geração; implantação mista não garante o cancelamento. A retirada WhatsApp,
-retenção da origem e revisão após exclusão também permanecem pendentes.
+Um lugar/produto inventado não pode aparecer como fotografia documental do
+negócio. Referência visual não comprova fidelidade por si só; texto, preço, CTA
+e logo precisam de conferência literal. Cenas conceituais devem ser identificadas.
+Os [casos fictícios de QA](../evals/manual-qa-negocios-ficticios.md) preparam
+cenários, sem substituir os gates de qualidade e aceite.
 
-Um [ensaio isolado de feed](../evals/bl042-guarded-synthetic-feed-2026-10-27.md)
-gerou uma imagem real da OpenAI usando exclusivamente dados fictícios e foto
-CC0; uma chamada custou US$ 0,026272 estimados. Não utiliza o fluxo de cliente,
-não comprova fatura nem margem, e a IA alterou logo e pontuação. Um acabamento
-experimental pode aplicar nome, logo original e textos validados a uma cena
-sem texto; não está integrado nem aprovado. O executor de provedor também está
-isolado: um CAS no ledger impede reenvio, sem liberar o envio real de fontes.
-Continuam obrigatórios coordenação das fontes, custos e revalidação completa.
+## Evidência datada e histórico
 
-Os testes concorrentes do fluxo simulado exercitam a regra atual de espera e
-preservação para os tipos cobertos acima. O acabamento experimental possui serviço que
-revalida kit, logo, direitos e texto antes/depois, e um orquestrador com guarda
-injetado exercita envio, revalidação, descarte e armazenamento com mocks. O
-acabamento está ligado ao worker simulado; o orquestrador real segue isolado e
-nenhum deles constitui guarda real aprovado. A revalidação do
-acabamento relê referências e precisa de medição antes de operar em escala.
-
-Em 28/10, um [novo ensaio sintético isolado](../evals/bl042-synthetic-brand-finish-2026-10-28.md)
-usou uma chamada OpenAI autorizada, seguida do acabamento experimental. Custo
-estimado por uso: US$ 0,020615; o ledger mantém o novo teto de US$ 1 reservado.
-O ensaio não usa o worker de clientes nem comprova qualidade ou margem.
-
-Em 27/10, foi adicionado ao ledger um teto mensal agregado para reservas do
-provedor `openai`, separado do teto por tenant e desativado por padrão. A
-migração `0049` mantém somente totais mensais agregados e o teste concorrente
-verifica a disputa entre tenants; valores incertos continuam reservados. O teto
-depende de estimativas e abrange somente chamadas que usem este ledger: não é
-limite de fatura da OpenAI, nem cobre áudio, texto ou chamadas de ensaio externas.
-Configurar uma chave ou orçamento não ativa o worker, e a API não anuncia o
-provedor como disponível enquanto o percurso não estiver integrado.
-
-O acabamento experimental agora converte o resultado em JPEG privado compatível
-com o contrato atual, mas ainda não é uma peça avaliada comercialmente. Há um
-[desenho de execução Temporal](../design/BL04-visual-temporal-execution.md) para
-timeout, lease e recuperação. O workflow separado e sua activity já têm uma
-tentativa e prazos próprios, testados com Temporal real; não estão ligados ao
-dispatcher, ao runner ou ao worker, e não liberam chamadas pagas.
-O claim passou a verificar que a conta e associação owner permanecem ativas;
-essa checagem adicional não serializa revogações concorrentes.
-
-### Retirada de autorização visual — decisão do produto
-
-Quando o cliente solicitar a retirada, impedir imediatamente novas admissões
-para geração; os trabalhos que ainda aguardam na fila devem ser cancelados. As
-gerações que já começaram a usar as fotos podem terminar e a interface deve
-informar que a retirada está pendente até seu encerramento. Sem uma tentativa
-em andamento, retirar imediatamente. O estado pendente deve ser durável e
-isolado por negócio, inclusive após reinício do worker. Resultado desconhecido
-por falha não comprova conclusão: bloquear novos inícios e indicar que o pedido
-está em verificação. A prévia de uma geração já iniciada que terminar durante a
-pendência continuará visível para revisão do cliente após a retirada; isso não
-autoriza uma nova geração nem equivale à aprovação ou publicação.
-
-Em 28/10, o proprietário confirmou a mesma espera para retirada da autorização
-de processamento de materiais WhatsApp ou de IA de texto durante uma geração
-visual já iniciada. Esses dois novos casos ainda não estão implementados.
-
-O fluxo **simulado** implementa esse controle com admissão e pedido serializados
-por negócio, sem manter transação aberta durante o processamento. Trabalhos não
-admitidos são ocultados imediatamente e o dispatcher os marca como falhos quando
-os encontra. Somente a prévia comprovadamente concluída durante a pendência pode
-ser consultada depois da retirada, inclusive após nova concessão; as demais
-fontes continuam sujeitas à revalidação. A decisão de publicação após a retirada
-continua bloqueada. Processos em estado incerto não são encerrados por timeout:
-exigem verificação e não possuem reconciliação automática nesta entrega.
-
-Essa implementação não autoriza contornar os limites de acesso existentes e
-**não está conectada ao provedor real**. Não comprova exclusão de dados no
-fornecedor. URLs privadas já emitidas mantêm sua validade limitada prevista;
-o gate não revoga retroativamente um link já entregue.
-
-
-1. **BL04.1 — Interpretação e contexto:** interpretar intenção e formato dentro das opções efetivamente disponíveis; localizar candidatos no acervo do mesmo negócio com produtos/aliases ativos e validade no fuso do negócio. Correspondência lexical é só candidato: negação, ambiguidade ou ausência de fonte não autorizam escolher produto automaticamente. Fotografias precisam de direito válido; dados de outro tenant, item arquivado e preços vencidos não podem compor o briefing. Kit confirmado, fatos, itens e mídias devem ter versões e proveniência verificáveis. Revalidar direitos e fontes antes do efeito e ao liberar o resultado, aplicando a espera decidida para solicitações de alteração e retirada.
-2. **BL04.2 — Imagem e custo:** integrar um provedor de imagem ao caminho real da prévia, com consentimento aplicável, referências mínimas e saída privada; registrar operação, versão de modelo/briefing, fontes e uso. Uma referência de kit no máximo, quando necessária; fotos reais pertinentes do negócio são referências separadas. Se a promessa for retratar local/produto reais, não apresentar um ambiente inventado como fotografia documental. Texto/preço/CTA exigem conferência literal; resultado generativo não comprova fidelidade por si só. Falta de fonte deve gerar pergunta ou conceito identificado, não fato inventado.
-3. **BL04.3 — Qualidade e economia:** avaliar post e story novos em celular com titular e materiais consentidos. Registrar rejeições, retrabalho, todas as tentativas e custo por peça aceita; avaliar separadamente legibilidade, identidade, fidelidade e texto. Ensaios fictícios e comparação entre modelos medem viabilidade técnica, mas não substituem aceite do titular nem comprovam margem.
-
-## Fornecedores e controle de risco
-
-A opção de imagem é um adapter por capacidade, comparado com receitas aplicáveis usando qualidade e custo por peça aceita; não prometer que todas as peças serão boas por trocar de modelo. A hipótese é R$ 99 de mensalidade e **custo total máximo pretendido de R$ 50/mês**, incluindo serviços externos, infraestrutura, retentativas e suporte. O valor não foi validado. Vídeo, animação e avatar têm gates próprios e não são automaticamente entregues pela integração de imagem.
-
-Antes de qualquer geração paga para cliente, reservar o limite de gasto por operação e tenant de forma atômica, registrar o intento durável, executar fora da transação, liquidar uso conhecido e tratar como **resultado incerto** qualquer timeout após possível submissão. Não repetir nem trocar provedor automaticamente quando houver risco de cobrança duplicada. Validade do direito, acesso e referências deve ser verificada também após a chamada. Auditoria/telemetria não expõem segredos, imagens ou prompts privados por padrão.
-
-Para a avaliação inicial, o usuário autorizou até **US$ 1 no total para chamadas de imagem com dados fictícios**. Esse teto é para o ensaio, não é franquia comercial e não autoriza dados de clientes nem gastos ilimitados. Testes automatizados usam mocks e não fazem chamadas pagas. O custo informado pelo provedor deve ser distinguido de estimativas e da fatura final.
-
-## Avaliação do Jev
-
-Jev é o primeiro candidato para classificação curta, necessidade de esclarecimento e sugestão de formato; não é gerador de imagem e não decide permissões, consentimento, fatos ou limite de gasto. Um corpus PT-BR sintético com gabarito e casos de ambiguidade/negação compara baseline e modelos, taxa de acerto, abstenções, latência e custo. A [comparação Jev/OpenAI](../evals/intent-comparison-2026-10-27.md) aponta erros em ambos e saídas incompletas da OpenAI; não é holdout independente nem teste da memória do WhatsApp. O ensaio é offline por padrão, sem dados de clientes. A amostra não aprova uso comercial.
-
-**Pendências da validação:** o runtime consulta nomes/aliases por correspondência
-lexical e processa eventos isolados; não há memória de conversa validada. Os caminhos
-de conversa e de conteúdo precisam coordenar uma única resposta por evento antes
-do envio real. Circuit breaker/rate limit de provedor e capacidade em escala ainda
-não foram homologados. A reserva de custo conhecida mantém o máximo diário, mesmo
-após sucesso; avaliar liquidação segura para não limitar o throughput indevidamente.
-
-## O que não encerra a fase
-
-Um helper de busca, eval isolado ou renderer técnico não significa fluxo integrado. São necessários conexão das fontes ao processo durável, geração de imagem com orçamento e consentimentos, verificação das alterações durante o processamento, prévia utilizável e os gates acima. A importação assistida de cardápio continua BL03.3 posterior. BL05 integra conversa, ajuste, aprovação e publicação simuladas sem depender da Meta.
-
-## Casos de QA planejados
-
-Loja física de cachorro-quente, delivery e manicure com espaço próprio têm cenários
-e roteiro de testes manuais em [guia de QA](../evals/manual-qa-negocios-ficticios.md).
-Preparação de dados/imagens é distinta de completar o fluxo BL04/BL05.
+- [Ensaio de feed de 27/10](../evals/bl042-guarded-synthetic-feed-2026-10-27.md):
+  uma chamada com dados fictícios/CC0, US$ 0,026272 estimados; alterou logo e
+  pontuação. Não usa worker do cliente nem comprova fatura, margem ou fidelidade.
+- [Ensaio com acabamento de 28/10](../evals/bl042-synthetic-brand-finish-2026-10-28.md):
+  US$ 0,020615 estimados, também isolado. A autorização de até US$ 1 para o ensaio
+  fictício é histórica, não franquia comercial nem liberação de novos gastos.
+- Aceite único: suíte backend de 1.583 testes e complemento de 24 execuções
+  (sete testes novos), com cobertura final agregada de 100% de linhas e branches;
+  web com 360 testes/cobertura integral, build e três jornadas Chromium. Serviços
+  locais RLS/Temporal e efeitos externos simulados. Ver [CHANGELOG](../CHANGELOG.md).
+- As decisões anteriores de descarte imediato de prévias, expiração dos envios
+  WhatsApp e controles individuais de IA foram substituídas. As evidências originais,
+  datas, contagens e propostas rejeitadas permanecem no snapshot desta fase e nos
+  evals/changelogs; não são pendências de produto a reintroduzir.

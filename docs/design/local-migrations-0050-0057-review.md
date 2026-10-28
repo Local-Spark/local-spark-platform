@@ -1,6 +1,11 @@
 # Revisão das migrations locais de 0050 a 0057
 
-Estado em 28/10/2026: após revisão e aprovação do proprietário, a base de
+Registro histórico da aplicação de 0050–0057 em 28/10/2026, anterior à 0058 e
+ao aceite único entregue. As referências a código/pendências abaixo descrevem
+aquela execução, sem definir o estado atual. Ver [materiais duráveis](BL04-whatsapp-durable-materials.md)
+e [aceite implementado](ai-as-core-service.md).
+
+Estado observado naquela aplicação: após revisão e aprovação do proprietário, a base de
 desenvolvimento foi atualizada de `0050` para `0057`, sem organizações com mais
 de um negócio. A sequência aplicada foi 0051 → 0053 → 0054 → 0055 → 0056 →
 0057; não há 0052.
@@ -35,3 +40,5 @@ permissões efetivas relevantes da tabela de aceite foram verificadas na base
 local. O backup não inclui mídia de objetos ou estado do Temporal; restaurar a
 base inteira pode reverter mudanças posteriores. Limpeza e migração foram
 operações separadas.
+
+Versão anterior à reconciliação: [snapshot integral de 28/10/2026](../history/2026-10-28-pre-documentation-reconciliation/design/local-migrations-0050-0057-review.md).

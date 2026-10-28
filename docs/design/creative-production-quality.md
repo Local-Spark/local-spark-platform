@@ -1,7 +1,9 @@
 # Plano de qualidade criativa — imagem, story, vídeo e avatar
 
-Data: 26/10/2026. Estado: **decisão de produto e plano de implementação**; a
-nova produção visual ainda não foi implementada nem aprovada para clientes.
+Origem em 26/10/2026; reconciliado em 28/10/2026. Estado: **preparo visual e
+acabamento do kit implementados no modo simulado; integração real e gate comercial
+BL04.3 pendentes**. O [SDD BL04](../phases/BL04-context-and-ai-production.md) e
+as [decisões atuais](../DECISIONS.md) prevalecem sobre diagnósticos datados.
 Responsáveis: F03 (entender/planejar), F04 (produzir/revisar), F05 (avatar),
 F06 (aprovar/publicar), F07 (franquia/custo). Referência de avaliação:
 `../evals/priscila-public-reference-2026-10-26.md`.
@@ -19,7 +21,7 @@ imagem de referência do kit** relevante à geração personalizada; a galeria d
 inteira não é enviada a cada chamada. Ver o
 [eval específico de custo e aderência](brand-library.md#eval-antes-de-ampliar-a-biblioteca).
 
-## Diagnóstico comprovado no código
+## Baseline técnico diagnosticado em 26/10/2026
 
 - `app/adapters/editorial_ai.py` chama IA para **texto estruturado**; a proposta
   contém título, ângulo, IDs de fatos e três tipos genéricos de cena. Não contém
@@ -46,9 +48,11 @@ texto exato. `preserve` é obrigatório para arte já pronta. Pillow, FFmpeg,
 PhotoCraft e FilmCraft são motores de execução possíveis, não direção criativa
 por si sós. O template universal atual não é uma receita comercial aprovada.
 
-**Estado atual:** essa rota principal **não está implementada no produto**. A IA
-integrada à API gera texto de ideia/roteiro; os adapters atuais de prévia usam
-Pillow/FFmpeg. O ensaio visual por IA foi feito fora do pipeline: a primeira
+**Estado atual:** a geração visual real continua **desconectada do produto**.
+O preparo de referências, pedido/ledger e acabamento de kit já existem no modo
+simulado; adapter/orquestrador real e workflow isolados têm testes, sem guarda
+real registrada/ligada ao dispatcher. Pillow/FFmpeg seguem como baseline técnico.
+No ensaio de 26/10, fora do pipeline de cliente, a primeira
 chamada paga falhou por falta de saldo, e uma nova chamada após recarga gerou
 imagem por US$ 0,054885. A existência de WhatsApp,
 Temporal, prévias privadas e aprovação simulada não significa geração visual
@@ -60,15 +64,14 @@ por IA ponta a ponta.
   materiais, fatos confirmados, roteiro versionado, Temporal, idempotência,
   prévias privadas, aprovação por versão e a estrutura de publicação. Esses
   contratos continuam necessários com qualquer provedor criativo.
-- **Alterar:** `media_previews.py` hoje importa diretamente os renderizadores
-  estático/vídeo, escolhe JPEG/MP4 e dimensões fixas e usa versão do template
-  na chave de render. Extrair seleção de receita/provedor, parâmetros de saída,
-  versão do briefing e provenance/custo da tentativa; preservar revalidação,
-  fencing, idempotência e limpeza existentes. A UI deve mostrar a nova prévia
-  e permitir rejeição/ajuste da peça final, mantendo o aceite por hash.
-- **Acrescentar:** inspeção visual da fonte, kit de marca e briefing versionado;
-  adapter Images API; orçamento/reserva e liquidação por tenant/tentativa;
-  checagem factual/visual e avaliação humana. Vídeo com áudio/legenda e geração
+- **Completar a seleção de receita:** a prévia local mantém seus renderers e
+  a BL04.2 já separa preparação/pedido/acabamento fake. A integração real precisa
+  ligar receita/provedor, saída, briefing e proveniência/custo da tentativa,
+  preservando revalidação, fencing, idempotência e limpeza. Ajuste da peça deve
+  gerar nova versão com aprovação própria; a regeneração automática ainda falta.
+- **Completar e integrar:** inspeção visual da fonte, briefing/kit e referências
+  existentes; guarda real do adapter Images API, orçamento/ledger e liquidação
+  por tenant/tentativa; checagem factual/visual e avaliação humana. Vídeo com áudio/legenda e geração
   por IA ficam em gates separados. O template atual permanece apenas como
   baseline técnico, sem exigir migração dos dados centrais dos clientes.
 
@@ -81,9 +84,10 @@ fixture fictício com todos os campos atuais relevantes e kit/catálogo/concorr�
 propostos, mock de ferramentas de leitura e três chamadas comparáveis da mesma
 foto CC0. Flare/medium custou US$ 0,026272 contra US$ 0,060232 de Flare/high
 e Sunburst/high; foi visualmente promissor nesta amostra, mas as saídas falharam
-em texto literal e não provam fidelidade comercial. Próximo experimento deve
-comparar peça completa da IA com **cena criada por IA + tipografia/logo originais
-aplicados exatamente**, usando a mesma rubrica e custo por peça aceita.
+em texto literal e não provam fidelidade comercial. O ensaio sintético de
+[28/10](../evals/bl042-synthetic-brand-finish-2026-10-28.md) já exercitou cena de IA
+com acabamento exato, fora do worker. A comparação por receita com a peça completa
+da IA, mesma rubrica e custo por aceita continua pendente de gate comercial.
 
 O cliente não deve precisar saber qual modelo foi escolhido, criar prompts,
 montar cenas ou abrir um editor. Há **dois inícios equivalentes** para o mesmo
@@ -98,6 +102,11 @@ contato, mensagens recebidas, agendamentos/pedidos que puderem ser atribuídos e
 feedback do comerciante. Otimizar apenas curtidas/visualizações pode levar a
 conteúdo chamativo sem clientes. Métricas de rede não provam aumento de vendas;
 o relatório distingue observado de declarado e não promete causalidade.
+
+Prévias geradas devem ser preservadas enquanto a conta estiver ativa. Plano
+vencendo depois do início permite concluir e revisar, mas bloqueia novas criações
+e publicação até renovação. Recuperação do autor sem acesso será restrita a staff,
+com ação auditada. Esses contratos ainda precisam de implementação coordenada.
 
 ## Contrato do percurso criativo
 
@@ -171,9 +180,9 @@ Exemplos do que o cliente pode pedir pelo WhatsApp:
 
 | Formato | Receita inicial a avaliar | Quando usar IA visual | Principal critério de qualidade |
 | --- | --- | --- | --- |
-| Foto do feed | IA recebe briefing e foto real, gera a peça completa ou edição; arte já pronta é preservada | Rota principal para nova criação, com fonte real ancorando o produto | Pessoa reconhece o produto e a marca; texto não repete a fonte |
-| Story | IA compõe em 9:16 com uma ideia e CTA; foto/clipe real ancora o assunto | Rota principal para nova criação, com limite de área e texto | Leitura rápida em celular e objeto dominante |
-| Carrossel | IA cria direção e slides com funções distintas; validador mantém coerência e fatos | Rota principal para capa/apoios após gate próprio | Narrativa útil sem slides genéricos repetidos |
+| Foto do feed | IA recebe briefing e foto real, gera a peça completa ou edição; arte já pronta é preservada | Comparar IA e composição aprovada, com fonte real ancorando o produto | Pessoa reconhece o produto e a marca; texto não repete a fonte |
+| Story | IA compõe em 9:16 com uma ideia e CTA; foto/clipe real ancora o assunto | Comparar IA e composição aprovada, com limite de área e texto | Leitura rápida em celular e objeto dominante |
+| Carrossel | IA cria direção e slides com funções distintas; validador mantém coerência e fatos | Candidata para capa/apoios após gate próprio | Narrativa útil sem slides genéricos repetidos |
 | Reel com vídeo real | Seleção semântica de momentos, corte, áudio original útil, legenda sincronizada e ritmo | Melhoria de imagem/áudio ou cena adicional com benefício medido | Parece o negócio real, tem começo/meio/fim e fala coerente |
 | Motion de foto | IA planeja visual/ritmo; foto real recebe movimento, recortes e tipografia animada | Visual/cena de apoio quando necessário; render de movimento pode ser local | Declarado como motion; não fingir gravação real |
 | Cena inteiramente gerada | Só quando o objetivo admite ilustração e o dono aceita isso | Modelo de vídeo/imagem com identidade controlada | Não representar produto, pessoa ou local sintéticos como reais |
@@ -187,14 +196,12 @@ foto sintética de um prato ou atendimento como se fosse o negócio real.
 
 ## Provedores, execução e experimento
 
-- Para o primeiro teste visual pago da **rota principal**, integrar uma
-  **edição de imagem existente** via OpenAI Images API. Comparar GPT Image 2.5
-  Flare e Sunburst com a mesma fonte, instruções de preservar produto/logotipo,
-  qualidade/tamanho explícitos e limite de gasto. A documentação oficial permite
-  edição com imagem de referência e máscara; Flare prioriza velocidade e
-  Sunburst precisão. Isso é **candidato de fornecedor**, não modelo aprovado.
-  Medir geração da peça com texto e alternativa de acabamento exato, em vez de
-  assumir previamente que o modelo não consegue compor texto.
+- Os ensaios de 26–28/10 compararam candidatos de imagem e acabamento com dados
+  fictícios/CC0 fora do percurso de cliente. Resultados/preços daquelas execuções
+  estão nos evals datados; não há modelo comercial vencedor nem autorização
+  recorrente para novo gasto. A avaliação integrada deve fixar fonte, instruções,
+  tamanho/qualidade e teto, comparando saída completa e acabamento exato pela
+  mesma rubrica de fidelidade, texto/logo e custo por peça aceita.
 - Texto comercial e logo podem ser camadas controladas quando a geração por IA
   alterar grafia ou identidade. Renderizar em workers isolados; PhotoCraft,
   Pillow/SVG, FFmpeg ou FilmCraft podem executar receitas aprovadas. Para vídeo
@@ -240,10 +247,13 @@ definidos com custo medido e taxa de aceite, antes de oferta comercial.
 | 4 — F04 expansão | Carrossel e outras receitas por segmento | Repetir gate de formato, fatos, direitos e custo; não copiar layout universal |
 | 5 — F05 | Avatar/cena generativa opcional, com plano próprio se necessário | Consentimento, identidade/voz, custo por aceita e revogação comprovados |
 
-Primeiro laboratório: um negócio consentido, 10–20 originais de foto/clipe e
+Plano futuro de laboratório (vídeo somente após gate/escopo próprio): um negócio
+consentido, 10–20 originais de foto/clipe e
 briefings reais, três saídas que ele publicaria (feed, story, reel), duas rotas
 comparáveis por fonte e registro de todos os descartes. Depois aplicar os gates
 amostrais atuais F03/F04 (20 peças, quatro segmentos; >=90% de nota 4/5 de
 legibilidade/visibilidade; >=80% aceitas sem ajuste; zero erro crítico). Sem
 originais autorizados, execução do produto e avaliação comercial permanecem
 pendentes; testes sintéticos não fecham o marco.
+
+Versão anterior à reconciliação: [snapshot integral de 28/10/2026](../history/2026-10-28-pre-documentation-reconciliation/design/creative-production-quality.md).

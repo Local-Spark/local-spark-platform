@@ -1,6 +1,6 @@
 # BL — Biblioteca visual, acervo do negócio e produção personalizada
 
-Data: 27/10/2026. Esta é a **ordem vigente** de implementação da trilha BL.
+Atualizado em **28/10/2026**. Esta é a **ordem vigente** de implementação da trilha BL.
 Ela cruza F01 (área do cliente), F02 (materiais/WhatsApp), F03 (contexto e
 roteiro), F04 (mídia), F06 (aprovação/publicação) e F07 (custos). A arquitetura
 PostgreSQL/RLS, armazenamento privado, Temporal e autorização por plano
@@ -15,13 +15,19 @@ sozinho os itens e fotos pertinentes, gera uma peça nova, pede aprovação e
 publica somente após autorização específica da peça. Um dia sem mensagem nova
 também pode iniciar uma proposta dentro da cadência aceita.
 
-| Entrega | Estado em 27/10/2026 |
+| Entrega | Estado local vigente |
 | --- | --- |
 | Vitrine de um kit de cafeteria em `/kits` e `/app/kits` | Implementada localmente com 10 posts, 2 stories, reel e 6 cenários fictícios; revisão criativa e de direitos antes de uso comercial. |
 | Selecionar ou editar o kit para um negócio | BL02 implementada localmente na API e web; editor guiado, prévia ampliada, rascunho, confirmação, histórico e logo privado. |
 | Acervo estruturado de produtos, serviços e fotos do local | BL03.1/BL03.2 implementadas localmente; importação automática fica em BL03.3. |
-| IA visual usando kit + acervo no pipeline do produto | Não implementada; há ensaios isolados de IA e prévias locais com Pillow/FFmpeg. |
+| Contexto seletivo e kit + acervo no pipeline | Worker experimental opcional de interpretação/Jev e briefing; prévia visual simulada aplica kit. Provedor real isolado, sem integração homologada. |
 | Aprovação/publicação reais pelas contas Meta | Não homologadas; o fluxo local usa adapters falsos. |
+
+O [registro de decisões](../DECISIONS.md) centraliza o contrato vigente: aceite
+único de IA em Plano e acesso, um negócio por organização, envios WhatsApp
+preservados e controles internos de execução. As [versões anteriores das fases](../history/2026-10-28-pre-documentation-reconciliation/)
+preservam a cronologia; etapas antigas de permissão por fornecedor não são
+requisitos novos da jornada.
 
 A regra central é **não expandir a biblioteca antes de provar que conseguimos
 reaplicar o primeiro kit em uma peça nova, fiel e aprovada**. O catálogo
@@ -130,7 +136,8 @@ nem chamadas de IA. Mudar um rascunho não troca o kit já confirmado.
 de linhas/ramos na plataforma; 220 testes web com 100% nos quatro critérios,
 build e duas jornadas de navegador desktop/mobile aprovados. Migração 0037
 aplicada no banco de desenvolvimento, relay/worker atualizados e manifesto
-verificado dentro da imagem Docker. Próxima implementação: BL03.
+verificado dentro da imagem Docker. Naquele fechamento, a próxima implementação
+era BL03; BL03.1/BL03.2 já foram entregues posteriormente.
 
 ### BL03 — Acervo progressivo em “Sobre meu negócio”
 
@@ -160,9 +167,10 @@ para o CDN dos kits fictícios.
 
 **Backend e web:** CRUD guiado, upload temporário autorizado, edição,
 arquivamento, ordenação e revisão. Importação de cardápio pode criar rascunhos;
-nada vira fato confirmado automaticamente. Material recebido pelo WhatsApp só
-se torna acervo durável após aceite explícito, pois sua retenção original é
-temporária. RLS, idempotência, concorrência e auditoria protegem as alterações.
+nada vira fato confirmado automaticamente. Material recebido pelo WhatsApp já é
+preservado quando associado, sem TTL ou exclusão pelo histórico. Copiá-lo ao
+acervo exige ação explícita e direitos; não o transforma automaticamente em produto
+ou fato confirmado. RLS, idempotência, concorrência e auditoria protegem as alterações.
 Uma identidade durável com outbox/Temporal é exigida quando houver um efeito
 assíncrono específico, sem criar recibos de CRUD sem consumidor de negócio.
 Não criar um editor administrativo ou catálogo de ecommerce aqui.
@@ -173,16 +181,18 @@ A tela deixa visível o que está confirmado para a IA e o que ainda é rascunho
 
 ### BL04 — Recuperar contexto e produzir uma peça nova
 
-**Em implementação local:** busca e resolução interna do acervo, adaptador de
-imagem e ledger de custo têm testes. A resolução do acervo está ligada à
-proposta somente em experimento com intérprete injetado; a prévia permanece
-bloqueada nesse caminho e o worker normal não o ativa. O [SDD BL04](BL04-context-and-ai-production.md) e o
+**Em implementação local:** o worker de desenvolvimento/teste pode usar
+Jev opcional e briefing com busca seletiva de acervo, desligados por padrão.
+Usa o aceite único do serviço e orçamento interno, sem autorização TypeSafe
+separada. A prévia simulada aplica o kit e tem reserva/fence; geração visual
+real continua desconectada. O [SDD BL04](BL04-context-and-ai-production.md) e o
 [desenho de integração segura](../design/BL04-integration-safety.md) registram
 os passos pendentes. O [ensaio sintético vertical](../evals/bl04-visual-synthetic-story-2026-10-27.md)
 fez uma chamada real controlada; não é gate comercial. A [avaliação Jev](../evals/jev-intent-ptbr-v1.md)
-inclui um ensaio real pequeno, sem adoção no runtime.
+inclui ensaio pequeno; a adoção experimental no worker não equivale a
+homologação comercial.
 
-F02 recebe texto, foto, vídeo ou áudio; F03 transcreve quando necessário,
+F02 recebe texto, foto, vídeo ou áudio e transcreve quando necessário; F03
 interpreta o pedido de conteúdo e **resolve automaticamente** itens ativos,
 sinônimos, fotos e fatos vigentes do mesmo negócio. O cliente não escolhe
 manualmente um produto a cada pedido. O briefing compacto inclui kit aplicado,
@@ -205,8 +215,22 @@ do espaço é base da edição e o produto precisa permanecer reconhecível;
 apenas uma referência solta não comprova o lugar. Sem foto/contexto suficiente,
 a IA faz pergunta curta ou oferece peça claramente conceitual, sem apresentar
 um café ou alimento inventado como foto documental. Preço vencido, foto de
-outro item e material sem direito bloqueiam a afirmação. Alterar item, mídia,
-preço ou kit invalida candidatas pendentes que dependiam daquela versão.
+outro item e material sem direito bloqueiam a afirmação. Solicitar mudança de
+fonte bloqueia novos inícios e cancela fila não admitida; criações já iniciadas
+terminam antes de aplicar a alteração. A prévia anterior permanece identificada
+para revisão, sem dispensar direitos/aprovação. O modo simulado cobre parcialmente
+contexto, catálogo, kit e fotos; outros escritores e a coordenação real pendem.
+
+**Próxima fatia:** completar a guarda interna de fontes, aceite único, acesso,
+plano e orçamento por tenant/agregado, com concorrência e mocks; só então ligar
+workflow/dispatcher/provedor real. `VisualEffectGuard` ainda é interface e o
+workflow visual separado não está registrado no worker. O ledger agregado
+OpenAI já existe. Também implementar decisões aprovadas: concluir criação
+iniciada e permitir revisão privada após plano vencer, bloqueando nova criação/
+publicação; preservar prévias sem TTL enquanto a conta estiver ativa. Hoje
+propostas/prévias ainda expiram e têm limpeza/gates de plano. A recuperação de
+pendência de autor sem acesso será somente pela equipe, com ação auditada, ainda
+sem fluxo entregue. Retenção após encerramento foi adiada à fase própria.
 
 **Gate de saída:** gerar ao menos um post e um story **novos** para um caso
 consentido, com revisão em celular por titular, identificação correta de
@@ -260,8 +284,8 @@ imutáveis de kits por armazenamento de objetos + CDN; o build da web não
 carrega todos os futuros kits. Escolha/recomendação por segmento e
 disponibilidade por plano usam esse catálogo; mídia de cliente continua
 privada e separada. Medir custo de curadoria por versão e tráfego por visita.
-Pesquisa de concorrentes e avatar F05 permanecem trilhas posteriores com
-fontes, consentimento e gates próprios.
+Pesquisa de concorrentes e avatar F05 permanecem trilhas posteriores; fontes,
+direitos e identidade sintética têm os gates próprios dessas capacidades.
 
 ## Evidência e dependências
 

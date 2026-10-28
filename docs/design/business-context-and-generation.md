@@ -1,7 +1,9 @@
 # Decisão — contexto do negócio, geração e custo por peça
 
-Data: 21/10/2026. Status: especificação aceita para F02–F07; nada deste documento
-está implementado por sua publicação. Origem: avaliação crítica de
+Origem em 21/10/2026; reconciliado em 28/10/2026. Estado: **contexto, edição,
+acervo e retrieval experimental implementados em fatias locais; geração visual
+real, pesquisa ampla e custo comercial permanecem pendentes**. O estado atual
+fica no [SDD](../SDD.md) e na [BL04](../phases/BL04-context-and-ai-production.md). Origem: avaliação crítica de
 `../Meu-Braco-Direito-Analise-Melhorias-IA-Skills-2026-10-21.md`.
 
 ## Avaliação das recomendações recebidas
@@ -27,7 +29,7 @@ antes de acrescentar campos à tela inicial. Chamar o conjunto persistido de
 **contexto do negócio** (`BusinessContext`), não de skill executável: contém dados
 e preferências do cliente, nunca código, ferramentas ou instruções de sistema.
 
-F03 entrega a primeira versão compacta e inspecionável desse contexto. Separar:
+F03 já entrega contexto compacto/versionado e inspecionável em fatias locais. Separar:
 
 - Fatos autorizados: valor, fonte/ator, data de confirmação, validade, escopo e
   estado (`proposed`, `confirmed`, `expired`, `revoked`). Preço, horário, endereço e
@@ -45,9 +47,12 @@ Atualização usa identidade de evento, compare-and-swap e auditoria/outbox na m
 transação; replay e duas aprovações concorrentes não perdem alterações. O snapshot
 usado na geração fica fixado na `content_version` para permitir reprodução. O
 proprietário pode ver, corrigir, rejeitar e restaurar uma versão anterior; restauração
-cria nova versão auditada. Exclusão/revogação deve alcançar snapshots e derivados
-conforme política de retenção. Mídia, transcrições e fontes longas ficam no storage
-privado e são carregadas sob demanda, com permissão e prazo válidos.
+cria nova versão auditada. Mudança/exclusão de foto do acervo e direitos precisam de coordenação própria;
+materiais WhatsApp associados são duráveis e não têm exclusão pelo histórico.
+Mídia/transcrições/fontes longas ficam privadas e são carregadas sob demanda, com
+permissão/direitos válidos. Prévias devem ficar preservadas enquanto conta ativa,
+ainda com implementação de retenção/acesso pendente. Fim da conta será tratado
+na sua fase, sem exclusão automática introduzida agora.
 
 O orçamento de contexto é configurável e medido em tokens reais do modelo escolhido;
 2–4 mil tokens da análise são hipótese de benchmark, não limite universal. Resumo
@@ -55,8 +60,13 @@ não pode converter hipótese em fato nem remover restrição. Comparar tokens, 
 qualidade e taxa de correção contra baseline sem contexto compacto antes de afirmar
 economia. Conteúdo de WhatsApp, web e concorrentes é entrada não confiável: não
 obedece instruções embutidas, não atravessa tenant e não vira contexto confirmado
-sem autorização. Edição web do contexto entra com o MVP de F03; comandos WhatsApp
+sem autorização. Edição web do contexto já existe localmente; comandos WhatsApp
 equivalentes podem ser liberados em fatia posterior com confirmação de identidade.
+
+O [aceite único do serviço](ai-as-core-service.md) cobre texto, imagem,
+interpretação e transcrição; não criar permissões por fornecedor. O worker local
+pode usar Jev e recuperar acervo em dev/test, desligado por padrão. Preservar
+mensagens não confirma automaticamente fatos nem implementa memória geral.
 
 ## Geração e seleção de fornecedor
 
@@ -64,7 +74,8 @@ F04 define portas por **capacidade** (`TextGeneration`, `ImageGeneration`,
 `Speech`, `SceneVideo`, `AvatarVideo`, `MediaRender`), contrato de entrada/saída,
 idempotência, operação externa, custo e status `UNKNOWN`. FFmpeg é renderizador
 determinístico para receitas que o permitam, não fallback universal nem substituto
-de avatar contratado. F05 implementa as capacidades de avatar/cena autorizadas.
+de avatar contratado. F05 implementará capacidades de avatar/voz após o primeiro piloto, com direitos
+e consentimento específicos; não integra automaticamente a oferta inicial.
 Temporal coordena activities, mas seleção de receita/provedor e direitos de gasto
 ficam em serviço de domínio; a decisão, a versão de configuração e o custo máximo
 são persistidos antes do submit. Replanejar após erro requer nova autorização quando
@@ -115,7 +126,7 @@ origem, período, última coleta e lacunas; alcance não prova faturamento.
 | F02 | Capturar material/preferências opcionais, consentimento, autoria e proveniência. |
 | F03 | `BusinessContext` versionado, edição/revisão pelo dono, montagem de contexto mínimo, limite e ledger antes de pesquisa paga; eval de texto/decisão. |
 | F04 | Portas por capacidade, FFmpeg, reserva/custo por peça, prévias e avaliação controlada de imagem/edição. |
-| F05 | Spikes e adapters de avatar/cena/voz selecionados por evidência, consentimento e custo. |
+| F05, após piloto | Spikes e adapters de avatar/cena/voz selecionados por evidência, consentimento e custo. |
 | F06 | Aprovação versionada e correção explícita alimentam propostas de atualização do contexto; observar publicação/insights. |
 | F07 | Evoluir franquias, COGS, relatórios, aprendizado por métricas próprias e controles comerciais. |
 | F08 | Testar carga/coortes, limites externos, isolamento e recuperação em escala. |
@@ -124,3 +135,5 @@ Não adotamos a tabela SQL da análise como migration pronta: falta separar fato
 preferências e hipóteses, proveniência, concorrência e ciclo de exclusão. Não
 prometemos redução de tokens, liderança de fornecedor ou capacidade para 200 mil
 clientes sem benchmark e teste de carga.
+
+Versão anterior à reconciliação: [snapshot integral de 28/10/2026](../history/2026-10-28-pre-documentation-reconciliation/design/business-context-and-generation.md).

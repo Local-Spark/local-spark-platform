@@ -1,446 +1,293 @@
 # SDD geral — Meu Braço Direito
 
-Versão consolidada em **27/10/2026**. Define os contratos vigentes e distingue
-capacidade local de planejamento. O estado executivo está no
-[PROJECT](PROJECT.md); a sequência está em [fases](phases/README.md).
-As versões anteriores destes documentos foram preservadas integralmente no
-[histórico P13](history/2026-10-27-pre-consolidation/index.md). Designs de fase
-e evals continuam válidos como detalhe, respeitando as decisões atuais.
+Contrato vigente revisado em **28/10/2026**. Produto aceito em
+[DECISIONS](DECISIONS.md), estado executivo em [PROJECT](PROJECT.md), sequência
+em [fases](phases/README.md) e detalhamento na [fase BL04](phases/BL04-context-and-ai-production.md).
+O [snapshot anterior](history/2026-10-28-pre-documentation-reconciliation/SDD.md)
+preserva a redação substituída. Designs e evals têm estado e data próprios;
+planejamento, teste simulado e homologação comercial são estados distintos.
 
 ## 1. Objetivo e fronteira do produto
 
-**Decisão de produto:** cada negócio terá conta e organização próprias, com
-cobrança e aceite próprios. A cobrança por organização pode ser reaproveitada;
-o bloqueio na API e a restrição de banco estão implementados, e a migration foi
-aplicada localmente. Os registros locais duplicados foram removidos
-após autorização, com backup e preservação de histórico. O
-[desenho](design/one-business-per-organization.md) registra a transição pendente.
+Receber material/pedido por WhatsApp, recuperar contexto do próprio negócio,
+produzir uma candidata privada, pedir aprovação específica e publicar nos canais
+habilitados. A web complementa configuração e revisão. Proatividade sem mensagem
+nova faz parte do resultado pretendido e será integrada na BL05.
 
-**Decisão atual de contratação:** IA faz parte do serviço. Explicar seu uso uma
-vez nos termos da contratação e substituir escolhas de fornecedor ou modalidade
-por uma jornada única; contas existentes verão a versão atualizada uma vez antes
-de usar o serviço. O aceite único é registrado pela API e apresentado em Plano
-e acesso; os controles individuais de IA e transcrição deixam a jornada do
-cliente. A transição segue [uso de IA como parte do serviço](design/ai-as-core-service.md),
-preserva registros e não converte aceites ou recusas anteriores silenciosamente.
-O POST de aceite exige owner ativo, ação explícita e versão/hash exatos, sob o
-bloqueio por negócio. Não altera consentimentos antigos. O contrato aceito passa
-a ser a autoridade de processamento; operações antigas não são reativadas pelo
-novo aceite. A contratação valida o aceite antes de criar a intenção de checkout.
-A configuração técnica de IA, orçamento, plano e aprovação da publicação seguem
-independentes; o aviso continua destinado à validação local.
-A suíte completa e regressões complementares comprovaram 100% de linhas e
-branches; a web validou 360 testes e três jornadas Chromium. A comprovação usa
-PostgreSQL/RLS e Temporal locais, com efeitos externos simulados; não homologa
-provedores reais. Contagens e evidências estão no [CHANGELOG](CHANGELOG.md).
+Uma conta de cliente e uma organização por negócio (C02). A API e a migration
+0057 garantem no máximo um negócio por organização; cobrança continua por
+organização. Memberships e seleção legadas permanecem por compatibilidade.
+Staff e convites administrativos não exigem cadastrar negócio.
 
-Receber ideias e material pelo WhatsApp, recuperar contexto autorizado do
-negócio, produzir conteúdo com qualidade, pedir aprovação específica, publicar
-nos canais habilitados e medir sinais observáveis. O cliente não opera um
-pipeline de edição. A web complementa identidade, configuração, kit, acervo e
-revisão. Sem mensagem nova, a plataforma deve propor conteúdo dentro de uma
-cadência aceita e de um orçamento; esta proatividade ainda não está implementada.
+Um número WhatsApp ativo de cliente por negócio (C03), distinto do número
+oficial da plataforma. Material já associado continua processando durante troca
+de número; a entrega simulada usa o vínculo ativo novo (C05). Meta real e envio
+de candidata/aprovação pelo WhatsApp ainda precisam de integração/homologação.
+Não atribuir retroativamente mensagens ainda não associadas sem prova de origem.
 
-**Decisão de 28/10/2026:** a versão inicial admite um número WhatsApp ativo do
-cliente por negócio, vinculado ao número oficial da plataforma. Múltiplos números
-ativos por negócio ficam para evolução futura, com regras de vínculo, histórico
-compartilhado, destinatários e notificações ainda a definir. O limite do canal
-não restringe contas proprietárias na web nem resolve automaticamente operações
-pendentes solicitadas por proprietários diferentes. A integração real do percurso
-WhatsApp continua sujeita à homologação Meta.
+IA textual, visual, interpretação e transcrição integram um único aceite do
+serviço por negócio, apresentado em Plano e acesso antes do checkout (C01).
+Contas existentes aceitam a versão uma vez antes de usar as rotas de serviço.
+O POST valida owner, versão/hash e ação explícita; grava ator/data e auditoria,
+com replay idempotente. Cadastro, pagamento e redirect não substituem o aceite.
+Registros legados são preservados; novos pedidos têm identidade contratual que
+não reativa a fila editorial antiga. A web não oferece permissões por modelo,
+fornecedor ou transcrição. O aviso atual ainda é para validação local.
 
-Ao trocar o número, um material já enviado em processamento continua associado
-ao mesmo negócio. Após a troca, a prévia e o pedido de aprovação devem ir ao
-número ativo novo; a troca não exige esperar a conclusão desse processamento.
-O caminho de processamento e entrega simulada foi adaptado para essa regra; a
-entrega real pelo WhatsApp ainda não está implementada nem homologada.
-
-Instagram é o primeiro destino pretendido. Simuladores de Instagram, Facebook
-e TikTok na vitrine não são integrações com essas redes. Avatar/voz do cliente
-(F05) ficam **após o primeiro piloto comercial** e a validação de imagens/vídeos
-com material real e custo (P15), com gates próprios. Não prometer vendas,
-frequência ou canais sem validação. Acesso patrocinado é concessão separada de
-receita; cadastro, redirect de checkout e seleção de kit não ativam plano pago.
+Instagram é o primeiro destino pretendido. Vitrine de Facebook/TikTok não
+integra essas redes. Foto/story são a oferta inicial; vídeo/franquia ainda não
+foram definidos. Avatar/voz sintética ficam após o primeiro piloto (C12/C13).
+Não prometer alcance, vendas, frequência ou canais sem evidência.
 
 ## 2. Arquitetura e execução
 
-Python/FastAPI modular segue `app/core`, `api/v1`, `schemas`, `services`, `db`,
-`adapters` e `workflows`. Regras de negócio ficam nos serviços; rotas/adapters
-não mantêm regras concorrentes. PostgreSQL guarda domínio, permissões e filas
-persistentes; Temporal coordena execução durável; activities fazem IO. A web
-React está em `local-spark-web`. Armazenamento de mídia é compatível com S3;
-o Compose usa storage local. Redis não é dependência ativa. Não adicionar
-Celery, RabbitMQ, Make ou n8n para executar os mesmos processos.
+Monólito Python/FastAPI modular: `app/core`, `api/v1`, `schemas`, `services`,
+`db`, `adapters`, `workflows`. Regras pertencem aos serviços. PostgreSQL guarda
+domínio, permissões, identidades e filas persistentes; Temporal coordena a
+execução e activities fazem IO. React fica em `local-spark-web`; mídia usa S3
+compatível. Redis não é dependência ativa. Não usar Celery, RabbitMQ ou outro
+runner concorrente para os mesmos processos.
 
 ```mermaid
 flowchart LR
-  META["Meta WhatsApp<br/>adapter oficial; homologação pendente"] --> API["FastAPI<br/>webhook e APIs autenticadas"]
-  WEB["Web React<br/>configuração e revisão"] --> API
-  API --> DB[("PostgreSQL<br/>RLS, domínio e jobs")]
-  DB --> DISP["Dispatchers de domínio"]
+  META["Meta WhatsApp<br/>homologação pendente"] --> API["FastAPI"]
+  WEB["Web React"] --> API
+  API --> DB[("PostgreSQL/RLS<br/>domínio, jobs e auditoria")]
+  DB --> DISP["Dispatchers"]
   DISP --> TEMP["Temporal"]
-  TEMP --> ACT["Activities Python"]
+  TEMP --> ACT["Activities"]
   ACT --> DB
-  ACT --> OBJ["Mídia privada<br/>storage S3"]
-  ACT --> EXT["Adapters configurados<br/>IA, cobrança, mensageria"]
-  ACT --> LOCAL["Prévias e entrega/publicação<br/>simuladas no fluxo local"]
+  ACT --> OBJ["Mídia privada S3"]
+  ACT --> EXT["Adapters configurados"]
 ```
 
-API, correlator, dispatchers e pools de workers são processos separados.
-`billing_jobs`, eventos de materiais, propostas, prévias e entregas têm identidade
-persistente e regras próprias de claim/recovery. A task queue do Temporal não
-substitui o domínio no PostgreSQL; o worker busca tarefas e executa activities.
-Não fazer rede enquanto se mantém row lock nem IO em funções determinísticas
-de workflow. Compensação depende do efeito: recurso já publicado ou chamada
-ambígua não pode ser desfeito como simples rollback SQL.
+API, correlação, dispatchers e workers têm processos separados. A task queue
+Temporal não substitui o estado de domínio no banco. Não fazer rede sob row
+lock nem IO em workflows determinísticos. Operações externas ambíguas não são
+rollback SQL; exigem estado durável e reconciliação apropriada.
 
-**P14:** criação de negócio e alteração do kit usam auditoria na mesma
-transação, sem novos workflows/eventos apenas de recibo. O relay genérico sai
-do startup comum; suas tabelas, serviço manual e handlers antigos permanecem
-para compatibilidade. Não remover Temporal dos workflows de integração/geração.
-A retirada futura de tabelas/handlers exige decisão e avaliação de históricos.
+CRUD de negócio/kit tem auditoria transacional sem novo workflow de recibo.
+Relay, tabelas e handlers legados são mantidos para compatibilidade, fora do
+startup comum; removê-los exige avaliação do histórico e decisão específica.
 
 ## 3. Isolamento, identidade e permissões
 
-- Tabelas compartilhadas com `tenant_id`, contexto de negócio e RLS; não usar
-  schema por cliente como padrão. Header `X-Tenant-ID` seleciona contexto,
-  nunca concede autorização. Toda leitura/mutação valida ator e membership.
-- Logins restritos por capacidade para runtime, auth, cobrança, ingestão e
-  correlação; sem superuser/BYPASSRLS. Migração usa credencial própria.
-  O acesso legado de relay continua isolado enquanto for necessário.
-- Auth nativa: Argon2id, access JWT, sessão revogável e refresh token em cookie
-  HttpOnly. A web mantém access token em memória. Origin/CSRF protegem as
-  operações de identidade; ações de e-mail têm token de uso único e prazo.
-- Staff é distinto de owner. Convite/revogação exigem operador autorizado com
-  MFA; o convidado verifica e-mail e configura seu TOTP sem cadastrar negócio.
-  Revogar staff encerra acesso administrativo e sessões correspondentes.
-- Leitura administrativa é auditada e limitada. Não expor material bruto,
-  prompts/respostas ou conteúdo privado irrestrito como efeito de um painel.
+- Tabelas compartilhadas com `tenant_id`, negócio e RLS. Header de tenant
+  seleciona contexto; não concede autorização. Validar identidade e membership.
+- Logins restritos por capacidade para app, identidade, cobrança, ingestão e
+  correlação, sem superuser/BYPASSRLS no runtime. Migração usa conexão própria.
+- Auth nativa com Argon2id, access JWT em memória na web, refresh HttpOnly,
+  sessão revogável, Origin/CSRF e ações de e-mail de uso único.
+- Staff exige MFA e é distinto de owner. Leitura administrativa é restrita e
+  auditada; não entrega prompts, fotos ou material privado irrestrito.
+- O aceite único é autoridade contratual, não autorização global de banco,
+  concessão financeira, direito sobre qualquer imagem ou aprovação de publicação.
 
-Em development/testing, localhost e 127.0.0.1 podem ser aliases da origem web
-configurada, somente na mesma porta/protocolo. Staging/produção exigem origem
-exata. Checkout congela a origem autorizada do pedido para preservar cookies no
-retorno; links de e-mail continuam canônicos e cookies são host-only.
-Contrato detalhado: [auth nativa](design/native-auth.md).
+Desenvolvimento/teste aceitam localhost/127.0.0.1 na mesma porta/protocolo da
+origem autorizada. Staging/produção exigem origem exata. Checkout congela a
+origem; cookies continuam host-only. Contrato em [auth nativa](design/native-auth.md).
 
 ## 4. Jornada web e configuração do negócio
 
-Cadastro/login → confirmação de e-mail → organização/negócio em setup → plano
-ou patrocínio confirmado → canal verificado/vinculado. Setup pode existir antes
-do pagamento; operações pagas exigem concessão e quota na API. Onboarding curto
-inclui atividade sugerida/livre, descrição, cor HEX e cidade/UF/código IBGE do
-snapshot versionado. APIs de referência não consultam rede durante o cadastro;
-perfis antigos com cidade livre permanecem compatíveis. Município não comprova
-endereço nem coordenadas para pesquisa por raio.
+Cadastro/login → confirmação de e-mail → organização/negócio em setup → aceite
+do serviço e plano/patrocínio conforme a contratação → telefone e vínculo.
+Setup, acervo e kit podem ser preparados antes de pagar; geração/publicação
+exigem acesso e orçamento aplicáveis. Checkout aberto ou retorno não ativa plano.
 
-Menus vigentes: **Início, WhatsApp, Sobre meu negócio, Conteúdos, Kits visuais,
-Plano e acesso**. Início orienta com estados reais; a página estática Primeiros
-passos foi retirada. O provider web compartilha organização/negócio ativos em
-memória; trocar seleção não altera permissões nem mistura dados de negócios.
+Menus: **Início, Plano e acesso, WhatsApp, Sobre meu negócio, Conteúdos, Kits
+visuais**. Organização/negócio ativos são compartilhados em memória; a API/RLS
+mantém a autorização. Onboarding captura atividade, descrição, cor HEX e
+cidade/UF/código IBGE de snapshot local versionado. Município não é endereço
+verificado nem geocodificação.
 
-- `/app/content`: lista propostas, prévias e revisões disponíveis. Não exige
-  gerar ideia, aceitar roteiro e pedir render manualmente. A publicação atual
-  é identificada como simulada; só oferecer decisões existentes no backend.
+- `/app/content` acompanha propostas/prévias e revisões; publicação simulada é
+  identificada. Não exige operar ideia, roteiro e renderer manualmente.
 - `/app/ideas` redireciona para Conteúdos; `/app/guide` para Início.
-  `/app/phone` é utilitária, acessível pela configuração WhatsApp.
-- `/app/editorial-lab` existe somente no build DEV. Guarda geração manual,
-  edição/aceite de roteiro e controles técnicos do renderer para ensaio.
-  APIs e dados editoriais permanecem compartilhados com a jornada automática.
-- Sobre meu negócio concentra fatos/preferências e acervo. O aceite único de IA fica em Plano e acesso.
-  Frequência semanal manual não é exibida; preservar `posts_per_week` histórico
-  ao salvar outras preferências até cadência por formato/plano.
+  `/app/phone` é utilitária da configuração WhatsApp.
+- `/app/editorial-lab` guarda os controles técnicos só no build DEV.
+- Sobre meu negócio reúne fatos/preferências, Produtos e serviços e Meu espaço,
+  sem fluxo de permissão de IA. `posts_per_week` histórico é preservado sem
+  campo manual até cadência por formato/plano.
 
-Contratos de interface estão no [SDD web](../../local-spark-web/docs/SDD.md).
+A consulta financeira continua visível antes do aceite. Contratos e estados da
+interface ficam no [SDD web](../../local-spark-web/docs/SDD.md).
 
 ## 5. Fontes, contexto, kit e acervo
 
-Quatro conceitos permanecem distintos:
-
-| Conceito | Contrato | Estado |
+| Recurso | Contrato vigente | Estado local |
 | --- | --- | --- |
-| Material WhatsApp | Material preservado como fonte de contexto do negócio, com origem | A implementação atual ainda tem expiração/exclusão e não o preserva automaticamente no acervo; precisa ser alinhada à decisão posterior. |
-| Contexto do negócio | Fatos confirmados, preferências e hipóteses separados; versão fixada na geração | Implementado localmente. |
-| Kit fictício/aplicado | Vitrine pública imutável; seleção/overrides privados e versionados por negócio | BL01/BL02 locais. |
-| Acervo durável | Produtos/serviços, promoções e fotos reais de item/espaço, opcionais e confirmados | BL03.1/BL03.2 implementadas localmente; BL03.3 importação posterior. |
+| Envios WhatsApp | Texto, imagem, áudio e vídeo associados preservados como origem, sem exclusão pelo histórico. Não são fatos confirmados automaticamente. | Migration 0058 e leitores adaptados; limpeza técnica de não atribuídos/órfãos separada. |
+| Contexto | Fatos confirmados, preferências e hipóteses distintos; fonte, validade e versão congeladas no pedido. | Implementado; fatos vencidos não autorizam nova afirmação. |
+| Kit | Vitrine fictícia pública separada da seleção/overrides privados versionados. | BL01/BL02 locais; aplicação no modo simulado. Kit piloto ainda `public_demo`. |
+| Acervo | Produtos/serviços/promoções e fotos de item/espaço, opcionais, privados e versionados. | BL03.1/BL03.2 locais; BL03.3 importará cardápio como rascunho. |
+| Prévia gerada | Arquivo/versão privados preservados sem expiração automática enquanto a conta estiver ativa (C09). | **Decisão aprovada ainda pendente:** código usa `expires_at`, prazos da proposta/fato e limpeza de prévias. |
 
-Aprovar uma publicação não confirma automaticamente preço, horário ou promoção
-como fato. Fatos temporários exigem validade; fonte vencida não autoriza nova
-peça. Mudanças posteriores não reescrevem snapshots ou aprovações antigas.
-Autorização de dados/IA, autorização de gasto, confirmação de fato, escolha de
-kit e aprovação de peça são decisões distintas.
+A remoção de fotos desatualizadas do acervo permanece disponível. Promover foto
+WhatsApp cria cópia com direitos declarados; não muda a finalidade nem a
+identidade do envio original. Guardar um arquivo não cria produto, preço,
+memória pesquisável ou skill. Aprovar peça não confirma seus fatos comerciais.
 
-**Kit BL02:** catálogo, estado, rascunho, confirmação e histórico por owner;
-`operation_id` e `expected_version` para replay/CAS, versões imutáveis e audit
-transacional. O editor guiado altera cores, fontes permitidas, logo, textos e
-composição de feed/story/capa de reel, sem editor livre de pixels. Logo privado
-usa intent de upload, validação de formato/dimensões/direitos e URL temporária;
-reconciliação owner-only trata pendências de upload. F03 congela o documento do
-kit confirmado no pedido, sem resolver a versão atual durante execução tardia.
-F04 ainda não aplica esse kit à produção real.
-O fluxo visual simulado aplica o kit e mantém marca explícita de simulação; não
-comprova a geração real integrada nem qualidade comercial.
+Kit usa `operation_id`, versão esperada/CAS, histórico imutável, logo privado e
+URLs temporárias. Propostas congelam o documento confirmado. O editor guiado
+não é editor livre de pixels. Catálogo público hoje está no build web; objetos
+/CDN e novos nichos entram na BL06. Material privado nunca compõe a vitrine.
 
-`cafe-pausas/v1` continua `public_demo`: dez posts, dois stories, reel silencioso
-e seis cenários fictícios. É selecionável em desenvolvimento/teste; uso comercial
-exige revisão de direitos e qualidade. Os arquivos públicos ainda são locais,
-versionados e servidos no build web. Fotos reais do cliente ficam privadas;
-catálogo em objetos/CDN entra na BL06.
-
-**BL03.1/BL03.2 locais:** seções Produtos e serviços e Meu espaço dentro de Sobre meu
-negócio. Cadastro opcional/progressivo, preço com validade, sinônimos confirmados,
-fotos e direitos versionados. Promoção consentida de material WhatsApp não muda
-silenciosamente sua finalidade/retentiva. Não exigir seleção de item por pedido:
-BL04 deve recuperar automaticamente fontes pertinentes do mesmo negócio.
-Contrato: [biblioteca visual](design/brand-library.md) e
-[contexto e geração](design/business-context-and-generation.md). O [SDD BL03](phases/BL03-business-collection.md)
-detalha catálogo, fotos e imports. Cadastro manual/fotos são a entrega atual;
-BL03.3 extrairá dados de fotos de cardápio/tabela de serviços para preencher
-rascunhos automaticamente e confirmar ambiguidades sem redigitação. Esta
-extensão foi explicitamente registrada pelo proprietário, não implementada agora.
-A [sequência completa](design/delivery-roadmap-2026-10-27.md) diferencia piloto,
-produção e expansão; JEV/Motion permanecem candidatos de avaliação na camada IA.
-
+Preservação de arquivo não estende URL assinada, validade de fato ou janela de
+aprovação. Os critérios de publicação permanecem atuais e específicos.
 
 ## 6. Conversa e inteligência editorial
 
-F02 valida assinatura/cifra inbox, vincula remetente, aplica consentimento/plano
-e processa texto/foto/áudio/vídeo. Áudio tem consentimento, limite e adapter de
-transcrição separado. O diálogo atual reconhece intenções delimitadas por regras;
-texto desconhecido precisa revisão. A presença de LLM no pipeline não significa
-que todas as mensagens já sejam interpretadas semanticamente.
+Inbox valida assinatura e cifra; correlação atribui origem ao negócio. O
+processamento usa vínculo, acesso, aceite aplicável e controles internos.
+Transcrição tem adapter e teto diário próprios, sem checkbox separado.
 
-O adapter editorial integrado chama OpenAI Responses com JSON Schema,
-`store: false`, `tools: []`, teto de saída e baixo esforço de raciocínio.
-`gpt-5-mini` é o default configurável atual; o adapter de transcrição referencia
-`gpt-transcribe`. Isso descreve código, não modelo vencedor de benchmark ou
-aprovação comercial. A revisão P1–P14 não troca fornecedor/modelos.
+O diálogo determinístico atual reconhece intenções delimitadas; o worker local
+pode usar Jev com saída estruturada e reserva para interpretação/retrieval do
+acervo em desenvolvimento/teste. É opcional, desligado por padrão, com fontes
+revalidadas e tratamento de orçamento/resultado incerto. Não é chat geral nem
+conversa completa com memória. A comparação sintética não homologa produção.
 
-O retrieval experimental do acervo está integrado ao worker local. Não estão implementadas tools de pesquisa externa do negócio,
-skills executáveis por cliente, treinamento automático, pesquisa ampla de
-concorrentes ou schedules de proatividade. Hoje o pós-processamento restringe
-parte da direção criativa a fatos/estrutura baseline; melhorar criatividade
-com validação factual faz parte da integração BL04/BL05. Trocar de modelo
-isoladamente não encerra esse trabalho. Pesquisa futura usa fontes permitidas,
-proveniência e escopos; não inventa alcance ou faturamento de concorrentes.
+Texto editorial usa OpenAI Responses estruturada, `store: false`, sem tools,
+limites e reservas. `gpt-5-mini` é default configurável, não escolha comercial
+final; transcrição referencia `gpt-transcribe`. Trocar modelo não resolve sozinho
+a qualidade: o grounding atual restringe parte da criatividade ao baseline.
 
-Memória/contexto versionado deve alimentar evals mediante política e autorização.
-Guardar conversa não treina um modelo automaticamente; economizar tokens exige
-retrieval/briefing compacto, cache ou outra técnica medida. A geração envia só
-fontes pertinentes e no máximo uma referência do kit do formato escolhido,
-além das fotos reais necessárias. Não enviar toda a galeria.
+Não existem pesquisa ampla automática, skills executáveis por cliente,
+treinamento automático ou cadência proativa integrada. Retrieval usa somente
+fontes pertinentes do negócio. Quando necessária, no máximo uma referência de
+kit do formato escolhido, separada das fotos reais. Não enviar a galeria inteira.
 
 ## 7. Produção, revisão e publicação
 
-O percurso pretendido é pedido → briefing congelado → geração/edição → prévia
-→ ajuste ou aprovação específica → publicação → resultado. Nova peça deve usar
-IA visual/receita aprovada, com composição local como acabamento ou alternativa
-quando atingir o mesmo gate. O produto atual usa Pillow/FFmpeg para prévias
-estáticas/vídeo técnicas; IA visual só foi exercitada em ensaios isolados.
-Nenhuma receita atual está aprovada comercialmente por esses ensaios.
+Percurso pretendido: pedido → briefing congelado → geração/edição → prévia →
+ajuste ou aprovação → publicação → resultado. Pillow/FFmpeg são baseline técnico;
+nenhuma receita está aprovada comercialmente só por funcionar nos testes.
 
-O fluxo local F04.3/F06 já pode pedir proposta/prévia candidata após material,
-registrar entrega simulada e receber decisão explícita. O aceite guarda hash da
-arte, legenda, destino e horário; tudo é revalidado antes de publicação falsa.
-Silêncio não autoriza. Falta de fato confirmado pede esclarecimento; pedido de
-ajuste ainda não cria nova versão automaticamente. Não há envio real de
-candidata WhatsApp ou publicação Instagram homologados.
+Há candidata, decisão explícita e publicação simulada locais; hash do arquivo,
+legenda, destino e horário são revalidados. Ajuste ainda não regenera a peça.
+Não há envio real de candidata WhatsApp nem Instagram homologado. Silêncio,
+aceite contratual, escolha de kit ou confirmação de preço não aprovam publicação.
 
-**Fidelidade:** para representar ambiente real, partir de foto real do local;
-para representar produto real, preservar características/fontes autorizadas.
-Sem evidência, pedir material ou oferecer conceito identificado. Não inventar
-local, preço, cardápio, agenda, resultado ou imagem documental. Kit não substitui
-fontes do cliente. Avatar/voz exigem consentimento específico e orçamento.
+Para representar produto/local reais, partir de fontes reais com direito e
+preservar sua identidade. Fonte insuficiente pede informação ou conceito
+identificado; não inventar preço, agenda, embalagem ou ambiente documental.
+Roteiro de gravação e receitas de vídeo real estão em
+[vídeo e voz](design/video-real-and-voice.md); identidade sintética permanece F05.
 
-**Vídeo real e roteiro:** o cliente poderá solicitar orientação de gravação por
-WhatsApp ou receber sugestão proativa dentro da cadência aceita. Captar mãos,
-produto e ambiente reais; após o envio, oferecer original, edição leve ou motion
-como receitas separadas e submeter a versão final à aprovação. Permissões, limites,
-custos e canal determinam elegibilidade. Voz sintética é uma hipótese distinta,
-com consentimento específico e liberação comercial somente na F05 posterior ao
-piloto. Ver [plano de vídeo real e voz](design/video-real-and-voice.md).
-Para motion com mídia real, HyperFrames e Remotion são candidatos a comparação
-posterior; a [avaliação de licenças e POC](design/video-tool-candidates-2026-10-27.md)
-não implica implementação. A licença dos pesos do VoiceStudio precisa ser
-validada para uso comercial, e voz continua após o piloto.
+### Alterações e continuidade aprovadas
 
-A execução e os limites da fase ativa estão no [SDD BL04](phases/BL04-context-and-ai-production.md). Em desenvolvimento/teste, o worker pode usar Jev sob o aceite único do serviço, reserva financeira e snapshots revalidados; permanece desligado por padrão. Bloqueio de orçamento antes de submissão tem retomada segura e limitada; respostas incertas não são reenviadas. Esclarecimentos usam entrega local simulada; prévias com esse briefing são apenas simuladas e a geração real está bloqueada. A [comparação Jev/OpenAI](evals/intent-comparison-2026-10-27.md) não prova conversa com memória nem homologação comercial. A oferta inicial de R$ 99 admite foto e story, sem franquia de quantidade definida; vídeo e planos adicionais ainda serão definidos. O nome versionado de um item ativo pode fundamentar o roteiro, sem converter preço ou oferta em fato nem criar registro artificial no contexto do negócio.
+- C06/C07: mudanças de kit/foto/contexto aguardam criações admitidas, cancelam
+  fila ainda não iniciada e bloqueiam novas admissões até aplicar a mudança.
+  A prévia anterior fica para revisão, identificada como anterior à alteração.
+- C08: vencimento do plano não interrompe criação já iniciada nem impede revisar
+  sua prévia; novas criações e publicação ficam bloqueadas até renovar.
+- C09: preservar prévias enquanto a conta estiver ativa, incluindo proveniência
+  suficiente para revisão. O prazo após encerramento da conta fica em P03.
+- C10: só staff pode recuperar pendência cujo autor perdeu acesso, com ação
+  registrada, sem assumir a identidade dele ou conceder acesso geral à mídia.
 
-A retirada de autorização visual bloqueia novos inícios, cancela logicamente
-trabalhos ainda na fila e aguarda os trabalhos já admitidos. O estado pendente
-é apresentado ao cliente; prévias concluídas durante a pendência permanecem
-visíveis. Processos com conclusão incerta exigem verificação. O gate está ligado
-ao fluxo simulado; integração e garantias para o provedor real ainda faltam.
+**Estado atual:** C06/C07 têm cobertura parcial no modo simulado. C08/C09/C10
+não estão implementados de ponta a ponta; plano e expiração ainda afetam
+conclusão/leitura e há limpeza por prazo. Retirada de consentimento por
+fornecedor permanece somente como compatibilidade legada para negócios sem o
+contrato; não é um novo fluxo de produto a desenvolver para quem aceitou C01.
 
-A BL04.2 usa o aceite único do serviço e preparação de fontes com kit,
-foto de WhatsApp e fotos do acervo, com verificações e minimização de metadados.
-Um caminho de teste gera apenas uma imagem marcada como simulação e exercita
-reserva, fence, prévia privada e decisão. A reserva e o fence estão ligados na
-mesma transação, mas a validação das fontes usa outra sessão; isso ainda não
-autoriza uma chamada real. A [proposta de atomicidade](design/BL04-atomicity-proposal.md)
-registra a alteração de segurança pendente. A geração visual continua desligada
-por padrão e sem qualidade ou custo comercial comprovados.
+### Integração visual pendente
 
-O [ensaio sintético isolado](evals/bl042-guarded-synthetic-feed-2026-10-27.md)
-fez uma chamada real com fixture fictícia, foto CC0 e hold local; não usa o
-worker de clientes. O acabamento de marca é aplicado no worker simulado; o
-executor do provedor real permanece isolado. Eles não autorizam envio real nem
-demonstram margem ou qualidade comercial. O workflow de geração visual possui
-uma única tentativa e prazos próprios; ainda não está registrado no worker nem
-conectado ao dispatcher ou à guarda real.
-Decisão de 28/10: quando o cliente solicitar alteração de kit, foto ou contexto
-enquanto há criação em andamento, registrar a solicitação como pendente, cancelar
-os trabalhos ainda não iniciados e impedir novos inícios até os processos em
-andamento terminarem e a mudança ser aplicada. A prévia concluída antes da mudança
-permanece disponível para revisão e é identificada como criada antes da alteração;
-sua publicação permanece sujeita a direitos e aprovação. O modo simulado cobre
-parcialmente contexto editorial, catálogo, confirmação de kit e inclusão/alteração/exclusão de
-fotos do acervo. Outros escritores, a limpeza física automática de objetos e
-pedidos de outro proprietário ainda têm lacunas. O efeito externo real permanece
-condicionado a autorização, recuperação e controle de fontes.
-O autor pode descartar um upload incerto após vencer a reserva, liberando o
-negócio e mantendo a chave privada em quarentena; a limpeza física automática e
-a recuperação por outro proprietário permanecem pendentes. Provas persistidas
-distinguem novos PUTs de tentativa única de registros legados. A atualização
-exige drenagem e avaliação de órfãos legados antes do uso.
-Materiais associados ao negócio são preservados sem prazo automático, e a API
-recusa sua exclusão para todos os tipos; fotos desatualizadas do acervo continuam
-removíveis. A interface também retira a exclusão dos envios. A inbox mantém limpeza de
-eventos descartados, não atribuídos e status técnicos; a migration 0058 requer
-implantação coordenada e bloqueia claims de exclusão anteriores não resolvidos.
-Ver [preservação de materiais](design/BL04-whatsapp-durable-materials.md). Isso não
-define a política geral de prévias, dados após encerramento da conta ou descarte
-técnico de uploads incompletos.
+Preparação de fontes, normalização de cópias, adapter, reserva/fence, ledger e
+acabamento existem; o fluxo do cliente gera apenas `visual_fake` privado e
+identificado. Os ensaios reais foram isolados. `VisualGenerationWorkflow` tem
+prazos e tentativa única testados, mas não está conectado ao dispatcher/worker
+ou à guarda real. A API persistida só aceita modos `local` e `visual_fake`.
 
-**Gate BL04 por receita:** fontes/direitos válidos, texto/preço/CTA corretos,
-fidelidade a produto/local, acabamento e legibilidade no celular, avaliação
-consentida do titular e custo por peça aceita incluindo rejeições/refações.
-Só depois automatizar comercialmente a receita. Revisão de exemplo sintético
-não é aceite de um negócio real. Ver [qualidade criativa](design/creative-production-quality.md).
+Fontes/aceite e reserva ainda atravessam transações/roles diferentes. Completar
+coordenação e recuperação antes do efeito real, sem manter locks durante IO.
+Propostas antigas de grants/holds e exclusão WhatsApp são históricas, não
+solução aprovada. Detalhes e testes da próxima fatia estão na
+[BL04](phases/BL04-context-and-ai-production.md).
+
+Gate BL04.3: titular avalia post/story novos no celular, com fontes consentidas,
+texto/preço/CTA exatos, legibilidade, identidade e fidelidade a produto/local.
+Contar rejeições, refações, todas as tentativas e custo por peça aceita. Uma
+amostra fictícia isolada não encerra o gate comercial.
 
 ## 8. Consistência, falhas e rastreabilidade
 
-- Chave durável por operação/evento, unicidade e replay validado por payload.
-  Transações curtas com auditoria; quando existe efeito assíncrono, job/outbox
-  persistente apropriado ao domínio na mesma transação. Não criar recibos
-  assíncronos sem consumidor de negócio.
-- CAS/versão e lease/fencing conforme recurso impedem gravação por execução
-  vencida; locks não são usados para manter chamada externa aberta.
-- Retry limitado por erro e fornecedor. Resultado externo ambíguo permanece
-  incerto até consulta/reconciliação, sem prometer exactly-once entre sistemas.
-- Consentimento, acesso, fontes e aprovação são revalidados antes do efeito.
-  Cancelamento/revogação não apagam o histórico nem autorizam efeito tardio.
-- Logs JSON usam eventos e campos permitidos, correlação por IDs e redaction.
-  Audit e ledger são dados duráveis; segredos e material privado não entram
-  em stdout, git, imagem Docker ou relatório de teste.
-- `billing_outbox` é retirado pela migração nova `0038`, com preservação de
-  eventos faltantes em `billing_audit`. `billing_jobs` e reconciliação ficam.
-  As tabelas de outbox/processed genéricas e handlers legados ficam em P14;
-  nenhum histórico é apagado nesta simplificação.
+Identidade durável por operação/evento, replay validado pelo payload, transações
+curtas e auditoria; efeitos assíncronos exigem job/outbox do domínio na mesma
+transação. CAS, lease e fence impedem confirmação por execução vencida.
 
-Regras específicas de cada recurso prevalecem sobre uma garantia genérica de
-saga/compensação. Contratos detalhados em [consistência](design/v0-consistency-observability.md)
-e [resiliência](design/v0-reliability.md).
+Retries são limitados por efeito e fornecedor. Resposta perdida, timeout,
+cancelamento ou lease expirada não provam que o efeito externo terminou e não
+autorizam segunda cobrança/publicação. Manter estado incerto e reserva até uma
+reconciliação segura. Auditoria/ledger são dados duráveis; logs usam eventos e
+campos permitidos, sem segredos, prompts ou material privado.
+
+`billing_jobs` e auditoria financeira permanecem. A migration 0038 retirou apenas
+a outbox financeira sem consumidor, preservando evidência. Tabelas/handlers de
+recibos genéricos seguem por compatibilidade. Não criar outro runner Temporal.
 
 ## 9. Custos, planos e recomendação
 
-Reservar quota/custo atomicamente antes da primeira chamada paga; idempotência
-protege a reserva e o lançamento. O que existe hoje cobre limites, reservas e
-tokens editoriais, além de controles por capacidade. Reserva não é custo
-monetário. Faltam tarifas versionadas, todos os efeitos do percurso e COGS
-operacional medido para demonstrar margem do plano.
+Reservar quota/custo atomicamente antes do envio pago, com identidade de
+operação e orçamento configurado. Reserva, token observado, estimativa e custo
+faturado são dados distintos. Há controles por capacidade, teto visual por
+negócio/tenant e agregado OpenAI, com alcance limitado ao ledger que os usa.
+Isso não limita toda a fatura externa nem cobre automaticamente outros adapters.
 
-R$ 99/mês é hipótese; R$ 50 é teto mensal total pretendido por cliente, incluindo
-IA, mídia, mensageria, cobrança, infraestrutura, tentativas e custos atribuídos.
-Avaliar por **peça aceita**, não só preço nominal da chamada. Referência visual
-pode reduzir erro/refação; não implica tarifa menor por chamada. Modelos, kits e
-rotas só mudam com benchmark e perfis/contratos atualizados.
-
-O plano limita volume por formato/canal. A plataforma recomenda cadência dentro
-desse limite, explica evidência e permite aceitar, reduzir ou pausar. Não
-configurar hoje uma promessa ilimitada de posts por dia. Cadência automática,
-franquia comercial e relatórios semanais ainda precisam de implementação.
-Ver [cadência e planos](design/editorial-planning-and-evidence.md).
+R$ 99/mês e teto desejado de R$ 50 de custo total por cliente/mês orientam a
+medição, incluindo IA, mídia, mensageria, cobrança, tentativas, infraestrutura e
+custos atribuídos. Faltam tarifas versionadas/COGS completo e franquias por
+formato/revisão. Plano limita volume; recomendação de cadência deve ficar dentro
+dele, com evidência e pausa. Não prometer posts ilimitados ou vendas causais.
 
 ## 10. Superfície de APIs e integrações
 
-Contratos detalhados e schemas ficam na API/Swagger e no SDD da fase. Os grupos
-abaixo já existem localmente; isso não homologa o fornecedor externo.
+Prefixo de negócio: `/api/v1/organizations/{tenant_id}/businesses/{business_id}`.
+Schemas/Swagger e SDD da fase detalham payloads; existência de rota não homologa
+fornecedor ou torna todo controle uma etapa da interface.
 
-| Grupo | Rotas/contrato |
+| Grupo | Contratos existentes |
 | --- | --- |
-| Identidade | `/api/v1/auth/*`, `/session`, `/me`, `/onboarding`; Origin e CSRF conforme operação; onboarding transacional/idempotente, sem ativação paga. |
-| Negócios | `/api/v1/businesses`, referência de estados/cidades, administração auditada; Bearer, tenant e membership. |
-| WhatsApp | `/api/v1/webhooks/whatsapp`; por negócio `whatsapp-link`, `whatsapp-materials`, `editorial-conversation`. |
-| Contexto | Por negócio `editorial-context`, histórico/restauração e consentimento de IA. |
-| Acervo | Por negócio `catalog`, histórico/versionamento e `collection/photos`, owner-only; cópia autorizada de foto WhatsApp e URL temporária. |
-| Kit | Por negócio `brand-kit`, draft/confirm/history e logo privado, owner-only. |
-| Conteúdo | Por negócio `editorial-proposals`, versões/roteiro, `media-previews`, `content-deliveries` e decisão. |
-| Cobrança/operadores | Stripe webhook/jobs/reconciliação, assinatura/patrocínio, oportunidades admin e convites staff/MFA. |
-| Aceite do serviço | Por negócio `GET/POST service-agreement`, com versão/hash e aceite explícito; necessário antes de criar checkout. |
+| Identidade | `/api/v1/auth/*`, sessão, perfil e onboarding; Origin/CSRF conforme a operação. |
+| Negócios | Cadastro, referência de municípios/UF e administração auditada. |
+| Contratação | `GET/POST service-agreement`; billing, checkout, webhook Stripe, patrocínio e reconciliação. |
+| WhatsApp | Webhook assinado; vínculo, histórico, conversa e transcrição configurável. |
+| Contexto/acervo/kit | Contexto versionado; catálogo, fotos privadas, draft/confirm/history de kit e logo. |
+| Conteúdo | Propostas/roteiros, prévias, entregas e decisão da candidata. |
+| Staff | Convites/MFA, cobrança e projeções operacionais limitadas e auditadas. |
 
-O prefixo por negócio é
-`/api/v1/organizations/{tenant_id}/businesses/{business_id}`.
-A preservação dessas APIs não as torna todas etapas visíveis para o cliente.
-
-| Integração | Situação |
-| --- | --- |
-| Stripe | Adapter implementado, disabled/test/live separados; sandbox local exercitado, produção/staging pendentes. |
-| SMTP/Mailpit | E-mail HTML com alternativa texto; captura local. Operação real precisa configuração. |
-| Twilio Verify | Adapter de verificação implementado, SMS padrão; credenciais/homologação por ambiente. |
-| Meta WhatsApp | Adapters de entrada/envio implementados em fatias; conta real e percurso completo não homologados. |
-| OpenAI texto/áudio | Adapters integrados com gates de consentimento/quota; não inclui IA visual no produto. |
-| IA imagem/vídeo, avatar, pesquisa/Places | Planejados/candidatos com eval; não integrados por constarem nos designs. |
-| Instagram | Aprovação/publicação falsa local; OAuth/publicação/métricas reais pendentes. |
-| AWS/Redis/CDN | Destino de infraestrutura/evolução; não serviços de produção ativos nesta entrega. |
-
-O ledger visual inclui teto mensal agregado de reservas OpenAI, além do teto
-por tenant. É um controle interno baseado em estimativas, não um limite de fatura
-ou de outras chamadas fora do ledger. A migração `0049` cria apenas o agregado;
-o envio visual real segue bloqueado até os gates de fontes e recuperação estarem
-integrados e comprovados.
+Stripe tem adapter sandbox exercitado; produção/staging pendentes. SMTP/Mailpit
+captura e-mails localmente. Twilio depende de configuração/homologação por
+ambiente. Meta/Instagram reais e IA visual no worker ainda faltam. AWS/Redis/CDN
+não são serviços comerciais ativos só por constarem no desenho.
 
 ## 11. Sequência e condições de liberação
 
-**BL02/BL03.1–BL03.2 locais → BL04 recuperação + peça nova aprovada → BL05 jornada
-local e proatividade → BL06 expansão.** Não ampliar catálogo antes de provar a
-reaplicação do primeiro kit. F00–F08 continuam organizando contratos transversais;
-a trilha BL define a prioridade de produto vigente.
+BL01/BL02 e BL03.1/BL03.2 locais → BL04.2 coordenação/C08/C09/C10 e integração
+visual → BL04.3 qualidade/custo → BL05 jornada, ajuste e proatividade → expansão.
+BL03.3 importa cardápio depois; BL06 amplia nichos/CDN depois de provar reaplicação.
 
-O piloto real exige receita com qualidade/custo aceitos, material consentido,
-franquia/orçamento, Meta oficial homologada, staging, observabilidade, suporte e
-recuperação. A Meta pendente não bloqueia implementar/testar localmente com
-mocks; bloqueia afirmar uso real homologado. Escala de 200 mil clientes exige
-capacidade gradual e teste, não mais features sem validação.
+Piloto exige receitas aprovadas, material consentido, franquia/orçamento,
+Meta oficial, staging, observabilidade, suporte e recuperação. Avatar/voz ficam
+após o primeiro piloto. A meta de 200 mil clientes orienta testes graduais de
+capacidade, não comprova escala. P03 foi adiado pelo proprietário; P05 depende
+de medição. Não inventar prazo de exclusão pós-encerramento ou quantidade do plano.
 
 ## 12. Qualidade e governança
 
-Gate backend: Ruff/formatação, mypy, unitários e integração PostgreSQL/Temporal,
-**100% de linhas e branches**, sem excluir módulos produtivos para elevar
-cobertura. Integração indisponível falha; não vira skip silencioso. Banco de
-testes é dedicado e termina em `_test`, com logins restritos; nunca limpar banco
-da aplicação. Testes usam `TEST_*` com precedência do processo sobre `.env.test`
-e `.env.test.example`. A web mantém gates próprios de teste/build/navegador.
+Backend: Ruff/formatação, mypy, unitários e integração PostgreSQL/Temporal, com
+100% de linhas e branches, sem exclusões produtivas artificiais. Web: TypeScript,
+formatação, testes/build e jornadas de navegador, com 100% nos quatro critérios.
+Banco de teste dedicado termina em `_test`, com runtime restrito; nunca limpar
+ou migrar o banco da aplicação para testes. Falta de serviço falha, não vira skip.
 
-GitHub Actions configura CI e deploy manual por OIDC/ECR/ECS; isso não provisiona
-AWS nem comprova deploy comercial. OIDC do CI é independente da auth dos usuários.
-P10–P12 retiram apenas helper/seed/volume sem uso aprovados, preservando dados;
-P13 consolida documentos; P14 mantém compatibilidade dos recibos históricos;
-P15 posiciona F05 depois do primeiro piloto comercial, sem executá-la.
+Última evidência de aplicação: 1.583 testes backend e complemento de 24 com sete
+casos novos, cobertura final 100%; web com 360 testes/cobertura integral, build e
+três jornadas Chromium. Ver [CHANGELOG](CHANGELOG.md). A revisão documental atual
+valida coerência, links e snapshots; não é nova homologação de runtime ou rede.
 
-QA local progressivo, os três cenários fictícios e os passos ainda não disponíveis
-estão no [guia de QA](evals/manual-qa-negocios-ficticios.md). OpenCode é candidato
-para investigação, sem substituir telemetria do produto ou autorização de efeitos.
-
-Em cada entrega: atualizar PROJECT, este SDD, fase e CHANGELOG com decisão,
-validação e pendências. Nova dúvida de produto/remoção/modelo exige decisão
-explícita antes de implementar. Registrar evidência datada em eval/changelog,
-sem repetir estados antigos no resumo vigente.
-
-Leitura detalhada: [fases](phases/README.md), [biblioteca visual](design/brand-library.md),
-[contexto/geração](design/business-context-and-generation.md),
-[qualidade criativa](design/creative-production-quality.md),
-[auth](design/native-auth.md), [cobrança](design/billing.md),
-[tenancy](design/v0-tenancy.md), [operações](operations.md) e
-[auditoria aprovada](audits/product-flow-and-ai-2026-10-27.md).
-Rascunhos de arquitetura mais antigos permanecem como contexto histórico;
-este documento e a fase ativa prevalecem em conflito.
+Em cada entrega, atualizar PROJECT, SDD, fase e CHANGELOG. Decisões novas entram
+em DECISIONS; distinguir decisão aceita, código implementado e homologação.
+Registros datados e alternativas rejeitadas são preservados com seu contexto.
+Não remover dados, tabelas, migrations ou proteções por inferência editorial.

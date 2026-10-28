@@ -1,6 +1,6 @@
 # Cadência, planos e recomendações explicáveis
 
-Atualizado em 27/10/2026. Estado: decisão de produto; franquias, preços finais e
+Atualizado em 28/10/2026. Estado: desenho de produto; franquias, preços finais e
 recomendador ainda **não implementados**. Complementa [BL01–BL06](../phases/BL-brand-library.md),
 [F03](../phases/F03-editorial-research.md) e [F07](../phases/F07-billing-reports.md).
 
@@ -23,17 +23,23 @@ franquia/formatos ou mudar preço antes de prometer a frequência. Vídeo e avat
 têm custos diferentes de uma foto, portanto não equivalem automaticamente a
 “um post”.
 
-Na UI, apresentar “até N publicações por mês” e a composição por formato, sem
-exigir que o cliente entenda créditos. No backend, `plan_entitlements` registra
-quantidade por formato, canais, revisões incluídas e teto de gasto. Uma peça
-final aprovada conta uma vez na franquia criativa; variações por canal e envio
-têm limites separados quando causarem custo. Retentativas idempotentes não
+Proposta para F07, sem quantidade aprovada: na UI, apresentar “até N publicações
+por mês” e a composição por formato, sem exigir créditos técnicos. No desenho
+futuro, `plan_entitlements` registraria
+quantidade por formato, canais, revisões incluídas e teto de gasto. A regra
+proposta de uma contagem por peça final e limites distintos por variação/canal
+ainda precisa ser especificada e validada em F07 com os custos medidos. Retentativas idempotentes não
 contam duas vezes. Falha da plataforma não vira publicação entregue, embora seu
 custo apareça no ledger interno. Orçamento interno e reservas impedem que muitas
 tentativas de IA consumam margem sem alertar a operação. Cancelamento,
 expiração, replay e troca de plano precisam de regras e testes na F07.
 
-## Jornada “próximo, próximo, concluir”
+O [registro atual](../DECISIONS.md) confirma foto/story iniciais, sem franquia de
+quantidade fechada. A regra de conclusão/revisão após vencimento do plano, retenção
+de prévias enquanto conta ativa e recuperação restrita/auditada por staff ainda
+precisa ser implementada. Cadastro/plano não substituem o aceite único de IA.
+
+## Jornada “próximo, próximo, concluir” — proposta futura de cadência
 
 1. **Seu negócio:** aproveitar segmento, localização, serviço/produto, agenda e
    informações já confirmadas; pedir só o dado que bloqueia uma proposta útil.
@@ -129,3 +135,5 @@ análise automática por raio.
 - **F03 pesquisa avançada:** curar referências por nicho/região e integrar
   somente fontes permitidas; ampliar a biblioteca com padrões auditáveis,
   depois de validar ganho sobre o baseline sem concorrentes.
+
+Versão anterior à reconciliação: [snapshot integral de 28/10/2026](../history/2026-10-28-pre-documentation-reconciliation/design/editorial-planning-and-evidence.md).

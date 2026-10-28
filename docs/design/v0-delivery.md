@@ -1,259 +1,72 @@
-# v0 — Repositórios, infraestrutura e execução
+# Entrega — repositórios, infraestrutura e gates
 
-**Decisão P15 — 27/10/2026:** avatar/voz do próprio cliente permanecem no
-produto, na F05 **após o primeiro piloto comercial**, com consentimento,
-qualidade PT-BR e orçamento próprios. Não são requisito de aceite desse piloto,
-que primeiro valida imagens, vídeos com material real, aprovação/publicação e
-custo. As receitas e contratos de avatar abaixo descrevem a evolução completa,
-não uma integração já entregue nem obrigação do primeiro piloto.
+Reconciliado em **28/10/2026**. [PROJECT](../PROJECT.md), [SDD](../SDD.md) e
+[fases](../phases/README.md) definem estado e ordem vigentes. O plano v0 anterior
+continua no snapshot; seus nomes de módulos/rotas/serviços eram propostas.
 
-Data: 20/10/2026. Nome adotado: Meu Braço Direito; repositórios com prefixo `meu-braco-direito-`.
-Documentação de [arquitetura](v0-architecture.md), [APIs](v0-integrations.md) e
-[resiliência](v0-reliability.md) define o contrato da v0.
-O complemento de [inteligência editorial](v0-intelligence.md) acrescenta pesquisa,
-referências locais e avaliação de Jev ao escopo e aos critérios abaixo.
-O contrato de [consistência e observabilidade](v0-consistency-observability.md)
-define as garantias transacionais e os testes de concorrência exigidos desde M0.
+## Repositórios e organização
 
-## 1. Repositórios propostos
+`local-spark-platform` contém FastAPI, serviços, adapters, schemas, migrations,
+workers/dispatchers e Temporal. Seguir `app/core`, `app/api/v1`, `app/schemas` e
+`app/services`; não importar pacotes/credenciais privados do Spotlight nem criar
+schema por tenant. `local-spark-web` contém React/TypeScript. Infraestrutura
+separada continua uma fronteira prevista, sem presumir repo provisionado/deploy.
 
-| Repositório | Responsabilidade | Deploys |
-| --- | --- | --- |
-| `local-spark-platform` | Domínio, API, workers Python, workflows, integrações, templates e migrações | API, relay, workflow worker, IO worker, media worker e maintenance |
-| `local-spark-web` | Cadastro complementar, OAuth/consentimento, revisão e console operacional | Web React/TypeScript, possivelmente dois entrypoints |
-| `local-spark-infra` | Rede, IAM, serviços gerenciados, ECS, observabilidade, secrets refs, pipelines e ambientes | Infraestrutura de dev/staging/prod |
+API, dispatchers, workers de IO/mídia e cobrança podem escalar separadamente sem
+virar microserviço por etapa. Temporal é o coordenador dos mesmos workflows,
+sem Celery/RabbitMQ/runner paralelo. Redis é candidato futuro, sem dependência
+local ativa. A documentação de operação é [operations](../operations.md) e o
+ambiente local é descrito no [README](../../README.md).
 
-Não criar repositório por função técnica como “transcrição” ou “legenda”: são etapas
-do mesmo domínio de produção. Código de render pode ter imagem própria no mesmo
-repo. Separar repository, deployment e serviço de domínio são decisões diferentes.
-Não criar dezenas de serviços com contratos de rede antes de precisar dessa fronteira.
+## Ambientes e gates
 
-Documentação e ADRs são do `local-spark-platform`; infra mantém runbooks operacionais e
-web mantém decisões de UX. Exportar OpenAPI do backend no CI e gerar cliente tipado
-no frontend, sem copiar DTOs manualmente. Não é necessário repo de shared contracts
-no início. Release do cliente gerado usa artefato versionado e teste de compatibilidade.
+- Desenvolvimento local usa serviços locais e fixtures sintéticas. Testes de DB
+  só usam base dedicada terminada em `_test`, com logins runtime restritos;
+  não limpar/migrar base de usuário para executar suíte.
+- IA paga, API pública/paga, publicação e identidade exigem credenciais e teto
+  explicitamente configurados para a execução. CI não chama provedores pagos.
+- Staging/AWS, HTTPS, segredos/IAM, storage privado, observabilidade e alertas
+  ainda precisam ser provisionados/homologados. Workflow de deploy não é deploy.
+- Backup/restauração precisam cobrir PostgreSQL, objetos e execuções Temporal,
+  com reconciliação de efeitos externos. Backup SQL isolado não cobre todo o produto.
+- Capacidade cresce por medição/coortes; autoscaling sem admissão pode multiplicar
+  gasto, 429 e fila. Meta de 200 mil clientes não demonstra escala já atendida.
 
-### Estrutura do backend
+O backend exige Ruff/formatação, mypy e testes unitários/integração PostgreSQL/
+Temporal com 100% linhas/branches, sem excluir módulos produtivos. Web exige
+tipos, testes, cobertura integral, build e navegador para jornadas significativas.
+Mudança só documental é verificada por coerência, links e diff, sem declarar nova
+execução de CI. Não confundir validação histórica com suíte atual.
 
-```text
-local-spark-platform/
-  pyproject.toml
-  uv.lock
-  compose.yaml
-  docker/
-    api.Dockerfile
-    worker.Dockerfile
-    media.Dockerfile
-  src/meu_braco_direito/
-    entrypoints/
-      api/
-      event_relay/
-      workflow_worker/
-      io_worker/
-      media_worker/
-      maintenance/
-    domains/
-      identity/
-      tenancy/
-      businesses/
-      conversations/
-      content/
-      avatars/
-      publishing/
-      proactive/
-      research/
-      competitive_intelligence/
-      analytics/
-      billing/
-      support/
-    application/
-      commands/
-      queries/
-      ports/
-    workflows/
-      ingestion.py
-      production.py
-      publication.py
-      enrollment.py
-      proactive.py
-      reports.py
-      research.py
-      editorial_planning.py
-      deletion.py
-      activities/
-    adapters/
-      persistence/
-      meta/
-      openai/
-      heygen/
-      runway/
-      tavily/
-      places/
-      typesafe/          # candidato, ativado após avaliação
-      stripe/
-      storage/
-      provider_protection/
-    media/
-      recipes/
-      renderer/
-      subtitles/
-      templates/
-    contracts/
-    observability/
-  migrations/
-  tests/
-    unit/
-    integration/
-    contracts/
-    workflows/
-    replay/
-    failure_recovery/
-    load/
-  evals/
-  docs/
-```
+## Sequência concreta
 
-Diretórios são fronteiras propostas; no bootstrap criar apenas arquivos usados.
-Domínio não importa FastAPI, SDK de IA ou boto3. Entry points não contêm regra de
-saldo/aprovação. Workflows invocam activities; activities chamam application services
-e adapters. Teste automatizado de import boundaries evita acoplamento acidental.
+1. Reconciliar documentação e decisões; implementar a coordenação BL04.2 com
+   mocks, fontes/contrato/acesso/fence/budget, recuperação e todos os escritores.
+2. Adequar retenção/acesso de prévias: preservar enquanto conta ativa; criação
+   admitida termina após vencimento do plano e continua revisável, sem novos
+   trabalhos/publicação até renovação. Só staff recupera autor sem acesso, com
+   ação auditada; esse caminho ainda precisa existir.
+3. Conectar guarda, modo real e workflow visual separado depois de provar os
+   gates. BL04.3 mede fidelidade, qualidade e custo por peça aceita com refações.
+4. BL05 fecha WhatsApp simulado, ajuste versionado, aprovação/publicação falsas
+   e proatividade mínima. Hoje solicitar ajuste ainda não regenera automaticamente.
+5. Homologar WhatsApp/Instagram oficiais; fechar franquias/custos F07, staging,
+   recuperação/suporte F08 e piloto acompanhado com as receitas aprovadas.
+6. BL03.3/imports, BL06/expansão de kits, pesquisa avançada e outros canais seguem
+   o [roadmap](delivery-roadmap-2026-10-27.md). Avatar/voz ficam após o piloto.
 
-## 2. Infraestrutura e ambientes
+Esta ordem permite trabalho local enquanto Meta não foi homologada, sem alegar
+jornada oficial concluída. Plano inicial contempla foto/story; quantidades dependem
+de medição e vídeo exige decisão comercial própria. Retenção após encerramento
+da conta será decidida em sua fase, sem descarte automático criado nesta revisão.
 
-Dev local: Compose com PostgreSQL, Redis, Temporal de desenvolvimento, API e workers;
-storage S3 compatível local e adapters fake. Mock é padrão sem chave; teste real
-usa ambiente explícito e teto financeiro. Não incluir RabbitMQ ou Celery.
+## Rollout de mudanças duráveis
 
-Staging: credenciais/apps de teste, dados sintéticos ou autorizados, contas sociais
-separadas, serviços parecidos com produção. Sem publicar por engano em conta real
-de cliente. Produção: domínios e apps aprovados, segredos e dados isolados.
+Executar migrations aditivas com inventário/backup e versões compatíveis; tratar
+claims incertos sem presumir conclusão por lease. Não misturar código antigo que
+apaga materiais com 0058 durável. Quarentena/upload têm seu [procedimento](BL04-quarantine-rollout.md).
+Workflows ativos precisam replay representativo e versionamento/patching antes
+de deploy. Reverter imagem não prova replay compatível; restaurar base antiga
+pode perder dados novos e duplicar efeitos externos sem reconciliação.
 
-```mermaid
-flowchart TB
-    IN[Internet / Meta / fornecedores] --> ALB[ALB HTTPS]
-    ALB --> API[ECS API em múltiplas AZs]
-    CF[CDN e web] --> ALB
-    API --> DB[(RDS PostgreSQL privado)]
-    API --> SEC[Secrets Manager e KMS]
-    REL[ECS relay] --> DB
-    REL --> TC[Temporal Cloud com TLS]
-    TC --> WW[ECS workflow workers]
-    TC --> IW[ECS IO workers]
-    TC --> MW[ECS ou Batch media workers]
-    IW --> DB
-    IW --> RED[(ElastiCache Redis)]
-    IW --> EXT[APIs externas]
-    MW --> S3[(S3 privado)]
-    API --> S3
-    LOG[Logs, métricas e traces] --- API
-    LOG --- IW
-    LOG --- MW
-```
-
-Temporal workers iniciam conexões de polling ao serviço; setas representam dependência
-lógica, não abertura de porta de entrada nos workers. Segurança de rede deve refletir isso.
-
-Produção começa com capacidade adequada ao piloto e HA para o SLA assumido:
-
-- API e workers de workflow/IO com réplicas em mais de uma AZ.
-- RDS Multi-AZ, backups/PITR e pool de conexões; roles sem bypass de tenant.
-- Redis privado com HA quando exigido pelo SLA; plano de reconstrução após perda.
-- S3 com criptografia, lifecycle e acesso por IAM de tarefa, sem credencial estática.
-- URLs para mídia de fornecedores com validade suficiente e acesso mínimo necessário.
-- Egress previsível, NAT/endpoints S3 e custos de transferência explicitamente modelados.
-- Render isolado, limites de recursos e sem acesso a secrets do publish worker.
-- Tokens de fornecedores acessíveis apenas ao pool que precisa deles.
-- Temporal namespace/certificados ou API auth por ambiente, permissões mínimas e codec
-  de payload quando aplicável. Conferir região, retenção, quotas e custo contratado.
-
-AWS Batch é alternativa para render pesado; se adotado, a activity submete job, salva
-job ID e consulta com timers/heartbeats adequados. Não lançar subprocesso pesado sem
-limites dentro de container web. Definir ECS vs Batch no benchmark de render.
-
-## 3. Contratos de backend adicionais
-
-Manter rotas de negócio da v0.1, atualizando o executor para Temporal e adicionando:
-
-| Rota proposta | Comportamento |
-| --- | --- |
-| GET/PATCH /v1/businesses/{id}/proactive-preferences | Frequência, horários, reuso, orçamento e consentimento de mensagens |
-| GET /v1/content-ideas | Ideias, fatos usados e status de cada prévia |
-| POST /v1/content-ideas/{id}/dismiss | Rejeitar sugestão e motivo opcional |
-| GET /v1/operations/{id} | Etapa, estado de negócio e erro sanitizado |
-| POST /v1/operations/{id}/reconcile | Comando operacional autorizado, sem retry cego |
-| GET /v1/provider-capabilities | Formatos disponíveis para conta/plano, com motivos |
-| POST /v1/support/operations/{id}/retry | Retry de etapa elegível e auditada |
-| POST /v1/support/providers/{id}/pause | Pausa operacional autorizada por escopo |
-
-No HTTP, `202` significa aceito, não publicado. Retornar operation_id e status_url.
-Suporte só vê tenants autorizados e recebe payloads sanitizados. OAuth state, links
-de aprovação e callbacks são autenticados e deduplicados. Idempotency-Key vincula
-ator, tenant, rota e hash; payload diferente com mesma chave gera conflito.
-
-## 4. CI/CD e qualidade
-
-Backend: Ruff, type checking, pytest, testes reais de DB/RLS, contratos de adapters,
-workflows com timers acelerados, replay e testes de falha. Lock de dependências,
-SBOM/scan de imagem e segredos. Modelos/templates têm versão, evals e rollback.
-Não rodar geração paga em todo PR; reservar suíte explícita com limites e assets consentidos.
-
-Migrações expand/contract para compatibilidade entre API e workers. Uma pipeline
-de migração com role específica; não cada réplica rodando Alembic no startup.
-Release identifica SHA, schema, versão de workflow, SDKs e template/model profiles.
-Retirar workers antigos só quando os workflows compatíveis puderem continuar.
-
-Web: tipos, lint, testes das jornadas críticas de conexão/aprovação/consentimento
-e smoke de acessibilidade. Infra: format/validate/plan, análise de IAM e detecção
-de drift. Publicação de infraestrutura paga é uma etapa concreta posterior ao review.
-
-## 5. Plano de entrega da v0 completa
-
-| Marco | Entrega | Critério verificável |
-| --- | --- | --- |
-| M0 | Repos, Compose, auth, tenancy/RLS, inbox/outbox e Temporal | Queda/restart não perde comando nem cruza tenant |
-| M1 | WhatsApp, biblioteca, áudio/texto e briefing | Material agrupado, fatos ambíguos confirmados e trace por operação |
-| M2 | Qualidade das primeiras receitas de arte e vídeo com material real autorizado | Peças imutáveis; revisão factual/criativa/visual com comerciantes, aceite, correções e custo por peça medido antes de habilitar cada receita no piloto |
-| M3 | Candidata pelo WhatsApp e aprovação/publicação simulada | Cliente recebe uma versão específica sem depender da web; aceite explícito, pedido de ajuste, falha, timeout e recibo não geram postagem indevida |
-| M4 | WhatsApp e Instagram oficiais para as receitas aprovadas | Permissões, mídia, estados externos e publicação confirmada por smoke real antes de atender clientes; timeout e reauth tratados |
-| M5 | Demais formatos, avatar/voz/cenas geradas e planejamento proativo | Cada nova receita passa por gate próprio de qualidade, direitos e custo; pesquisa tem fontes/políticas, opt-in, aprovação e expiração sem publicar |
-| M6 | Franquias, assinatura, concessão e relatório | Saldo concorrente correto, custo real, término transparente e métricas reproduzíveis |
-| M7 | Console, segurança, recovery, carga e replay | Equipe resolve falhas sem editar DB; SLO comprovado na carga declarada |
-
-Spikes de API/qualidade começam cedo e acompanham cada receita; a indisponibilidade
-temporária da conta Meta não bloqueia os testes locais de M2/M3. O adapter falso
-precisa representar os estados relevantes do provedor, mas não substitui a
-homologação externa de M4. Os marcos são sequência de engenharia, não proposta
-de cortar o escopo da v0. Só declarar v0 completa após M0–M7, ou registrar
-explicitamente alteração de escopo. É possível validar um piloto com as receitas
-que passaram pelos seus gates antes de concluir todos os formatos e o avatar.
-
-## 6. Definition of Done da v0
-
-- Cada receita da matriz tem teste real de geração, prévia, alteração e publicação
-  no Instagram quando elegível, além de limites/franquia/custo conhecidos.
-- Cliente sem material novo recebe sugestão contextual que pode aprovar, corrigir,
-  pausar ou ignorar; silêncio nunca autoriza postagem.
-- Pesquisa, escolha de temas e análise local têm evidência, atualidade, cobertura e
-  permissões rastreáveis. Não inventar dados privados da concorrência.
-- Decisão semântica tem baseline testado; Jev entra só se demonstrar ganho e qualidade
-  adequada em PT-BR, com fallback e kill switch por tarefa.
-- Avatar pronto e consentido permite vídeo com o próprio dono sem nova gravação.
-- Uma falha não repete gerações pagas ou publicações indiscriminadamente.
-- Circuit breaker, rate limiting, retry, UNKNOWN e compensação têm cenários de teste.
-- Saúde e trilha de execução visíveis, alertas acionáveis e acesso de suporte auditado.
-- Restore de banco/objetos e recuperação do workflow têm runbook ensaiado.
-- Carga mede o stack interno e capacidade externa separadamente; relatório diz qual
-  volume foi provado, em qual infraestrutura e por qual custo.
-- Cobrança/cancelamento e acesso patrocinado não dependem de intervenção manual de engenheiro.
-- Evidência de app review e acesso comercial das APIs registrada; mocks não contam.
-
-## 7. Pendências que exigem evidência externa
-
-Modelo/API e marca foram escolhidos como proposta técnica; ainda faltam acesso às
-contas de API, orçamento, contratos de identidade e publicação, app review Meta,
-matriz de scopes/formato na versão Graph selecionada, avaliação PT-BR e preço dos
-planos. Não é possível tornar essas aprovações e resultados prontos só escrevendo SDD.
-
-Nenhum requisito externo impede iniciar código de tenancy, contratos, Temporal,
-ledger, render e adapters fake. A escolha de fornecedor define onde começar o spike;
-não deve esconder risco de disponibilidade ou margem para uma mensalidade de R$ 99.
+Versão anterior integral: [snapshot de 28/10/2026](../history/2026-10-28-pre-documentation-reconciliation/design/v0-delivery.md).

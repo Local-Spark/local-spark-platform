@@ -1,7 +1,8 @@
 # ADR / SDD — Autenticação própria
 
 Decisão aceita em 20/10/2026. Substitui a escolha de Keycloak/OIDC da F01.
-Estado: implementada e validada localmente: 117 testes backend, 59 frontend,
+Estado: implementada localmente. Evidência histórica da fatia de 20/10:
+117 testes backend, 59 frontend,
 100% de cobertura em ambos e quatro jornadas browser. PRD/staging pendentes.
 
 ## Fronteiras
@@ -92,3 +93,5 @@ rollback, limites, CSRF/Origin, revogação, MFA e recuperação, preservação 
 RLS. Frontend testa bootstrap, renovação, múltiplas abas, formulários/erros e navegação.
 Browser real com Mailpit e API, sem Keycloak. Gate de cobertura 100% mantido nos dois
 projetos. Migration e rollback validados no banco exclusivo _test.
+
+Versão anterior à reconciliação: [snapshot integral de 28/10/2026](../history/2026-10-28-pre-documentation-reconciliation/design/native-auth.md).

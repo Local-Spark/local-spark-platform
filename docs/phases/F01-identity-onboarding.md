@@ -1,6 +1,31 @@
 # F01 — Identidade, onboarding e interfaces iniciais
 
-Status: Em implementação. Atualizado em 20/10/2026. Dependência: F00.
+Atualizado em **28/10/2026**. Status: identidade/onboarding e cobrança mínima
+implementados localmente; homologação externa e staging pendentes. Dependência:
+F00. O [registro de decisões](../DECISIONS.md) e o [SDD geral](../SDD.md) definem
+o contrato vigente. A [versão anterior](../history/2026-10-28-pre-documentation-reconciliation/phases/F01-identity-onboarding.md)
+preserva as datas e contagens das entregas originais.
+
+## Atualizações vigentes de contratação e negócio
+
+- Uma conta/organização por negócio, com aceite e cobrança próprios. API e
+  restrição única por tenant (`0057`) aplicadas localmente. Não tratar a
+  simplificação como migração ainda pendente; a capacidade existente de vários
+  owners não foi eliminada por essa regra. Cobrança continua por organização.
+- **Plano e acesso** apresenta o único aceite para IA de texto, imagem,
+  interpretação e transcrição antes de criar checkout. Contas existentes aceitam
+  uma vez nessa mesma página. POST autenticado registra versão/hash exatos,
+  owner/data e auditoria; replay é idempotente e registros de consentimento
+  antigos não são reescritos. Não pedir permissões por fornecedor em outras telas.
+- Aceite não confirma pagamento nem ativa provedor/publicação. Checkout sandbox
+  e ao menos um pagamento de teste foram exercitados; staging e operação comercial
+  ainda não foram homologados. Patrocínio permanece separado de receita.
+- Um número WhatsApp ativo por negócio. Corrigir/trocar telefone invalida a
+  verificação e vínculo antigos; material associado continua no mesmo negócio,
+  e a entrega simulada usa o novo número depois da verificação/vínculo. F02
+  ainda não entrega prévia/pedido de aprovação real.
+
+## Evidência histórica de 21/10
 
 21/10/2026: pagamento de sandbox confirmado no banco; retorno externo entre aliases
 locais reproduziu INVALID_SESSION. Migration 0006 e validação de Origin preservam
@@ -11,13 +36,15 @@ Playwright, migration 0006 reversível no _test e aplicada localmente sem perda.
 
 ## Objetivo e jornada aceita
 
-O cliente conhece a Meu Braço Direito na landing page, contrata um plano e tem sua
-organização provisionada automaticamente após confirmação confiável. Identidade
+O cliente conhece o Meu Braço Direito na landing page, cria identidade e
+organização/negócio em setup, aceita o serviço e contrata um plano. Somente
+confirmação confiável do pagamento ou patrocínio ativa o acesso comercial. Identidade
 e posse do canal precisam ser verificadas; informar e-mail/telefone no checkout
 não concede propriedade. A configuração diária migra para o WhatsApp na F02.
-Páginas web curtas atendem identidade, contexto, OAuth, consentimentos e assinatura.
-Uma conta pode participar de várias organizações; organização, usuário, negócio,
-assinatura e conta social são entidades distintas. Patrocinados por seis meses são
+Páginas web curtas atendem identidade, contexto, aceite do serviço e assinatura.
+Organização, usuário, negócio, assinatura e conta social são entidades distintas;
+a regra vigente limita a um negócio por organização. OAuth social é etapa futura
+da F06, não login da plataforma. Patrocinados por seis meses são
 uma categoria explícita de concessão, sem aparecer como clientes pagantes.
 
 ## Fatias e estado
@@ -28,7 +55,7 @@ uma categoria explícita de concessão, sem aparecer como clientes pagantes.
 | F01.2 | Base React/TypeScript, login e separação de áreas | Implementada localmente |
 | F01.3 | Admin mínimo com organizações, usuários e onboarding reais | Implementada localmente |
 | F01.4 | Onboarding inicial do cliente e consentimento de termos/privacidade | Implementada localmente |
-| F01.5 | Checkout, webhook e ativação automática; concessão patrocinada | Código local validado; fase aberta até sandbox/staging |
+| F01.5 | Checkout, webhook e ativação automática; concessão patrocinada | Sandbox exercitado localmente; cenários externos restantes e staging pendentes |
 | F01.6 | Convites, revogação, telefone verificado e validação em staging | Código local validado; provedor de envio/staging pendentes |
 
 F01.6 inclui convite de operadores da plataforma, separado dos convites para
@@ -111,12 +138,14 @@ em 20/10/2026. Substitui Keycloak/OIDC: módulo da FastAPI e telas React própri
 F01.5: [SDD detalhado de cobrança](../design/billing.md). Stripe test/live, inbox
 durável e Temporal em processo billing separado. Conta/negócio em setup antes do
 checkout nesta fatia; propriedade é vinculada ao owner autenticado, não ao pagador.
-Plano único mensal BRL configurado; sem keys/Price/valor não há cobrança.
+Plano único mensal BRL configurado; aceite do serviço precede checkout e, sem
+keys/Price/valor, não há cobrança.
 Patrocínio exige staff/MFA e motivo, dura seis meses de calendário e pode ser
 revogado. Não renova nem vira pagamento automaticamente. Um benefício inicial por
 organização, com replay sem extensão. Ledger/franquias permanecem na F07.
 Rotas web: /app/billing e /admin/billing. Pagantes live, testes e patrocinados
-contados separadamente; nenhum MRR inventado. Sandbox/staging ainda não validados.
+contados separadamente; nenhum MRR inventado. Sandbox teve pagamento de teste
+confirmado em 21/10; validação externa completa e staging continuam pendentes.
 
 - POST /api/v1/auth/register, /login, /mfa/verify, /refresh e /logout.
 - POST /api/v1/auth/verification-request, /verify-email, /password-reset-request e /reset-password.
@@ -162,6 +191,13 @@ Ver SDDs em local-spark-web/docs/{SDD,admin-SDD,client-SDD}.md.
 - Validação local não fecha F01 inteira: entrega real do código, cenários restantes
   da Stripe e staging precisam das integrações e validações externas pendentes.
 
+## Lacuna de organização legada sem negócio
+
+O fluxo de recuperação de organização legada que ficou sem negócio ainda precisa
+ser definido/implementado, preservando organização, auditoria e histórico
+financeiro. É uma pendência de UX/implementação (P06 no registro), não motivo para
+excluir dados automaticamente ou repetir a decisão de um negócio por organização.
+
 ## Continuidade
 
 Atualizar PROJECT.md, SDD geral, este SDD e CHANGELOG.md em cada feature.
@@ -175,7 +211,7 @@ na mesma transação. P14 (27/10/2026) retira o evento-recibo que apenas repetia
 auditoria; não há workflow novo de CRUD sem ação de negócio. E-mails, cobrança e
 demais efeitos assíncronos mantêm suas intenções/filas próprias.
 
-Validação atual: 244 testes backend, 100% linhas/branches; 107 testes web, 100%
-nos quatro critérios; oito jornadas Chromium com banco `_test`. Migrations 0008–0010
+Evidência histórica desta entrega de identidade: 244 testes backend, 100%
+linhas/branches; 107 testes web, 100% nos quatro critérios; oito jornadas Chromium com banco `_test`. Migrations 0008–0010
 reversíveis no teste e aplicadas localmente. Staging e envio real de telefone seguem
 pendentes. A autenticação implementada não comprova capacidade para 200 mil.

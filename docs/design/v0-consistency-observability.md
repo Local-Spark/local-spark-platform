@@ -1,7 +1,9 @@
 # v0 — Idempotência, concorrência, atomicidade e observabilidade
 
-Data: 20/10/2026. Contrato obrigatório de implementação, complementar à
-[resiliência](v0-reliability.md). Não representa código ou testes já executados.
+Origem em 20/10/2026; reconciliado em 28/10/2026. Invariantes de implementação,
+complementares à [resiliência](v0-reliability.md), ao [SDD](../SDD.md) e às
+[decisões atuais](../DECISIONS.md). Tabelas/SQL ilustram contratos; não comprovam
+que todo mecanismo ou critério abaixo já esteja implementado/testado.
 
 ## 1. Garantias e fronteiras
 
@@ -90,7 +92,7 @@ possível e usa o estado `UNKNOWN` definido na política de resiliência.
 | Criação de publicação | UNIQUE da intenção + estado aprovado | Dois consumidores não criam duas intenções |
 | Relay/outbox e manutenção | SKIP LOCKED + lease e fencing | Distribui trabalho elegível entre réplicas |
 | Conversa/material agrupado | Versão/claim por conversa ou solicitação | Não formar dois briefings para os mesmos itens |
-| Concorrência de API terceira | Semáforo/lease distribuído em Redis | Limita capacidade, não decide estado de negócio |
+| Concorrência de API terceira | Semáforo/lease distribuído quando implementado; Redis é candidato futuro | Limita capacidade, não decide estado de negócio |
 | Compensação | Chave própria única + versão do recurso | Repetição não estorna/libera duas vezes |
 
 Nenhum lock global para 200 mil clientes. Contenção é limitada ao agregado relevante.
@@ -230,7 +232,7 @@ Fonte: [OpenTelemetry Logs Data Model](https://opentelemetry.io/docs/specs/otel/
 
 | Cenário | Invariante exigida |
 | --- | --- |
-| Cem entregas paralelas do mesmo evento | Uma mensagem/efeito lógico e outbox correspondente |
+| Cem entregas paralelas do mesmo evento | Uma mensagem/efeito lógico, com intenção/outbox quando houver consumidor assíncrono real |
 | Dois eventos diferentes da mesma mensagem | Recibos/estados distintos não são perdidos por dedupe incorreto |
 | Duas requisições com mesma chave e payload diferente | Uma operação e conflito explícito, sem sobrescrita |
 | Vários workers disputam última unidade | Saldo não negativo; apenas reservas cobertas |
@@ -241,7 +243,7 @@ Fonte: [OpenTelemetry Logs Data Model](https://opentelemetry.io/docs/specs/otel/
 | Crash após efeito externo e antes de gravar ID | UNKNOWN/reconciliação, sem retry pago cego |
 | Callback duplicado, tardio ou fora de ordem | Transição válida, sem regressão arbitrária ou novo débito |
 | Deadlock/serialization failure forçado | Retry da transação inteira com limite e sem IO duplicado |
-| Perda de Redis e retomada | Estado/ledger preservados; admissão externa reconstruída com segurança |
+| Perda de cache/coordenação futura e retomada | Estado/ledger preservados; admissão externa reconstruída com segurança |
 | Purga de partição e evento antigo redelivered | Tombstone/janela contratada impede novo efeito indevido |
 | Reuso de conexão entre tenants | Contexto RLS não vaza; recurso de outro tenant não é acessível |
 | Logs de erro contêm token/URL de mídia de fixture | Redaction impede segredo no destino de logs |
@@ -250,3 +252,5 @@ Executar contra PostgreSQL real e processos concorrentes, com barreiras determin
 para forçar interleavings. Incluir testes de propriedade da máquina de estados e
 contabilidade quando agregarem valor. Replay de workflow e teste unitário isolado
 não substituem integração transacional, crash tests ou validação do adapter externo.
+
+Versão anterior à reconciliação: [snapshot integral de 28/10/2026](../history/2026-10-28-pre-documentation-reconciliation/design/v0-consistency-observability.md).

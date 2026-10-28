@@ -1,6 +1,6 @@
 # F00 — Fundação executável
 
-Status: Concluída localmente. Atualizado em 27/10/2026 (P14).
+Status: Concluída localmente. Atualizado em 28/10/2026; P14 preservada.
 Dependências: Nenhuma.
 
 ## Objetivo
@@ -11,6 +11,8 @@ transacional. Temporal permanece para os processos assíncronos do produto.
 ## Features e contratos
 
 - POST/GET /api/v1/businesses com JWT, membership e tenant autorizado.
+- API e migration `0057` aplicadas localmente limitam a um negócio por
+  organização; billing permanece por organização. Ver [decisões](../DECISIONS.md).
 - Mesmo comando concorrente produz um negócio, uma resposta idempotente e auditoria;
   payload diferente com mesma chave gera conflito.
 - A transação de CRUD inclui negócio, registro idempotente e auditoria, sem IO
@@ -62,7 +64,7 @@ novos recibos nas mutações síncronas de negócio ou kit.
 - Repositório principal `local-spark-platform` com remoto Git já configurado.
   Implementação permanece em alterações locais; não houve push, CI remoto ou deploy AWS.
 
-## Identidade Meu Braço Direito
+## Evidência histórica da renomeação para Meu Braço Direito
 
 - Prefixo de configuração `MEU_BRACO_DIREITO_`; Swagger `Meu Braço Direito API`.
 - Bancos `meu_braco_direito_platform`/`meu_braco_direito_platform_test`, roles `meu_braco_direito_*`;
@@ -75,9 +77,9 @@ novos recibos nas mutações síncronas de negócio ou kit.
   e build passaram. Smoke HTTP/Temporal confirmou criação 201, replay 200 e um
   efeito; dados/histórico anteriores preservados e token anterior rejeitado.
 
-## Atualização de mudanças
+## Evidência histórica da atualização do gate
 
-Validação de cobertura atual: 62 testes passaram, 390 statements e 40 branches
+Na atualização deste gate, 62 testes passaram, 390 statements e 40 branches
 cobertos, sem linhas/branches faltantes. Gate elevado a 100%, sem novas exclusões.
 Casos adicionados cobrem contratos de criação/replay, idempotência e paginação do
 serviço, readiness sem migration, perda de lease durante RPC e retorno inválido

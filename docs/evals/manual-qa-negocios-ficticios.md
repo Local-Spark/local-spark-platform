@@ -1,24 +1,28 @@
 # Guia de QA local — três negócios fictícios
 
-Atualizado em 27/10/2026. Este guia prepara cenários para o desenvolvimento e
-distingue o que já pode ser exercitado do que ainda precisa ser implementado.
-**A criação automática dos negócios e suas imagens ainda não existe.** Não usar
-estes nomes, imagens ou preços como negócios reais nem publicar peças deles.
+Atualizado em **28/10/2026**. Guia de desenvolvimento, sem execução implícita.
+Os três cenários abaixo são planejados: **não foram criados por este documento e
+não existe seed automático deles**. Usar dados sintéticos/autorizados, sem editar
+negócio real ou publicar as peças. [SDD](../SDD.md),
+[BL04](../phases/BL04-context-and-ai-production.md) e [decisões](../DECISIONS.md)
+definem estado e critérios vigentes.
 
 ## Estado atual da jornada
 
-- **Disponível localmente:** cadastro/perfil, seleção de negócio, kit de demonstração,
-  catálogo manual, promoções e fotos privadas; simulador editorial restrito a
-  desenvolvimento/teste; laboratório editorial e publicação simulada existentes.
-- **Experimental:** briefing privado recupera acervo em teste com interpretador
-  falso injetado. O worker normal não ativa essa interpretação e a tela Conteúdos
-  só apresenta o resumo quando a API possui um briefing elegível.
-- **Pendente:** conversa semântica com Jev/OpenAI no worker, busca automática do
-  acervo na jornada normal, envio de esclarecimento, criação visual integrada com
-  IA, envio de prévia ao WhatsApp e publicação real. Assim, não há hoje um teste
-  manual verdadeiro da jornada completa de ponta a ponta. A BL04.1 fecha a
-  interpretação/contexto; BL04.2 gera a prévia; BL04.3 mede qualidade; BL05
-  fecha WhatsApp simulado, revisão e publicação falsa.
+| Capacidade | O que pode ser verificado |
+| --- | --- |
+| Conta/negócio/plano | Onboarding, um negócio por organização, aceite único em Plano e acesso, assinatura sandbox/patrocínio quando configurados. |
+| Kit e acervo | Escolha/edição/histórico do kit demo; itens, promoções e fotos privadas do produto/espaço. Sem qualidade comercial homologada. |
+| WhatsApp | Vínculo, processamento e histórico durável de todos os tipos associados; troca de número e destino novo cobertos na entrega simulada. |
+| Intenção/retrieval | Jev e recuperação do acervo opcionais no worker dev/test, desligados por padrão. Não é memória geral ou conversa completa. |
+| Visual fake | Prepara fontes, pedido/reserva e JPEG privado com kit e marca explícita de simulação; não chama gerador de imagem real. |
+| Produção/revisão | Propostas, roteiro, prévias técnicas, candidata e decisão/publicação falsas; pedido de ajuste ainda não regenera. |
+| Pendente | Guarda/integração visual real, qualidade BL04.3, jornada automática completa e proatividade BL05, prévia/aprovação WhatsApp e publicação oficiais. |
+
+Há teste técnico local com Temporal/PostgreSQL e provedor/armazenamento falsos,
+a partir de material já processado, até prévia fake e revisão. Ele não demonstra
+webhook real nem o percurso completo manual. Não habilitar Jev ou OpenAI para
+executar este roteiro básico: chamadas pagas exigem configuração e teto próprios.
 
 ## Dados dos cenários planejados
 
@@ -27,7 +31,8 @@ com IDs próprios, permissões owner e sem perturbar o usuário ou negócio real
 Preços são exemplos de BRL. Para uma execução, fornecer validade vigente e uma
 outra já vencida; usar fuso `America/Sao_Paulo` e horários com timezone. Não
 atribuir o mesmo remetente WhatsApp a negócios diferentes sem validar as regras
-do vínculo. A autorização de IA e direitos da mídia são independentes de plano.
+do vínculo. O aceite único do serviço, os direitos da mídia e o acesso por plano são
+verificações distintas. Usar conta/organização própria para cada negócio.
 
 ### 1. Ponto do Dog — loja física fictícia
 
@@ -61,77 +66,77 @@ usar imagem identificável de pessoa real sem autorização. Testar: “Hoje ten
 agenda livre às 15h”; “Crie um story da esmaltação em gel”; “Não tenho horário
 livre hoje”. Agendamento e disponibilidade não devem ser inventados.
 
-## Passos manuais que são possíveis agora
+## Passos manuais disponíveis
 
-1. No backend, inicie as dependências e serviços conforme [README](../../README.md#ambiente-local).
-   No VS Code reinicie a configuração **Meu Braço Direito: API (FastAPI)** quando
-   código ou migrações mudarem. Inicie o frontend com `npm run dev` no repositório
-   `local-spark-web`. Confira web `http://localhost:5173`, Swagger
-   `http://localhost:8000/docs`, Temporal `http://localhost:8233` e Mailpit
-   `http://localhost:8025`. Se `/health/ready` não estiver saudável, não prossiga.
-2. Entre com um usuário **owner** dos negócios fictícios; acesso de operador/admin
-   por si só não concede acesso de proprietário ao acervo. Hoje os três cenários
-   não foram criados e não existe rotina de seed para eles. Use dados de teste
-   apenas em ambiente local; não altere um negócio real para simular os exemplos.
-3. Selecione o negócio ativo. Em **Kits visuais**, selecione/edite e confirme o
-   kit de demonstração disponível. Ele é ilustrativo: não é um kit comercial
-   aprovado nem prova que a peça futura usará a identidade.
-4. Em **Sobre meu negócio → Produtos e serviços**, use **Adicionar produto ou
-   serviço**; preencha nome, categoria, descrição e preço com data de validade,
-   confirme o item e depois use **Adicionar promoção**. Em **Adicionar foto de
-   um item**, associe imagem sintética/autorizada ao produto ou serviço.
-5. Em **Sobre meu negócio → Meu espaço**, use **Adicionar foto do espaço** e
-   escolha a parte do local. Em **Informações e preferências**, confirme fatos
-   comerciais pertinentes e suas datas de validade; hoje o roteiro ainda exige
-   fato editorial separado do catálogo. Salve e teste trocar de negócio: os
-   produtos e fotos não devem vazar para outro negócio.
-6. Para testar o reconhecedor limitado, no Swagger autentique-se com sua conta
-   de teste e use `POST /api/v1/organizations/{tenant_id}/businesses/{business_id}/editorial-conversation/simulate`.
-   Envie um `operation_id` UUID novo e, por exemplo, o texto “Hoje tenho agenda
-   livre às 15h”. Esperado: `intent=availability`, `state=awaiting_confirmation`
-   e uma resposta pedindo confirmação. A negação “Não tenho agenda livre hoje às
-   15h” deve cair em `unknown`/`needs_review`. Este endpoint é um ensaio por
-   regras, não envia WhatsApp, não chama Jev nem gera imagem. Repetir a mesma
-   operação e payload devolve a mesma decisão; mudar o texto mantendo o UUID
-   deve gerar conflito. Somente confirme fatos no negócio fictício.
-7. Em **Admin → Operação editorial**, o operador autorizado pode acompanhar
-   estados, eventos e tokens quando houver operações editoriais reais no ambiente;
-   não há ali trace completo de prompts/respostas nem custo monetário completo.
-   O Temporal mostra workflows efetivamente iniciados, não todas as ações da web.
+1. Inicie dependências/serviços conforme [ambiente local](../../README.md#ambiente-local).
+   Reinicie API/workers após mudança de código/migration. Inicie a web do repo
+   `local-spark-web`; confira `/health/ready`, Swagger, Temporal e Mailpit nos
+   endereços configurados pelo README. Banco de teste deve ser dedicado `_test`,
+   sem limpeza/migração da base de desenvolvimento para executar suíte.
+2. Use owner de conta fictícia, organização/negócio próprios para cada cenário.
+   Staff não é owner apenas por ser operador. Em **Plano e acesso**, confirme a
+   versão do aceite único; verifique que não há checks por modelo/transcrição
+   em WhatsApp ou Informações e preferências. Checkout sem aceite deve falhar,
+   e replay do aceite não deve reativar permissões legadas ou ligar provedores.
+3. Em **Kits visuais**, escolha/edite/confirme o kit disponível. Ele é ilustrativo:
+   não constitui qualidade/direitos comerciais nem aprovação de publicação.
+4. Em **Sobre meu negócio → Produtos e serviços**, adicione item com nome,
+   categoria e descrição; preço/promoção precisam de validade explícita. Inclua
+   foto sintética/autorizada de item e foto em **Meu espaço**. Confirme fatos
+   variáveis em **Informações e preferências**. Um nome ativo/versionado de item
+   já pode ser fonte do roteiro; nome não confirma preço ou alegação comercial.
+   Confira isolamento usando outra conta/negócio de QA.
+5. Confira separação do histórico WhatsApp e acervo: envios associados permanecem
+   sem botão/API de exclusão para texto, foto, áudio e vídeo; foto desatualizada
+   do acervo continua removível. Copiar foto ao acervo exige ação/direitos próprios.
+   Trocar o número não muda tenant/negócio da origem; entrega fake aguarda o
+   número novo ativo/verificado. Isso não afirma entrega real pela Meta.
+6. Para o reconhecedor por regras, use o endpoint autenticado
+   `POST /api/v1/organizations/{tenant_id}/businesses/{business_id}/editorial-conversation/simulate`
+   com `operation_id` novo e “Hoje tenho agenda livre às 15h”. Esperado:
+   `intent=availability`, `state=awaiting_confirmation` e pedido de confirmação.
+   Negação deve cair em `unknown`/`needs_review`. Esse endpoint não chama Jev,
+   envia WhatsApp ou gera imagem. Replay idêntico conserva decisão; mesmo UUID
+   com texto alterado gera conflito. Confirme fatos somente no cenário fictício.
+7. Quando houver prévia `visual_fake` criada pelo percurso técnico configurado,
+   confira marca de simulação, kit, fontes e decisão privada. Não apresentá-la
+   como imagem de IA real ou peça liberada para publicação. Em **Admin → Operação
+   editorial**, acompanhe eventos/estados/tokens efetivamente existentes: não há
+   custo monetário completo nem trace integral de prompts. Temporal mostra
+   workflows iniciados, não cada CRUD da web.
 
-## Roteiro futuro de ponta a ponta — ainda não disponível
+## Critérios aprovados ainda a implementar
 
-Quando BL04.1/BL04.2/BL05 forem integradas: enviar ou simular mensagem, confirmar
-recepção e identificar o negócio; verificar briefing e fontes; gerar prévia
-privada com orçamento; comparar imagem com produto, local, embalagem e kit;
-solicitar ajuste ou aprovar; verificar publicação **falsa**, replay e estados
-incertos; inspecionar eventos, duração, uso e custo observado por tentativa.
-Repetir para os três negócios, incluindo preço expirado, oferta ambígua, foto
-revogada, mudança do kit, negação e ausência de autorização. Com a Meta restrita,
-usar somente entrada simulada local; não alegar que já houve WhatsApp real.
+Estes casos devem orientar a próxima fatia; não tratá-los como QA já aprovado:
 
-Para cada caso registrar: ID da operação, negócio fictício, cenário e versão de
-fontes, estado esperado/observado, arte produzida e revisão humana, dados de
-uso e custo efetivamente conhecidos, defeito e passos de reprodução. Avaliar no
-celular legibilidade, identidade, texto/preço literal e fidelidade ao produto e
-ambiente; beleza isolada não é aprovação. O custo por peça aceita inclui todas
-as tentativas, não só a última chamada. Não prometer venda ou faturamento.
+- Plano vence depois da admissão: concluir a criação, permitir revisão privada,
+  impedir novas criações e publicação até renovar (C08).
+- Prévia e proveniência permanecem consultáveis sem expiração automática enquanto
+  a conta estiver ativa (C09). URL temporária, validade factual e aprovação têm
+  prazos próprios, sem equivaler à remoção do arquivo.
+- Autor da mudança perde acesso: manter pendência explícita e resolver somente
+  por staff autorizado, com ação registrada/auditada; outro owner não assume (C10).
+- Demais escritores de contexto/kit/fotos/roteiro e estados incertos precisam
+  seguir a coordenação; não presumir cobertura completa porque o fake cobre parte.
 
-## OpenCode como ferramenta de investigação
+Retenção após encerramento foi adiada para essa fase, sem exclusão automática
+nesta etapa. Franquias/quantidades dependem da medição BL04.3/F07.
 
-[OpenCode Server](https://opencode.ai/docs/server/) expõe sessões, mensagens e
-stream de eventos via HTTP; o [SDK](https://opencode.ai/docs/sdk/) é JS/TS e o
-backend Python poderia acessar HTTP. A API, nomes e características dependem da
-versão instalada. Pode apoiar QA como ferramenta externa: ler specs, propor casos,
-conduzir ações autorizadas contra ambiente de teste, resumir eventos e abrir
-relatório. Um evento/sessão do OpenCode descreve o agente, não substitui traces
-end-to-end instrumentados no produto nem prova que a publicação aconteceu.
+## Roteiro completo futuro
 
-Não está instalado/integrado pelo simples registro desta ideia. Antes de um
-spike: dados fictícios, credenciais de teste limitadas, sem acesso a `.env` de
-produção, permissões restritas, servidor local/autenticado, controles e teto de
-custos, output reprodutível, captura de versão/modelo/latência e avaliação por
-resultado verificável. Evitar liberar shell, gravação, rede ou publicação sem
-necessidade. Os [controles de permissão](https://opencode.ai/docs/permissions/)
-são configuráveis. Comparar com scripts, pytest/Playwright e um runner direto
-com os mesmos casos; não presumir ganho de custo ou qualidade.
+Em BL04/BL05: entrada simulada → negócio identificado → briefing/fontes → prévia
+privada com budget → comparação com produto/local/kit → ajuste versionado →
+aprovação → publicação **falsa**. Incluir dia sem mensagem, preço vencido, oferta
+ambígua, foto do acervo removida, kit alterado, negação, conta sem aceite e origem
+insuficiente. Não usar retirada individual de IA como caminho de cliente.
+
+Registrar operação, negócio, versões/fontes, esperado/observado, arte e revisão
+humana, duração, uso/custo conhecidos, defeito e reprodução. Custo por peça aceita
+inclui refações/descartes; beleza isolada não prova fidelidade ou faturamento.
+Meta real depende de homologação própria, sem bloquear mocks locais.
+
+OpenCode permanece candidato externo de investigação, sem instalação/integração.
+O estudo anterior está no snapshot; sua eventual adoção exige versão, dados,
+permissões e custo avaliados, sem substituir telemetria/testes do produto.
+
+Versão anterior integral: [snapshot de 28/10/2026](../history/2026-10-28-pre-documentation-reconciliation/evals/manual-qa-negocios-ficticios.md).

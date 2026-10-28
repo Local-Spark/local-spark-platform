@@ -19,8 +19,14 @@ Sem benchmark de consentimento, qualidade PT-BR e custo por peça aceita, nenhum
 dessas capacidades integra a franquia de R$ 99 ou a promessa do primeiro piloto.
 O uso em plano superior depende dos mesmos gates e de preço medido.
 
-Status: Planejada. Atualizado em 20/10/2026.
+Status: Planejada. Atualizado em 28/10/2026.
 Dependências: F01, F03, F04.
+
+O [aceite único do serviço](../DECISIONS.md) já cobre IA de texto, imagem,
+interpretação e transcrição, sem toggles por modelo/fornecedor. Esta fase futura
+trata captura/direitos de identidade sintética próprios; não reabre permissões
+individuais de IA na jornada atual. O detalhamento da identidade precisa ser
+revisto quando F05 entrar no escopo de implementação.
 
 ## Objetivo
 
@@ -62,5 +68,5 @@ Não marcar como concluído por possuir mocks ou documentação de uma API ainda
 ## Consentimento e interfaces
 
 Autorização de voz/avatar usa página curta complementar e registro específico;
-termos do onboarding não autorizam identidade sintética. Cliente vê estado da
-geração; admin acompanha custo e falha, com acesso mínimo e auditado.
+o aceite atual não entrega nem homologa captura/clonagem de identidade sintética.
+Cliente vê estado da geração; admin acompanha custo e falha, com acesso mínimo e auditado.

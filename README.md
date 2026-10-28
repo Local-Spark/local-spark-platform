@@ -114,8 +114,9 @@ texto. Atualize API e container `auth-mail` para carregar mudanças de template.
 
 Menus do cliente: Início, WhatsApp, Sobre meu negócio, Conteúdos, Kits visuais e
 Plano e acesso. A seleção de organização/negócio é compartilhada. Telefone e
-vínculo são configurados por WhatsApp; IA é autorizada/retirada em Sobre meu
-negócio. Conteúdos acompanha/revisa as peças disponíveis, sem obrigar sequência
+vínculo são configurados por WhatsApp. O uso de IA tem um único aceite em
+Plano e acesso antes da contratação; não há permissões por fornecedor em
+WhatsApp ou Sobre meu negócio. Conteúdos acompanha/revisa as peças disponíveis, sem obrigar sequência
 manual de ideia/roteiro/render. A geração manual fica em `/app/editorial-lab`,
 somente DEV. `/app/ideas` redireciona para `/app/content`; `/app/guide` para Início.
 
@@ -136,9 +137,11 @@ assinada/criptografada. Sem configuração, a capacidade fica indisponível.
 Configure App/WABA, número, secrets, token Graph, versão da API, callback HTTPS
 e storage conforme [F02](docs/phases/F02-whatsapp-ingestion.md) e
 [operação](docs/operations.md). O dono precisa de telefone verificado, acesso
-ativo, consentimento e vínculo do remetente; confirmar SMS não vincula a conversa.
-Materiais recebidos têm retenção temporária e histórico secundário na tela
-WhatsApp. A homologação real da Meta ainda está pendente; ensaios locais usam
+ativo, aceite do serviço e vínculo do remetente; confirmar SMS não vincula a
+conversa. Envios associados de texto, imagem, áudio e vídeo são preservados sem
+expiração automática e sem exclusão pelo histórico/API (migration 0058). O
+histórico fica como consulta secundária em WhatsApp; fotos desatualizadas do
+acervo continuam removíveis. A homologação real da Meta ainda está pendente; ensaios locais usam
 fixtures/mocks. Recebimento implementado não implica envio/publicação completos.
 
 **Telefone.** Twilio Verify é usado para confirmar posse do número, com SMS como
@@ -149,10 +152,10 @@ número pela configuração WhatsApp antes de solicitar novo código. Validaçã
 ambiente/staging continua necessária.
 
 **IA.** OpenAI tem adapters de texto editorial e transcrição opcionais,
-autorização por negócio e limites configurados; os modos são desabilitados por
-padrão. O default editorial é `gpt-5-mini`, configurável; a transcrição referencia
+aceite único do serviço por negócio e limites internos configurados; os modos
+são desabilitados por padrão. O default editorial é `gpt-5-mini`, configurável; a transcrição referencia
 `gpt-transcribe`. O worker pode usar Jev para interpretação experimental do
-acervo em desenvolvimento/teste, com consentimento separado e orçamento explícito.
+acervo em desenvolvimento/teste, sob o mesmo aceite único e orçamento explícito.
 Ainda não há IA visual integrada, skills executáveis por cliente ou pesquisa
 automática de concorrentes no produto.
 Os ensaios visuais em [evals](docs/evals/) são separados. Ter uma chave/saldo não
@@ -194,6 +197,19 @@ Produção usa o mesmo adapter com `BILLING_MODE=live`, chaves/Price próprios,
 `BILLING_LIVE_ENABLED=true`, HTTPS e gates operacionais. Não há cobrança comercial
 ou deploy AWS demonstrados por esta entrega.
 
+## Próxima implementação aprovada
+
+A BL04.2 precisa concluir a coordenação e ligar o provedor visual real. As
+novas decisões são: concluir criação já iniciada e permitir revisão se o plano
+vencer (bloqueando novas criações/publicação); preservar prévias sem expiração
+com conta ativa; recuperação de pendência com autor sem acesso somente por
+staff, com ação registrada. **Ainda não estão implementadas.** O código segue
+usando prazos de propostas/prévias e verificações de plano; a 0058 trata apenas
+materiais WhatsApp. URL assinada e validade de fatos/decisões continuam próprias.
+A exclusão após encerramento da conta foi adiada para a fase específica, sem
+implementar exclusão automática nesta etapa. Detalhes em
+[DECISIONS](docs/DECISIONS.md) e no [SDD BL04](docs/phases/BL04-context-and-ai-production.md).
+
 ## Contratos e testes
 
 Auth nativa expõe `/api/v1/auth/*`; login/ações exigem Origin e refresh/logout
@@ -232,6 +248,7 @@ AWS, SMTP real, secrets, backup/restore, observabilidade ou staging. Essas são
 condições ainda abertas antes do piloto real. OIDC do CI/AWS é independente da
 autenticação dos usuários. Não considerar a base local uma v0 comercial pronta.
 
+Produto aceito e dúvidas delimitadas: [DECISIONS](docs/DECISIONS.md).
 Fontes vigentes: [PROJECT](docs/PROJECT.md), [SDD](docs/SDD.md),
 [fases](docs/phases/README.md), [trilha BL](docs/phases/BL-brand-library.md),
 [operações](docs/operations.md) e [AGENTS](AGENTS.md).

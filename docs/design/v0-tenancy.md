@@ -1,12 +1,16 @@
 # v0 — Estratégia de multi-tenancy
 
-Data: 20/10/2026. Decisão proposta: banco e tabelas compartilhados, com isolamento
+Origem em 20/10/2026; reconciliado em 28/10/2026. Decisão implementada localmente:
+banco e tabelas compartilhados, com isolamento
 por `tenant_id`, autorização de aplicação e RLS. Evolução possível por células/shards
 ou banco dedicado, sem criar um schema por cliente como padrão.
 
 ## 1. O que representa um tenant
 
-Tenant é a organização/conta contratante. Negócio é uma unidade pertencente a ela.
+Tenant é a organização/conta contratante. Cada tenant de cliente possui no máximo
+um negócio, assegurado pela 0057; onboarding cria os dois juntos. Cobrança continua
+por tenant e o aceite único é registrado por negócio. Não permitir múltiplos
+negócios no mesmo tenant por plano. Ver [decisão](one-business-per-organization.md).
 Usuário pode participar de mais de uma organização, com membership e papel próprios.
 Uma agência pode administrar clientes distintos por memberships, sem misturar todos
 num tenant apenas para simplificar o acesso. A concessão de acesso gratuito usa a
@@ -15,11 +19,10 @@ mesma estrutura, com entitlement e prazo, não um caminho menos seguro.
 ```text
 Tenant / organização
   ├── Assinatura, franquias e membros
-  ├── Negócio A
-  │     ├── Conversas e materiais
-  │     ├── Avatar e consentimentos
-  │     └── Contas sociais, conteúdo e publicações
-  └── Negócio B, se permitido pelo plano
+  └── Único negócio
+        ├── Conversas/materiais privados e acervo
+        ├── Aceite do serviço e versões de fontes
+        └── Contas sociais, conteúdo e publicações
 ```
 
 ## 2. Alternativas consideradas
@@ -69,7 +72,8 @@ privilégios fazem parte da garantia. Fonte: [RLS oficial](https://www.postgresq
 
 - S3: prefixo não é autorização. Downloads/uploads verificam membership, recurso e
   tenant antes de gerar URL temporária; workers usam permissões mínimas.
-- Redis: chave privada contém tenant e versão do recurso. Cache compartilhado apenas
+- Redis, se adotado futuramente (sem dependência ativa): chave privada contém
+  tenant e versão do recurso. Cache compartilhado apenas
   para dados autorizados para reuso e sem informação privada.
 - Temporal: workflow/command/operação identificam tenant, mas namespace não é criado
   por cliente como padrão. UI de operação não é exposta diretamente aos assinantes.
@@ -93,8 +97,9 @@ protocolo. Banco dedicado é extensão dessa fronteira, não schema improvisado.
 
 Backups/PITR do banco compartilhado restauram o conjunto. Recuperação de um tenant
 exige restore isolado e extração controlada, incluindo relacionamentos, arquivos e
-reconciliação de efeitos externos. Exclusão/exportação por tenant devem existir
-desde a v0; isolamento lógico não torna essas operações automáticas.
+reconciliação de efeitos externos. Exportação/encerramento exigem entrega própria;
+o proprietário adiou a política de exclusão para a fase de encerramento da conta,
+sem descarte automático nesta etapa. Isolamento não implementa esses processos.
 
 ## 6. Aceite
 
@@ -104,3 +109,5 @@ contexto ausente; roles e migração que criem tabela privada sem RLS. Executar 
 role real da aplicação, não com a credencial administrativa usada para preparar teste.
 
 Fonte de organização de namespaces: [schemas PostgreSQL](https://www.postgresql.org/docs/current/ddl-schemas.html).
+
+Versão anterior à reconciliação: [snapshot integral de 28/10/2026](../history/2026-10-28-pre-documentation-reconciliation/design/v0-tenancy.md).

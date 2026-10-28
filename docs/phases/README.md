@@ -1,6 +1,6 @@
 # Fases de implementação
 
-Atualizado em 27/10/2026. Este índice distingue **o que existe no ambiente
+Atualizado em **28/10/2026**. Este índice distingue **o que existe no ambiente
 local**, **a próxima fase** e os gates para piloto/produção. A v0 completa
 continua distribuída entre F00–F08; a trilha [BL](BL-brand-library.md) define
 a ordem de produto para aplicar um kit visual e o acervo do negócio a uma
@@ -11,17 +11,37 @@ peça nova.
 - F00/F01: fundação, identidade, onboarding, cobrança sandbox, área do cliente
   e admin mínimo locais. Homologação externa e staging continuam pendentes.
 - F02: webhook, vínculo do remetente, recibos de texto/foto/áudio/vídeo,
-  biblioteca e respostas limitadas locais. A conta Meta restrita impede
-  homologação de envio/recebimento reais.
+  histórico preservado de envios associados e respostas limitadas locais.
+  A restrição Meta observada no smoke impede afirmar homologação real.
 - F03: fatos/preferências, ideia e roteiro versionado com edição local.
   Pesquisa ampla, qualidade comercial e sugestão proativa ainda pendem.
 - F04/F06: prévias estáticas/vídeo locais e candidata/aprovação/publicação
-  **simuladas**. F03 já congela o kit confirmado em novas propostas; F04 ainda
-  não o aplica à mídia, nem usa acervo estruturado ou IA visual integrada.
+  **simuladas**. F03 congela kit; BL04 recupera acervo no worker experimental e
+  aplica kit à simulação. Geração visual real continua desconectada.
 - BL01: um kit fictício de cafeteria e simuladores públicos/cliente locais.
   Ver a vitrine não é escolher ou editar o kit.
 - BL02: seleção e edição guiada do kit na área autenticada, logo privado,
   prévias ampliáveis, rascunho/confirmado e histórico por negócio locais.
+- BL03.1/BL03.2: catálogo manual e fotos privadas de item/espaço locais;
+  BL03.3 importação de cardápio posterior.
+- Contratação: um negócio por organização (`0057` aplicada), cobrança por
+  organização e aceite único de IA antes do checkout. Sem check individual
+  de transcrição, modelo ou fornecedor no WhatsApp/Sobre meu negócio.
+
+## Próxima fatia e decisões aprovadas pendentes
+
+A fase ativa é [BL04](BL04-context-and-ai-production.md). Completar a coordenação
+interna de fontes, aceite único existente, plano/acesso e orçamento por tenant/
+agregado, com mocks e prova concorrente, antes de conectar provedor real. O
+workflow visual tem teste Temporal, mas ainda está separado do worker/dispatcher.
+
+Também implementar o que já foi decidido: criação iniciada conclui após vencer
+plano e a prévia continua revisável; novas criações/publicação esperam renovação.
+Prévia gerada não terá TTL enquanto a conta estiver ativa. Hoje ainda existem
+prazos, limpeza e gates de plano. Recuperação de pendência cujo autor perdeu
+acesso caberá só à equipe da plataforma com ação auditada, ainda sem fluxo
+entregue. Retenção após encerramento fica para essa fase, sem nova exclusão
+automática agora. Detalhes e lacunas em [decisões](../DECISIONS.md).
 
 ## Próximas entregas em ordem
 
@@ -84,6 +104,8 @@ coorte.
   por receita e comparação IA/composição.
 - [Cadência e planos](../design/editorial-planning-and-evidence.md):
   franquia do plano, recomendação explicável e evidência.
+- [Decisões vigentes e abertas](../DECISIONS.md): aceite, retenção, acesso,
+  recuperação de pendências e escolhas ainda dependentes de evidência.
 - [SDD geral](../SDD.md) e [contexto vivo](../PROJECT.md):
   contratos e decisões correntes.
 
@@ -92,3 +114,7 @@ de BL02, a expansão de BL03, a escolha de BL04 e o acervo de BL04.5.
 A [trilha BL vigente](BL-brand-library.md#numeração-substituída) renumerou
 esses marcos para seguir a dependência real. Changelogs antigos permanecem
 registros do momento em que foram escritos.
+
+As [versões anteriores à reconciliação](../history/2026-10-28-pre-documentation-reconciliation/)
+preservam evidências históricas; a síntese vigente acima não transforma antigas
+permissões por fornecedor ou exclusão de envios em trabalho a retomar.
