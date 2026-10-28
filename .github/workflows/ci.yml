@@ -54,10 +54,8 @@ jobs:
         run: uv run python scripts/wait_temporal.py
       - name: Unit, PostgreSQL and real Temporal integration tests; 100% line and branch coverage
         run: make test
-      - name: Verify migration rollback and reapply
-        run: |
-          uv run alembic downgrade base
-          uv run alembic upgrade head
+      - name: Verify migration rollback and reapply in a separate database
+        run: uv run python scripts/verify_migrations_isolated.py
       - name: Build runtime image
         run: docker build -t meu-braco-direito-platform:ci .
       - uses: actions/upload-artifact@v4

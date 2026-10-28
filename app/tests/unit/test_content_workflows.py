@@ -113,3 +113,47 @@ async def test_candidate_workflow_has_bounded_waits(monkeypatch, stall_at, expec
     monkeypatch.setattr(content_candidate.workflow, "sleep", sleep)
     assert await content_candidate.ContentCandidateWorkflow().run("event-id") == expected
     assert sleep.await_count == 60
+
+
+async def test_candidate_delivery_waits_for_channel_without_regenerating(monkeypatch):
+    execute = AsyncMock(side_effect=["waiting_for_channel", "waiting_for_channel", "candidate_delivered"])
+    sleep = AsyncMock()
+    monkeypatch.setattr(content_candidate.workflow, "execute_activity", execute)
+    monkeypatch.setattr(content_candidate.workflow, "sleep", sleep)
+    monkeypatch.setattr(content_candidate.workflow, "patched", lambda _: True)
+    assert await content_candidate.ContentCandidateWorkflow().run("event-id", "preview-id") == "candidate_delivered"
+    assert [call.args[0] for call in execute.await_args_list] == ["deliver_candidate_preview"] * 3
+    assert sleep.await_count == 2
+
+
+async def test_legacy_delivery_history_keeps_its_original_channel_blocking_result(monkeypatch):
+    execute = AsyncMock(return_value="waiting_for_channel")
+    sleep = AsyncMock()
+    monkeypatch.setattr(content_candidate.workflow, "execute_activity", execute)
+    monkeypatch.setattr(content_candidate.workflow, "sleep", sleep)
+    monkeypatch.setattr(content_candidate.workflow, "patched", lambda _: False)
+    assert await content_candidate.ContentCandidateWorkflow().run("event-id", "preview-id") == "delivery_blocked"
+    execute.assert_awaited_once()
+    sleep.assert_not_awaited()
+
+
+async def test_candidate_delivery_continues_as_new_with_same_preview(monkeypatch):
+    class Continue(Exception):
+        pass
+
+    execute = AsyncMock(return_value="waiting_for_channel")
+    sleep = AsyncMock()
+    continued = []
+
+    def continue_as_new(*, args):
+        continued.append(args)
+        raise Continue()
+
+    monkeypatch.setattr(content_candidate.workflow, "execute_activity", execute)
+    monkeypatch.setattr(content_candidate.workflow, "sleep", sleep)
+    monkeypatch.setattr(content_candidate.workflow, "patched", lambda _: True)
+    monkeypatch.setattr(content_candidate.workflow, "continue_as_new", continue_as_new)
+    with pytest.raises(Continue):
+        await content_candidate.ContentCandidateWorkflow().run("event-id", "preview-id")
+    assert continued == [["event-id", "preview-id"]]
+    assert sleep.await_count == 100

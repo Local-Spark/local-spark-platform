@@ -66,7 +66,9 @@ async def test_reply_without_agreement_is_deferred_before_budget_and_send(settin
 
     tenant, business, reply = uuid4(), uuid4(), uuid4()
     session = AsyncMock()
-    session.execute.return_value = result({"tenant_id": tenant, "business_id": business, "id": reply})
+    session.execute.return_value = result(
+        {"tenant_id": tenant, "business_id": business, "id": reply, "legacy_consented": True}
+    )
     database = database_for(session)
     cfg = settings.model_copy(update={"service_agreement_required": True})
     allowed = AsyncMock(return_value=False)
@@ -87,7 +89,9 @@ async def test_reply_with_agreement_continues_to_existing_budget_gate(settings, 
 
     tenant, business, reply = uuid4(), uuid4(), uuid4()
     session = AsyncMock()
-    session.execute.return_value = result({"tenant_id": tenant, "business_id": business, "id": reply})
+    session.execute.return_value = result(
+        {"tenant_id": tenant, "business_id": business, "id": reply, "legacy_consented": True}
+    )
     database = database_for(session)
     cfg = settings.model_copy(update={"service_agreement_required": True})
     allowed = AsyncMock(return_value=True)
@@ -238,7 +242,9 @@ async def test_audio_without_agreement_does_not_read_or_transcribe(settings, mon
 async def test_candidate_without_agreement_skips_before_interpretation(settings, monkeypatch):
     tenant, business, actor, event = [uuid4() for _ in range(4)]
     session = AsyncMock()
-    session.execute.return_value = result({"tenant_id": tenant, "business_id": business, "actor_id": actor})
+    session.execute.return_value = result(
+        {"tenant_id": tenant, "business_id": business, "actor_id": actor, "legacy_consented": True}
+    )
     database = database_for(session)
     cfg = settings.model_copy(update={"service_agreement_required": True, "intent_ai_mode": "jev"})
     allowed = AsyncMock(return_value=False)
@@ -253,7 +259,7 @@ async def test_candidate_baseline_does_not_require_agreement(settings, monkeypat
     tenant, business, actor, event, proposal = [uuid4() for _ in range(5)]
     session = AsyncMock()
     session.execute.return_value = result(
-        {"tenant_id": tenant, "business_id": business, "actor_id": actor, "kind": "image"}
+        {"tenant_id": tenant, "business_id": business, "actor_id": actor, "kind": "image", "legacy_consented": True}
     )
     session.scalar.return_value = None
     database = database_for(session)

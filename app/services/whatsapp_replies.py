@@ -15,6 +15,7 @@ from app.core.config import Settings
 from app.db.session import Database
 from app.services.auth import AuthError
 from app.services.editorial_conversation import EditorialConversationService
+from app.services.service_agreement_scope import service_agreement_accepted
 
 logger = logging.getLogger("meu_braco_direito.whatsapp_replies")
 
@@ -102,18 +103,19 @@ async def claim_reply(database: Database, settings: Settings) -> ClaimedReply | 
         row = (
             (
                 await session.execute(
-                    text("""SELECT r.id,r.tenant_id,r.business_id,r.recipient_ciphertext,d.reply
+                    text("""SELECT r.id,r.tenant_id,r.business_id,r.recipient_ciphertext,d.reply,
+                      (c.business_id IS NOT NULL AND c.revoked_at IS NULL) AS legacy_consented
                       FROM editorial_whatsapp_replies r JOIN editorial_conversation_decisions d ON d.id=r.id
                       JOIN whatsapp_channel_links l ON l.tenant_id=r.tenant_id
                         AND l.business_id=r.business_id AND l.sender_hash=r.sender_hash
-                      JOIN whatsapp_processing_consents c ON c.tenant_id=r.tenant_id
+                      LEFT JOIN whatsapp_processing_consents c ON c.tenant_id=r.tenant_id
                         AND c.business_id=r.business_id
                       JOIN whatsapp_material_events e ON e.id=r.source_event_id
                       JOIN business_profiles p ON p.tenant_id=r.tenant_id AND p.business_id=r.business_id
                       JOIN memberships m ON m.tenant_id=r.tenant_id AND m.actor_id=l.actor_id
                       JOIN user_accounts u ON u.id=l.actor_id
                       WHERE r.state='pending' AND r.expires_at>now() AND r.next_attempt_at<=now()
-                        AND d.state='awaiting_confirmation' AND l.active AND c.revoked_at IS NULL
+                        AND d.state='awaiting_confirmation' AND l.active
                         AND l.linked_at<=e.created_at AND p.phone_verified
                         AND m.role='owner' AND m.active AND u.active
                         AND (EXISTS(SELECT 1 FROM billing_sponsorships s
@@ -130,6 +132,11 @@ async def claim_reply(database: Database, settings: Settings) -> ClaimedReply | 
             .one_or_none()
         )
         if row is None:
+            return None
+        if not row["legacy_consented"] and not await service_agreement_accepted(
+            session, row["tenant_id"], row["business_id"], worker=True
+        ):
+            await _defer_for_agreement(session, row["id"], ack=False)
             return None
         if settings.service_agreement_required or settings.environment == "production":
             from app.services.service_agreement import service_agreement_allowed
@@ -157,11 +164,12 @@ async def claim_ack(database: Database, settings: Settings) -> ClaimedReply | No
         row = (
             (
                 await session.execute(
-                    text("""SELECT r.id,r.tenant_id,r.business_id,r.recipient_ciphertext,d.reply
+                    text("""SELECT r.id,r.tenant_id,r.business_id,r.recipient_ciphertext,d.reply,
+                      (c.business_id IS NOT NULL AND c.revoked_at IS NULL) AS legacy_consented
                       FROM editorial_whatsapp_replies r JOIN editorial_conversation_decisions d ON d.id=r.id
                       JOIN whatsapp_channel_links l ON l.tenant_id=r.tenant_id
                         AND l.business_id=r.business_id AND l.sender_hash=r.sender_hash
-                      JOIN whatsapp_processing_consents c ON c.tenant_id=r.tenant_id
+                      LEFT JOIN whatsapp_processing_consents c ON c.tenant_id=r.tenant_id
                         AND c.business_id=r.business_id
                       JOIN business_profiles p ON p.tenant_id=r.tenant_id AND p.business_id=r.business_id
                       JOIN memberships m ON m.tenant_id=r.tenant_id AND m.actor_id=l.actor_id
@@ -169,7 +177,7 @@ async def claim_ack(database: Database, settings: Settings) -> ClaimedReply | No
                       WHERE r.ack_state='pending' AND r.ack_next_attempt_at<=now()
                         AND r.expires_at>now() AND r.state='accepted' AND r.delivery_state<>'failed'
                         AND d.state IN ('confirmed','discarded') AND d.actor_id=l.actor_id
-                        AND l.active AND c.revoked_at IS NULL
+                        AND l.active
                         AND p.phone_verified AND m.role='owner' AND m.active AND u.active
                         AND (EXISTS(SELECT 1 FROM billing_sponsorships s
                           WHERE s.tenant_id=r.tenant_id AND s.revoked_at IS NULL
@@ -185,6 +193,11 @@ async def claim_ack(database: Database, settings: Settings) -> ClaimedReply | No
             .one_or_none()
         )
         if row is None:
+            return None
+        if not row["legacy_consented"] and not await service_agreement_accepted(
+            session, row["tenant_id"], row["business_id"], worker=True
+        ):
+            await _defer_for_agreement(session, row["id"], ack=True)
             return None
         if settings.service_agreement_required or settings.environment == "production":
             from app.services.service_agreement import service_agreement_allowed

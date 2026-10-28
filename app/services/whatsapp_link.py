@@ -16,6 +16,7 @@ from app.db.session import Database
 from app.services.auth import AuthError
 from app.services.billing import status as billing_status
 from app.services.phone_verification import e164
+from app.services.service_agreement_scope import accepted_agreement_sql
 from app.services.whatsapp_ingest import sender_hash
 
 
@@ -137,8 +138,9 @@ class WhatsAppLinkService:
             if not await service_agreement_allowed(session, self.settings, tenant, business):
                 raise AuthError("SERVICE_AGREEMENT_REQUIRED", 409)
             consented = await session.scalar(
-                text("""SELECT 1 FROM whatsapp_processing_consents
-                  WHERE tenant_id=:tenant AND business_id=:business AND revoked_at IS NULL"""),
+                text(f"""SELECT 1 WHERE {accepted_agreement_sql()} OR EXISTS(
+                  SELECT 1 FROM whatsapp_processing_consents
+                  WHERE tenant_id=:tenant AND business_id=:business AND revoked_at IS NULL)"""),
                 {"tenant": tenant, "business": business},
             )
             if consented is None:

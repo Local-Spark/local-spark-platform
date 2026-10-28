@@ -9,6 +9,7 @@ from sqlalchemy import text
 from app.adapters.audio_transcription import OpenAIAudioTranscriber, normalize_audio
 from app.adapters.material_media import MaterialError
 from app.db.session import Database
+from app.services.service_agreement_scope import accepted_agreement_sql
 from app.services.whatsapp_processing import MaterialProcessor
 
 
@@ -69,7 +70,7 @@ class AudioTranscriptionService:
     async def _eligible(self, session, row) -> bool:  # type: ignore[no-untyped-def]
         base = bool(
             row["delete_requested_at"] is None
-            and row["expires_at"] > datetime.now(UTC)
+            and (row["expires_at"] is None or row["expires_at"] > datetime.now(UTC))
             and await self.processor._eligible(
                 session,
                 {
@@ -85,9 +86,9 @@ class AudioTranscriptionService:
             return False
         return bool(
             await session.scalar(
-                text("""SELECT audio_transcription_accepted_at IS NOT NULL
-          FROM whatsapp_processing_consents WHERE tenant_id=:tenant AND business_id=:business
-            AND revoked_at IS NULL"""),
+                text(f"""SELECT {accepted_agreement_sql()} OR EXISTS(
+          SELECT 1 FROM whatsapp_processing_consents WHERE tenant_id=:tenant AND business_id=:business
+            AND revoked_at IS NULL AND audio_transcription_accepted_at IS NOT NULL)"""),
                 {"tenant": row["tenant_id"], "business": row["business_id"]},
             )
         )

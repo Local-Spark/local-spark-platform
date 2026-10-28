@@ -9,6 +9,7 @@ from sqlalchemy import text
 from app.core.config import Settings
 from app.db.session import Database
 from app.services.auth import AuthError
+from app.services.service_agreement_scope import accepted_agreement_sql, service_agreement_accepted
 
 
 class WhatsAppMaterialsService:
@@ -30,8 +31,9 @@ class WhatsAppMaterialsService:
         async with self.database.transaction(tenant, actor) as session:
             await self._require_owner(session, tenant, business, actor)
             accepted = await session.scalar(
-                text("""SELECT revoked_at IS NULL FROM whatsapp_processing_consents
-                  WHERE tenant_id=:tenant AND business_id=:business"""),
+                text(f"""SELECT {accepted_agreement_sql()} OR EXISTS(
+                  SELECT 1 FROM whatsapp_processing_consents
+                  WHERE tenant_id=:tenant AND business_id=:business AND revoked_at IS NULL)"""),
                 {"tenant": tenant, "business": business},
             )
         return {"accepted": bool(accepted)}
@@ -40,9 +42,9 @@ class WhatsAppMaterialsService:
         async with self.database.transaction(tenant, actor) as session:
             await self._require_owner(session, tenant, business, actor)
             accepted = await session.scalar(
-                text("""SELECT audio_transcription_accepted_at IS NOT NULL
-                  FROM whatsapp_processing_consents WHERE tenant_id=:tenant AND business_id=:business
-                    AND revoked_at IS NULL"""),
+                text(f"""SELECT {accepted_agreement_sql()} OR EXISTS(
+                  SELECT 1 FROM whatsapp_processing_consents WHERE tenant_id=:tenant AND business_id=:business
+                    AND revoked_at IS NULL AND audio_transcription_accepted_at IS NOT NULL)"""),
                 {"tenant": tenant, "business": business},
             )
         return {"accepted": bool(accepted)}
@@ -52,6 +54,8 @@ class WhatsAppMaterialsService:
 
         async with self.database.transaction(tenant, actor) as session:
             await VisualConsentGate._lock(session, tenant, business, actor)
+            if await service_agreement_accepted(session, tenant, business):
+                raise AuthError("SERVICE_AGREEMENT_MANAGES_PROCESSING", 409)
             changed = await session.scalar(
                 text("""UPDATE whatsapp_processing_consents SET
                   audio_transcription_accepted_at=CASE WHEN :accepted THEN now() ELSE NULL END
@@ -88,6 +92,8 @@ class WhatsAppMaterialsService:
 
         async with self.database.transaction(tenant, actor) as session:
             await VisualConsentGate._lock(session, tenant, business, actor)
+            if await service_agreement_accepted(session, tenant, business):
+                raise AuthError("SERVICE_AGREEMENT_MANAGES_PROCESSING", 409)
             changed = await session.scalar(
                 text("""INSERT INTO whatsapp_processing_consents(tenant_id,business_id,actor_id)
                   VALUES(:tenant,:business,:actor)
@@ -110,6 +116,8 @@ class WhatsAppMaterialsService:
 
         async with self.database.transaction(tenant, actor) as session:
             await VisualConsentGate._lock(session, tenant, business, actor)
+            if await service_agreement_accepted(session, tenant, business):
+                raise AuthError("SERVICE_AGREEMENT_MANAGES_PROCESSING", 409)
             changed = await session.scalar(
                 text("""UPDATE whatsapp_processing_consents SET revoked_at=now(),audio_transcription_accepted_at=NULL
                   WHERE tenant_id=:tenant AND business_id=:business AND revoked_at IS NULL RETURNING business_id"""),
@@ -142,7 +150,8 @@ class WhatsAppMaterialsService:
                           FROM whatsapp_material_assets a FULL OUTER JOIN whatsapp_material_events e ON e.id=a.id
                           WHERE coalesce(e.tenant_id,a.tenant_id)=:tenant
                             AND coalesce(e.business_id,a.business_id)=:business
-                            AND (a.id IS NULL OR (a.delete_requested_at IS NULL AND a.expires_at>now()))
+                            AND (a.id IS NULL OR (a.delete_requested_at IS NULL
+                              AND (a.expires_at IS NULL OR a.expires_at>now())))
                             AND (a.id IS NOT NULL OR e.state<>'processed')
                           ORDER BY created_at DESC,id DESC LIMIT :limit"""),
                         {"tenant": tenant, "business": business, "limit": limit},
@@ -194,7 +203,7 @@ class WhatsAppMaterialsService:
                 await session.execute(
                     text("""SELECT object_key,mime_type FROM whatsapp_material_assets
                           WHERE tenant_id=:tenant AND business_id=:business AND id=:event
-                            AND delete_requested_at IS NULL AND expires_at>now()"""),
+                            AND delete_requested_at IS NULL AND (expires_at IS NULL OR expires_at>now())"""),
                     {"tenant": tenant, "business": business, "event": event},
                 )
             ).one_or_none()
@@ -205,31 +214,11 @@ class WhatsAppMaterialsService:
     async def delete_material(self, tenant: UUID, business: UUID, actor: UUID, event: UUID) -> dict[str, str]:
         async with self.database.transaction(tenant, actor) as session:
             await self._require_owner(session, tenant, business, actor)
-            changed = await session.scalar(
-                text("""UPDATE whatsapp_material_assets SET delete_requested_at=now()
-                  WHERE tenant_id=:tenant AND business_id=:business AND id=:event
-                    AND kind <> 'image' AND delete_requested_at IS NULL RETURNING id"""),
+            found = await session.scalar(
+                text("""SELECT 1 FROM whatsapp_material_assets
+                  WHERE tenant_id=:tenant AND business_id=:business AND id=:event"""),
                 {"tenant": tenant, "business": business, "event": event},
             )
-            if changed is None:
-                found = await session.scalar(
-                    text("""SELECT kind FROM whatsapp_material_assets
-                      WHERE tenant_id=:tenant AND business_id=:business AND id=:event"""),
-                    {"tenant": tenant, "business": business, "event": event},
-                )
-                if found is None:
-                    raise AuthError("MATERIAL_NOT_FOUND", 404)
-                if found == "image":
-                    raise AuthError("WHATSAPP_PHOTO_DELETE_UNAVAILABLE", 409)
-            else:
-                await session.execute(
-                    text("""INSERT INTO audit_events(tenant_id,actor_id,operation_id,action,resource_id)
-                      VALUES(:tenant,:actor,:event,'whatsapp.material_delete_requested',:business)"""),
-                    {"tenant": tenant, "actor": actor, "event": event, "business": business},
-                )
-            await session.execute(
-                text("""DELETE FROM editorial_proposals WHERE tenant_id=:tenant
-                  AND business_id=:business AND source_asset_id=:event"""),
-                {"tenant": tenant, "business": business, "event": event},
-            )
-        return {"status": "scheduled"}
+            if found is None:
+                raise AuthError("MATERIAL_NOT_FOUND", 404)
+            raise AuthError("WHATSAPP_MATERIAL_DELETE_UNAVAILABLE", 409)

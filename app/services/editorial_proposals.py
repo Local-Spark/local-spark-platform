@@ -35,6 +35,12 @@ from app.services.auth import AuthError
 from app.services.brand_kits import kit_commercially_available
 from app.services.plan_capabilities import INITIAL_PLAN_INTENT_FORMATS
 from app.services.service_agreement import service_agreement_allowed
+from app.services.service_agreement_scope import (
+    accepted_agreement_sql,
+    agreement_worker_scope,
+    editorial_agreement_generation_sql,
+    service_agreement_accepted,
+)
 from app.services.whatsapp_materials import WhatsAppMaterialsService
 
 
@@ -134,8 +140,8 @@ class EditorialProposalService:
         async with self.database.transaction(tenant, actor) as session:
             await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
             accepted = await session.scalar(
-                text("""SELECT revoked_at IS NULL FROM editorial_ai_consents
-              WHERE tenant_id=:tenant AND business_id=:business"""),
+                text(f"""SELECT {accepted_agreement_sql()} OR EXISTS(SELECT 1 FROM editorial_ai_consents
+              WHERE tenant_id=:tenant AND business_id=:business AND revoked_at IS NULL)"""),
                 {"tenant": tenant, "business": business},
             )
             return {"accepted": bool(accepted), "provider_enabled": self.settings.editorial_ai_mode == "openai"}
@@ -145,6 +151,8 @@ class EditorialProposalService:
 
         async with self.database.transaction(tenant, actor) as session:
             await VisualConsentGate._lock(session, tenant, business, actor)
+            if await service_agreement_accepted(session, tenant, business):
+                raise AuthError("SERVICE_AGREEMENT_MANAGES_PROCESSING", 409)
             current = await session.scalar(
                 text("""SELECT revoked_at IS NULL FROM editorial_ai_consents
               WHERE tenant_id=:tenant AND business_id=:business FOR UPDATE"""),
@@ -207,8 +215,7 @@ class EditorialProposalService:
                 {"key": f"visual-consent:{tenant}:{business}"},
             )
             generation = await session.scalar(
-                text("""SELECT coalesce((SELECT generation FROM editorial_ai_consents
-                  WHERE tenant_id=:tenant AND business_id=:business), 0)"""),
+                text(editorial_agreement_generation_sql()),
                 {"tenant": tenant, "business": business},
             )
             existing = (
@@ -244,7 +251,7 @@ class EditorialProposalService:
                 source = await session.scalar(
                     text("""SELECT 1 FROM whatsapp_material_assets
                   WHERE id=:source AND tenant_id=:tenant AND business_id=:business
-                    AND delete_requested_at IS NULL AND expires_at>now()"""),
+                    AND delete_requested_at IS NULL AND (expires_at IS NULL OR expires_at>now())"""),
                     {"source": payload.source_asset_id, "tenant": tenant, "business": business},
                 )
                 if source is None:
@@ -308,7 +315,12 @@ class EditorialProposalService:
                             "source": payload.source_asset_id,
                             "briefing_id": briefing_id,
                             "briefing_required": briefing_id is not None,
-                            "generation": generation if self.settings.editorial_ai_mode == "openai" else None,
+                            "generation": (
+                                generation
+                                if self.settings.editorial_ai_mode == "openai"
+                                or (generation is not None and generation < 0)
+                                else None
+                            ),
                             "kit_version": kit["version"] if kit is not None else None,
                             "kit_document": (
                                 json.dumps(kit["document"], ensure_ascii=False) if kit is not None else None
@@ -694,8 +706,8 @@ class EditorialProposalService:
     async def _consented(session: Any, tenant: UUID, business: UUID) -> bool:
         return bool(
             await session.scalar(
-                text("""SELECT 1 FROM editorial_ai_consents
-          WHERE tenant_id=:tenant AND business_id=:business AND revoked_at IS NULL"""),
+                text(f"""SELECT {accepted_agreement_sql()} OR EXISTS(SELECT 1 FROM editorial_ai_consents
+          WHERE tenant_id=:tenant AND business_id=:business AND revoked_at IS NULL)"""),
                 {"tenant": tenant, "business": business},
             )
         )
@@ -729,7 +741,8 @@ class EditorialProposalService:
                     await session.execute(
                         text("""SELECT a.ciphertext,a.transcript_ciphertext,a.kind
               FROM whatsapp_material_assets a WHERE a.id=:source AND a.tenant_id=:tenant
-                AND a.business_id=:business AND a.delete_requested_at IS NULL AND a.expires_at>now()"""),
+                AND a.business_id=:business AND a.delete_requested_at IS NULL
+                AND (a.expires_at IS NULL OR a.expires_at>now())"""),
                         {"source": row["source_asset_id"], "tenant": row["tenant_id"], "business": row["business_id"]},
                     )
                 )
@@ -1027,8 +1040,7 @@ class EditorialProposalService:
             ):
                 return await self._reject(session, row, "SERVICE_AGREEMENT_REQUIRED")
             generation = await session.scalar(
-                text("""SELECT coalesce((SELECT generation FROM editorial_ai_consents
-                  WHERE tenant_id=:tenant AND business_id=:business), 0)"""),
+                text(editorial_agreement_generation_sql()),
                 {"tenant": row["tenant_id"], "business": row["business_id"]},
             )
             if self.settings.editorial_ai_mode == "openai" and row["consent_generation"] != generation:
@@ -1095,6 +1107,7 @@ class EditorialProposalService:
             )
             if row is None or row["state"] != "submitted":
                 return "uncertain"
+            await agreement_worker_scope(session, row["tenant_id"])
             consent = await self._consented(session, row["tenant_id"], row["business_id"])
             access = await session.scalar(
                 text(_access_sql()),

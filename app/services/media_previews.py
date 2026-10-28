@@ -26,6 +26,7 @@ from app.schemas.editorial_proposals import ProposalDraft
 from app.schemas.media_previews import PreviewRead, PreviewRequest
 from app.services.auth import AuthError
 from app.services.editorial_proposals import _access_sql, _audit
+from app.services.service_agreement_scope import accepted_agreement_sql, agreement_worker_scope
 from app.services.whatsapp_materials import WhatsAppMaterialsService
 
 logger = logging.getLogger("meu_braco_direito.media_previews")
@@ -97,8 +98,9 @@ class MediaPreviewService:
         ):
             raise AuthError("EDITORIAL_WITHDRAWAL_PENDING", 409)
         if proposal["model"] not in (None, "baseline-v1") and not await session.scalar(
-            text("""SELECT 1 FROM editorial_ai_consents WHERE tenant_id=:tenant
-              AND business_id=:business AND revoked_at IS NULL AND withdrawal_requested_at IS NULL"""),
+            text(f"""SELECT {accepted_agreement_sql()} OR EXISTS(SELECT 1 FROM editorial_ai_consents
+              WHERE tenant_id=:tenant AND business_id=:business
+                AND revoked_at IS NULL AND withdrawal_requested_at IS NULL)"""),
             {"tenant": proposal["tenant_id"], "business": proposal["business_id"]},
         ):
             raise AuthError("EDITORIAL_AI_CONSENT_REQUIRED", 409)
@@ -170,7 +172,7 @@ class MediaPreviewService:
                             AND ((kind='image' AND mime_type IN ('image/jpeg','image/png'))
                               OR (:is_video AND kind='video' AND mime_type IN ('video/mp4','video/3gpp')))
                             AND delete_requested_at IS NULL
-                            AND expires_at>now()"""),
+                            AND (expires_at IS NULL OR expires_at>now())"""),
                         {
                             "id": source_id,
                             "tenant": proposal["tenant_id"],
@@ -543,7 +545,8 @@ class MediaPreviewService:
                               AND r.business_id=p.business_id AND r.preview_id=p.id AND r.actor_id=:actor
                               AND r.state='in_flight'))
                           AND (p.source_asset_id IS NULL OR EXISTS(SELECT 1 FROM whatsapp_material_assets a
-                            WHERE a.id=p.source_asset_id AND a.delete_requested_at IS NULL AND a.expires_at>now()))
+                            WHERE a.id=p.source_asset_id AND a.delete_requested_at IS NULL
+                              AND (a.expires_at IS NULL OR a.expires_at>now())))
                           ORDER BY p.created_at DESC,p.id DESC LIMIT 30"""),
                         {"tenant": tenant, "business": business, "actor": actor},
                     )
@@ -608,15 +611,15 @@ class MediaPreviewService:
         async with self.owner_database.transaction(row["tenant_id"], actor) as session:
             await WhatsAppMaterialsService._require_owner(session, row["tenant_id"], row["business_id"], actor)
             proof = await session.scalar(
-                text("""SELECT 1 FROM visual_change_completed_previews v
+                text(f"""SELECT 1 FROM visual_change_completed_previews v
                   JOIN visual_consent_runs r ON r.tenant_id=v.tenant_id AND r.business_id=v.business_id
                     AND r.preview_id=v.preview_id AND r.operation_id=v.operation_id
                     AND r.actor_id=v.actor_id AND r.fence=v.fence AND r.state='finished'
-                  JOIN visual_ai_consents c ON c.tenant_id=v.tenant_id AND c.business_id=v.business_id
+                  LEFT JOIN visual_ai_consents c ON c.tenant_id=v.tenant_id AND c.business_id=v.business_id
                   WHERE v.tenant_id=:tenant AND v.business_id=:business AND v.actor_id=:actor
                     AND v.preview_id=:preview AND v.fence=:fence AND v.sha256=:sha
                     AND v.visual_fingerprint=:fingerprint
-                    AND ((c.revoked_at IS NULL AND c.accepted_at=v.consent_accepted_at)
+                    AND ({accepted_agreement_sql()} OR (c.revoked_at IS NULL AND c.accepted_at=v.consent_accepted_at)
                       OR (r.finished_during_withdrawal AND r.completed_sha256=v.sha256))"""),
                 {
                     "tenant": row["tenant_id"],
@@ -684,7 +687,8 @@ class MediaPreviewService:
                   AND p.business_id=:business AND p.state='completed' AND p.expires_at>now()
                   AND EXISTS(SELECT 1 FROM editorial_proposals e WHERE e.id=p.proposal_id)
                   AND (p.source_asset_id IS NULL OR EXISTS(SELECT 1 FROM whatsapp_material_assets a
-                    WHERE a.id=p.source_asset_id AND a.delete_requested_at IS NULL AND a.expires_at>now()))"""),
+                    WHERE a.id=p.source_asset_id AND a.delete_requested_at IS NULL
+                      AND (a.expires_at IS NULL OR a.expires_at>now())))"""),
                         {"id": preview_id, "tenant": tenant, "business": business},
                     )
                 )
@@ -988,6 +992,7 @@ class MediaPreviewService:
             try:
                 if proposal is None:
                     raise AuthError("PROPOSAL_NOT_FOUND", 404)
+                await agreement_worker_scope(session, row["tenant_id"])
                 inputs = await self._inputs(
                     session,
                     proposal,
@@ -1048,6 +1053,7 @@ class MediaPreviewService:
             return await self._fail(preview_id, fence, exc.code, exc.retryable)
         try:
             async with self.database.sessions() as session, session.begin():
+                await agreement_worker_scope(session, row["tenant_id"])
                 current = (
                     (
                         await session.execute(

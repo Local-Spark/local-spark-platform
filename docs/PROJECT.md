@@ -17,21 +17,27 @@ material novo, dentro da cadência aceita e da franquia. A rotina não exige sab
 usar editor, escrever prompt ou conhecer modelos de IA.
 
 **Decisão de produto posterior:** os materiais enviados pelo cliente devem ser
-preservados para compor o contexto do seu negócio. Não oferecer a exclusão de
-fotos no histórico de envios do WhatsApp; se não gostar da peça, o cliente pode
-enviar outra. O acervo em Sobre meu negócio é diferente: o cliente pode remover
+preservados para compor o contexto do seu negócio. O histórico de envios do
+WhatsApp não oferece exclusão de texto, foto, áudio ou vídeo; se não gostar de
+uma peça, o cliente pode enviar outro material. O acervo em Sobre meu negócio é diferente: o cliente pode remover
 fotos desatualizadas, como as de uma loja que mudou de aparência. Guardar material e construir uma memória ou skill utilizável são
 etapas diferentes: a incorporação automática ao contexto ainda precisa ser
 implementada. A [proposta de preservação](design/BL04-whatsapp-durable-materials.md)
-detalha a mudança e as pendências antes da migração. Prazo após encerramento da conta, descarte técnico e outras ações
+detalha a mudança e sua implantação coordenada. Prazo após encerramento da conta, descarte técnico e outras ações
 de gestão de dados não foram definidos por essa decisão.
 
 **Decisão de produto atual:** IA é parte do serviço contratado. A contratação
 apresenta uma explicação e termos únicos; não pedir que o cliente habilite
 OpenAI, TypeSafe, imagem ou transcrição separadamente. Contas já criadas verão
-os termos atualizados uma única vez antes de usar o serviço. O backend atual
-ainda possui controles separados: sua substituição deve preservar evidências e
-ser implementada junto com a web, sem presumir que já foi concluída. Ver
+os termos atualizados uma única vez antes de usar o serviço. A API registra um
+único aceite explícito e versionado por negócio. Ele é a
+autorização contratual para texto, imagem, interpretação e transcrição; os
+controles individuais saem da web. Registros antigos são preservados, sem
+reativação ou reescrita. Configuração de fornecedores, plano e orçamento
+continuam sendo controles internos. A validação completa mais uma rodada de
+regressões atingiu 100% de linhas/branches no backend; a web passou 360 testes,
+cobertura integral, build e três jornadas Chromium. Evidências no
+[CHANGELOG](CHANGELOG.md). A integração visual real segue na BL04.2. Ver
 [uso de IA como parte do serviço](design/ai-as-core-service.md).
 
 O proprietário definiu **uma conta e organização por negócio**, com cobrança e
@@ -43,9 +49,9 @@ garantir a regra e a situação dos dados locais. Os dois negócios de teste
 duplicados foram removidos com autorização e backup; a sequência de migrations
 foi aplicada localmente após revisão e aprovação do proprietário.
 O reaproveitamento da tabela existente `0056` para o aceite por negócio foi
-aprovado; a integração do aceite único ainda está pendente. As alterações
-antigas de WhatsApp, áudio e Jev agora compartilham o bloqueio transacional do
-aceite; isso não habilita o aceite nem substitui os controles atuais.
+aprovado; o aceite único usa essa tabela, com POST autenticado, versão/hash e auditoria.
+A contratação exige o aceite antes de criar checkout. Contas existentes aceitam
+uma vez em Plano e acesso; o registro não confirma pagamento nem liga provedores.
 
 Na versão inicial, cada negócio poderá vincular **um número de WhatsApp ativo**
 para conversar com a plataforma. Este é o número do cliente autorizado, distinto
@@ -58,7 +64,8 @@ Se o cliente trocar o número enquanto um material já enviado está sendo
 processado, o processamento continua para o mesmo negócio. Quando a troca
 estiver concluída, a prévia e o pedido de aprovação devem seguir para o número
 ativo novo, sem pedir que o cliente espere o processamento terminar para trocar.
-Esse comportamento ainda precisa ser implementado e validado de ponta a ponta.
+O processamento e a entrega simulada usam essa regra em testes locais; o envio
+real de prévia e aprovação via WhatsApp ainda não está implementado.
 
 Para vídeo, priorizar a hipótese de orientação de gravação e material real do
 negócio: cliente pode solicitar roteiro ou recebê-lo como sugestão consentida.
@@ -88,12 +95,12 @@ escala atual. Alcance e engajamento não comprovam faturamento nem causalidade.
 | --- | --- | --- |
 | Fundação e identidade | FastAPI, PostgreSQL/RLS, auth própria, sessões, recuperação, e-mail HTML, onboarding, operador com MFA e convites | Staging, operação e segurança de produção ainda precisam de homologação. |
 | Cobrança | Stripe Checkout sandbox, webhook assinado, jobs, reconciliação, assinatura de teste e patrocínio separados, painel de oportunidades | Franquias comerciais, custos completos e homologação de produção pendentes. Cadastro não ativa plano. |
-| WhatsApp e materiais | Inbox assinada/criptografada, vínculo, correlação, processamento, expiração/exclusão e transcrição | O armazenamento durável automático desejado ainda não existe; a implementação atual expira e permite excluir materiais. Meta real não homologada. |
+| WhatsApp e materiais | Inbox assinada/criptografada, vínculo, correlação, processamento e transcrição; envios associados são preservados sem prazo e não podem ser excluídos pelo histórico | Migration 0058 aplicada localmente; Meta real e uso automático como memória não estão homologados. |
 | Contexto e texto | Fatos/preferências versionados, propostas e roteiros, adapter OpenAI, reservas/tokens e projeção administrativa limitada | Não há agente geral, pesquisa automática de concorrentes, skills executáveis por cliente nem geração visual integrada. |
 | Kits BL01/BL02 | Vitrine fictícia de cafeteria, seleção por negócio, edição guiada de cores/fontes/logo/textos/composição, prévia, rascunho, confirmação e histórico | Kit `public_demo` somente para teste; direitos e qualidade comercial pendentes. A prévia simulada aplica o kit; a produção real ainda não. |
 | Conteúdos F04/F06 | Prévias técnicas estáticas/vídeo, candidata, decisão explícita e publicação falsa com validação de versão/hash | Renderers Pillow/FFmpeg não são receitas aprovadas. Ajuste ainda não regenera automaticamente; envio de candidata e publicação reais pendentes. |
 | Acervo BL03 | Cadastro manual versionado de produtos/serviços/promoções e fotos privadas de item/espaço, com cópia consentida de foto WhatsApp, implementados localmente | Importação automática de cardápio é BL03.3 posterior; o acervo alimenta briefing e roteiro experimentais em desenvolvimento/teste, sem geração visual integrada. |
-| Produção BL04/BL05 | Worker local pode interpretar com Jev mediante autorização TypeSafe e orçamento; briefing privado consulta acervo. A BL04.2 prepara referências e pedido visual e exercita uma prévia simulada privada com reserva e revisão. | Desligado por padrão, somente desenvolvimento/teste; geração real segue bloqueada até fechar atomicidade, orçamento global e tratamento de incerteza. Ainda precisa avaliar qualidade e completar a jornada. |
+| Produção BL04/BL05 | Worker local pode interpretar com Jev sob o aceite único do serviço e orçamento; briefing privado consulta acervo. A BL04.2 prepara referências e pedido visual e exercita uma prévia simulada privada com reserva e revisão. | Desligado por padrão, somente desenvolvimento/teste; geração real segue bloqueada até fechar atomicidade, orçamento global e tratamento de incerteza. Ainda precisa avaliar qualidade e completar a jornada. |
 | Infraestrutura F08 | Compose, CI e workflow de deploy preparado | AWS/staging, backup/restore, observabilidade operacional e capacidade não provisionados/homologados. |
 
 Os ensaios em [evals](evals/) não são features do produto nem aceites comerciais.
@@ -119,9 +126,10 @@ No acervo, o autor pode descartar um upload incerto após vencer a reserva e
 liberar o negócio; o objeto fica privado em quarentena, sem limpeza física
 automática. A atualização exige drenagem e avaliação de órfãos legados; outro
 owner ainda não recupera uma pendência cujo autor perdeu acesso.
-A decisão posterior de preservar materiais enviados substitui a premissa de
-expiração automática da foto que motivou a exceção de sete dias. O código ainda
-aplica a retenção antiga; não afirmar que o armazenamento durável já funciona.
+A migration 0058 aplicada localmente e o código preservam materiais associados sem prazo
+automático; excluem a ação de exclusão do histórico para todos os tipos e mantêm
+a limpeza técnica de eventos não atribuídos e uploads órfãos. A implantação local
+ocorreu após pausa e backup; objetos já apagados não podem ser recuperados.
 A política geral de retenção das prévias não foi definida por essa mudança.
 O ledger também possui teto mensal agregado para reservas OpenAI, separado do
 teto por tenant; não limita despesas fora do próprio ledger e não ativa o worker.
@@ -133,11 +141,11 @@ da titular. Custos de poucas chamadas isoladas não comprovam custo mensal.
 | Área do cliente | Finalidade |
 | --- | --- |
 | Início | Resumo e orientações com estados reais do perfil, sem página estática de passos. |
-| WhatsApp | Situação do canal, telefone/SMS, vínculo e consentimentos; histórico temporário de envios como consulta secundária. |
-| Sobre meu negócio | Fatos/preferências, autorização de IA e acervo opcional de Produtos e serviços e Meu espaço. |
+| WhatsApp | Situação do canal, telefone/SMS e vínculo; histórico preservado de envios como consulta secundária. |
+| Sobre meu negócio | Fatos/preferências e acervo opcional de Produtos e serviços e Meu espaço. |
 | Conteúdos | Acompanhar propostas/prévias e decisões disponíveis; alternativa à aprovação pelo WhatsApp. A simulação é identificada. |
 | Kits visuais | Explorar, escolher e editar a direção visual aplicada ao negócio. |
-| Plano e acesso | Assinatura, patrocínio e situação de acesso. |
+| Plano e acesso | Aceite único do serviço, assinatura, patrocínio e situação de acesso. |
 
 Organização e negócio ativos são compartilhados entre as telas, com seleção em
 memória; autorização permanece na API/RLS. `/app/content` é a rota vigente;
@@ -174,8 +182,8 @@ os fatos pertinentes do mesmo negócio. Para mostrar o café real, a edição de
 partir de foto real do espaço e preservar o produto; fonte insuficiente exige
 pergunta curta ou conceito identificado. Os envios deverão ser preservados
 automaticamente como contexto, sem classificá-los como produtos ou fatos
-confirmados. Hoje a cópia de foto ao acervo ainda é manual e a preservação
-durável automática dos envios não está implementada.
+confirmados. A cópia de foto ao acervo ainda é manual; a preservação do envio
+não equivale à criação automática de uma ficha de produto ou de uma skill.
 
 Antes do piloto comercial: fechar BL03–BL05 para as receitas prometidas, obter
 avaliação consentida de qualidade, medir custo por peça aceita e franquia F07,
@@ -205,7 +213,7 @@ o proprietário aprovou cadastro manual e fotos, agora implementados localmente.
   tools; `gpt-5-mini` é o default de configuração, sem escolha comercial final
   de modelo. O adapter de áudio referencia `gpt-transcribe`. Não houve aprovação
   nesta revisão para trocar fornecedor, modelo ou adicionar plataforma agente.
-- A conversa WhatsApp reconhece intenções delimitadas por regras; o worker local pode chamar Jev para classificar texto e candidatos do acervo, com consentimento e reserva próprios. Não é um chat geral nem envio real homologado.
+- A conversa WhatsApp reconhece intenções delimitadas por regras; o worker local pode chamar Jev para classificar texto e candidatos do acervo, sob o aceite único e com reserva própria. Não é um chat geral nem envio real homologado.
 - Reservas e tokens são dados de consumo, não custo monetário completo. Faltam
   tarifa versionada e visão de gastos de todas as tentativas; o admin não recebe
   material/prompt privado irrestrito. Memória versionada não treina o modelo

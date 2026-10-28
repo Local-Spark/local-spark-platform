@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import httpx
+import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import ProgrammingError
 
@@ -57,10 +58,18 @@ async def test_owner_request_is_private_and_purge_retries_storage(admin, databas
             assert (await client.get(base, headers=owner)).json()["items"][0]["id"] == str(event)
             assert (await client.delete(f"{base}/{event}", headers=foreign)).status_code == 403
             assert (await client.delete(f"{base}/{other_event}", headers=owner)).status_code == 404
-            assert (await client.delete(f"{base}/{event}", headers=owner)).json() == {"status": "scheduled"}
-            assert (await client.delete(f"{base}/{event}", headers=owner)).status_code == 202
-            assert (await client.get(base, headers=owner)).json()["items"] == []
-            assert (await client.get(f"{base}/{event}/download-link", headers=owner)).status_code == 404
+            for _ in range(2):
+                response = await client.delete(f"{base}/{event}", headers=owner)
+                assert response.status_code == 409
+                assert response.json()["error_code"] == "WHATSAPP_MATERIAL_DELETE_UNAVAILABLE"
+            assert (await client.get(base, headers=owner)).json()["items"][0]["id"] == str(event)
+        # Simulate an existing historical deletion request; production migration
+        # explicitly blocks such records pending review instead of creating one.
+        async with admin.begin() as connection:
+            await connection.execute(
+                text("UPDATE whatsapp_material_assets SET delete_requested_at=now() WHERE id=:id"),
+                {"id": event},
+            )
         storage = AsyncMock()
         storage.delete.side_effect = MaterialError("MATERIAL_STORAGE_UNAVAILABLE", retryable=True)
         assert await purge_once(router, storage, uuid4()) == 0
@@ -88,13 +97,14 @@ async def test_owner_request_is_private_and_purge_retries_storage(admin, databas
                   AND action='whatsapp.material_delete_requested'"""),
                     {"id": event},
                 )
-                == 1
+                == 0
             )
     finally:
         await router.close()
 
 
-async def test_whatsapp_photo_cannot_be_deleted_via_api(admin, database, auth_database, seeded, settings):
+@pytest.mark.parametrize("kind", ["text", "image", "audio", "video"])
+async def test_whatsapp_material_cannot_be_deleted_via_api(admin, database, auth_database, seeded, settings, kind):
     business, photo = uuid4(), uuid4()
     async with admin.begin() as connection:
         await connection.execute(
@@ -109,8 +119,8 @@ async def test_whatsapp_photo_cannot_be_deleted_via_api(admin, database, auth_da
         await connection.execute(
             text("""INSERT INTO whatsapp_material_assets
               (id,tenant_id,business_id,kind,ciphertext,object_key,mime_type)
-              VALUES(:id,:tenant,:business,'image','cipher','private/photo','image/png')"""),
-            {"id": photo, "tenant": seeded["t1"], "business": business},
+              VALUES(:id,:tenant,:business,:kind,'cipher','private/material','image/png')"""),
+            {"id": photo, "tenant": seeded["t1"], "business": business, "kind": kind},
         )
     app = create_app(settings, database, auth_database)
     base = f"/api/v1/organizations/{seeded['t1']}/businesses/{business}/whatsapp-materials"
@@ -125,7 +135,7 @@ async def test_whatsapp_photo_cannot_be_deleted_via_api(admin, database, auth_da
         for _ in range(2):
             response = await client.delete(f"{base}/{photo}", headers=owner)
             assert response.status_code == 409
-            assert response.json()["error_code"] == "WHATSAPP_PHOTO_DELETE_UNAVAILABLE"
+            assert response.json()["error_code"] == "WHATSAPP_MATERIAL_DELETE_UNAVAILABLE"
         assert [item["id"] for item in (await client.get(base, headers=owner)).json()["items"]] == [str(photo)]
     async with admin.connect() as connection:
         assert await connection.scalar(
@@ -141,7 +151,7 @@ async def test_whatsapp_photo_cannot_be_deleted_via_api(admin, database, auth_da
         )
 
 
-async def test_expiry_claim_fencing_and_raw_cleanup(admin, seeded, settings):
+async def test_manual_claim_fencing_preserves_expired_material_and_cleans_unattributed_inbox(admin, seeded, settings):
     business, event, raw = uuid4(), uuid4(), uuid4()
     async with admin.begin() as connection:
         await connection.execute(
@@ -165,6 +175,11 @@ async def test_expiry_claim_fencing_and_raw_cleanup(admin, seeded, settings):
         await purge_expired_raw(router)
         async with admin.connect() as connection:
             assert await connection.scalar(text("SELECT count(*) FROM whatsapp_inbox WHERE id=:id"), {"id": raw}) == 0
+        assert await claim_expired_assets(router, first) == []
+        async with admin.begin() as connection:
+            await connection.execute(
+                text("UPDATE whatsapp_material_assets SET delete_requested_at=now() WHERE id=:id"), {"id": event}
+            )
         claims = await claim_expired_assets(router, first)
         assert len(claims) == 1
         assert await claim_expired_assets(router, second) == []

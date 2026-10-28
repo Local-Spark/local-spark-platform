@@ -32,7 +32,7 @@ async def claim_expired_previews(database: Database, owner: UUID, limit: int = 5
                           NOT EXISTS(SELECT 1 FROM editorial_proposals e WHERE e.id=p.proposal_id) OR
                           (p.source_asset_id IS NOT NULL AND NOT EXISTS(
                             SELECT 1 FROM whatsapp_material_assets a WHERE a.id=p.source_asset_id
-                              AND a.delete_requested_at IS NULL AND a.expires_at>now())))
+                              AND a.delete_requested_at IS NULL AND (a.expires_at IS NULL OR a.expires_at>now()))))
                         AND (p.state NOT IN ('rendering','purging') OR p.dispatch_lease_until<now())
                       ORDER BY p.expires_at,p.id LIMIT :limit FOR UPDATE SKIP LOCKED)
                       UPDATE media_previews p SET state='purging',dispatch_owner=:owner,

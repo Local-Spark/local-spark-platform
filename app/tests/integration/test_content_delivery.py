@@ -26,6 +26,7 @@ from app.services.editorial_dispatch import claim_proposals
 from app.services.editorial_proposals import EditorialProposalService
 from app.services.media_dispatch import claim_previews
 from app.services.media_previews import MediaPreviewService
+from app.services.whatsapp_ingest import sender_hash
 from app.services.whatsapp_materials import WhatsAppMaterialsService
 from app.tests.integration.test_media_previews import _accepted_case
 from app.tests.unit.test_core import access_token
@@ -38,7 +39,7 @@ async def _candidate_case(admin, seeded, settings):
     tenant, business, actor, _, proposal, _ = await _accepted_case(admin, seeded)
     key = Fernet.generate_key()
     cfg = settings.model_copy(update={"meta_encryption_key": SecretStr(key.decode())})
-    event, sender = uuid4(), "a" * 64
+    event, sender = uuid4(), sender_hash(cfg, "+5511999999999")
     encrypted = (
         Fernet(key)
         .encrypt(
@@ -48,6 +49,10 @@ async def _candidate_case(admin, seeded, settings):
     )
     async with admin.begin() as conn:
         await conn.execute(text("UPDATE editorial_proposals SET review_state=NULL WHERE id=:id"), {"id": proposal})
+        await conn.execute(
+            text("UPDATE business_profiles SET phone_verified=true WHERE tenant_id=:t AND business_id=:b"),
+            {"t": tenant, "b": business},
+        )
         await conn.execute(
             text("""INSERT INTO whatsapp_processing_consents(tenant_id,business_id,actor_id)
               VALUES(:t,:b,:a)"""),
@@ -240,7 +245,12 @@ async def test_command_requires_one_live_candidate_and_changes_are_not_published
         service = ContentDeliveryService(cfg, app_db, worker_db)
         delivery = await service.record(event, preview)
         assert delivery is not None
-        command_event = {"id": uuid4(), "tenant_id": tenant, "business_id": business, "sender_hash": "a" * 64}
+        command_event = {
+            "id": uuid4(),
+            "tenant_id": tenant,
+            "business_id": business,
+            "sender_hash": sender_hash(cfg, "+5511999999999"),
+        }
         assert await apply_candidate_command(
             cfg, app_db, worker_db, command_event, {"text": {"body": "Pedir ajustes: destacar a imagem"}}
         )
@@ -376,7 +386,12 @@ async def test_candidate_guards_and_quoted_whatsapp_commands(admin, seeded, sett
             await conn.execute(text("UPDATE media_previews SET sha256=:sha WHERE id=:id"), {"id": preview, "sha": sha})
         delivery = await service.record(event, preview)
         assert delivery is not None
-        command_event = {"id": uuid4(), "tenant_id": tenant, "business_id": business, "sender_hash": "a" * 64}
+        command_event = {
+            "id": uuid4(),
+            "tenant_id": tenant,
+            "business_id": business,
+            "sender_hash": sender_hash(cfg, "+5511999999999"),
+        }
         assert await apply_candidate_command(
             cfg,
             app_db,
@@ -457,6 +472,173 @@ async def test_edited_render_and_expired_handoff_never_publish(admin, seeded, se
                 {"id": delivery},
             )
         assert await publish_fake(cfg, app_db, worker_db, *claim) == "skipped"
+    finally:
+        await worker_db.close()
+        await app_db.close()
+
+
+async def test_queued_event_uses_new_active_number_as_recipient(admin, seeded, settings):
+    cfg, app_db, worker_db, tenant, business, actor, _, event, preview = await _candidate_case(admin, seeded, settings)
+    new_number = "+5511888888888"
+    try:
+        async with admin.begin() as conn:
+            await conn.execute(
+                text(
+                    "UPDATE business_profiles SET phone=:phone,phone_verified=true "
+                    "WHERE tenant_id=:t AND business_id=:b"
+                ),
+                {"phone": new_number, "t": tenant, "b": business},
+            )
+            await conn.execute(
+                text(
+                    "UPDATE whatsapp_channel_links SET sender_hash=:sender,linked_at=now() "
+                    "WHERE tenant_id=:t AND business_id=:b"
+                ),
+                {"sender": sender_hash(cfg, new_number), "t": tenant, "b": business},
+            )
+        activity = ContentCandidateActivities(cfg, app_db, worker_db)
+        assert (await activity.request_candidate_proposal(str(event))) != "skipped"
+        service = ContentDeliveryService(cfg, app_db, worker_db)
+        delivery = await service.record(event, preview)
+        assert delivery is not None
+        async with admin.connect() as conn:
+            row = (
+                await conn.execute(
+                    text("SELECT recipient_hash,recipient_ciphertext FROM content_deliveries WHERE id=:id"),
+                    {"id": delivery},
+                )
+            ).one()
+        assert row[0] == sender_hash(cfg, new_number)
+        assert (
+            Fernet(cfg.meta_encryption_key.get_secret_value().encode()).decrypt(row[1].encode()).decode() == new_number
+        )
+    finally:
+        await worker_db.close()
+        await app_db.close()
+
+
+async def test_associated_material_processes_while_number_is_being_changed(admin, seeded, settings):
+    from app.services.whatsapp_processing import MaterialProcessor
+
+    cfg, app_db, worker_db, tenant, business, actor, _, event, preview = await _candidate_case(admin, seeded, settings)
+    new_number = "+5511888888888"
+    try:
+        async with admin.begin() as conn:
+            await conn.execute(text("DELETE FROM whatsapp_material_assets WHERE id=:id"), {"id": event})
+            await conn.execute(
+                text("UPDATE whatsapp_material_events SET state='pending',expires_at=NULL WHERE id=:id"), {"id": event}
+            )
+            await conn.execute(
+                text("UPDATE whatsapp_channel_links SET active=false WHERE tenant_id=:t AND business_id=:b"),
+                {"t": tenant, "b": business},
+            )
+            await conn.execute(
+                text("UPDATE business_profiles SET phone_verified=false WHERE tenant_id=:t AND business_id=:b"),
+                {"t": tenant, "b": business},
+            )
+        processor = MaterialProcessor(cfg, worker_db, AsyncMock(), AsyncMock())
+        assert await processor.process(event) == "processed"
+        activity = ContentCandidateActivities(cfg, app_db, worker_db)
+        assert (await activity.request_candidate_proposal(str(event))) != "skipped"
+        assert await activity.deliver_candidate_preview([str(event), str(preview)]) == "waiting_for_channel"
+        async with admin.begin() as conn:
+            await conn.execute(
+                text(
+                    "UPDATE business_profiles SET phone=:phone,phone_verified=true "
+                    "WHERE tenant_id=:t AND business_id=:b"
+                ),
+                {"phone": new_number, "t": tenant, "b": business},
+            )
+            await conn.execute(
+                text(
+                    "UPDATE whatsapp_channel_links SET sender_hash=:sender,linked_at=now(),active=true "
+                    "WHERE tenant_id=:t AND business_id=:b"
+                ),
+                {"sender": sender_hash(cfg, new_number), "t": tenant, "b": business},
+            )
+        delivery = await ContentDeliveryService(cfg, app_db, worker_db).record(event, preview)
+        assert delivery is not None
+        async with admin.connect() as conn:
+            row = (
+                await conn.execute(
+                    text("SELECT recipient_hash,recipient_ciphertext FROM content_deliveries WHERE id=:id"),
+                    {"id": delivery},
+                )
+            ).one()
+        assert row[0] == sender_hash(cfg, new_number)
+        assert (
+            Fernet(cfg.meta_encryption_key.get_secret_value().encode()).decrypt(row[1].encode()).decode() == new_number
+        )
+    finally:
+        await worker_db.close()
+        await app_db.close()
+
+
+async def test_photo_finishes_when_number_changes_during_fetch(admin, seeded, settings):
+    import hashlib
+
+    from app.adapters.material_media import FetchedMedia
+    from app.services.whatsapp_processing import MaterialProcessor
+
+    cfg, app_db, worker_db, tenant, business, actor, _, event, _ = await _candidate_case(admin, seeded, settings)
+    try:
+        encrypted = (
+            Fernet(cfg.meta_encryption_key.get_secret_value().encode())
+            .encrypt(json.dumps({"from": "5511999999999", "type": "image", "image": {"id": "fake-media-id"}}).encode())
+            .decode()
+        )
+        async with admin.begin() as conn:
+            await conn.execute(text("DELETE FROM whatsapp_material_assets WHERE id=:id"), {"id": event})
+            await conn.execute(
+                text("UPDATE whatsapp_material_events SET kind='image',state='pending',ciphertext=:body WHERE id=:id"),
+                {"id": event, "body": encrypted},
+            )
+        media = AsyncMock()
+        image_data = b"synthetic image"
+
+        async def change_while_fetching(_media_id, _kind):
+            async with admin.begin() as conn:
+                await conn.execute(
+                    text("UPDATE whatsapp_channel_links SET active=false WHERE tenant_id=:t AND business_id=:b"),
+                    {"t": tenant, "b": business},
+                )
+                await conn.execute(
+                    text("UPDATE business_profiles SET phone_verified=false WHERE tenant_id=:t AND business_id=:b"),
+                    {"t": tenant, "b": business},
+                )
+            return FetchedMedia(image_data, "image/png", hashlib.sha256(image_data).hexdigest())
+
+        media.fetch.side_effect = change_while_fetching
+        store = AsyncMock()
+        assert await MaterialProcessor(cfg, worker_db, media, store).process(event) == "processed"
+        store.put.assert_awaited_once()
+        async with admin.connect() as conn:
+            assert (
+                await conn.scalar(text("SELECT count(*) FROM whatsapp_material_assets WHERE id=:id"), {"id": event})
+                == 1
+            )
+    finally:
+        await worker_db.close()
+        await app_db.close()
+
+
+async def test_offline_delivery_wait_stops_when_existing_preview_expires(admin, seeded, settings):
+    cfg, app_db, worker_db, tenant, business, _, _, event, preview = await _candidate_case(admin, seeded, settings)
+    try:
+        async with admin.begin() as conn:
+            await conn.execute(text("UPDATE whatsapp_material_events SET expires_at=NULL WHERE id=:id"), {"id": event})
+            await conn.execute(
+                text("UPDATE whatsapp_channel_links SET active=false WHERE tenant_id=:t AND business_id=:b"),
+                {"t": tenant, "b": business},
+            )
+        activities = ContentCandidateActivities(cfg, app_db, worker_db)
+        assert await activities.deliver_candidate_preview([str(event), str(preview)]) == "waiting_for_channel"
+        async with admin.begin() as conn:
+            await conn.execute(
+                text("UPDATE media_previews SET expires_at=now()-interval '1 second' WHERE id=:id"),
+                {"id": preview},
+            )
+        assert await activities.deliver_candidate_preview([str(event), str(preview)]) == "delivery_blocked"
     finally:
         await worker_db.close()
         await app_db.close()

@@ -18,6 +18,9 @@ from app.schemas.content_deliveries import ContentDecision, ContentDeliveryRead
 from app.schemas.editorial_proposals import ProposalDraft
 from app.services.auth import AuthError
 from app.services.media_previews import MediaPreviewService
+from app.services.phone_verification import e164
+from app.services.service_agreement_scope import accepted_agreement_sql
+from app.services.whatsapp_ingest import sender_hash
 from app.services.whatsapp_materials import WhatsAppMaterialsService
 
 logger = logging.getLogger("meu_braco_direito.content_deliveries")
@@ -57,14 +60,12 @@ class ContentDeliveryService:
             event = (
                 (
                     await session.execute(
-                        text("""SELECT e.id,e.tenant_id,e.business_id,e.sender_hash,e.ciphertext,e.created_at,
+                        text("""SELECT e.id,e.tenant_id,e.business_id,e.created_at,
                           l.actor_id FROM whatsapp_material_events e
                           JOIN whatsapp_channel_links l ON l.tenant_id=e.tenant_id
-                            AND l.business_id=e.business_id AND l.sender_hash=e.sender_hash
-                          JOIN whatsapp_processing_consents c ON c.tenant_id=e.tenant_id
-                            AND c.business_id=e.business_id
-                          WHERE e.id=:id AND e.state='processed' AND e.expires_at>now()
-                            AND l.active AND l.linked_at<=e.created_at AND c.revoked_at IS NULL"""),
+                            AND l.business_id=e.business_id
+                          WHERE e.id=:id AND e.state='processed' AND (e.expires_at IS NULL OR e.expires_at>now())
+                            AND l.active"""),
                         {"id": event_id},
                     )
                 )
@@ -78,8 +79,6 @@ class ContentDeliveryService:
             )
             if existing is not None:
                 return cast(UUID, existing)
-        cipher = Fernet(self.settings.meta_encryption_key.get_secret_value().encode())  # type: ignore[union-attr]
-        recipient = json.loads(cipher.decrypt(event["ciphertext"].encode()))["from"]
         preview = None
         if preview_id is not None:
             await MediaPreviewService(self.settings, self.app_database).file_key(
@@ -113,43 +112,87 @@ class ContentDeliveryService:
                 else "Para preparar uma publicação, me conte o que deseja mostrar e confirme um fato atual do negócio."
             )
             expires_at = datetime.now(UTC) + timedelta(days=1)
-        delivery_id = _delivery_id(event_id)
-        async with self.worker_database.sessions() as session, session.begin():
-            row = (
+        cipher = Fernet(self.settings.meta_encryption_key.get_secret_value().encode())  # type: ignore[union-attr]
+        async with self.app_database.transaction(event["tenant_id"], event["actor_id"]) as owner_session:
+            params = {"tenant": event["tenant_id"], "business": event["business_id"], "actor": event["actor_id"]}
+            if not await owner_session.scalar(
+                text(f"""SELECT {accepted_agreement_sql()} OR EXISTS(
+                  SELECT 1 FROM whatsapp_processing_consents WHERE tenant_id=:tenant
+                    AND business_id=:business AND revoked_at IS NULL)"""),
+                params,
+            ):
+                return None
+            # All phone updates lock the profile before changing the link.
+            profile = (
                 (
-                    await session.execute(
-                        text("""INSERT INTO content_deliveries
-                          (id,tenant_id,business_id,actor_id,source_event_id,preview_id,kind,
-                           recipient_hash,recipient_ciphertext,message_body,provider_message_id,
-                           decision_state,caption,expires_at)
-                          VALUES(:id,:tenant,:business,:actor,:event,:preview,:kind,:sender,:recipient,
-                            :body,:message,:decision,:caption,:expires)
-                          ON CONFLICT(source_event_id) DO UPDATE SET id=content_deliveries.id
-                          RETURNING *"""),
-                        {
-                            "id": delivery_id,
-                            "tenant": event["tenant_id"],
-                            "business": event["business_id"],
-                            "actor": event["actor_id"],
-                            "event": event_id,
-                            "preview": preview_id,
-                            "kind": "candidate" if preview_id else "clarification",
-                            "sender": event["sender_hash"],
-                            "recipient": cipher.encrypt(recipient.encode()).decode(),
-                            "body": body,
-                            "message": f"fake-whatsapp/{delivery_id}",
-                            "decision": "pending" if preview_id else None,
-                            "caption": caption,
-                            "expires": expires_at,
-                        },
+                    await owner_session.execute(
+                        text("""SELECT phone,phone_verified FROM business_profiles
+                      WHERE tenant_id=:tenant AND business_id=:business FOR UPDATE"""),
+                        params,
                     )
                 )
                 .mappings()
-                .one()
+                .one_or_none()
             )
-            action = "content.candidate_delivered" if preview_id else "content.fact_requested"
-            await _audit(session, row, action, row["id"])
-            return delivery_id
+            if profile is None or not profile["phone_verified"]:
+                return None
+            active = (
+                (
+                    await owner_session.execute(
+                        text("""SELECT sender_hash FROM whatsapp_channel_links
+                      WHERE tenant_id=:tenant AND business_id=:business
+                        AND active AND actor_id=:actor FOR UPDATE"""),
+                        params,
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+            if active is None:
+                return None
+            try:
+                recipient = e164(profile["phone"])
+            except AuthError:
+                return None
+            if sender_hash(self.settings, recipient) != active["sender_hash"]:
+                return None
+            delivery_id = _delivery_id(event_id)
+            async with self.worker_database.sessions() as session, session.begin():
+                row = (
+                    (
+                        await session.execute(
+                            text("""INSERT INTO content_deliveries
+                              (id,tenant_id,business_id,actor_id,source_event_id,preview_id,kind,
+                               recipient_hash,recipient_ciphertext,message_body,provider_message_id,
+                               decision_state,caption,expires_at)
+                              VALUES(:id,:tenant,:business,:actor,:event,:preview,:kind,:sender,:recipient,
+                                :body,:message,:decision,:caption,:expires)
+                              ON CONFLICT(source_event_id) DO UPDATE SET id=content_deliveries.id
+                              RETURNING *"""),
+                            {
+                                "id": delivery_id,
+                                "tenant": event["tenant_id"],
+                                "business": event["business_id"],
+                                "actor": event["actor_id"],
+                                "event": event_id,
+                                "preview": preview_id,
+                                "kind": "candidate" if preview_id else "clarification",
+                                "sender": active["sender_hash"],
+                                "recipient": cipher.encrypt(recipient.encode()).decode(),
+                                "body": body,
+                                "message": f"fake-whatsapp/{delivery_id}",
+                                "decision": "pending" if preview_id else None,
+                                "caption": caption,
+                                "expires": expires_at,
+                            },
+                        )
+                    )
+                    .mappings()
+                    .one()
+                )
+                action = "content.candidate_delivered" if preview_id else "content.fact_requested"
+                await _audit(session, row, action, row["id"])
+                return delivery_id
 
     async def list(self, tenant: UUID, business: UUID, actor: UUID) -> list[ContentDeliveryRead]:
         async with self.app_database.transaction(tenant, actor) as session:

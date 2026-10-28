@@ -19,13 +19,20 @@ após autorização, com backup e preservação de histórico. O
 **Decisão atual de contratação:** IA faz parte do serviço. Explicar seu uso uma
 vez nos termos da contratação e substituir escolhas de fornecedor ou modalidade
 por uma jornada única; contas existentes verão a versão atualizada uma vez antes
-de usar o serviço. As verificações separadas que ainda existem descrevem o
-estado atual, não a experiência desejada. Implementação e migração devem seguir
-[uso de IA como parte do serviço](design/ai-as-core-service.md), preservar
-registros e não converter aceites ou recusas anteriores silenciosamente.
-As alterações antigas de WhatsApp, áudio e Jev compartilham o bloqueio por
-negócio do aceite. O endpoint público de aceite e a transição dos registros
-anteriores ainda não estão implementados.
+de usar o serviço. O aceite único é registrado pela API e apresentado em Plano
+e acesso; os controles individuais de IA e transcrição deixam a jornada do
+cliente. A transição segue [uso de IA como parte do serviço](design/ai-as-core-service.md),
+preserva registros e não converte aceites ou recusas anteriores silenciosamente.
+O POST de aceite exige owner ativo, ação explícita e versão/hash exatos, sob o
+bloqueio por negócio. Não altera consentimentos antigos. O contrato aceito passa
+a ser a autoridade de processamento; operações antigas não são reativadas pelo
+novo aceite. A contratação valida o aceite antes de criar a intenção de checkout.
+A configuração técnica de IA, orçamento, plano e aprovação da publicação seguem
+independentes; o aviso continua destinado à validação local.
+A suíte completa e regressões complementares comprovaram 100% de linhas e
+branches; a web validou 360 testes e três jornadas Chromium. A comprovação usa
+PostgreSQL/RLS e Temporal locais, com efeitos externos simulados; não homologa
+provedores reais. Contagens e evidências estão no [CHANGELOG](CHANGELOG.md).
 
 Receber ideias e material pelo WhatsApp, recuperar contexto autorizado do
 negócio, produzir conteúdo com qualidade, pedir aprovação específica, publicar
@@ -45,7 +52,8 @@ WhatsApp continua sujeita à homologação Meta.
 Ao trocar o número, um material já enviado em processamento continua associado
 ao mesmo negócio. Após a troca, a prévia e o pedido de aprovação devem ir ao
 número ativo novo; a troca não exige esperar a conclusão desse processamento.
-É uma decisão de produto, ainda não uma capacidade implementada ou homologada.
+O caminho de processamento e entrega simulada foi adaptado para essa regra; a
+entrega real pelo WhatsApp ainda não está implementada nem homologada.
 
 Instagram é o primeiro destino pretendido. Simuladores de Instagram, Facebook
 e TikTok na vitrine não são integrações com essas redes. Avatar/voz do cliente
@@ -138,7 +146,7 @@ memória; trocar seleção não altera permissões nem mistura dados de negócio
 - `/app/editorial-lab` existe somente no build DEV. Guarda geração manual,
   edição/aceite de roteiro e controles técnicos do renderer para ensaio.
   APIs e dados editoriais permanecem compartilhados com a jornada automática.
-- Sobre meu negócio concentra fatos/preferências e autorização/retirada de IA.
+- Sobre meu negócio concentra fatos/preferências e acervo. O aceite único de IA fica em Plano e acesso.
   Frequência semanal manual não é exibida; preservar `posts_per_week` histórico
   ao salvar outras preferências até cadência por formato/plano.
 
@@ -255,7 +263,7 @@ posterior; a [avaliação de licenças e POC](design/video-tool-candidates-2026-
 não implica implementação. A licença dos pesos do VoiceStudio precisa ser
 validada para uso comercial, e voz continua após o piloto.
 
-A execução e os limites da fase ativa estão no [SDD BL04](phases/BL04-context-and-ai-production.md). Em desenvolvimento/teste, o worker pode usar Jev com consentimento TypeSafe separado, reserva financeira e snapshots revalidados; permanece desligado por padrão. Bloqueio de orçamento antes de submissão tem retomada segura e limitada; respostas incertas não são reenviadas. Esclarecimentos usam entrega local simulada; prévias com esse briefing são apenas simuladas e a geração real está bloqueada. A [comparação Jev/OpenAI](evals/intent-comparison-2026-10-27.md) não prova conversa com memória nem homologação comercial. A oferta inicial de R$ 99 admite foto e story, sem franquia de quantidade definida; vídeo e planos adicionais ainda serão definidos. O nome versionado de um item ativo pode fundamentar o roteiro, sem converter preço ou oferta em fato nem criar registro artificial no contexto do negócio.
+A execução e os limites da fase ativa estão no [SDD BL04](phases/BL04-context-and-ai-production.md). Em desenvolvimento/teste, o worker pode usar Jev sob o aceite único do serviço, reserva financeira e snapshots revalidados; permanece desligado por padrão. Bloqueio de orçamento antes de submissão tem retomada segura e limitada; respostas incertas não são reenviadas. Esclarecimentos usam entrega local simulada; prévias com esse briefing são apenas simuladas e a geração real está bloqueada. A [comparação Jev/OpenAI](evals/intent-comparison-2026-10-27.md) não prova conversa com memória nem homologação comercial. A oferta inicial de R$ 99 admite foto e story, sem franquia de quantidade definida; vídeo e planos adicionais ainda serão definidos. O nome versionado de um item ativo pode fundamentar o roteiro, sem converter preço ou oferta em fato nem criar registro artificial no contexto do negócio.
 
 A retirada de autorização visual bloqueia novos inícios, cancela logicamente
 trabalhos ainda na fila e aguarda os trabalhos já admitidos. O estado pendente
@@ -263,7 +271,7 @@ trabalhos ainda na fila e aguarda os trabalhos já admitidos. O estado pendente
 visíveis. Processos com conclusão incerta exigem verificação. O gate está ligado
 ao fluxo simulado; integração e garantias para o provedor real ainda faltam.
 
-A BL04.2 tem consentimento visual independente e preparação de fontes com kit,
+A BL04.2 usa o aceite único do serviço e preparação de fontes com kit,
 foto de WhatsApp e fotos do acervo, com verificações e minimização de metadados.
 Um caminho de teste gera apenas uma imagem marcada como simulação e exercita
 reserva, fence, prévia privada e decisão. A reserva e o fence estão ligados na
@@ -294,13 +302,12 @@ negócio e mantendo a chave privada em quarentena; a limpeza física automática
 a recuperação por outro proprietário permanecem pendentes. Provas persistidas
 distinguem novos PUTs de tentativa única de registros legados. A atualização
 exige drenagem e avaliação de órfãos legados antes do uso.
-Decisão posterior: preservar os materiais enviados para contexto do negócio;
-não oferecer exclusão da foto recebida apenas por insatisfação com uma peça. A
-premissa de expiração automática da foto que motivou a exceção de sete dias foi
-superada. O armazenamento e a consulta duráveis ainda não estão implementados;
-os prazos antigos continuam no código. A interface oculta a exclusão de fotos
-do WhatsApp e a API recusa essa ação; a exclusão no acervo continua disponível.
-Ver [proposta de preservação](design/BL04-whatsapp-durable-materials.md). Isso não
+Materiais associados ao negócio são preservados sem prazo automático, e a API
+recusa sua exclusão para todos os tipos; fotos desatualizadas do acervo continuam
+removíveis. A interface também retira a exclusão dos envios. A inbox mantém limpeza de
+eventos descartados, não atribuídos e status técnicos; a migration 0058 requer
+implantação coordenada e bloqueia claims de exclusão anteriores não resolvidos.
+Ver [preservação de materiais](design/BL04-whatsapp-durable-materials.md). Isso não
 define a política geral de prévias, dados após encerramento da conta ou descarte
 técnico de uploads incompletos.
 
@@ -369,6 +376,7 @@ abaixo já existem localmente; isso não homologa o fornecedor externo.
 | Kit | Por negócio `brand-kit`, draft/confirm/history e logo privado, owner-only. |
 | Conteúdo | Por negócio `editorial-proposals`, versões/roteiro, `media-previews`, `content-deliveries` e decisão. |
 | Cobrança/operadores | Stripe webhook/jobs/reconciliação, assinatura/patrocínio, oportunidades admin e convites staff/MFA. |
+| Aceite do serviço | Por negócio `GET/POST service-agreement`, com versão/hash e aceite explícito; necessário antes de criar checkout. |
 
 O prefixo por negócio é
 `/api/v1/organizations/{tenant_id}/businesses/{business_id}`.

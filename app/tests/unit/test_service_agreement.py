@@ -79,25 +79,13 @@ def test_production_requires_enforcement_even_if_testing_can_disable_it(settings
     ).service_agreement_safety()
 
 
-@pytest.mark.parametrize("accepted,revoked", [(False, False), (True, False), (True, True)])
-async def test_status_is_owner_scoped_and_does_not_enable_acceptance(settings, monkeypatch, accepted, revoked):
+@pytest.mark.parametrize("accepted", [False, True])
+async def test_status_is_owner_scoped_and_offers_one_explicit_acceptance(settings, monkeypatch, accepted):
     agreement_result = MagicMock()
     agreement_result.mappings.return_value.one_or_none.return_value = (
         {"notice_hash": SERVICE_AGREEMENT_HASH, "accepted_at": datetime.now(UTC)} if accepted else None
     )
-    states = {
-        "editorial": "revoked" if revoked else "active",
-        "jev": "active",
-        "visual": "active",
-        "whatsapp": "active",
-        "audio": "active",
-        "visual_gate": "active",
-    }
-    states_result = MagicMock()
-    states_result.mappings.return_value.one.return_value = states
-    session = SimpleNamespace(
-        execute=AsyncMock(side_effect=[agreement_result, states_result]), scalar=AsyncMock(return_value=1)
-    )
+    session = SimpleNamespace(execute=AsyncMock(return_value=agreement_result), scalar=AsyncMock(return_value=1))
 
     @asynccontextmanager
     async def transaction(*_args):
@@ -111,9 +99,9 @@ async def test_status_is_owner_scoped_and_does_not_enable_acceptance(settings, m
     )
     owner.assert_awaited_once_with(session, tenant, business, actor)
     assert result["accepted"] is accepted
-    assert result["review_required"] is (accepted and revoked)
+    assert result["review_required"] is False
     assert result["notice_hash"] == SERVICE_AGREEMENT_HASH
-    assert result["acceptance_enabled"] is False
+    assert result["acceptance_enabled"] is True
     assert "capabilities" not in result
 
 
@@ -147,6 +135,16 @@ async def test_accept_rejects_existing_version_with_different_hash(settings, mon
         )
 
 
+@pytest.mark.parametrize(
+    "version,notice_hash", [("other", SERVICE_AGREEMENT_HASH), (SERVICE_AGREEMENT_VERSION, "0" * 64)]
+)
+async def test_accept_rejects_unpresented_notice_before_opening_transaction(settings, version, notice_hash):
+    database = MagicMock()
+    with pytest.raises(AuthError, match="SERVICE_AGREEMENT_VERSION_CONFLICT"):
+        await ServiceAgreementService(settings, database).accept(uuid4(), uuid4(), uuid4(), version, notice_hash)
+    database.transaction.assert_not_called()
+
+
 async def test_accept_rejects_pending_change_without_initializing_permissions(settings, monkeypatch):
     session = SimpleNamespace(scalar=AsyncMock(return_value=None), execute=AsyncMock())
 
@@ -163,13 +161,86 @@ async def test_accept_rejects_pending_change_without_initializing_permissions(se
     session.execute.assert_not_awaited()
 
 
-@pytest.mark.parametrize("visual_gate,visual_result", [("revoked", None), ("active", None)])
-async def test_existing_permissions_are_not_reactivated(settings, visual_gate, visual_result):
-    session = AsyncMock()
-    responses = [None, None, None, visual_gate]
-    if visual_gate != "revoked":
-        responses.append(visual_result)
-    session.scalar.side_effect = responses
-    params = {"tenant": uuid4(), "business": uuid4(), "actor": uuid4()}
-    await ServiceAgreementService(settings, None)._initialize_absent_consents(session, params, uuid4())
+async def test_accept_rejects_admitted_work_before_recording_agreement(settings, monkeypatch):
+    session = SimpleNamespace(scalar=AsyncMock(side_effect=[None, True]), execute=AsyncMock())
+
+    @asynccontextmanager
+    async def transaction(*_args):
+        yield session
+
+    monkeypatch.setattr(VisualConsentGate, "_lock", AsyncMock())
+    monkeypatch.setattr(VisualPendingChanges, "has_pending_in_session", AsyncMock(return_value=False))
+    with pytest.raises(AuthError, match="SERVICE_AGREEMENT_CHANGE_PENDING"):
+        await ServiceAgreementService(settings, SimpleNamespace(transaction=transaction)).accept(
+            uuid4(), uuid4(), uuid4(), SERVICE_AGREEMENT_VERSION, SERVICE_AGREEMENT_HASH
+        )
+    assert "visual_consent_runs" in str(session.scalar.await_args.args[0])
     session.execute.assert_not_awaited()
+
+
+@pytest.mark.parametrize("existing,writes", [(None, 2), (SERVICE_AGREEMENT_HASH, 0)])
+async def test_accept_records_only_contract_and_audit_and_replay_does_not_rewrite_history(
+    settings, monkeypatch, existing, writes
+):
+    from uuid import NAMESPACE_URL, uuid5
+
+    session = SimpleNamespace(scalar=AsyncMock(side_effect=[existing, False]), execute=AsyncMock())
+
+    @asynccontextmanager
+    async def transaction(*_args):
+        yield session
+
+    monkeypatch.setattr(VisualConsentGate, "_lock", AsyncMock())
+    monkeypatch.setattr(VisualPendingChanges, "has_pending_in_session", AsyncMock(return_value=False))
+    service = ServiceAgreementService(settings, SimpleNamespace(transaction=transaction))
+    service.status = AsyncMock(return_value={"accepted": True})
+    tenant, business, actor = uuid4(), uuid4(), uuid4()
+    assert await service.accept(tenant, business, actor, SERVICE_AGREEMENT_VERSION, SERVICE_AGREEMENT_HASH) == {
+        "accepted": True
+    }
+    assert session.execute.await_count == writes
+    if writes:
+        statements = [str(call.args[0]) for call in session.execute.await_args_list]
+        assert "INSERT INTO service_agreement_acceptances" in statements[0]
+        assert "INSERT INTO audit_events" in statements[1]
+        audit = session.execute.await_args_list[1].args[1]
+        assert audit["operation"] == uuid5(
+            NAMESPACE_URL,
+            f"service-agreement:{tenant}:{business}:{SERVICE_AGREEMENT_VERSION}:{SERVICE_AGREEMENT_HASH}",
+        )
+    service.status.assert_awaited_once_with(tenant, business, actor)
+
+
+async def test_transition_worker_scope_is_checked_even_with_enforcement_disabled(settings):
+    session = AsyncMock()
+    tenant, business = uuid4(), uuid4()
+    session.scalar.return_value = str(tenant)
+    assert await service_agreement_allowed(session, settings, tenant, business, worker=True)
+    assert session.scalar.await_count == 1
+    session.execute.assert_not_awaited()
+
+
+async def test_exact_acceptance_is_independent_of_enforcement_and_sql_helpers_share_document(settings):
+    from app.services.service_agreement_scope import (
+        accepted_agreement_at_sql,
+        accepted_agreement_sql,
+        editorial_agreement_generation_sql,
+        service_agreement_accepted,
+    )
+
+    session = AsyncMock()
+    session.scalar.side_effect = [None, 1]
+    tenant, business = uuid4(), uuid4()
+    assert await service_agreement_accepted(session, tenant, business, worker=True)
+    for sql in (
+        accepted_agreement_sql(),
+        accepted_agreement_at_sql(),
+        accepted_agreement_sql("p.tenant", "p.business"),
+    ):
+        assert SERVICE_AGREEMENT_VERSION in sql and SERVICE_AGREEMENT_HASH in sql
+    assert "p.tenant" in accepted_agreement_sql("p.tenant", "p.business")
+    assert "accepted_at" in accepted_agreement_at_sql()
+    generation = -int(SERVICE_AGREEMENT_HASH[:15], 16)
+    assert -(2**63) <= generation < 0
+    assert str(generation) in editorial_agreement_generation_sql()
+    assert accepted_agreement_sql() in editorial_agreement_generation_sql()

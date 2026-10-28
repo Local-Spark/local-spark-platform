@@ -20,7 +20,14 @@ def fake_database(rows, eligible=(True, True)):
     statements = []
     selected = iter(rows)
     session = Mock()
-    session.scalar = AsyncMock(side_effect=list(eligible))
+    eligibility = iter(eligible)
+
+    async def scalar(statement, _params=None):
+        if "current_setting('app.tenant_id'" in str(statement):
+            return str(rows[0]["tenant_id"])
+        return next(eligibility)
+
+    session.scalar = AsyncMock(side_effect=scalar)
 
     async def execute(statement, _params=None):
         statements.append(str(statement))
@@ -121,7 +128,12 @@ async def test_rechecks_access_and_state_after_media_fetch(settings, current):
     processor.store.put.assert_awaited_once()
     if current == "revoked":
         assert any("state='failed'" in statement for statement in statements)
-        assert session.scalar.await_count == 2
+        checked = [
+            call
+            for call in session.scalar.await_args_list
+            if "current_setting('app.tenant_id'" not in str(call.args[0])
+        ]
+        assert len(checked) == 2
 
 
 @pytest.mark.parametrize("problem,retryable", [("MEDIA_ID_INVALID", False), ("META_MEDIA_UNAVAILABLE", True)])

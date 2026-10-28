@@ -74,8 +74,10 @@ async def record_inbound_text(session: AsyncSession, row: Any, body: str, recipi
             await session.execute(
                 text("""SELECT l.actor_id,b.timezone FROM whatsapp_channel_links l
                   JOIN businesses b ON b.tenant_id=l.tenant_id AND b.id=l.business_id
+                  JOIN memberships m ON m.tenant_id=l.tenant_id AND m.actor_id=l.actor_id
+                  JOIN user_accounts u ON u.id=l.actor_id
                   WHERE l.tenant_id=:tenant AND l.business_id=:business
-                    AND l.sender_hash=:sender AND l.active AND l.linked_at<=:created"""),
+                    AND m.role='owner' AND m.active AND u.active"""),
                 {
                     "tenant": row["tenant_id"],
                     "business": row["business_id"],

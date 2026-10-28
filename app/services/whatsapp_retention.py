@@ -100,7 +100,7 @@ async def claim_expired_assets(database: Database, owner: UUID, limit: int = 100
                 await session.execute(
                     text("""WITH candidates AS (
                       SELECT id FROM whatsapp_material_assets
-                      WHERE (expires_at<=now() OR delete_requested_at IS NOT NULL)
+                      WHERE delete_requested_at IS NOT NULL
                         AND (delete_lease_until IS NULL OR delete_lease_until<now())
                       ORDER BY expires_at,id LIMIT :limit FOR UPDATE SKIP LOCKED)
                       UPDATE whatsapp_material_assets a SET delete_owner=:owner,
@@ -126,7 +126,7 @@ async def finish_purge(database: Database, owner: UUID, claim: PurgeClaim) -> bo
             await session.execute(
                 text("""SELECT id FROM whatsapp_material_assets
                       WHERE id=:id AND delete_owner=:owner AND delete_fencing_token=:token
-                        AND (expires_at<=now() OR delete_requested_at IS NOT NULL)
+                        AND delete_requested_at IS NOT NULL
                       FOR UPDATE"""),
                 {"id": claim.id, "owner": owner, "token": claim.fencing_token},
             )
@@ -149,14 +149,9 @@ async def finish_purge(database: Database, owner: UUID, claim: PurgeClaim) -> bo
 async def purge_expired_raw(database: Database, limit: int = 1000) -> None:
     async with database.sessions() as session, session.begin():
         await session.execute(
-            text("""DELETE FROM whatsapp_material_events WHERE id IN (
-              SELECT id FROM whatsapp_material_events WHERE expires_at<now()
-              ORDER BY expires_at,id LIMIT :limit FOR UPDATE SKIP LOCKED)"""),
-            {"limit": limit},
-        )
-        await session.execute(
             text("""DELETE FROM whatsapp_inbox WHERE id IN (
               SELECT id FROM whatsapp_inbox WHERE expires_at<now()
+                AND NOT (event_kind='message' AND state='linked')
               ORDER BY expires_at,id LIMIT :limit FOR UPDATE SKIP LOCKED)"""),
             {"limit": limit},
         )

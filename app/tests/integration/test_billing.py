@@ -19,6 +19,7 @@ from app.services.billing_delivery import dispatch_billing, enqueue_open_checkou
 from app.services.billing_processor import BillingProcessor, enqueue_webhook
 from app.services.business import AccessDenied, IdempotencyConflict
 from app.services.onboarding import provision_initial_business
+from app.services.service_agreement import SERVICE_AGREEMENT_HASH, SERVICE_AGREEMENT_VERSION, ServiceAgreementService
 from app.tests.unit.test_billing_provider import signed_event
 
 pytestmark = pytest.mark.integration
@@ -40,7 +41,7 @@ def billing_settings(settings):
 
 
 @pytest.fixture
-async def commercial(database, admin):
+async def commercial(database, admin, settings):
     owner = Identity(uuid4(), "test", str(uuid4()), "Ana", "ana@example.com", True)
     staff = Identity(uuid4(), "test", str(uuid4()), "Operator", "operator@example.com", True)
     async with database.transaction(ZERO, owner.actor_id) as db:
@@ -66,7 +67,16 @@ async def commercial(database, admin):
             {"id": staff.actor_id, "sub": staff.subject},
         )
         await db.execute(text("INSERT INTO platform_staff(actor_id) VALUES(:id)"), {"id": staff.actor_id})
+    await _accept_service(database, settings, initial.tenant_id, owner.actor_id)
     return initial.tenant_id, owner, staff
+
+
+async def _accept_service(database, settings, tenant, actor):
+    async with database.transaction(tenant, actor) as session:
+        business = await session.scalar(text("SELECT id FROM businesses WHERE tenant_id=:tenant"), {"tenant": tenant})
+    await ServiceAgreementService(settings, database).accept(
+        tenant, business, actor, SERVICE_AGREEMENT_VERSION, SERVICE_AGREEMENT_HASH
+    )
 
 
 @pytest.fixture
@@ -90,6 +100,19 @@ async def request_job(database, settings, commercial, key="checkout-test"):
     tenant, owner, _ = commercial
     async with database.transaction(tenant, owner.actor_id) as db:
         return await billing.request_checkout(db, settings, tenant, owner, key)
+
+
+async def test_checkout_requires_exact_service_agreement_before_payment(database, admin, billing_settings, commercial):
+    tenant, owner, _ = commercial
+    async with admin.begin() as session:
+        await session.execute(
+            text("UPDATE service_agreement_acceptances SET notice_hash=:hash WHERE tenant_id=:tenant"),
+            {"tenant": tenant, "hash": "0" * 64},
+        )
+    with pytest.raises(billing.BillingError, match="SERVICE_AGREEMENT_REQUIRED"):
+        await request_job(database, billing_settings, commercial)
+    async with admin.connect() as session:
+        assert await session.scalar(text("SELECT count(*) FROM billing_jobs")) == 0
 
 
 async def test_unreceived_webhook_is_reconciled_from_canonical_stripe_state(
@@ -285,6 +308,7 @@ async def test_admin_checkout_opportunities_are_paginated_audited_and_expired(
         "status": "open",
         "url": "https://checkout.stripe.com/c/pay/second",
     }
+    await _accept_service(database, billing_settings, second_tenant, other.actor_id)
     async with database.transaction(second_tenant, other.actor_id) as db:
         second = await billing.request_checkout(db, billing_settings, second_tenant, other, "second-checkout")
     await processor.run(second["id"])

@@ -41,7 +41,11 @@ async def save_events(database: Database, settings: Settings, events: list[tuple
         for key, kind, payload in events
     ]
     async with database.sessions() as session, session.begin():
-        await session.execute(text("DELETE FROM whatsapp_inbox WHERE expires_at < now()"))
+        await session.execute(
+            text(
+                "DELETE FROM whatsapp_inbox WHERE expires_at < now() AND NOT (event_kind='message' AND state='linked')"
+            )
+        )
         await session.execute(
             text("""INSERT INTO whatsapp_inbox(id,dedupe_key,event_kind,ciphertext,sender_hash)
             VALUES(:id,:key,:kind,:ciphertext,:sender_hash) ON CONFLICT(dedupe_key) DO NOTHING"""),

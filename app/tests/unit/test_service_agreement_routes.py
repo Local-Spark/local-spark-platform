@@ -33,3 +33,40 @@ async def test_disconnect_passes_scope_and_preserves_service_error(monkeypatch):
     with pytest.raises(AuthError, match="SERVICE_AGREEMENT_CHANGE_PENDING"):
         await whatsapp_link.link_disconnect(tenant, business, request, actor)
     disconnect.assert_awaited_once_with(tenant, business, actor)
+
+
+async def test_agreement_acceptance_passes_only_validated_notice_and_owner_scope(monkeypatch):
+    from app.schemas.service_agreement import ServiceAgreementAcceptance
+    from app.services.service_agreement import SERVICE_AGREEMENT_HASH, SERVICE_AGREEMENT_VERSION
+
+    tenant, business, actor = uuid4(), uuid4(), uuid4()
+    settings, database = object(), object()
+    request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(settings=settings, database=database)))
+    result = {"accepted": True, "acceptance_enabled": True}
+    service = SimpleNamespace(accept=AsyncMock(return_value=result))
+    constructor = Mock(return_value=service)
+    monkeypatch.setattr(service_agreement, "ServiceAgreementService", constructor)
+    payload = ServiceAgreementAcceptance(
+        version=SERVICE_AGREEMENT_VERSION, notice_hash=SERVICE_AGREEMENT_HASH, accept=True
+    )
+    assert await service_agreement.agreement_accept(tenant, business, payload, request, actor) == result
+    constructor.assert_called_once_with(settings, database)
+    service.accept.assert_awaited_once_with(tenant, business, actor, SERVICE_AGREEMENT_VERSION, SERVICE_AGREEMENT_HASH)
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"version": "v", "notice_hash": "0" * 64, "accept": False},
+        {"version": "v", "notice_hash": "invalid", "accept": True},
+        {"version": "v", "notice_hash": "0" * 64},
+        {"version": "v", "notice_hash": "0" * 64, "accept": True, "actor": "other"},
+    ],
+)
+def test_acceptance_schema_requires_an_explicit_complete_decision(body):
+    from pydantic import ValidationError
+
+    from app.schemas.service_agreement import ServiceAgreementAcceptance
+
+    with pytest.raises(ValidationError):
+        ServiceAgreementAcceptance.model_validate(body)

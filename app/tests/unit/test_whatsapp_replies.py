@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, Mock
 from uuid import uuid4
 
 import httpx
+import pytest
 from cryptography.fernet import Fernet
 from pydantic import SecretStr
 
@@ -122,6 +123,7 @@ async def test_prompt_claim_defers_when_daily_budget_is_exhausted(settings, monk
     result.mappings.return_value.one_or_none.return_value = {
         "id": reply_id,
         "tenant_id": tenant_id,
+        "legacy_consented": True,
         "recipient_ciphertext": "encrypted",
         "reply": "Question?",
     }
@@ -145,3 +147,45 @@ async def test_prompt_claim_defers_when_daily_budget_is_exhausted(settings, monk
     assert await claim_reply(database, settings) is None
     budget.assert_awaited_once_with(session, tenant_id, settings.meta_daily_message_limit)
     defer.assert_awaited_once_with(session, reply_id, ack=False)
+
+
+@pytest.mark.parametrize("ack", [False, True])
+@pytest.mark.parametrize("accepted", [False, True])
+async def test_reply_without_legacy_permission_uses_current_agreement(settings, monkeypatch, ack, accepted):
+    import app.services.whatsapp_replies as module
+
+    tenant, business, reply = uuid4(), uuid4(), uuid4()
+    result = Mock()
+    result.mappings.return_value.one_or_none.return_value = {
+        "id": reply,
+        "tenant_id": tenant,
+        "business_id": business,
+        "legacy_consented": False,
+        "recipient_ciphertext": "encrypted",
+        "reply": "Question?",
+    }
+    session = AsyncMock()
+    session.execute.return_value = result
+
+    @asynccontextmanager
+    async def opened():
+        yield session
+
+    session.begin = opened
+    database = Mock(sessions=opened)
+    evidence = AsyncMock(return_value=accepted)
+    budget = AsyncMock(return_value=True)
+    defer = AsyncMock()
+    monkeypatch.setattr(module, "service_agreement_accepted", evidence)
+    monkeypatch.setattr(module, "_within_daily_limit", budget)
+    monkeypatch.setattr(module, "_defer_for_agreement", defer)
+    claimed = await (module.claim_ack(database, settings) if ack else module.claim_reply(database, settings))
+    evidence.assert_awaited_once_with(session, tenant, business, worker=True)
+    if accepted:
+        assert claimed.id == reply and claimed.ack == ack
+        budget.assert_awaited_once()
+        defer.assert_not_awaited()
+    else:
+        assert claimed is None
+        budget.assert_not_awaited()
+        defer.assert_awaited_once_with(session, reply, ack=ack)

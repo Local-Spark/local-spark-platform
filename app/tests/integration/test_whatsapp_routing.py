@@ -12,6 +12,7 @@ from sqlalchemy.exc import ProgrammingError
 
 from app.db.session import Database
 from app.services.whatsapp_ingest import save_events, sender_hash
+from app.services.whatsapp_retention import purge_expired_raw
 from app.services.whatsapp_routing import route_once
 
 pytestmark = pytest.mark.integration
@@ -22,6 +23,7 @@ async def test_routing_is_tenant_scoped_durable_private_and_concurrent(admin, da
     config = settings.model_copy(update={"meta_webhook_mode": "cloud", "meta_encryption_key": SecretStr(key)})
     businesses = (uuid4(), uuid4())
     phones = ("5511999999999", "5521999999999")
+    older_event = uuid4()
     async with admin.begin() as connection:
         for tenant, actor, business, phone in zip(
             (seeded["t1"], seeded["t2"]), (seeded["a1"], seeded["a2"]), businesses, phones, strict=True
@@ -70,7 +72,7 @@ async def test_routing_is_tenant_scoped_durable_private_and_concurrent(admin, da
                 (id,tenant_id,business_id,kind,ciphertext,expires_at)
                 VALUES(:id,:tenant,:business,'text','old',:expired)"""),
                 {
-                    "id": uuid4(),
+                    "id": older_event,
                     "tenant": seeded["t1"],
                     "business": businesses[0],
                     "expired": datetime.now(UTC) - timedelta(days=1),
@@ -84,13 +86,21 @@ async def test_routing_is_tenant_scoped_durable_private_and_concurrent(admin, da
                 (
                     await connection.execute(
                         text("""SELECT id,tenant_id,business_id,kind,ciphertext,state,group_id
-                          FROM whatsapp_material_events""")
+                          FROM whatsapp_material_events WHERE id<>:older"""),
+                        {"older": older_event},
                     )
                 )
                 .mappings()
                 .all()
             )
             assert len(rows) == 3
+            assert (
+                await connection.scalar(
+                    text("SELECT count(*) FROM whatsapp_material_events WHERE id=:older"),
+                    {"older": older_event},
+                )
+                == 1
+            )
             assert {(r["tenant_id"], r["business_id"], r["kind"]) for r in rows} == {
                 (seeded["t1"], businesses[0], "text"),
                 (seeded["t1"], businesses[0], "image"),
@@ -124,6 +134,22 @@ async def test_routing_is_tenant_scoped_durable_private_and_concurrent(admin, da
                 )
                 == 2
             )
+        await save_events(meta, config, [("delivery-status", "status", {"id": "status"})])
+        # Only associated client sends are durable. Unattributed and discarded
+        # technical events keep their existing expiration; their dedupe records
+        # must not cause a replay of already associated materials.
+        async with admin.begin() as connection:
+            await connection.execute(text("UPDATE whatsapp_inbox SET expires_at=now()-interval '1 day'"))
+        await purge_expired_raw(router1)
+        await save_events(
+            meta,
+            config,
+            [("routed-text", "message", {"from": phones[0], "type": "text", "text": {"body": "Oferta"}})],
+        )
+        async with admin.connect() as connection:
+            states = (await connection.execute(text("SELECT state FROM whatsapp_inbox"))).scalars().all()
+            assert states == ["linked", "linked", "linked"]
+            assert await connection.scalar(text("SELECT count(*) FROM whatsapp_material_events")) == 4
         async with database.sessions() as session:
             with pytest.raises(ProgrammingError):
                 await session.execute(text("SELECT * FROM whatsapp_material_events"))

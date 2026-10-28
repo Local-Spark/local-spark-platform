@@ -20,6 +20,7 @@ from app.services.auth import AuthError
 from app.services.creative_catalog import validate_catalog_snapshot
 from app.services.creative_catalog_resolution import CatalogInterpreter, resolve_catalog_context
 from app.services.editorial_proposals import EditorialProposalService, _access_sql
+from app.services.service_agreement_scope import accepted_agreement_sql
 from app.services.whatsapp_materials import WhatsAppMaterialsService
 
 
@@ -52,8 +53,8 @@ class EditorialBriefingService:
             raise AuthError("PLAN_REQUIRED", 403)
         if jev if jev is not None else self.settings.intent_ai_mode == "jev":
             consented = await session.scalar(
-                text("""SELECT revoked_at IS NULL FROM intent_jev_consents
-                  WHERE tenant_id=:tenant AND business_id=:business"""),
+                text(f"""SELECT {accepted_agreement_sql()} OR EXISTS(SELECT 1 FROM intent_jev_consents
+                  WHERE tenant_id=:tenant AND business_id=:business AND revoked_at IS NULL)"""),
                 params,
             )
             if not consented:
@@ -63,16 +64,18 @@ class EditorialBriefingService:
         row = (
             (
                 await session.execute(
-                    text("""SELECT a.kind,a.ciphertext,a.transcript_ciphertext
+                    text(f"""SELECT a.kind,a.ciphertext,a.transcript_ciphertext
                       FROM whatsapp_material_assets a JOIN whatsapp_material_events e ON e.id=a.id
                       JOIN whatsapp_channel_links l ON l.tenant_id=e.tenant_id AND l.business_id=e.business_id
-                        AND l.sender_hash=e.sender_hash AND l.actor_id=:actor
-                      JOIN whatsapp_processing_consents c ON c.tenant_id=e.tenant_id AND c.business_id=e.business_id
+                        AND l.actor_id=:actor
+                      LEFT JOIN whatsapp_processing_consents c ON c.tenant_id=e.tenant_id
+                        AND c.business_id=e.business_id
                       WHERE a.id=:source AND a.tenant_id=:tenant AND a.business_id=:business
                         AND e.tenant_id=:tenant AND e.business_id=:business AND e.state='processed'
-                        AND e.expires_at>now() AND a.delete_requested_at IS NULL AND a.expires_at>now()
-                        AND l.active AND l.linked_at<=e.created_at AND c.revoked_at IS NULL
-                        AND c.accepted_at<=e.created_at"""),
+                        AND (e.expires_at IS NULL OR e.expires_at>now())
+                        AND a.delete_requested_at IS NULL AND (a.expires_at IS NULL OR a.expires_at>now())
+                        AND ({accepted_agreement_sql()} OR
+                          (c.revoked_at IS NULL AND c.accepted_at<=e.created_at))"""),
                     params,
                 )
             )

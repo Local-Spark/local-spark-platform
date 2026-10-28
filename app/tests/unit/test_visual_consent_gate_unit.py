@@ -51,3 +51,19 @@ async def test_admission_refuses_if_grant_disappears_before_it_is_captured():
     service._state = AsyncMock(return_value="active")
     with pytest.raises(AuthError, match="VISUAL_AI_CONSENT_REQUIRED"):
         await service.admit(uuid4(), uuid4(), uuid4(), uuid4(), uuid4(), 1)
+
+
+@pytest.mark.parametrize("method", ["enable", "request_withdrawal"])
+async def test_contract_manages_visual_processing_without_changing_legacy_grants(monkeypatch, method):
+    session = SimpleNamespace(execute=AsyncMock())
+
+    @asynccontextmanager
+    async def transaction(*_args):
+        yield session
+
+    service = VisualConsentGate(SimpleNamespace(transaction=transaction))
+    service._lock = AsyncMock()
+    monkeypatch.setattr("app.services.visual_consent_gate.service_agreement_accepted", AsyncMock(return_value=True))
+    with pytest.raises(AuthError, match="SERVICE_AGREEMENT_MANAGES_PROCESSING"):
+        await getattr(service, method)(uuid4(), uuid4(), uuid4())
+    session.execute.assert_not_awaited()

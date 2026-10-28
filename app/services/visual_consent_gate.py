@@ -13,6 +13,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import Database
 from app.services.auth import AuthError
+from app.services.service_agreement_scope import (
+    accepted_agreement_at_sql,
+    accepted_agreement_sql,
+    service_agreement_accepted,
+)
 from app.services.whatsapp_materials import WhatsAppMaterialsService
 
 GateState = Literal["active", "revocation_pending", "revoked"]
@@ -41,13 +46,14 @@ class VisualConsentGate:
     async def _state(self, session: AsyncSession, tenant: UUID, business: UUID) -> GateState:
         params = {"tenant": tenant, "business": business}
         state = await session.scalar(
-            text("""SELECT state FROM visual_consent_gates
+            text(f"""SELECT CASE WHEN state='revocation_pending' THEN state
+              WHEN {accepted_agreement_sql()} THEN 'active' ELSE state END FROM visual_consent_gates
           WHERE tenant_id=:tenant AND business_id=:business"""),
             params,
         )
         accepted = await session.scalar(
-            text("""SELECT revoked_at IS NULL FROM visual_ai_consents
-          WHERE tenant_id=:tenant AND business_id=:business"""),
+            text(f"""SELECT {accepted_agreement_sql()} OR EXISTS(SELECT 1 FROM visual_ai_consents
+          WHERE tenant_id=:tenant AND business_id=:business AND revoked_at IS NULL)"""),
             params,
         )
         if state == "revocation_pending" and accepted:
@@ -63,6 +69,8 @@ class VisualConsentGate:
         params = {"tenant": tenant, "business": business, "actor": actor}
         async with self.database.transaction(tenant, actor) as session:
             await self._lock(session, tenant, business, actor)
+            if await service_agreement_accepted(session, tenant, business):
+                raise AuthError("SERVICE_AGREEMENT_MANAGES_PROCESSING", 409)
             state = await self._state(session, tenant, business)
             if state == "revocation_pending":
                 raise AuthError("VISUAL_WITHDRAWAL_PENDING", 409)
@@ -87,6 +95,8 @@ class VisualConsentGate:
         params = {"tenant": tenant, "business": business, "actor": actor}
         async with self.database.transaction(tenant, actor) as session:
             await self._lock(session, tenant, business, actor)
+            if await service_agreement_accepted(session, tenant, business):
+                raise AuthError("SERVICE_AGREEMENT_MANAGES_PROCESSING", 409)
             state = await self._state(session, tenant, business)
             if state == "revoked":
                 return "revoked"
@@ -166,8 +176,9 @@ class VisualConsentGate:
             if cancelled:
                 raise AuthError("VISUAL_CHANGE_QUEUE_CANCELLED", 409)
             accepted_at = await session.scalar(
-                text("""SELECT accepted_at FROM visual_ai_consents WHERE tenant_id=:tenant AND business_id=:business
-                  AND revoked_at IS NULL"""),
+                text(f"""SELECT coalesce((SELECT accepted_at FROM visual_ai_consents
+                  WHERE tenant_id=:tenant AND business_id=:business
+                  AND revoked_at IS NULL), {accepted_agreement_at_sql()})"""),
                 params,
             )
             if accepted_at is None:

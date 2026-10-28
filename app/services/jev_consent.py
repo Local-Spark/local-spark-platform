@@ -6,6 +6,8 @@ from sqlalchemy import text
 
 from app.core.config import Settings
 from app.db.session import Database
+from app.services.auth import AuthError
+from app.services.service_agreement_scope import accepted_agreement_sql, service_agreement_accepted
 from app.services.whatsapp_materials import WhatsAppMaterialsService
 
 
@@ -17,8 +19,8 @@ class JevConsentService:
         async with self.database.transaction(tenant, actor) as session:
             await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
             accepted = await session.scalar(
-                text("""SELECT revoked_at IS NULL FROM intent_jev_consents
-                  WHERE tenant_id=:tenant AND business_id=:business"""),
+                text(f"""SELECT {accepted_agreement_sql()} OR EXISTS(SELECT 1 FROM intent_jev_consents
+                  WHERE tenant_id=:tenant AND business_id=:business AND revoked_at IS NULL)"""),
                 {"tenant": tenant, "business": business},
             )
             return {"accepted": bool(accepted), "provider_enabled": self.settings.intent_ai_mode == "jev"}
@@ -28,6 +30,8 @@ class JevConsentService:
 
         async with self.database.transaction(tenant, actor) as session:
             await VisualConsentGate._lock(session, tenant, business, actor)
+            if await service_agreement_accepted(session, tenant, business):
+                raise AuthError("SERVICE_AGREEMENT_MANAGES_PROCESSING", 409)
             params = {"tenant": tenant, "business": business, "actor": actor, "accepted": accepted}
             changed = await session.scalar(
                 text("""INSERT INTO intent_jev_consents(tenant_id,business_id,actor_id,revoked_at)

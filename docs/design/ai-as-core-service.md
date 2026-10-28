@@ -35,7 +35,29 @@ definitivos ainda precisam ser preparados antes da operação comercial.
    continuam fora da primeira oferta e exigem decisão específica quando houver
    implementação; esta decisão não aprova essas funcionalidades.
 
-## Transição técnica
+## Implementação atual — 28/10/2026
+
+O aceite único tem GET/POST por negócio, exige owner e uma ação explícita sobre
+versão/hash exatos e grava auditoria na mesma transação. Não escreve permissões
+por fornecedor nem configura credenciais. O registro contratual é a autoridade
+para novos processamentos de texto, imagem, interpretação e transcrição; as
+recusas antigas são preservadas como histórico. Pedidos editoriais anteriores
+não recebem a geração contratual de novos pedidos, evitando reativação da fila.
+Mudanças ou efeitos visuais pendentes bloqueiam o primeiro aceite até conclusão.
+
+Plano e acesso apresenta o check único antes do checkout; a API de contratação
+recusa criar checkout sem o contrato atual. Conta já existente recebe o mesmo
+aceite antes de usar as rotas de serviço. As telas WhatsApp e Informações e
+preferências deixam de consultar ou alterar permissões individuais. Desconectar
+o WhatsApp desliga o canal; não retira o aceite contratual. Status financeiro,
+configuração técnica, orçamento e aprovação final da peça seguem próprios.
+
+A flag de enforcement permanece para compatibilidade de testes e implantação;
+a web apresenta o aceite mesmo quando ela está desligada. Não houve migração de
+dados, mudança de credenciais, cobrança ou chamada real de IA nesta entrega.
+O modo visual real continua sem ligação ao worker. Os termos continuam locais.
+
+## Histórico da transição técnica anterior (superado pela implementação acima)
 
 Estado da implementação nesta rodada: a migration `0056`, a leitura do aviso
 versionado e a aceitação transacional interna foram exercitadas na base `_test`.

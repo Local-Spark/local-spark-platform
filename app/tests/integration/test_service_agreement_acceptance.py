@@ -10,6 +10,7 @@ from app.services.auth import AuthError
 from app.services.jev_consent import JevConsentService
 from app.services.service_agreement import SERVICE_AGREEMENT_HASH, SERVICE_AGREEMENT_VERSION, ServiceAgreementService
 from app.services.visual_consent_gate import VisualConsentGate
+from app.services.visual_pending_changes import VisualPendingChanges
 from app.services.whatsapp_materials import WhatsAppMaterialsService
 from app.tests.integration.test_editorial_proposals import _business
 from app.tests.integration.test_visual_attempts import preview
@@ -25,20 +26,20 @@ async def test_legacy_mutations_wait_for_business_agreement_transaction(
     business = await _business(admin, seeded)
     agreement = ServiceAgreementService(settings, database)
     entered, resume = asyncio.Event(), asyncio.Event()
-    initialize = agreement._initialize_absent_consents
+    pending_change = VisualPendingChanges.has_pending_in_session
 
-    async def paused_initialize(session, params, operation_id):
+    async def paused_check(session, check_tenant, check_business):
         entered.set()
         await resume.wait()
-        await initialize(session, params, operation_id)
+        return await pending_change(session, check_tenant, check_business)
 
-    monkeypatch.setattr(agreement, "_initialize_absent_consents", paused_initialize)
+    monkeypatch.setattr(VisualPendingChanges, "has_pending_in_session", paused_check)
     acceptance = asyncio.create_task(
         agreement.accept(tenant, business, actor, SERVICE_AGREEMENT_VERSION, SERVICE_AGREEMENT_HASH)
     )
     mutation = None
     try:
-        await asyncio.wait_for(entered.wait(), 5)
+        await asyncio.wait_for(entered.wait(), 20)
         whatsapp = WhatsAppMaterialsService(settings, database)
         if operation == "jev":
             call = JevConsentService(settings, database).set(tenant, business, actor, False)
@@ -53,12 +54,13 @@ async def test_legacy_mutations_wait_for_business_agreement_transaction(
         assert not done, "legacy mutation must not pass the in-progress business acceptance"
     finally:
         resume.set()
-        await asyncio.wait_for(acceptance, 5)
+        await asyncio.wait_for(acceptance, 20)
         if mutation is not None:
-            await asyncio.wait_for(mutation, 5)
+            with pytest.raises(AuthError, match="SERVICE_AGREEMENT_MANAGES_PROCESSING"):
+                await asyncio.wait_for(mutation, 20)
 
 
-async def test_acceptance_is_explicit_idempotent_scoped_and_preserves_later_withdrawal(
+async def test_acceptance_is_explicit_idempotent_scoped_and_disables_individual_toggles(
     admin, database, seeded, settings
 ):
     tenant, actor = seeded["t1"], seeded["a1"]
@@ -90,10 +92,12 @@ async def test_acceptance_is_explicit_idempotent_scoped_and_preserves_later_with
           AND resource_id=:business AND action LIKE 'service.agreement.accepted:%'"""),
             {"tenant": tenant, "business": business},
         ) == (f"service.agreement.accepted:{SERVICE_AGREEMENT_VERSION}:{SERVICE_AGREEMENT_HASH}")
-    await JevConsentService(settings, database).set(tenant, business, actor, False)
+    with pytest.raises(AuthError, match="SERVICE_AGREEMENT_MANAGES_PROCESSING"):
+        await JevConsentService(settings, database).set(tenant, business, actor, False)
     replay = await service.accept(tenant, business, actor, SERVICE_AGREEMENT_VERSION, SERVICE_AGREEMENT_HASH)
-    assert replay["accepted"] and replay["review_required"]
-    assert not (await JevConsentService(settings, database).status(tenant, business, actor))["accepted"]
+    assert replay["accepted"] and not replay["review_required"]
+    async with admin.connect() as connection:
+        assert await connection.scalar(text("SELECT count(*) FROM intent_jev_consents")) == 0
     with pytest.raises(AuthError, match="BUSINESS_OWNER_REQUIRED"):
         await service.status(tenant, business, seeded["viewer"])
 
@@ -107,8 +111,15 @@ async def test_preexisting_withdrawal_is_not_silently_reactivated(admin, databas
     result = await ServiceAgreementService(settings, database).accept(
         tenant, business, actor, SERVICE_AGREEMENT_VERSION, SERVICE_AGREEMENT_HASH
     )
-    assert result["accepted"] and result["review_required"]
-    assert not (await jev.status(tenant, business, actor))["accepted"]
+    assert result["accepted"] and not result["review_required"]
+    async with admin.connect() as connection:
+        assert await connection.scalar(
+            text(
+                "SELECT revoked_at IS NOT NULL FROM intent_jev_consents "
+                "WHERE tenant_id=:tenant AND business_id=:business"
+            ),
+            {"tenant": tenant, "business": business},
+        )
 
 
 async def test_pending_visual_withdrawal_prevents_acceptance(admin, database, seeded, settings):
@@ -181,3 +192,56 @@ async def test_each_account_must_accept_its_business_and_tampered_version_fails_
         await service.status(other_tenant, second, other_actor)
     with pytest.raises(AuthError, match="SERVICE_AGREEMENT_VERSION_CONFLICT"):
         await service.accept(other_tenant, second, other_actor, SERVICE_AGREEMENT_VERSION, SERVICE_AGREEMENT_HASH)
+
+
+async def test_acceptance_without_legacy_permissions_records_only_one_contract(admin, database, seeded, settings):
+    tenant, actor = seeded["t1"], seeded["a1"]
+    business = await _business(admin, seeded)
+    service = ServiceAgreementService(settings, database)
+    result = await service.accept(tenant, business, actor, SERVICE_AGREEMENT_VERSION, SERVICE_AGREEMENT_HASH)
+    assert result["accepted"] and result["acceptance_enabled"] and not result["review_required"]
+    async with admin.connect() as connection:
+        for table in (
+            "editorial_ai_consents",
+            "intent_jev_consents",
+            "visual_ai_consents",
+            "whatsapp_processing_consents",
+        ):
+            assert await connection.scalar(text(f"SELECT count(*) FROM {table}")) == 0
+        assert await connection.scalar(text("SELECT count(*) FROM visual_consent_gates")) == 0
+        assert await connection.scalar(text("SELECT count(*) FROM audit_events")) == 1
+
+
+async def test_admitted_visual_operation_blocks_first_contract_without_rewriting_authority(
+    admin, database, seeded, settings
+):
+    tenant, actor = seeded["t1"], seeded["a1"]
+    business = await _business(admin, seeded)
+    gate = VisualConsentGate(database)
+    await gate.enable(tenant, business, actor)
+    await gate.admit(tenant, business, actor, await preview(admin, tenant, business, actor), uuid4(), 1)
+    with pytest.raises(AuthError, match="SERVICE_AGREEMENT_CHANGE_PENDING"):
+        await ServiceAgreementService(settings, database).accept(
+            tenant, business, actor, SERVICE_AGREEMENT_VERSION, SERVICE_AGREEMENT_HASH
+        )
+    async with admin.connect() as connection:
+        assert await connection.scalar(text("SELECT count(*) FROM service_agreement_acceptances")) == 0
+
+
+async def test_public_acceptance_requires_explicit_exact_notice_and_owner(api, admin, seeded, settings):
+    from app.tests.unit.test_core import access_token
+
+    tenant, actor = seeded["t1"], seeded["a1"]
+    business = await _business(admin, seeded)
+    path = f"/api/v1/organizations/{tenant}/businesses/{business}/service-agreement"
+    headers = {"Authorization": f"Bearer {access_token(settings, actor)}", "X-Tenant-ID": str(tenant)}
+    payload = {"version": SERVICE_AGREEMENT_VERSION, "notice_hash": SERVICE_AGREEMENT_HASH, "accept": True}
+    assert (await api.post(path, json={**payload, "accept": False}, headers=headers)).status_code == 422
+    assert (await api.post(path, json={**payload, "version": "other"}, headers=headers)).status_code == 409
+    denied = {**headers, "Authorization": f"Bearer {access_token(settings, seeded['viewer'])}"}
+    assert (await api.post(path, json=payload, headers=denied)).status_code == 403
+    assert (await api.post(path, json=payload)).status_code == 401
+    first = await api.post(path, json=payload, headers=headers)
+    assert first.status_code == 200 and first.json()["accepted"]
+    replay = await api.post(path, json=payload, headers=headers)
+    assert replay.status_code == 200 and first.json()["accepted_at"] == replay.json()["accepted_at"]

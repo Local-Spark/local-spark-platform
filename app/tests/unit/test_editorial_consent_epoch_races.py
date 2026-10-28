@@ -42,7 +42,7 @@ async def test_request_replays_winner_after_insert_conflict_with_original_epoch(
 
     async def scalar(statement, params=None):
         sql = str(statement)
-        if "SELECT coalesce((SELECT generation" in sql:
+        if "ELSE coalesce((SELECT generation" in sql:
             return 3
         if "SELECT version FROM business_context_heads" in sql:
             return 0
@@ -71,7 +71,9 @@ async def test_worker_rejects_matching_epoch_when_editorial_consent_is_absent(se
     }
 
     async def scalar(statement, params=None):
-        return 2 if "SELECT coalesce((SELECT generation" in str(statement) else True
+        if "current_setting('app.tenant_id'" in str(statement):
+            return str(tenant)
+        return 2 if "ELSE coalesce((SELECT generation" in str(statement) else True
 
     session = SimpleNamespace(execute=AsyncMock(return_value=mapped(row)), scalar=AsyncMock(side_effect=scalar))
     session.begin = lambda: transaction(session)

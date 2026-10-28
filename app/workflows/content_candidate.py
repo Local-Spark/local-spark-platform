@@ -10,7 +10,9 @@ from temporalio.common import RetryPolicy
 @workflow.defn
 class ContentCandidateWorkflow:
     @workflow.run
-    async def run(self, event_id: str) -> str:
+    async def run(self, event_id: str, resume_preview_id: str | None = None) -> str:
+        if resume_preview_id is not None:
+            return await self._deliver_preview(event_id, resume_preview_id)
         proposal_id = await workflow.execute_activity(
             "request_candidate_proposal",
             event_id,
@@ -114,13 +116,20 @@ class ContentCandidateWorkflow:
             await workflow.sleep(5)
         else:
             return "preview_timeout"
-        return cast(
-            str,
-            await workflow.execute_activity(
+        return await self._deliver_preview(event_id, preview_id)
+
+    async def _deliver_preview(self, event_id: str, preview_id: str) -> str:
+        for _ in range(100):
+            outcome = await workflow.execute_activity(
                 "deliver_candidate_preview",
                 [event_id, preview_id],
                 result_type=str,
                 start_to_close_timeout=timedelta(seconds=30),
                 retry_policy=RetryPolicy(maximum_attempts=3),
-            ),
-        )
+            )
+            if outcome != "waiting_for_channel":
+                return cast(str, outcome)
+            if not workflow.patched("candidate-await-channel-v1"):
+                return "delivery_blocked"
+            await workflow.sleep(timedelta(minutes=1))
+        workflow.continue_as_new(args=[event_id, preview_id])

@@ -11,6 +11,11 @@ from app.services.auth import AuthError
 from app.services.whatsapp_materials import WhatsAppMaterialsService
 
 
+@pytest.fixture(autouse=True)
+def legacy_agreement(monkeypatch):
+    monkeypatch.setattr("app.services.whatsapp_materials.service_agreement_accepted", AsyncMock(return_value=False))
+
+
 def database_with(session):
     @asynccontextmanager
     async def transaction(*_args):
@@ -62,40 +67,27 @@ async def test_audio_consent_is_owner_only_audited_and_requires_material_consent
         await service.set_audio_consent(*ids, True)
 
 
-async def test_delete_material_replay_and_missing_record(settings):
+async def test_material_deletion_is_rejected_without_side_effects(settings):
     tenant, business, actor, event = [uuid4() for _ in range(4)]
     session = Mock()
-    session.scalar = AsyncMock(side_effect=[1, None, "video", 1, None, None])
+    session.scalar = AsyncMock(side_effect=[1, 1])
     session.execute = AsyncMock()
     service = WhatsAppMaterialsService(settings, database_with(session))
-    assert await service.delete_material(tenant, business, actor, event) == {"status": "scheduled"}
-    with pytest.raises(AuthError, match="MATERIAL_NOT_FOUND"):
-        await service.delete_material(tenant, business, actor, event)
-    session.execute.assert_awaited_once()
-    assert "DELETE FROM editorial_proposals" in str(session.execute.await_args.args[0])
-
-
-async def test_delete_photo_is_rejected_without_side_effects(settings):
-    tenant, business, actor, event = [uuid4() for _ in range(4)]
-    session = Mock()
-    session.scalar = AsyncMock(side_effect=[1, None, "image"])
-    session.execute = AsyncMock()
-    service = WhatsAppMaterialsService(settings, database_with(session))
-    with pytest.raises(AuthError, match="WHATSAPP_PHOTO_DELETE_UNAVAILABLE") as error:
+    with pytest.raises(AuthError, match="WHATSAPP_MATERIAL_DELETE_UNAVAILABLE") as error:
         await service.delete_material(tenant, business, actor, event)
     assert error.value.status == 409
     session.execute.assert_not_awaited()
 
 
-async def test_delete_material_first_request_records_audit(settings):
+async def test_deleting_missing_material_does_not_disclose_other_businesses(settings):
     tenant, business, actor, event = [uuid4() for _ in range(4)]
     session = Mock()
-    session.scalar = AsyncMock(side_effect=[1, event])
+    session.scalar = AsyncMock(side_effect=[1, None])
     session.execute = AsyncMock()
     service = WhatsAppMaterialsService(settings, database_with(session))
-    assert await service.delete_material(tenant, business, actor, event) == {"status": "scheduled"}
-    assert session.execute.await_count == 2
-    assert "DELETE FROM editorial_proposals" in str(session.execute.await_args.args[0])
+    with pytest.raises(AuthError, match="MATERIAL_NOT_FOUND"):
+        await service.delete_material(tenant, business, actor, event)
+    session.execute.assert_not_awaited()
 
 
 def test_receipt_hides_corrupt_or_unavailable_content():
@@ -122,3 +114,19 @@ def test_receipt_hides_corrupt_or_unavailable_content():
     good = cipher.encrypt(b"Promocao amanha").decode()
     shown = WhatsAppMaterialsService._present({**row, "transcript_ciphertext": good}, cipher)
     assert shown["transcript"] == "Promocao amanha"
+
+
+@pytest.mark.parametrize("action", ["audio", "accept", "revoke"])
+async def test_individual_mutations_cannot_change_processing_after_agreement(settings, monkeypatch, action):
+    ids = [uuid4() for _ in range(3)]
+    session = Mock(scalar=AsyncMock(return_value=1), execute=AsyncMock())
+    service = WhatsAppMaterialsService(settings, database_with(session))
+    monkeypatch.setattr("app.services.whatsapp_materials.service_agreement_accepted", AsyncMock(return_value=True))
+    mutation = {
+        "audio": lambda: service.set_audio_consent(*ids, False),
+        "accept": lambda: service.accept_consent(*ids),
+        "revoke": lambda: service.revoke_consent(*ids),
+    }[action]
+    with pytest.raises(AuthError, match="SERVICE_AGREEMENT_MANAGES_PROCESSING"):
+        await mutation()
+    assert all("UPDATE" not in str(call.args[0]) for call in session.execute.await_args_list)

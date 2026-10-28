@@ -16,6 +16,7 @@ from app.services.creative_catalog_resolution import CatalogInterpreter
 from app.services.editorial_briefings import EditorialBriefingService
 from app.services.editorial_proposals import EditorialProposalService
 from app.services.media_previews import MediaPreviewService
+from app.services.service_agreement_scope import accepted_agreement_sql, agreement_worker_scope
 
 
 class ContentCandidateActivities:
@@ -39,16 +40,17 @@ class ContentCandidateActivities:
             row = (
                 (
                     await session.execute(
-                        text("""SELECT e.tenant_id,e.business_id,e.kind,a.ciphertext,l.actor_id
+                        text("""SELECT e.tenant_id,e.business_id,e.kind,a.ciphertext,l.actor_id,
+                          (c.tenant_id IS NOT NULL AND c.revoked_at IS NULL) AS legacy_consented
                           FROM whatsapp_material_events e
                           JOIN whatsapp_material_assets a ON a.id=e.id
                           JOIN whatsapp_channel_links l ON l.tenant_id=e.tenant_id
-                            AND l.business_id=e.business_id AND l.sender_hash=e.sender_hash
-                          JOIN whatsapp_processing_consents c ON c.tenant_id=e.tenant_id
+                            AND l.business_id=e.business_id
+                          LEFT JOIN whatsapp_processing_consents c ON c.tenant_id=e.tenant_id
                             AND c.business_id=e.business_id
-                          WHERE e.id=:id AND e.state='processed' AND e.expires_at>now()
-                            AND a.delete_requested_at IS NULL AND a.expires_at>now()
-                            AND l.active AND l.linked_at<=e.created_at AND c.revoked_at IS NULL"""),
+                          WHERE e.id=:id AND e.state='processed' AND (e.expires_at IS NULL OR e.expires_at>now())
+                            AND a.delete_requested_at IS NULL AND (a.expires_at IS NULL OR a.expires_at>now())
+                            """),
                         {"id": event},
                     )
                 )
@@ -57,6 +59,13 @@ class ContentCandidateActivities:
             )
         if row is None:
             return "skipped"
+        if not row["legacy_consented"]:
+            async with self.app_database.transaction(row["tenant_id"], row["actor_id"]) as owner_session:
+                if not await owner_session.scalar(
+                    text(f"SELECT {accepted_agreement_sql()}"),
+                    {"tenant": row["tenant_id"], "business": row["business_id"]},
+                ):
+                    return "skipped"
         if self.settings.intent_ai_mode == "jev" or self.settings.editorial_ai_mode == "openai":
             from app.services.service_agreement import service_agreement_allowed
 
@@ -225,7 +234,32 @@ class ContentCandidateActivities:
         delivered = await ContentDeliveryService(self.settings, self.app_database, self.worker_database).record(
             UUID(ids[0]), UUID(ids[1])
         )
-        return "candidate_delivered" if delivered else "delivery_blocked"
+        if delivered:
+            return "candidate_delivered"
+        async with self.worker_database.sessions() as session, session.begin():
+            tenant = await session.scalar(
+                text("SELECT tenant_id FROM whatsapp_material_events WHERE id=:id"), {"id": UUID(ids[0])}
+            )
+            if tenant is None:
+                return "delivery_blocked"
+            await agreement_worker_scope(session, tenant)
+            state = (
+                await session.execute(
+                    text(f"""SELECT l.active FROM whatsapp_material_events e
+                  JOIN whatsapp_channel_links l ON l.tenant_id=e.tenant_id AND l.business_id=e.business_id
+                  LEFT JOIN whatsapp_processing_consents c ON c.tenant_id=e.tenant_id AND c.business_id=e.business_id
+                  JOIN media_previews p ON p.tenant_id=e.tenant_id AND p.business_id=e.business_id
+                  WHERE e.id=:event AND e.state='processed' AND (e.expires_at IS NULL OR e.expires_at>now())
+                    AND ({accepted_agreement_sql("e.tenant_id", "e.business_id")}
+                      OR (c.tenant_id IS NOT NULL AND c.revoked_at IS NULL))
+                    AND p.id=:preview AND p.candidate
+                    AND p.state='completed' AND p.expires_at>now()"""),
+                    {"event": UUID(ids[0]), "preview": UUID(ids[1])},
+                )
+            ).scalar_one_or_none()
+        if state is False:
+            return "waiting_for_channel"
+        return "delivery_blocked"
 
     @activity.defn
     async def publish_fake_content(self, ids: list[str | int]) -> str:

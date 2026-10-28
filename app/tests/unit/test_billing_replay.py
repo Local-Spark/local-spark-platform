@@ -23,6 +23,17 @@ async def test_untrusted_checkout_origin_is_rejected_before_lock_or_durable_inte
     assert not any("pg_advisory_xact_lock" in sql or "INSERT INTO billing_jobs" in sql for sql in statements)
 
 
+async def test_checkout_requires_service_acceptance_before_reserving_a_payment(settings):
+    db = AsyncMock()
+    db.scalar.side_effect = ["owner", "owner", False]
+    actor = uuid4()
+    owner = Identity(actor, "test", str(actor), "Ana", "ana@example.com", True)
+    config = settings.model_copy(update={"billing_mode": "test"})
+    with pytest.raises(billing.BillingError, match="SERVICE_AGREEMENT_REQUIRED"):
+        await billing.request_checkout(db, config, uuid4(), owner, "missing-agreement")
+    assert not any("pg_advisory_xact_lock" in str(call.args[0]) for call in db.execute.call_args_list)
+
+
 async def test_replays_return_durable_result_without_new_checkout_or_grant(settings):
     tenant, actor, operation = uuid4(), uuid4(), uuid4()
     db = AsyncMock()
@@ -30,7 +41,7 @@ async def test_replays_return_durable_result_without_new_checkout_or_grant(setti
     db.execute.return_value = result
     previous_job = {"id": operation, "state": "completed", "result": {"status": "open"}}
     result.mappings.return_value.one_or_none.return_value = previous_job
-    db.scalar.side_effect = ["owner", "owner"]
+    db.scalar.side_effect = ["owner", "owner", True]
     owner = Identity(actor, "test", str(actor), "Ana", "ana@example.com", True)
     config = settings.model_copy(update={"billing_mode": "test"})
     assert await billing.request_checkout(db, config, tenant, owner, "existing-checkout") == previous_job

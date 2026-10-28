@@ -39,7 +39,7 @@ async def claim_materials(database: Database, owner: UUID, limit: int = 10) -> l
                     text("""WITH candidates AS (
                       SELECT id FROM whatsapp_material_events
                       WHERE (state='pending' OR (state='processing' AND lease_until<now()))
-                        AND attempts<5 AND expires_at>now()
+                        AND attempts<5 AND (expires_at IS NULL OR expires_at>now())
                       ORDER BY created_at,id LIMIT :limit FOR UPDATE SKIP LOCKED)
                       UPDATE whatsapp_material_events e SET state='processing',owner_id=:owner,
                         lease_until=now()+interval '60 seconds',attempts=e.attempts+1,
@@ -110,6 +110,7 @@ class MaterialProcessor:
 
     async def _eligible(self, session, row) -> bool:  # type: ignore[no-untyped-def]
         from app.services.service_agreement import service_agreement_allowed
+        from app.services.service_agreement_scope import accepted_agreement_sql
 
         if not await service_agreement_allowed(
             session, self.settings, row["tenant_id"], row["business_id"], worker=True
@@ -117,17 +118,17 @@ class MaterialProcessor:
             return False
         return bool(
             await session.scalar(
-                text("""SELECT EXISTS(
+                text(f"""SELECT EXISTS(
                   SELECT 1 FROM whatsapp_channel_links l
-                  JOIN whatsapp_processing_consents c ON c.tenant_id=l.tenant_id AND c.business_id=l.business_id
+                  LEFT JOIN whatsapp_processing_consents c ON c.tenant_id=l.tenant_id AND c.business_id=l.business_id
                   JOIN business_profiles p ON p.tenant_id=l.tenant_id AND p.business_id=l.business_id
                   JOIN memberships m ON m.tenant_id=l.tenant_id AND m.actor_id=l.actor_id
                   JOIN user_accounts u ON u.id=l.actor_id
                   WHERE l.tenant_id=:tenant AND l.business_id=:business
-                    AND :expires>now()
-                    AND l.sender_hash=:sender AND l.active AND l.linked_at<=:created
-                    AND c.revoked_at IS NULL AND c.accepted_at<=:created
-                    AND p.phone_verified AND m.role='owner' AND m.active AND u.active
+                    AND (CAST(:expires AS timestamptz) IS NULL OR :expires>now())
+                    AND ({accepted_agreement_sql("l.tenant_id", "l.business_id")}
+                      OR (c.revoked_at IS NULL AND c.accepted_at<=:created))
+                    AND m.role='owner' AND m.active AND u.active
                     AND (EXISTS(SELECT 1 FROM billing_sponsorships s
                       WHERE s.tenant_id=l.tenant_id AND s.revoked_at IS NULL
                         AND s.starts_at<=now() AND s.ends_at>now())
@@ -208,7 +209,11 @@ class MaterialProcessor:
             )
             if row is None or row["state"] in {"processed", "failed"}:
                 return "already_finished"
-            eligible = await self._eligible(session, row) if row["expires_at"] > datetime.now(UTC) else False
+            eligible = (
+                await self._eligible(session, row)
+                if (row["expires_at"] is None or row["expires_at"] > datetime.now(UTC))
+                else False
+            )
         if not eligible:
             return await self._fail(event, "ACCESS_OR_CONSENT_INACTIVE")
         try:

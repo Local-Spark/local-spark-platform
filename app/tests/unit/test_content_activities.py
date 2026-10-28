@@ -64,8 +64,10 @@ async def test_candidate_proposal_skips_absent_commands_and_rejected_inputs(sett
     adapter, worker, cipher = activities(settings)
     event, tenant, business, actor = (uuid4() for _ in range(4))
     assert await adapter.request_candidate_proposal(str(event)) == "skipped"
+
     worker.session.row = {
         "kind": "text",
+        "legacy_consented": True,
         "ciphertext": cipher.encrypt(b"Aprovar").decode(),
         "tenant_id": tenant,
         "business_id": business,
@@ -86,6 +88,29 @@ async def test_candidate_proposal_skips_absent_commands_and_rejected_inputs(sett
     assert await adapter.request_candidate_proposal(str(event)) == "skipped"
 
 
+async def test_candidate_without_legacy_permissions_requires_explicit_service_agreement(settings, monkeypatch):
+    adapter, worker, _ = activities(settings)
+    worker.session.row = {
+        "kind": "image",
+        "legacy_consented": False,
+        "tenant_id": uuid4(),
+        "business_id": uuid4(),
+        "actor_id": uuid4(),
+    }
+    request = AsyncMock(return_value=SimpleNamespace(id=uuid4()))
+    monkeypatch.setattr(content_activities.EditorialProposalService, "request", request)
+    event = str(uuid4())
+    assert await adapter.request_candidate_proposal(event) == "skipped"
+    request.assert_not_awaited()
+    worker.session.value = True
+    adapter.interpreter = SimpleNamespace(interpret=AsyncMock())
+    monkeypatch.setattr(
+        "app.services.editorial_briefings.EditorialBriefingService.prepare",
+        AsyncMock(side_effect=AuthError("BRIEFING_INTERPRETER_DISABLED", 409)),
+    )
+    assert await adapter.request_candidate_proposal(event) == "skipped"
+
+
 @pytest.mark.parametrize(
     "state,expected", [("budget_blocked", "briefing_budget_blocked"), ("uncertain", "briefing_unavailable")]
 )
@@ -94,6 +119,7 @@ async def test_disabled_interpreter_never_falls_back_for_an_existing_briefing(se
     event = uuid4()
     worker.session.row = {
         "kind": "text",
+        "legacy_consented": True,
         "ciphertext": cipher.encrypt(b"Mensagem").decode(),
         "tenant_id": uuid4(),
         "business_id": uuid4(),

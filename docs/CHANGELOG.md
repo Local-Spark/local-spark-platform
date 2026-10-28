@@ -1,5 +1,49 @@
 # Registro de mudanças
 
+## 2026-10-28 — Aceite único do serviço na contratação
+
+- POST por negócio registra o aceite explícito do aviso versionado, com hash,
+  owner, data, auditoria e replay idempotente. A contratação não cria checkout
+  sem o aceite atual; assinatura e patrocínio seguem fontes próprias de acesso.
+- O contrato substitui permissões individuais de texto, imagem, interpretação
+  e transcrição. A web remove os controles de WhatsApp e Informações e
+  preferências; contas existentes usam o mesmo check em Plano e acesso.
+- Consentimentos antigos não são reescritos ou reativados. Novos pedidos
+  editoriais usam uma geração contratual distinta; trabalhos antigos não herdam
+  o novo aceite. Mudanças e gerações visuais pendentes impedem o primeiro aceite.
+- Desconexão do WhatsApp continua própria do canal; não retira o contrato.
+  Configuração de fornecedores, RLS, plano, orçamento e aprovação de publicação
+  continuam internos. Nenhuma migration nova ou chamada paga nesta entrega;
+  a migration 0058 já existente foi aplicada somente ao banco `_test`, que
+  ainda estava na 0057. Validação completa usa PostgreSQL temporário em memória,
+  migrations até o head, RLS e logins restritos, além do Temporal local.
+- Validação backend: suíte completa com 1.583 testes aprovados; após o relatório
+  de cobertura, uma rodada complementar de 24 testes aprovou sete casos novos e
+  completou 100% de linhas e branches (8.871 statements e 2.412 branches), sem
+  excluir módulos produtivos. Ruff/formatação e mypy passaram. Os dados de dois
+  testes visuais antigos foram alinhados ao vínculo com telefone verificado.
+- Web: 360 testes, cobertura integral nos quatro critérios, TypeScript, build,
+  formatação e três jornadas Chromium com APIs simuladas aprovados. Isolamento
+  por negócio, replay, histórico recusado, mudança de vínculo e ausência de
+  permissão individual foram exercitados sem chamadas pagas.
+- Permanecem: termos comerciais definitivos, integração visual real BL04.2,
+  qualidade BL04.3, jornada BL05 e homologação Meta/staging.
+
+## 2026-10-28 — Preservação dos envios e continuidade após troca de número
+
+- A migration 0058 preserva materiais e eventos associados sem expiração,
+  rejeitando pedidos ou leases de remoção pendentes até revisão. A limpeza de
+  status, mensagens não atribuídas e uploads órfãos permanece separada.
+- A API recusa exclusão de materiais WhatsApp de todos os tipos. A edição e
+  remoção de fotos desatualizadas do acervo continuam disponíveis.
+- O processamento de materiais associados e a entrega simulada continuam
+  durante a troca de número e usam o novo vínculo. O envio real de prévias ou
+  aprovações não está implementado; aceite único por negócio também é separado.
+- Testes direcionados em PostgreSQL descartável, com RLS e roles restritas;
+  nenhuma chamada paga ou real à Meta. A migration foi aplicada à base local
+  após pausa dos processos, verificação de claims e backup privado; API e
+  workers foram reconstruídos e reiniciados.
+
 ## 2026-10-28 — Troca de número durante o processamento
 
 - O proprietário definiu que um material já enviado continua sendo processado

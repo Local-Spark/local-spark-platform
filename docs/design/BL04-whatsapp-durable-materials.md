@@ -1,6 +1,9 @@
 # BL04.2 — Preservação dos materiais do WhatsApp: proposta para revisão
 
-**Estado:** proposta técnica, não implementada nem aplicada ao banco. O cliente
+**Estado:** a retenção de materiais associados foi implementada e a migration
+0058 foi aplicada à base local. A entrega real de prévias pelo WhatsApp e o
+uso automático de memória continuam pendentes. As opções abaixo são registros
+do desenho e de limitações, não uma autorização para ativar provedores. O cliente
 decidiu preservar os materiais enviados pelo WhatsApp como contexto do negócio,
 retirar a opção de excluir fotos desse histórico e manter a remoção de fotos
 no acervo, para substituir imagens desatualizadas. Guardar os arquivos não cria

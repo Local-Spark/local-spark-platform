@@ -675,11 +675,12 @@ async def test_material_source_is_private_and_deletion_removes_derived_idea(admi
         assert await worker.run(requested.id) == "rejected"
         assert (await service.list(tenant, business, actor))[0].error_code == "EDITORIAL_FACTS_REQUIRED"
         materials = WhatsAppMaterialsService(config, api_db)
-        assert await materials.delete_material(tenant, business, actor, source) == {"status": "scheduled"}
-        assert await service.list(tenant, business, actor) == []
+        with pytest.raises(AuthError, match="WHATSAPP_MATERIAL_DELETE_UNAVAILABLE"):
+            await materials.delete_material(tenant, business, actor, source)
+        assert [item.id for item in await service.list(tenant, business, actor)] == [requested.id]
         with pytest.raises(Exception) as missing:
             await service.request(
-                tenant, business, actor, ProposalRequest(operation_id=uuid4(), source_asset_id=source)
+                tenant, business, actor, ProposalRequest(operation_id=uuid4(), source_asset_id=uuid4())
             )
         assert "MATERIAL_NOT_FOUND" in str(missing.value)
     finally:
@@ -700,7 +701,7 @@ async def test_photo_delete_rejected_without_removing_derived_proposal(admin, se
             tenant, business, actor, ProposalRequest(operation_id=uuid4(), source_asset_id=source)
         )
         materials = WhatsAppMaterialsService(config, api_db)
-        with pytest.raises(AuthError, match="WHATSAPP_PHOTO_DELETE_UNAVAILABLE"):
+        with pytest.raises(AuthError, match="WHATSAPP_MATERIAL_DELETE_UNAVAILABLE"):
             await materials.delete_material(tenant, business, actor, source)
         assert [item.id for item in await service.list(tenant, business, actor)] == [proposal.id]
         async with admin.connect() as connection:

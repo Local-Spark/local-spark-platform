@@ -29,6 +29,7 @@ from app.services.media_dispatch import claim_previews
 from app.services.media_previews import MediaPreviewService
 from app.services.visual_consent import VisualConsentService
 from app.services.visual_context import VisualContextService
+from app.services.whatsapp_ingest import sender_hash
 from app.tests.integration.test_brand_kits import _overrides
 from app.tests.integration.test_business_catalog import _payload
 from app.tests.integration.test_editorial_briefings import _enable
@@ -52,6 +53,18 @@ async def test_visual_fake_preview_uses_fenced_attempt_and_blocks_revoked_access
             "visual_ai_monthly_budget_usd_micros": 100,
         }
     )
+    async with admin.begin() as conn:
+        await conn.execute(
+            text("UPDATE business_profiles SET phone_verified=true WHERE tenant_id=:tenant AND business_id=:business"),
+            {"tenant": tenant, "business": business},
+        )
+        await conn.execute(
+            text(
+                "UPDATE whatsapp_channel_links SET sender_hash=:sender "
+                "WHERE tenant_id=:tenant AND business_id=:business"
+            ),
+            {"tenant": tenant, "business": business, "sender": sender_hash(cfg, "+5511999999999")},
+        )
     source = await _asset(admin, tenant, business, key, body="Crie uma imagem do croissant")
     encrypted_event = Fernet(key.encode()).encrypt(json.dumps({"from": "5511999999999"}).encode()).decode()
     async with admin.begin() as conn:

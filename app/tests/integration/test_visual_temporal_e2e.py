@@ -37,6 +37,7 @@ from app.services.editorial_proposals import EditorialProposalService
 from app.services.media_dispatch import dispatch_previews
 from app.services.media_previews import MediaPreviewService
 from app.services.visual_consent import VisualConsentService
+from app.services.whatsapp_ingest import sender_hash
 from app.tests.integration.test_brand_kits import _draft, _overrides
 from app.tests.integration.test_business_catalog import _payload
 from app.tests.integration.test_business_collection import Store
@@ -71,6 +72,18 @@ async def test_synthetic_content_reaches_private_visual_preview_through_real_tem
             "temporal_task_queue": queue,
         }
     )
+    async with admin.begin() as connection:
+        await connection.execute(
+            text("UPDATE business_profiles SET phone_verified=true WHERE tenant_id=:tenant AND business_id=:business"),
+            {"tenant": tenant, "business": business},
+        )
+        await connection.execute(
+            text(
+                "UPDATE whatsapp_channel_links SET sender_hash=:sender "
+                "WHERE tenant_id=:tenant AND business_id=:business"
+            ),
+            {"tenant": tenant, "business": business, "sender": sender_hash(cfg, "+5511999999999")},
+        )
     paid_visual = AsyncMock(side_effect=AssertionError("paid visual provider must not be called"))
     paid_editorial = AsyncMock(side_effect=AssertionError("paid editorial provider must not be called"))
     monkeypatch.setattr(OpenAIVisualProvider, "generate", paid_visual)

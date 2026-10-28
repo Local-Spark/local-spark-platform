@@ -7,16 +7,37 @@ por fornecedor ou modalidade serão substituídos por uma jornada contratual ún
 apresentada também uma vez às contas já existentes. A descrição abaixo dos
 controles por fornecedor registra o funcionamento atual, não o objetivo da
 jornada; consultar [decisão e transição](../design/ai-as-core-service.md).
-As mutações antigas de WhatsApp, áudio e Jev usam agora o mesmo bloqueio por
-negócio do aceite. O endpoint público de aceite, sua integração à web e o
-tratamento dos registros antigos continuam pendentes.
+O aceite único e sua integração à web substituem os controles individuais;
+registros anteriores são mantidos, sem reativação silenciosa. A geração visual
+real continua desligada e pendente da coordenação BL04.2.
 
 **Decisão de produto sobre troca de número:** o processamento de um material
 já enviado continua para o mesmo negócio, mesmo que o cliente troque de número
 enquanto aguarda. Após a troca, a prévia e o pedido de aprovação devem seguir
 para o número ativo novo. Não exigir que o cliente espere a conclusão para
-trocar. A correlação e o envio atuais ainda precisam ser adaptados e testados
-para cumprir essa decisão; não declarar o fluxo como implementado.
+trocar. Para materiais já associados, o processamento continua mesmo sem canal
+ativo e a entrega simulada aguarda o novo vínculo; essa validação local não
+constitui envio real de prévia ou aprovação pelo WhatsApp.
+
+## Aceite único do serviço — 28/10/2026
+
+O cliente concorda uma vez em **Plano e acesso**, antes da contratação, com o
+uso de IA para texto, imagem, interpretação e transcrição. WhatsApp não oferece
+ativação separada de áudio, e Informações e preferências não oferece permissões
+por fornecedor. A web encaminha quem ainda não aceitou para essa mesma página.
+O POST por negócio grava versão/hash, ator, data e auditoria; não ativa plano,
+provedores ou publicação. Aceite inicial aguarda mudanças e efeitos visuais
+pendentes. Consentimentos legados permanecem como histórico e compatibilidade;
+o novo contrato é autoridade para novos trabalhos, sem reescrever recusas.
+Uma geração contratual distinta impede executar pedidos editoriais antigos como
+se tivessem sido criados após o aceite. As descrições de toggles por fornecedor
+abaixo registram a implementação anterior e não a jornada vigente.
+
+Validação desta fatia: suíte backend de 1.583 testes aprovada e complemento de
+24 testes (sete novos casos) com cobertura final de 100% de linhas e branches;
+web com 360 testes/cobertura integral, build e três jornadas Chromium. RLS e
+Temporal foram exercitados em serviços locais; sem chamadas pagas. A geração
+visual real e os gates de qualidade BL04.3 continuam pendentes.
 
 ## Objetivo
 
@@ -156,9 +177,9 @@ não implementada.
 para formar contexto do negócio; ele não deseja oferecer exclusão de uma foto
 recebida como solução para uma peça ruim. Isso substitui a premissa de expirar
 automaticamente a foto que originou a exceção anterior de sete dias. O código
-ainda tem prazos legados; a preservação e o uso automático no contexto precisam
-ser implementados. A interface e a API não permitem excluir fotos do histórico
-do WhatsApp, e a remoção de fotos desatualizadas do acervo continua disponível.
+agora preserva materiais já associados sem prazo e a API recusa exclusão de
+qualquer tipo pelo histórico. O uso como memória pesquisável permanece pendente;
+a remoção de fotos desatualizadas do acervo continua disponível.
 A [proposta de preservação](../design/BL04-whatsapp-durable-materials.md)
 detalha as dependências. A retenção geral das prévias não foi
 definida. As demais regras aprovadas para mudanças durante criações continuam

@@ -70,7 +70,7 @@ class VisualReferenceService:
             source_result = await session.execute(
                 text("""SELECT id,kind,object_key,mime_type,sha256 FROM whatsapp_material_assets
                   WHERE id=:source AND tenant_id=:tenant AND business_id=:business
-                    AND delete_requested_at IS NULL AND expires_at>now()"""),
+                    AND delete_requested_at IS NULL AND (expires_at IS NULL OR expires_at>now())"""),
                 {**params, "source": before.source_asset_id},
             )
             original = source_result.mappings().one_or_none()

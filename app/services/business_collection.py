@@ -30,6 +30,7 @@ from app.schemas.business_collection import (
 )
 from app.services.auth import AuthError
 from app.services.business_catalog import audit_catalog_change, require_catalog_owner
+from app.services.service_agreement_scope import accepted_agreement_sql
 
 logger = logging.getLogger("meu_braco_direito.collection")
 UPLOAD_MAX_BYTES = 2 * 1024 * 1024
@@ -370,11 +371,12 @@ class BusinessCollectionService:
         row = (
             (
                 await session.execute(
-                    text("""SELECT a.object_key,a.mime_type,a.sha256 FROM whatsapp_material_assets a
-              JOIN whatsapp_processing_consents c ON c.tenant_id=a.tenant_id AND c.business_id=a.business_id
+                    text(f"""SELECT a.object_key,a.mime_type,a.sha256 FROM whatsapp_material_assets a
+              LEFT JOIN whatsapp_processing_consents c ON c.tenant_id=a.tenant_id AND c.business_id=a.business_id
               WHERE a.tenant_id=:tenant AND a.business_id=:business AND a.id=:material
                 AND a.kind='image' AND a.object_key IS NOT NULL AND a.mime_type IN ('image/png','image/jpeg')
-                AND a.delete_requested_at IS NULL AND a.expires_at>now() AND c.revoked_at IS NULL"""),
+                AND a.delete_requested_at IS NULL AND (a.expires_at IS NULL OR a.expires_at>now())
+                AND ({accepted_agreement_sql()} OR (c.tenant_id IS NOT NULL AND c.revoked_at IS NULL))"""),
                     {"tenant": tenant, "business": business, "material": material},
                 )
             )

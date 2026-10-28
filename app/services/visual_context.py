@@ -19,6 +19,7 @@ from app.db.session import Database
 from app.schemas.editorial_proposals import ProposalDraft
 from app.services.auth import AuthError
 from app.services.editorial_briefings import EditorialBriefingService
+from app.services.service_agreement_scope import accepted_agreement_at_sql
 from app.services.whatsapp_materials import WhatsAppMaterialsService
 
 
@@ -90,17 +91,24 @@ class VisualContextService:
             raise AuthError("VISUAL_CONTEXT_KEY_REQUIRED", 409)
         params = {"tenant": tenant, "business": business, "id": proposal_id}
         await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
+        # Existing completed proposals keep their original permission fingerprint.
+        # Only proposals captured under the contract epoch use the new authority.
+        contract_at = f"""(CASE WHEN EXISTS(SELECT 1 FROM editorial_proposals contract_proposal
+          WHERE contract_proposal.id=:id AND contract_proposal.tenant_id=:tenant
+            AND contract_proposal.business_id=:business AND contract_proposal.consent_generation<0)
+          THEN {accepted_agreement_at_sql()} END)"""
         if completed_preview_id is None:
             visual_consent = await session.scalar(
-                text("""SELECT accepted_at FROM visual_ai_consents WHERE tenant_id=:tenant
-                  AND business_id=:business AND revoked_at IS NULL"""),
+                text(f"""SELECT coalesce((SELECT accepted_at FROM visual_ai_consents WHERE tenant_id=:tenant
+                  AND business_id=:business AND revoked_at IS NULL), {contract_at})"""),
                 params,
             )
         else:
             # Narrow exception for viewing an already-admitted simulation which
             # finished during withdrawal. It never authorizes a new generation.
             visual_consent = await session.scalar(
-                text("""SELECT CASE WHEN r.preview_id IS NULL THEN c.accepted_at ELSE r.consent_accepted_at END
+                text(f"""SELECT coalesce((SELECT CASE WHEN r.preview_id IS NULL THEN c.accepted_at
+                  ELSE r.consent_accepted_at END
                   FROM visual_ai_consents c LEFT JOIN visual_consent_runs r
                     ON r.tenant_id=c.tenant_id AND r.business_id=c.business_id AND r.actor_id=:actor
                     AND r.preview_id=:preview AND r.state='finished' AND r.finished_during_withdrawal
@@ -110,7 +118,7 @@ class VisualContextService:
                       AND p.dispatch_fence=r.fence AND p.object_key IS NOT NULL
                       AND p.sha256=r.completed_sha256)
                   WHERE c.tenant_id=:tenant AND c.business_id=:business
-                    AND (c.revoked_at IS NULL OR r.preview_id IS NOT NULL)"""),
+                    AND (c.revoked_at IS NULL OR r.preview_id IS NOT NULL)), {contract_at})"""),
                 {**params, "actor": actor, "preview": completed_preview_id},
             )
         if not visual_consent:
@@ -118,18 +126,18 @@ class VisualContextService:
         # The active grant's identity is part of the fingerprint. A withdrawal
         # followed by a new grant must not validate an old in-flight result.
         whatsapp_consent = await session.scalar(
-            text("""SELECT accepted_at FROM whatsapp_processing_consents WHERE tenant_id=:tenant
-              AND business_id=:business AND revoked_at IS NULL"""),
+            text(f"""SELECT coalesce((SELECT accepted_at FROM whatsapp_processing_consents WHERE tenant_id=:tenant
+              AND business_id=:business AND revoked_at IS NULL), {contract_at})"""),
             params,
         )
         jev_consent = await session.scalar(
-            text("""SELECT accepted_at FROM intent_jev_consents WHERE tenant_id=:tenant
-              AND business_id=:business AND revoked_at IS NULL"""),
+            text(f"""SELECT coalesce((SELECT accepted_at FROM intent_jev_consents WHERE tenant_id=:tenant
+              AND business_id=:business AND revoked_at IS NULL), {contract_at})"""),
             params,
         )
         editorial_consent = await session.scalar(
-            text("""SELECT accepted_at FROM editorial_ai_consents WHERE tenant_id=:tenant
-              AND business_id=:business AND revoked_at IS NULL"""),
+            text(f"""SELECT coalesce((SELECT accepted_at FROM editorial_ai_consents WHERE tenant_id=:tenant
+              AND business_id=:business AND revoked_at IS NULL), {contract_at})"""),
             params,
         )
         channel_link = await session.scalar(
@@ -188,7 +196,8 @@ class VisualContextService:
                 text("""SELECT sha256 FROM whatsapp_material_assets WHERE id=:source
                   AND tenant_id=:tenant AND business_id=:business AND kind='image'
                   AND object_key IS NOT NULL AND mime_type IN ('image/png','image/jpeg')
-                  AND sha256 IS NOT NULL AND delete_requested_at IS NULL AND expires_at>now()"""),
+                  AND sha256 IS NOT NULL AND delete_requested_at IS NULL
+                  AND (expires_at IS NULL OR expires_at>now())"""),
                 {**params, "source": source},
             )
             if not source_image_hash:

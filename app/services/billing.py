@@ -10,6 +10,7 @@ from app.core.config import Settings
 from app.core.identity import Identity
 from app.services.administration import require_staff
 from app.services.business import AccessDenied, IdempotencyConflict, require_member
+from app.services.service_agreement_scope import accepted_agreement_sql
 
 
 class BillingError(Exception):
@@ -146,6 +147,12 @@ async def request_checkout(
     return_origin = settings.public_web_url if origin is None else origin
     if return_origin not in settings.auth_origins:
         raise BillingError("ORIGIN_REJECTED", 403)
+    if not await session.scalar(
+        text(f"""SELECT EXISTS(SELECT 1 FROM businesses b WHERE b.tenant_id=:tenant
+          AND {accepted_agreement_sql("b.tenant_id", "b.id")})"""),
+        {"tenant": tenant},
+    ):
+        raise BillingError("SERVICE_AGREEMENT_REQUIRED", 409)
     await lock_commercial_change(session, tenant)
     previous = (
         (

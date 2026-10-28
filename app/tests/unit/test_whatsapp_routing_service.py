@@ -35,7 +35,7 @@ def test_material_classification_rejects_commands_and_malformed_payloads():
 
 
 @pytest.mark.asyncio
-async def test_empty_route_still_runs_retention(settings):
+async def test_empty_route_does_not_purge_durable_materials(settings):
     session = Mock()
     query = Mock()
     query.mappings.return_value.all.return_value = []
@@ -54,7 +54,7 @@ async def test_empty_route_still_runs_retention(settings):
 
     cfg = settings.model_copy(update={"meta_encryption_key": SecretStr(Fernet.generate_key().decode())})
     assert await route_once(FakeDatabase(), cfg) == 0
-    assert session.execute.await_count == 2
+    assert session.execute.await_count == 1
 
 
 @pytest.mark.asyncio
@@ -102,7 +102,7 @@ async def test_route_once_writes_only_supported_messages(settings):
 
     cfg = settings.model_copy(update={"meta_encryption_key": SecretStr(key.decode())})
     assert await route_once(FakeDatabase(), cfg) == 1
-    assert session.execute.await_count == 7
+    assert session.execute.await_count == 6
 
 
 @pytest.mark.asyncio
