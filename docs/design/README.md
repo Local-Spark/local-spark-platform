@@ -1,6 +1,6 @@
 # Desenhos e decisões do Meu Braço Direito
 
-Índice reconciliado em **28/10/2026**. A leitura para continuar o desenvolvimento
+Índice reconciliado em **29/10/2026**. A leitura para continuar o desenvolvimento
 começa pelo [PROJECT](../PROJECT.md), [SDD vigente](../SDD.md),
 [decisões aceitas e pendentes](../DECISIONS.md) e
 [SDD da fase ativa BL04](../phases/BL04-context-and-ai-production.md).
@@ -27,10 +27,13 @@ homologação externa. Um desenho ou ensaio não comprova capacidade entregue.
 Prévias geradas devem ser preservadas sem expiração automática enquanto a conta
 estiver ativa. Se o plano vencer durante uma criação já iniciada, ela termina e
 sua prévia privada continua revisável; novas criações e publicação aguardam
-renovação. **Essas duas decisões ainda precisam de implementação coordenada**;
-0058 preserva a origem WhatsApp e não resolve a retenção/acesso das prévias.
+renovação. O recorte simulado já aplica C08 à criação `visual_fake` admitida e
+C09 às concluídas/proveniência; a coordenação completa ainda falta. A migration
+0058 preserva a origem WhatsApp e não é a implementação dessas regras de prévias.
 Somente staff poderá recuperar pendência cujo autor perdeu acesso, com ação
-restrita e auditada; essa capacidade ainda não foi implementada. A política após
+restrita e auditada; o proprietário adiou sua implementação em 29/10 para evolução
+de gestão de acesso/suporte. A exceção permanece bloqueada e não impede fechar a
+fatia simulada validada. A política após
 encerramento fica para a fase própria, sem exclusão automática nesta etapa. Ver
 [registro de decisões](../DECISIONS.md).
 

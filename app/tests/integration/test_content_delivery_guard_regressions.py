@@ -11,7 +11,7 @@ from app.tests.integration.test_content_delivery import _candidate_case
 pytestmark = pytest.mark.integration
 
 
-@pytest.mark.parametrize("condition", ["no_authority", "unverified_phone", "invalid_phone"])
+@pytest.mark.parametrize("condition", ["no_authority", "unverified_phone", "invalid_phone", "mismatched_destination"])
 async def test_delivery_requires_processing_authority_and_a_verified_valid_phone(admin, seeded, settings, condition):
     cfg, app_db, worker_db, tenant, business, _, _, event, _ = await _candidate_case(admin, seeded, settings)
     try:
@@ -28,9 +28,15 @@ async def test_delivery_requires_processing_authority_and_a_verified_valid_phone
                       WHERE tenant_id=:tenant AND business_id=:business"""),
                     {"tenant": tenant, "business": business},
                 )
-            else:
+            elif condition == "invalid_phone":
                 await connection.execute(
                     text("""UPDATE business_profiles SET phone='invalid',phone_verified=true
+                      WHERE tenant_id=:tenant AND business_id=:business"""),
+                    {"tenant": tenant, "business": business},
+                )
+            else:
+                await connection.execute(
+                    text("""UPDATE business_profiles SET phone='+5511888888888',phone_verified=true
                       WHERE tenant_id=:tenant AND business_id=:business"""),
                     {"tenant": tenant, "business": business},
                 )

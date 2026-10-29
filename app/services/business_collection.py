@@ -926,6 +926,9 @@ class BusinessCollectionService:
                     pending = await VisualPendingChanges.status_in_session(session, tenant, business, f"photo:{photo}")
                     if pending is None or pending["status"] != "failed":
                         raise AuthError("COLLECTION_PHOTO_NOT_READY", 409)
+                    await VisualPendingChanges.require_change_author_in_session(
+                        session, tenant, business, actor, f"photo:{photo}"
+                    )
                     if row["version"] != expected_version:
                         raise AuthError("COLLECTION_PHOTO_VERSION_CONFLICT", 409)
                     await session.execute(

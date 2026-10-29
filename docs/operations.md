@@ -1,6 +1,6 @@
 # Operação e deploy
 
-Revisado em **28/10/2026** para refletir o código local. Decisões de produto em
+Revisado em **29/10/2026**, incluindo o adiamento do suporte C10. Decisões de produto em
 [DECISIONS](DECISIONS.md), contratos no [SDD](SDD.md) e estado em
 [PROJECT](PROJECT.md). O [texto anterior](history/2026-10-28-pre-documentation-reconciliation/operations.md)
 foi preservado; a cronologia de migrations não substitui este procedimento.
@@ -120,15 +120,17 @@ Permissão sobre o arquivo e expiração da URL são verificações distintas.
   não atribuídos e uploads órfãos continuam com limpeza própria.
 - Acervo de fotos permite remoção de imagens desatualizadas, com retry e
   reconciliação próprios; uma cópia do WhatsApp é independente da origem.
-- Prévias devem ser preservadas sem TTL com conta ativa (C09), mas o código
-  ainda usa `expires_at`, propostas e limpeza. Adaptar leitura, proveniência e
-  retenção como um conjunto; não desativar jobs ou editar prazos manualmente
-  como se isso entregasse o contrato.
+- Prévias concluídas e sua proveniência são preservadas sem limpeza por prazo
+  (C09). `expires_at` mantém a janela de uso/aprovação; não editar esse prazo para
+  simular retenção. Drenar workers antigos de purge antes do rollout e conciliar
+  registros legados reclamados, sem inferir recuperação de bytes já apagados.
 - Ao encerrar conta, prazo de exclusão fica pendente da fase específica (P03).
   O proprietário decidiu não implementar essa exclusão automática nesta etapa.
 - Quarentena de upload incerto não equivale a exclusão física comprovada.
   Recuperação exclusiva de staff para autor sem acesso foi aprovada (C10), mas
-  o fluxo restrito/auditado ainda não existe. Não assumir a identidade do autor
+  sua implementação foi adiada pelo proprietário em 29/10 para evolução de
+  gestão de acesso/suporte. Até a entrega futura, manter a exceção bloqueada.
+  Não assumir a identidade do autor
   nem conceder leitura irrestrita aos operadores para contornar a pendência.
 
 ## IA e falhas externas
@@ -142,8 +144,12 @@ do produto é `visual_fake`; workflow/orquestrador real permanecem desconectados
 Não repetir efeito pago após timeout, perda de lease ou confirmação perdida.
 Registrar operação, fence, estado conhecido/incerto e reserva; reconciliação
 precisa provar o que ocorreu. Rede, storage e render ficam fora de row locks;
-workflows determinísticos não fazem IO. A futura coordenação BL04.2 usará o
-contrato atual e C08/C09/C10, sem reintroduzir permissões por fornecedor.
+workflows determinísticos não fazem IO. A próxima coordenação BL04.2 usa o
+contrato atual e amplia a prova do recorte C08/C09 entregue no modo simulado.
+A recuperação staff C10 foi adiada pelo proprietário em 29/10 para evolução de
+gestão de acesso/suporte; manter a exceção bloqueada até sua entrega. Não impede
+fechar a fatia simulada validada nem aprova permissões adicionais. Não reintroduzir
+permissões por fornecedor.
 
 ## Runtime e credenciais por capacidade
 

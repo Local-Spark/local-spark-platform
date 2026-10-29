@@ -236,8 +236,9 @@ async def sponsor(session: AsyncSession, tenant: UUID, actor: UUID, key: str, re
 
 async def revoke_sponsorship(session: AsyncSession, tenant: UUID, actor: UUID) -> None:
     await require_staff(session, actor, "admin.sponsorship.revoke")
+    await lock_commercial_change(session, tenant)
     grant = await session.scalar(
-        text("""UPDATE billing_sponsorships SET revoked_at=now()
+        text("""UPDATE billing_sponsorships SET revoked_at=clock_timestamp()
       WHERE tenant_id=:tenant AND revoked_at IS NULL RETURNING id"""),
         {"tenant": tenant},
     )

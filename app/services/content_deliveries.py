@@ -82,7 +82,7 @@ class ContentDeliveryService:
         preview = None
         if preview_id is not None:
             await MediaPreviewService(self.settings, self.app_database).file_key(
-                event["tenant_id"], event["business_id"], event["actor_id"], preview_id
+                event["tenant_id"], event["business_id"], event["actor_id"], preview_id, review=True
             )
             async with self.worker_database.sessions() as session, session.begin():
                 preview = (
@@ -91,7 +91,9 @@ class ContentDeliveryService:
                             text("""SELECT p.id,p.sha256,p.expires_at,e.document
                               FROM media_previews p JOIN editorial_proposals e ON e.id=p.proposal_id
                               WHERE p.id=:preview AND p.tenant_id=:tenant AND p.business_id=:business
-                                AND p.candidate AND p.state='completed'"""),
+                                AND p.candidate AND p.state='completed'
+                                AND e.state='completed' AND e.review_state IS NULL
+                                AND e.script_version=p.script_version"""),
                             {"preview": preview_id, "tenant": event["tenant_id"], "business": event["business_id"]},
                         )
                     )

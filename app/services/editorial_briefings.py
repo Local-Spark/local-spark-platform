@@ -50,7 +50,10 @@ class EditorialBriefingService:
         await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
         params = {"tenant": tenant, "business": business, "actor": actor, "source": source}
         if not await session.scalar(text(_access_sql()), {"tenant": tenant, "live": False}):
-            raise AuthError("PLAN_REQUIRED", 403)
+            from app.services.visual_continuity import admitted_or_preserved
+
+            if not await admitted_or_preserved(session, tenant, business, actor, source, review_preview):
+                raise AuthError("PLAN_REQUIRED", 403)
         if jev if jev is not None else self.settings.intent_ai_mode == "jev":
             consented = await session.scalar(
                 text(f"""SELECT {accepted_agreement_sql()} OR EXISTS(SELECT 1 FROM intent_jev_consents

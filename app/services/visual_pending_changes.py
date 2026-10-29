@@ -11,6 +11,25 @@ from app.services.auth import AuthError
 
 class VisualPendingChanges:
     @staticmethod
+    async def require_change_author_in_session(
+        session: Any, tenant: UUID, business: UUID, actor: UUID, resource_key: str
+    ) -> None:
+        """Never transfer an unresolved command to another owner's identity.
+
+        Owner RLS cannot inspect another user's account or membership. Keep that
+        command blocked for restricted staff recovery rather than guessing that
+        its author still has access.
+        """
+        author = await session.scalar(
+            text("""SELECT actor_id FROM business_visual_pending_changes
+              WHERE tenant_id=:tenant AND business_id=:business AND resource_key=:resource
+                AND state IN ('pending','failed')"""),
+            {"tenant": tenant, "business": business, "resource": resource_key},
+        )
+        if author not in (None, actor):
+            raise AuthError("VISUAL_CHANGE_STAFF_REQUIRED", 409)
+
+    @staticmethod
     async def has_pending_in_session(session: Any, tenant: UUID, business: UUID) -> bool:
         return bool(
             await session.scalar(
@@ -92,6 +111,7 @@ class VisualPendingChanges:
         if status and status["status"] == "pending":
             raise AuthError("VISUAL_CHANGE_ALREADY_PENDING", 409)
         if status:
+            await VisualPendingChanges.require_change_author_in_session(session, tenant, business, actor, resource_key)
             await session.execute(
                 text("""UPDATE business_visual_pending_changes
               SET state='cancelled',finished_at=clock_timestamp()

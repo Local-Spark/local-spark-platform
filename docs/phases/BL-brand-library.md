@@ -1,6 +1,6 @@
 # BL — Biblioteca visual, acervo do negócio e produção personalizada
 
-Atualizado em **28/10/2026**. Esta é a **ordem vigente** de implementação da trilha BL.
+Atualizado em **29/10/2026**. Esta é a **ordem vigente** de implementação da trilha BL.
 Ela cruza F01 (área do cliente), F02 (materiais/WhatsApp), F03 (contexto e
 roteiro), F04 (mídia), F06 (aprovação/publicação) e F07 (custos). A arquitetura
 PostgreSQL/RLS, armazenamento privado, Temporal e autorização por plano
@@ -225,12 +225,16 @@ contexto, catálogo, kit e fotos; outros escritores e a coordenação real pende
 plano e orçamento por tenant/agregado, com concorrência e mocks; só então ligar
 workflow/dispatcher/provedor real. `VisualEffectGuard` ainda é interface e o
 workflow visual separado não está registrado no worker. O ledger agregado
-OpenAI já existe. Também implementar decisões aprovadas: concluir criação
-iniciada e permitir revisão privada após plano vencer, bloqueando nova criação/
-publicação; preservar prévias sem TTL enquanto a conta estiver ativa. Hoje
-propostas/prévias ainda expiram e têm limpeza/gates de plano. A recuperação de
-pendência de autor sem acesso será somente pela equipe, com ação auditada, ainda
-sem fluxo entregue. Retenção após encerramento foi adiada à fase própria.
+OpenAI já existe. A admissão `visual_fake` já revalida fontes/aceite/plano sob
+locks; sua criação admitida conclui e permite revisão após vencimento financeiro,
+enquanto novos inícios/publicação aguardam renovação. Prévias concluídas e sua
+proveniência não são apagadas por prazo; a janela de aprovação permanece distinta.
+Faltam continuidade do renderer local legado, demais escritores e recuperação
+auditada de autor sem acesso por staff. Outro owner já não assume sua pendência;
+a implementação do suporte C10 foi adiada pelo proprietário em 29/10, para evolução
+de gestão de acesso/suporte, sem bloquear o fechamento da fatia simulada. A exceção
+permanece bloqueada até essa entrega futura. Retenção após encerramento foi
+adiada à fase própria. Contrato e evidência atuais no [SDD BL04](BL04-context-and-ai-production.md).
 
 **Gate de saída:** gerar ao menos um post e um story **novos** para um caso
 consentido, com revisão em celular por titular, identificação correta de

@@ -56,3 +56,32 @@ async def test_unknown_pending_kind_is_marked_failed_and_audited(monkeypatch):
     await VisualPendingChanges.apply_pending_in_session(session, tenant, business)
     assert session.execute.await_args.args[1]["error"] == "VISUAL_CHANGE_KIND_INVALID"
     audit.assert_awaited_once_with(session, tenant, business, actor, "visual.change_failed")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("author", ["self", "missing", "other"])
+async def test_unresolved_command_never_transfers_authorship(author):
+    tenant, business, actor = [uuid4() for _ in range(3)]
+    previous = {"self": actor, "missing": None, "other": uuid4()}[author]
+    session = Mock(scalar=AsyncMock(return_value=previous))
+    if author == "other":
+        with pytest.raises(AuthError, match="VISUAL_CHANGE_STAFF_REQUIRED"):
+            await VisualPendingChanges.require_change_author_in_session(session, tenant, business, actor, "context")
+    else:
+        await VisualPendingChanges.require_change_author_in_session(session, tenant, business, actor, "context")
+
+
+@pytest.mark.asyncio
+async def test_failed_command_by_another_author_cannot_be_superseded(monkeypatch):
+    tenant, business, actor, operation = [uuid4() for _ in range(4)]
+    monkeypatch.setattr(VisualConsentGate, "_lock", AsyncMock())
+    monkeypatch.setattr(VisualPendingChanges, "status_in_session", AsyncMock(return_value={"status": "failed"}))
+    audit = AsyncMock()
+    monkeypatch.setattr(VisualConsentGate, "_audit", audit)
+    session = Mock(execute=AsyncMock(return_value=_result()), scalar=AsyncMock(return_value=uuid4()))
+    with pytest.raises(AuthError, match="VISUAL_CHANGE_STAFF_REQUIRED"):
+        await VisualPendingChanges.enqueue_in_session(
+            session, tenant, business, actor, operation, "context_update", "context", "a" * 64, {}
+        )
+    assert session.execute.await_count == 1
+    audit.assert_not_awaited()

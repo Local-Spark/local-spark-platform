@@ -154,6 +154,21 @@ async def test_existing_admission_never_starts_a_second_execution(visual_case, m
     finish.assert_not_awaited()
 
 
+async def test_stale_metadata_after_admission_stops_before_image_preparation(visual_case, monkeypatch):
+    c = visual_case
+    monkeypatch.setattr(
+        "app.services.visual_context.VisualContextService.capture",
+        AsyncMock(return_value=SimpleNamespace(fingerprint="changed")),
+    )
+    database, _ = _database([c.row])
+    service = MediaPreviewService(c.cfg, database, AsyncMock())
+    service._fail = AsyncMock(return_value="failed")
+    preview = uuid4()
+    assert await service._render_visual_fake(preview, 1) == "failed"
+    service._fail.assert_awaited_once_with(preview, 1, "PREVIEW_INPUT_CHANGED", False)
+    c.prepare.assert_not_awaited()
+
+
 async def test_queue_creation_rechecks_consent_under_business_lock(visual_case, monkeypatch):
     c = visual_case
     monkeypatch.setattr(

@@ -1,6 +1,6 @@
 # Fases de implementação
 
-Atualizado em **28/10/2026**. Este índice distingue **o que existe no ambiente
+Atualizado em **29/10/2026**. Este índice distingue **o que existe no ambiente
 local**, **a próxima fase** e os gates para piloto/produção. A v0 completa
 continua distribuída entre F00–F08; a trilha [BL](BL-brand-library.md) define
 a ordem de produto para aplicar um kit visual e o acervo do negócio a uma
@@ -35,13 +35,17 @@ interna de fontes, aceite único existente, plano/acesso e orçamento por tenant
 agregado, com mocks e prova concorrente, antes de conectar provedor real. O
 workflow visual tem teste Temporal, mas ainda está separado do worker/dispatcher.
 
-Também implementar o que já foi decidido: criação iniciada conclui após vencer
-plano e a prévia continua revisável; novas criações/publicação esperam renovação.
-Prévia gerada não terá TTL enquanto a conta estiver ativa. Hoje ainda existem
-prazos, limpeza e gates de plano. Recuperação de pendência cujo autor perdeu
-acesso caberá só à equipe da plataforma com ação auditada, ainda sem fluxo
-entregue. Retenção após encerramento fica para essa fase, sem nova exclusão
-automática agora. Detalhes e lacunas em [decisões](../DECISIONS.md).
+A admissão `visual_fake` já revalida fontes, aceite e plano sob locks; depois de
+admitida, a criação conclui e permite revisão privada após vencimento financeiro.
+Novas criações/publicação esperam renovação. Concluídas e proveniência são
+preservadas sem limpeza por prazo; a janela de aprovação continua independente.
+O renderer local legado e a coordenação de todos os escritores ainda faltam.
+Outro owner não assume pendência do autor original. A implementação da recuperação
+staff C10 foi adiada pelo proprietário em 29/10, para evolução de gestão de acesso
+e suporte; não bloqueia o fechamento do recorte simulado. A exceção permanece
+bloqueada até a entrega futura. Retenção após encerramento
+fica para essa fase, sem nova exclusão automática agora. Detalhes e lacunas em
+[decisões](../DECISIONS.md).
 
 ## Próximas entregas em ordem
 

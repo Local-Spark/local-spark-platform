@@ -1,6 +1,6 @@
 # Entrega — repositórios, infraestrutura e gates
 
-Reconciliado em **28/10/2026**. [PROJECT](../PROJECT.md), [SDD](../SDD.md) e
+Reconciliado em **29/10/2026**. [PROJECT](../PROJECT.md), [SDD](../SDD.md) e
 [fases](../phases/README.md) definem estado e ordem vigentes. O plano v0 anterior
 continua no snapshot; seus nomes de módulos/rotas/serviços eram propostas.
 
@@ -42,10 +42,12 @@ execução de CI. Não confundir validação histórica com suíte atual.
 
 1. Reconciliar documentação e decisões; implementar a coordenação BL04.2 com
    mocks, fontes/contrato/acesso/fence/budget, recuperação e todos os escritores.
-2. Adequar retenção/acesso de prévias: preservar enquanto conta ativa; criação
-   admitida termina após vencimento do plano e continua revisável, sem novos
-   trabalhos/publicação até renovação. Só staff recupera autor sem acesso, com
-   ação auditada; esse caminho ainda precisa existir.
+2. Ampliar as provas do recorte já entregue: concluídas/proveniência preservadas,
+   criação `visual_fake` admitida termina após vencimento do plano e continua
+   revisável, sem novos trabalhos/publicação até renovação. A recuperação staff
+   C10 foi adiada pelo proprietário em 29/10 para evolução de gestão de acesso e
+   suporte; até sua entrega, a exceção permanece bloqueada. Não é bloqueio para
+   encerrar a fatia simulada validada.
 3. Conectar guarda, modo real e workflow visual separado depois de provar os
    gates. BL04.3 mede fidelidade, qualidade e custo por peça aceita com refações.
 4. BL05 fecha WhatsApp simulado, ajuste versionado, aprovação/publicação falsas

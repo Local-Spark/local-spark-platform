@@ -5,7 +5,7 @@ It is not an authorization for real provider calls or a lock on other sources.
 """
 
 from datetime import datetime
-from typing import Literal, cast
+from typing import TYPE_CHECKING, Literal, cast
 from uuid import UUID, uuid4
 
 from sqlalchemy import text
@@ -19,6 +19,9 @@ from app.services.service_agreement_scope import (
     service_agreement_accepted,
 )
 from app.services.whatsapp_materials import WhatsAppMaterialsService
+
+if TYPE_CHECKING:
+    from app.services.visual_admission import VisualAdmissionChecks
 
 GateState = Literal["active", "revocation_pending", "revoked"]
 
@@ -125,7 +128,15 @@ class VisualConsentGate:
             return next_state
 
     async def admit(
-        self, tenant: UUID, business: UUID, actor: UUID, preview: UUID, operation: UUID, fence: int
+        self,
+        tenant: UUID,
+        business: UUID,
+        actor: UUID,
+        preview: UUID,
+        operation: UUID,
+        fence: int,
+        *,
+        admission: "VisualAdmissionChecks | None" = None,
     ) -> bool:
         if fence <= 0:
             raise AuthError("VISUAL_ADMISSION_INVALID", 409)
@@ -138,6 +149,8 @@ class VisualConsentGate:
             "fence": fence,
         }
         async with self.database.transaction(tenant, actor) as session:
+            if admission is not None:
+                await admission.lock_proposal(session, tenant, business)
             await self._lock(session, tenant, business, actor)
             existing = (
                 (
@@ -160,6 +173,12 @@ class VisualConsentGate:
                 ):
                     raise AuthError("VISUAL_ADMISSION_CONFLICT", 409)
                 return False
+            if admission is not None:
+                from app.services.visual_context import VisualContextService
+
+                await admission.validate(
+                    session, tenant, business, actor, VisualContextService(admission.settings, self.database)
+                )
             if await self._state(session, tenant, business) != "active":
                 raise AuthError("VISUAL_AI_CONSENT_REQUIRED", 409)
             from app.services.visual_pending_changes import VisualPendingChanges
@@ -185,10 +204,12 @@ class VisualConsentGate:
                 raise AuthError("VISUAL_AI_CONSENT_REQUIRED", 409)
             await session.execute(
                 text("""INSERT INTO visual_consent_runs
-              (tenant_id,business_id,preview_id,operation_id,actor_id,fence,state,consent_accepted_at)
-              VALUES(:tenant,:business,:preview,:operation,:actor,:fence,'in_flight',:accepted_at)"""),
+              (tenant_id,business_id,preview_id,operation_id,actor_id,fence,state,consent_accepted_at,created_at)
+              VALUES(:tenant,:business,:preview,:operation,:actor,:fence,'in_flight',:accepted_at,clock_timestamp())"""),
                 {**params, "accepted_at": accepted_at},
             )
+            if admission is not None:
+                await self._audit(session, tenant, business, actor, "visual.creation_admitted")
             return True
 
     async def finish(

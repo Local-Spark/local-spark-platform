@@ -1,6 +1,6 @@
 # BL04 — contexto seletivo e produção visual com IA
 
-Atualizado em **28/10/2026**. Estado: **em implementação local**, sem aprovação
+Atualizado em **29/10/2026**. Estado: **em implementação local**, sem aprovação
 comercial. Este é o contrato vigente da fase, junto ao [SDD geral](../SDD.md), à
 [trilha BL](BL-brand-library.md#bl04--recuperar-contexto-e-produzir-uma-peça-nova)
 e ao [registro de decisões](../DECISIONS.md). A versão anterior foi preservada
@@ -46,14 +46,16 @@ e publicação oficial continuam dependentes de homologação Meta.
   no mesmo negócio. Na entrega simulada, a ausência de canal adia o envio; após
   vínculo verificado, o destino é o número ativo novo. A origem histórica não
   fixa o destinatário. Há um número ativo por negócio na versão inicial.
-- **Plano vencido e prévias — decisões aprovadas, implementação pendente.** Se
-  o plano vencer durante uma criação já iniciada, concluí-la e permitir revisão
-  privada; bloquear novas criações e publicação até renovar. Preservar as prévias
-  geradas sem expiração automática enquanto a conta permanecer ativa. O código
-  ainda tem prazos de propostas/prévias, limpeza e gates de acesso pelo plano;
-  `0058` preserva envios WhatsApp, não implementa essas duas mudanças. URL assinada
-  curta, validade factual e prazo de aprovação continuam conceitos separados.
-  Preservar o arquivo não atualiza fatos nem aprova publicação.
+- **Plano vencido e prévias — C08/C09 entregues no recorte local.** A criação
+  `visual_fake` admitida tem prova durável para concluir após o vencimento
+  financeiro e permitir revisão privada. Novas criações e publicação continuam
+  exigindo plano vigente. Bloqueio financeiro explícito, revogação de patrocínio
+  e perda de identidade/membership não são vencimento. A exceção de conclusão
+  ainda não cobre o renderer local legado. Prévias concluídas e proveniência
+  são conservadas sem limpeza automática por prazo; tentativas visuais iniciadas
+  sem resultado resolvido também são preservadas. `expires_at` continua sendo
+  janela de criação/aprovação. URL assinada curta, validade factual e aprovação
+  permanecem conceitos separados da preservação, sem atualização implícita de fatos.
 - **Alterações aguardam trabalhos admitidos.** Solicitações de mudança de fonte
   bloqueiam novas admissões e cancelam a fila não iniciada. Trabalhos já admitidos
   terminam antes da aplicação da mudança. A prévia concluída permanece para
@@ -111,15 +113,40 @@ e storage são stubs; não chama Meta/OpenAI e não começa no webhook completo.
 Outros testes unem preparo, reserva, adapter e orquestrador com HTTP/guarda
 simulados; eles não implementam a guarda concreta de concorrência.
 
+A admissão simulada agora bloqueia a proposta, depois o gate visual e o domínio
+comercial, revalidando fontes/fingerprint, usuário ativo, membership, aceite e
+plano antes de inserir o run e sua auditoria na mesma transação owner. A revogação
+de patrocínio participa do lock comercial existente. A reserva/fence e o ledger
+continuam em transação correlator separada, com os tetos já existentes; um run
+gravado não autoriza repetição quando a etapa seguinte falha ou fica incerta.
+Os testes adicionados exercitam captura real e concorrência PostgreSQL com
+catálogo e alteração comercial. Isso não prova serialização de todos os escritores
+nem autoriza o provedor real.
+
+A consulta e o download para revisão preservam concluídas após o prazo da prévia
+ou da proposta, sem usar esse acesso como autorização de geração/publicação.
+O purge conserva seus objetos e a reconciliação conserva propostas, versões de
+roteiro e snapshots referenciados como proveniência. No modo visual, revisão
+após vencimento financeiro exige prova do run, fence e resultado concluído,
+além de identidade e permissões das fontes. O prazo de aprovação permanece
+independente; uma candidata vencida não ganha nova autorização por ser preservada.
+Antes do rollout, drenar os workers antigos de limpeza e revisar suas leases.
+Registros legados em `purging` com chave e hash conhecidos não são reclamados
+pela limpeza nova; conservam estado e bytes para conciliação manual. Não inferir
+que um arquivo já apagado foi recuperado. A revisão visual por outro owner ainda
+pode depender do ator/vínculo original, e permanece fora deste recorte.
+
 A fila durável de alterações cobre parcialmente atualização/restauração do
 contexto, catálogo, confirmação de kit e criação/alteração/exclusão de fotos do
 acervo. Bloqueia novas admissões, espera as iniciadas e preserva a prévia anterior
 com indicação visível. Erros previstos mantêm a alteração explícita e o bloqueio.
-Outros escritores, edição de roteiro, logos e transições de acesso/plano ainda
-não estão coordenados integralmente. Ator diferente do último gerador e perda
-de acesso do autor também têm lacunas de implementação. A decisão C10 já
-definiu recuperação exclusiva pela equipe da plataforma, com ação registrada/
-auditada; outro owner não assume autoria, e staff não recebe leitura irrestrita.
+Outros escritores, edição de roteiro, logos e transições de acesso ainda não
+estão coordenados integralmente. A decisão C10 já definiu recuperação exclusiva
+pela equipe da plataforma, com ação registrada/auditada. Esta fatia recusa que
+outro owner substitua ou descarte a pendência do autor original. A recuperação
+staff foi adiada pelo proprietário em 29/10 para evolução de gestão de acesso e
+suporte. Não bloqueia o encerramento da fatia simulada já validada. Até sua entrega,
+a pendência excepcional continua bloqueada; nenhuma nova permissão foi aprovada.
 
 Upload do acervo reserva a alteração antes de transferir, sem rede sob row lock.
 Após vencer a reserva, o autor pode descartar upload incerto; a chave fica privada
@@ -133,9 +160,11 @@ requer drenagem e avaliação dos órfãos legados conforme o [procedimento](../
 Há adapter de imagem, executor com CAS no ledger e orquestrador de geração e
 acabamento isolados. `VisualEffectGuard` continua uma interface (`Protocol`),
 sem implementação concreta que coordene fontes, acesso, plano e orçamento.
-O fence/reserva são atômicos entre si; as verificações de fontes ainda ocorrem
-em transações/roles distintas. Checks separados não comprovam serialização de
-revogações ou alterações concorrentes.
+O fence/reserva são atômicos entre si. No caminho simulado, fontes, aceite, plano
+e run compartilham a transação owner; a reserva continua em outra transação/role.
+Falha entre os commits conserva uma admissão bloqueante, sem reenvio automático.
+Essa sequência não é uma transação única nem comprova a coordenação integral
+para submissão paga ou a hierarquia global de locks.
 
 `VisualGenerationWorkflow` e sua activity têm uma tentativa e prazos próprios,
 testados com Temporal real. O workflow permanece separado, sem registro no worker
@@ -158,16 +187,18 @@ como histórico técnico, sem tornar novos controles de IA requisito do produto.
 
 ## Próxima fatia de desenvolvimento
 
-1. Completar a coordenação interna da admissão visual com fontes, aceite único
-   existente, plano/acesso e orçamento por tenant/agregado. Reusar os registros
-   vigentes e definir uma ordem de locks consistente, com prova de concorrência
-   em PostgreSQL restrito. Aplicar também as decisões C08/C09: finalizar criação
-   admitida e liberar revisão privada após vencimento do plano, bloquear novas
-   criações/publicação e preservar prévias sem TTL com conta ativa. Implementar
-   recuperação exclusiva de staff com auditoria para o autor que perdeu acesso
-   (C10). As três decisões já estão respondidas no [registro](../DECISIONS.md). A retenção pós-encerramento foi adiada à fase
-   própria e não cria exclusão automática nesta etapa.
-2. Demonstrar com mocks o bloqueio de novos inícios, cancelamento da fila, espera
+1. Completar a coordenação dos demais escritores e provar recuperação entre
+   admissão owner e reserva correlator, incluindo os tetos por tenant/agregado.
+   A ordem proposta → visual → comercial
+   implementada no fake não fecha a hierarquia global. Reusar registros e roles
+   existentes; qualquer capacidade nova exige desenho explícito.
+2. Ampliar as provas com mocks para crash entre commits, resultado incerto e
+   resposta tardia, além dos escritores ainda não cobertos. C08 já cobre conclusão
+   `visual_fake` e revisão após vencimento financeiro; C09 já conserva concluídas e
+   proveniência. Validar esses limites sem tratar prazo de aprovação como retenção.
+   As decisões de produto estão no [registro](../DECISIONS.md); retenção
+   pós-encerramento segue adiada, sem exclusão automática nesta etapa.
+   Demonstrar também o bloqueio de novos inícios, cancelamento da fila, espera
    das admitidas, preservação da prévia, mudanças de fontes/acesso e resultado
    incerto. Não ampliar concessões de banco ou ligar efeito pago para contornar
    uma lacuna da coordenação.
@@ -176,6 +207,13 @@ como histórico técnico, sem tornar novos controles de IA requisito do produto.
    Novo ensaio real exige credenciais, orçamento explícito e escopo definido.
 4. Fechar BL04.3 e depois BL05: qualidade, custo por peça aceita, ajustes
    automáticos e proposta sem nova mensagem. BL03.3 não bloqueia esta sequência.
+
+**Adiada em 29/10/2026:** recuperação exclusiva e auditada de staff para autor
+sem acesso (C10), na evolução de gestão de acesso/suporte. A proteção que impede
+outro owner de assumir ou descartar a pendência permanece entregue. Até a entrega
+futura, conservar a exceção bloqueada. A [proposta](../design/BL04-staff-recovery-review.md)
+fica como referência, sem aprovação de novas permissões. O adiamento permite
+encerrar o recorte simulado validado; os demais gates da BL04/provedor real continuam.
 
 ## BL04.3 — qualidade e economia: pendente
 
@@ -193,6 +231,13 @@ Os [casos fictícios de QA](../evals/manual-qa-negocios-ficticios.md) preparam
 cenários, sem substituir os gates de qualidade e aceite.
 
 ## Evidência datada e histórico
+
+- Fatia atual de admissão/continuidade/preservação: novos testes unitários e
+  PostgreSQL para fontes e transição comercial concorrentes, plano vencendo após
+  admissão, retenção/proveniência, prazos de aprovação e recusa de outro owner.
+  `make ci`: 1.642 testes aprovados, 100% de linhas e branches (8.942 statements,
+  2.446 branches), Ruff/formatação e mypy. PostgreSQL `_test` com roles restritas
+  e Temporal locais; nenhuma chamada paga ou integração visual real habilitada.
 
 - [Ensaio de feed de 27/10](../evals/bl042-guarded-synthetic-feed-2026-10-27.md):
   uma chamada com dados fictícios/CC0, US$ 0,026272 estimados; alterou logo e

@@ -1,5 +1,62 @@
 # Registro de mudanças
 
+## 2026-10-29 — Recuperação staff C10 adiada
+
+- O proprietário decidiu registrar e implementar futuramente a recuperação de
+  pendências de autores sem acesso, na evolução de gestão de acesso/suporte.
+  Essa exceção administrativa não bloqueia o encerramento da fatia simulada já
+  validada de admissão, continuidade financeira e preservação.
+- A regra C10 de recuperação exclusiva de staff e a proteção que impede outro
+  owner de assumir/descartar a pendência continuam vigentes. Até a entrega futura,
+  a exceção permanece bloqueada; nenhuma função privilegiada, grant, aplicação
+  automática ou troca de autoria foi autorizada.
+- PROJECT, DECISIONS, SDD, fase ativa, índices e designs registram a prioridade.
+  A proposta de suporte fica como referência futura, sem aprovação pendente que
+  interrompa a próxima fatia de coordenação. Os demais gates da BL04/provedor real
+  permanecem; o adiamento não declara a fase inteira ou a v0 concluída.
+- Alteração somente documental, preservando código/testes existentes. Validação:
+  links locais, coerência das referências, hashes de código/configuração/testes
+  e `git diff --check`. Não repetidas suítes ou chamadas externas: a evidência
+  anterior continua `make ci` com 1.642 testes e 100% de linhas e branches.
+
+## 2026-10-28 — BL04.2: admissão e continuidade com provedor simulado
+
+- A admissão `visual_fake` valida proposta, fontes/fingerprint, usuário ativo,
+  membership, aceite e plano sob as travas existentes, na ordem proposta → visual
+  → comercial. O run e a auditoria são transacionais; a reserva/fence permanece
+  em outra transação com a role correlator. Replay ou resultado incerto não
+  autorizam segunda execução. Provedor real continua desconectado.
+- C08 no recorte visual simulado: vencimento financeiro após admissão permite
+  concluir, consultar e entregar a prévia privada. Novas criações e publicação
+  continuam bloqueadas. Identidade revogada, bloqueio financeiro e revogação
+  explícita de patrocínio não recebem a exceção de vencimento.
+- C09: prévias concluídas, proposta, versões do roteiro e snapshots referenciados
+  permanecem preservados após os prazos de uso/aprovação. Download privado não
+  exige atualizar fatos ou renovar plano; publicação conserva seus gates.
+  Entrega de candidata ainda exige versão/estado atuais do roteiro para não
+  combinar arte histórica com legenda nova. URLs assinadas continuam temporárias.
+- Limpeza conserva tentativas visuais iniciadas e resultados incertos, assim
+  como artefatos com chave/hash conhecidos, inclusive leases legadas de purge.
+  Drenar workers antigos e conciliar `purging` antes do rollout; não há recuperação
+  de bytes já apagados nem política nova de exclusão após encerramento.
+- C10 parcial: outro owner não substitui falha nem descarta foto pendente do
+  autor original. As roles existentes impedem staff sem membership de recuperar
+  a pendência. A [proposta restrita](design/BL04-staff-recovery-review.md), com
+  metadados/cancelamento auditado, aguarda aprovação explícita antes de ampliar
+  capabilities; nenhuma migration, função privilegiada ou grant foi adicionado.
+- Backend e web começaram limpos; instruções/SDDs da web foram consultados.
+  A web já usa a listagem e o download privado da API, sem filtro local de plano
+  ou prazo; não precisou de alteração neste recorte.
+- Validação final: `make ci` passou com 1.642 testes, Ruff/formatação e mypy;
+  100% de linhas e branches (8.942 statements e 2.446 branches), sem excluir
+  módulos produtivos. PostgreSQL `_test` com logins restritos e Temporal locais;
+  efeitos externos simulados, sem banco da aplicação ou provedor pago. Caches
+  uv/mypy isolados em `/private/tmp` devido às restrições do ambiente/cache local.
+  Links locais da documentação e `git diff --check` também conferidos.
+- Permanecem: recuperação staff, coordenação dos demais escritores e da revisão
+  por outro owner, continuidade do renderer local legado, prova global de locks
+  e recuperação entre commits, guarda/worker visual real e gates BL04.3/BL05.
+
 ## 2026-10-28 — Reconciliação de documentação e decisões de continuidade
 
 - PROJECT, SDD, fases, designs, operação e READMEs dos dois repositórios foram

@@ -133,3 +133,51 @@ async def test_change_by_other_owner_fails_closed_without_impersonation(admin, d
     result = await context.read(tenant, business, actor)
     assert result.version == 0 and result.pending_change.status == "failed"
     assert result.pending_change.error_code == "BUSINESS_OWNER_REQUIRED"
+
+
+async def test_orphaned_command_cannot_be_replaced_by_owner_or_mutated_by_staff(admin, database, seeded):
+    tenant, actor, former_owner, staff = seeded["t1"], seeded["a1"], seeded["viewer"], seeded["a2"]
+    business = await _business(admin, seeded)
+    async with admin.begin() as connection:
+        await connection.execute(
+            text("UPDATE memberships SET role='owner' WHERE tenant_id=:tenant AND actor_id=:actor"),
+            {"tenant": tenant, "actor": former_owner},
+        )
+        await connection.execute(text("INSERT INTO platform_staff(actor_id) VALUES(:actor)"), {"actor": staff})
+    context, gate = EditorialContextService(database), VisualConsentGate(database)
+    await gate.enable(tenant, business, actor)
+    run = uuid4()
+    await gate.admit(tenant, business, actor, uuid4(), run, 1)
+    command = ContextUpdate(operation_id=uuid4(), expected_version=0, preferences={"tone": "friendly"})
+    await context.update(tenant, business, former_owner, command)
+    async with admin.begin() as connection:
+        await connection.execute(
+            text("UPDATE memberships SET active=false WHERE tenant_id=:tenant AND actor_id=:actor"),
+            {"tenant": tenant, "actor": former_owner},
+        )
+    await gate.finish(tenant, business, actor, run, 1)
+    with pytest.raises(AuthError, match="VISUAL_CHANGE_STAFF_REQUIRED"):
+        await context.update(tenant, business, actor, command.model_copy(update={"operation_id": uuid4()}))
+    with pytest.raises(AuthError, match="BUSINESS_OWNER_REQUIRED"):
+        await context.update(tenant, business, former_owner, command.model_copy(update={"operation_id": uuid4()}))
+    async with database.transaction(tenant, staff) as session:
+        assert await session.scalar(text("SELECT public.is_platform_staff()"))
+        assert await session.scalar(text("SELECT count(*) FROM business_visual_pending_changes")) == 0
+        assert (
+            await session.scalar(
+                text("UPDATE business_visual_pending_changes SET state='cancelled' RETURNING operation_id")
+            )
+            is None
+        )
+    async with admin.begin() as connection:
+        row = (
+            await connection.execute(
+                text("SELECT actor_id,state FROM business_visual_pending_changes WHERE operation_id=:operation"),
+                {"operation": command.operation_id},
+            )
+        ).one()
+        assert tuple(row) == (former_owner, "failed")
+        assert (
+            await connection.scalar(text("SELECT count(*) FROM audit_events WHERE action='visual.change_superseded'"))
+            == 0
+        )

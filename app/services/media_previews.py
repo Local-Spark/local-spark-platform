@@ -415,9 +415,11 @@ class MediaPreviewService:
             raise AuthError("VISUAL_FAKE_DISABLED", 409)
         from app.services.service_agreement import service_agreement_allowed
 
-        if self.settings.service_agreement_required or self.settings.environment == "production":
-            async with self.owner_database.transaction(tenant, actor) as session:
-                await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
+        async with self.owner_database.transaction(tenant, actor) as session:
+            await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
+            if not await session.scalar(text(_access_sql()), {"tenant": tenant, "live": False}):
+                raise AuthError("PLAN_REQUIRED", 403)
+            if self.settings.service_agreement_required or self.settings.environment == "production":
                 if not await service_agreement_allowed(session, self.settings, tenant, business):
                     raise AuthError("SERVICE_AGREEMENT_REQUIRED", 409)
         if await VisualConsentGate(self.owner_database).status(tenant, business, actor) != "active":
@@ -530,12 +532,13 @@ class MediaPreviewService:
                 (
                     await session.execute(
                         text("""SELECT p.* FROM media_previews p WHERE p.tenant_id=:tenant AND p.business_id=:business
-                          AND p.expires_at>now() AND p.state<>'purging'
+                          AND (p.state='completed' OR p.expires_at>now()) AND p.state<>'purging'
                           AND EXISTS(SELECT 1 FROM editorial_proposals e WHERE e.id=p.proposal_id
-                            AND e.script_version=p.script_version
+                            AND (p.state='completed' OR (e.script_version=p.script_version
                             AND ((p.candidate AND e.review_state IS NULL)
-                              OR (NOT p.candidate AND e.review_state='accepted')))
-                          AND (p.generation_mode='visual_fake' OR EXISTS(SELECT 1 FROM business_context_heads h
+                              OR (NOT p.candidate AND e.review_state='accepted')))))
+                          AND (p.state='completed' OR p.generation_mode='visual_fake'
+                            OR EXISTS(SELECT 1 FROM business_context_heads h
                             WHERE h.tenant_id=p.tenant_id AND h.business_id=p.business_id
                               AND h.version=p.context_version))
                           AND (p.generation_mode<>'visual_fake' OR p.state NOT IN ('pending','rendering')
@@ -544,7 +547,8 @@ class MediaPreviewService:
                             OR EXISTS(SELECT 1 FROM visual_consent_runs r WHERE r.tenant_id=p.tenant_id
                               AND r.business_id=p.business_id AND r.preview_id=p.id AND r.actor_id=:actor
                               AND r.state='in_flight'))
-                          AND (p.source_asset_id IS NULL OR EXISTS(SELECT 1 FROM whatsapp_material_assets a
+                          AND (p.state='completed' OR p.source_asset_id IS NULL
+                            OR EXISTS(SELECT 1 FROM whatsapp_material_assets a
                             WHERE a.id=p.source_asset_id AND a.delete_requested_at IS NULL
                               AND (a.expires_at IS NULL OR a.expires_at>now())))
                           ORDER BY p.created_at DESC,p.id DESC LIMIT 30"""),
@@ -604,6 +608,8 @@ class MediaPreviewService:
                 "VISUAL_KIT_CHANGED",
                 "VISUAL_LOGO_CHANGED",
                 "VISUAL_CONTEXT_CHANGED",
+                "PREVIEW_SCRIPT_EXPIRED",
+                "PREVIEW_SCRIPT_NOT_ACCEPTED",
             }:
                 raise
         if not view_only or row["state"] != "completed" or not row["sha256"] or not row["object_key"]:
@@ -631,9 +637,39 @@ class MediaPreviewService:
                     "fingerprint": row["visual_fingerprint"],
                 },
             )
+            created_before_change = bool(proof)
+            if not proof:
+                # A retained result is historical evidence. Its durable run,
+                # fence and original contract authorize review, never a new effect.
+                proof = await session.scalar(
+                    text(f"""SELECT 1 FROM visual_consent_runs r
+                      LEFT JOIN visual_ai_consents c ON c.tenant_id=r.tenant_id AND c.business_id=r.business_id
+                      WHERE r.tenant_id=:tenant AND r.business_id=:business AND r.preview_id=:preview
+                        AND r.actor_id=:original_actor AND r.fence=:fence AND r.state='finished'
+                        AND NOT EXISTS(SELECT 1 FROM visual_change_completed_previews v
+                          WHERE v.tenant_id=r.tenant_id AND v.business_id=r.business_id AND v.preview_id=r.preview_id)
+                        AND ({accepted_agreement_sql()} OR
+                          (c.revoked_at IS NULL AND c.accepted_at=r.consent_accepted_at))"""),
+                    {
+                        "tenant": row["tenant_id"],
+                        "business": row["business_id"],
+                        "preview": row["id"],
+                        "original_actor": row["actor_id"],
+                        "fence": row["dispatch_fence"],
+                    },
+                )
+                if proof:
+                    created_before_change = bool(
+                        await session.scalar(
+                            text("""SELECT EXISTS(SELECT 1 FROM business_visual_pending_changes c
+                          JOIN media_previews p ON p.tenant_id=c.tenant_id AND p.business_id=c.business_id
+                          WHERE p.id=:preview AND c.state='completed' AND c.requested_at>=p.created_at)"""),
+                            {"preview": row["id"]},
+                        )
+                    )
             if proof:
-                # Preserving an earlier image does not bypass plan, current
-                # editorial/WhatsApp permission, source lifetime or script state.
+                # Current identity and source permissions still apply. Plan
+                # expiry and the historical script's deadline do not erase it.
                 from app.services.editorial_briefings import EditorialBriefingService
 
                 source = (
@@ -645,9 +681,7 @@ class MediaPreviewService:
                       FROM editorial_proposals e JOIN editorial_briefings b
                         ON b.id=e.briefing_id AND b.tenant_id=e.tenant_id AND b.business_id=e.business_id
                       WHERE e.id=:proposal AND e.tenant_id=:tenant AND e.business_id=:business
-                        AND e.state='completed' AND e.script_version=:version
-                        AND ((:candidate AND e.review_state IS NULL)
-                          OR (NOT :candidate AND e.review_state='accepted'))"""),
+                        AND e.state='completed'"""),
                             {
                                 "proposal": row["proposal_id"],
                                 "tenant": row["tenant_id"],
@@ -673,7 +707,7 @@ class MediaPreviewService:
                 )
         if not proof:
             raise AuthError("PREVIEW_INPUT_CHANGED", 409)
-        return True
+        return created_before_change
 
     async def file_key(
         self, tenant: UUID, business: UUID, actor: UUID, preview_id: UUID, *, review: bool = False
@@ -684,12 +718,13 @@ class MediaPreviewService:
                 (
                     await session.execute(
                         text("""SELECT p.* FROM media_previews p WHERE p.id=:id AND p.tenant_id=:tenant
-                  AND p.business_id=:business AND p.state='completed' AND p.expires_at>now()
+                  AND p.business_id=:business AND p.state='completed'
+                  AND (:review OR p.expires_at>now())
                   AND EXISTS(SELECT 1 FROM editorial_proposals e WHERE e.id=p.proposal_id)
-                  AND (p.source_asset_id IS NULL OR EXISTS(SELECT 1 FROM whatsapp_material_assets a
+                  AND (:review OR p.source_asset_id IS NULL OR EXISTS(SELECT 1 FROM whatsapp_material_assets a
                     WHERE a.id=p.source_asset_id AND a.delete_requested_at IS NULL
                       AND (a.expires_at IS NULL OR a.expires_at>now())))"""),
-                        {"id": preview_id, "tenant": tenant, "business": business},
+                        {"id": preview_id, "tenant": tenant, "business": business, "review": review},
                     )
                 )
                 .mappings()
@@ -697,6 +732,8 @@ class MediaPreviewService:
             )
             if row is None or not row["object_key"]:
                 raise AuthError("PREVIEW_NOT_READY", 404)
+            if review and row["generation_mode"] == "local":
+                return str(row["object_key"])
             if row["generation_mode"] == "visual_fake":
                 try:
                     await self._validate_visual(row, actor, view_only=review)
@@ -768,6 +805,7 @@ class MediaPreviewService:
         """Exercise the visual lifecycle with a clearly simulated image, never an external call."""
         from app.adapters.brand_overlay import BrandOverlayError
         from app.services.editorial_consent_scope import VisualRunScope, admitted_visual_run
+        from app.services.visual_admission import VisualAdmissionChecks
         from app.services.visual_attempts import VisualAttemptService
         from app.services.visual_brand_finish import VisualBrandFinishService
         from app.services.visual_consent_gate import VisualConsentGate
@@ -813,7 +851,15 @@ class MediaPreviewService:
                     ):
                         raise AuthError("SERVICE_AGREEMENT_REQUIRED", 409)
             admitted = await gate.admit(
-                row["tenant_id"], row["business_id"], row["actor_id"], preview_id, operation, fence
+                row["tenant_id"],
+                row["business_id"],
+                row["actor_id"],
+                preview_id,
+                operation,
+                fence,
+                admission=VisualAdmissionChecks(
+                    self.settings, row["proposal_id"], row["visual_fingerprint"], row["candidate"]
+                ),
             )
             if not admitted:
                 return await self._fail(preview_id, fence, "VISUAL_OUTCOME_UNCERTAIN", False)

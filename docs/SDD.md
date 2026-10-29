@@ -1,6 +1,6 @@
 # SDD geral — Meu Braço Direito
 
-Contrato vigente revisado em **28/10/2026**. Produto aceito em
+Contrato vigente revisado em **29/10/2026**. Produto aceito em
 [DECISIONS](DECISIONS.md), estado executivo em [PROJECT](PROJECT.md), sequência
 em [fases](phases/README.md) e detalhamento na [fase BL04](phases/BL04-context-and-ai-production.md).
 O [snapshot anterior](history/2026-10-28-pre-documentation-reconciliation/SDD.md)
@@ -120,7 +120,7 @@ interface ficam no [SDD web](../../local-spark-web/docs/SDD.md).
 | Contexto | Fatos confirmados, preferências e hipóteses distintos; fonte, validade e versão congeladas no pedido. | Implementado; fatos vencidos não autorizam nova afirmação. |
 | Kit | Vitrine fictícia pública separada da seleção/overrides privados versionados. | BL01/BL02 locais; aplicação no modo simulado. Kit piloto ainda `public_demo`. |
 | Acervo | Produtos/serviços/promoções e fotos de item/espaço, opcionais, privados e versionados. | BL03.1/BL03.2 locais; BL03.3 importará cardápio como rascunho. |
-| Prévia gerada | Arquivo/versão privados preservados sem expiração automática enquanto a conta estiver ativa (C09). | **Decisão aprovada ainda pendente:** código usa `expires_at`, prazos da proposta/fato e limpeza de prévias. |
+| Prévia gerada | Arquivo/versão privados preservados sem expiração automática enquanto a conta estiver ativa (C09). | Concluídas saem do purge por prazo; proposta/roteiro e snapshots referenciados são conservados. `expires_at` continua delimitando criação/aprovação, não retenção. |
 
 A remoção de fotos desatualizadas do acervo permanece disponível. Promover foto
 WhatsApp cria cópia com direitos declarados; não muda a finalidade nem a
@@ -185,11 +185,26 @@ Roteiro de gravação e receitas de vídeo real estão em
   suficiente para revisão. O prazo após encerramento da conta fica em P03.
 - C10: só staff pode recuperar pendência cujo autor perdeu acesso, com ação
   registrada, sem assumir a identidade dele ou conceder acesso geral à mídia.
+  Em 29/10, o proprietário adiou essa implementação para evolução de gestão de
+  acesso/suporte; não bloqueia o fechamento da fatia simulada validada.
 
-**Estado atual:** C06/C07 têm cobertura parcial no modo simulado. C08/C09/C10
-não estão implementados de ponta a ponta; plano e expiração ainda afetam
-conclusão/leitura e há limpeza por prazo. Retirada de consentimento por
-fornecedor permanece somente como compatibilidade legada para negócios sem o
+**Estado atual:** C06/C07 têm cobertura parcial no modo simulado. A admissão de
+`visual_fake` revalida usuário/membership, fontes, aceite e plano na transação
+owner antes do run durável, na ordem proposta → visual → comercial. C08 permite
+conclusão e revisão privada de `visual_fake` admitida após o vencimento financeiro;
+bloqueio explícito e revogação de patrocínio não são tratados como vencimento.
+Novos inícios e publicação continuam exigindo plano vigente. O renderer local
+legado ainda não recebe essa exceção de conclusão.
+
+C09 preserva prévias concluídas e proveniência, com consulta histórica e download
+privado para revisão mesmo após o prazo da proposta/prévia. A janela de aprovação
+e a validade de fatos permanecem próprias. Tentativas visuais iniciadas sem
+resultado resolvido não são apagadas pelo purge. C10 bloqueia a substituição ou
+o descarte da pendência por outro owner. A recuperação restrita de staff, com
+auditoria, fica adiada; até sua entrega, a exceção administrativa permanece
+bloqueada. O adiamento não aprova novas permissões nem reabre a decisão C10.
+Retirada de consentimento por fornecedor permanece somente como compatibilidade
+legada para negócios sem o
 contrato; não é um novo fluxo de produto a desenvolver para quem aceitou C01.
 
 ### Integração visual pendente
@@ -200,8 +215,12 @@ identificado. Os ensaios reais foram isolados. `VisualGenerationWorkflow` tem
 prazos e tentativa única testados, mas não está conectado ao dispatcher/worker
 ou à guarda real. A API persistida só aceita modos `local` e `visual_fake`.
 
-Fontes/aceite e reserva ainda atravessam transações/roles diferentes. Completar
-coordenação e recuperação antes do efeito real, sem manter locks durante IO.
+Fontes/aceite/plano e o run são validados na mesma transação owner; a reserva e o
+fence continuam atômicos em outra transação correlator. Os dois commits não são
+uma transação única: falha intermediária conserva a admissão bloqueante e não
+autoriza nova submissão. A ordem adotada não prova a hierarquia global de locks;
+outros escritores e recuperação ainda precisam de prova antes do efeito real.
+Não manter locks durante IO.
 Propostas antigas de grants/holds e exclusão WhatsApp são históricas, não
 solução aprovada. Detalhes e testes da próxima fatia estão na
 [BL04](phases/BL04-context-and-ai-production.md).
@@ -264,7 +283,7 @@ não são serviços comerciais ativos só por constarem no desenho.
 
 ## 11. Sequência e condições de liberação
 
-BL01/BL02 e BL03.1/BL03.2 locais → BL04.2 coordenação/C08/C09/C10 e integração
+BL01/BL02 e BL03.1/BL03.2 locais → BL04.2 coordenação restante e integração
 visual → BL04.3 qualidade/custo → BL05 jornada, ajuste e proatividade → expansão.
 BL03.3 importa cardápio depois; BL06 amplia nichos/CDN depois de provar reaplicação.
 
@@ -282,10 +301,14 @@ formatação, testes/build e jornadas de navegador, com 100% nos quatro critéri
 Banco de teste dedicado termina em `_test`, com runtime restrito; nunca limpar
 ou migrar o banco da aplicação para testes. Falta de serviço falha, não vira skip.
 
-Última evidência de aplicação: 1.583 testes backend e complemento de 24 com sete
+Evidência anterior de aplicação: 1.583 testes backend e complemento de 24 com sete
 casos novos, cobertura final 100%; web com 360 testes/cobertura integral, build e
-três jornadas Chromium. Ver [CHANGELOG](CHANGELOG.md). A revisão documental atual
-valida coerência, links e snapshots; não é nova homologação de runtime ou rede.
+três jornadas Chromium. Ver [CHANGELOG](CHANGELOG.md). A fatia atual acrescenta
+testes de admissão concorrente, continuidade, retenção/proveniência e autoria de
+pendências. `make ci` passou com 1.642 testes, 100% de linhas e branches
+(8.942 statements, 2.446 branches), Ruff/formatação e mypy. PostgreSQL `_test`
+com roles restritas e Temporal locais; nenhum efeito pago ou nova homologação
+externa. A web não mudou e suas suítes não foram repetidas nesta fatia.
 
 Em cada entrega, atualizar PROJECT, SDD, fase e CHANGELOG. Decisões novas entram
 em DECISIONS; distinguir decisão aceita, código implementado e homologação.

@@ -1,7 +1,7 @@
 # Meu Braço Direito — contexto vigente
 
-Atualizado em **28/10/2026**. Estado do código local conferido nesta revisão;
-nenhum serviço ou banco foi alterado. Decisões de produto e pendências ficam em
+Atualizado em **29/10/2026**, com o adiamento de C10 após a fatia local de admissão
+visual simulada, continuidade e preservação. Decisões de produto e pendências ficam em
 [DECISIONS](DECISIONS.md); contratos no [SDD](SDD.md); sequência no
 [índice de fases](phases/README.md) e na [trilha BL](phases/BL-brand-library.md).
 As versões anteriores foram [preservadas integralmente](history/2026-10-28-pre-documentation-reconciliation/index.md).
@@ -44,17 +44,25 @@ Um número WhatsApp de cliente ativo por negócio na primeira versão.
   a fila que não começou e impedir novos inícios até aplicar a mudança de kit,
   foto ou contexto. A prévia anterior continua para revisão, identificada como
   anterior à alteração. Implementação parcial no modo simulado.
-- **Novas decisões aprovadas, ainda não implementadas (C08/C09/C10):** concluir
-  criação já iniciada se o plano vencer e permitir revisar sua prévia; bloquear
-  novas criações e publicação até renovar. Preservar prévias sem expiração
-  automática enquanto a conta estiver ativa. Só a equipe da plataforma pode
-  resolver uma pendência cujo autor perdeu acesso, com ação registrada.
+- **Continuidade e preservação (C08/C09):** a criação `visual_fake` já admitida
+  tem prova durável para concluir após o vencimento financeiro e permitir revisão
+  privada. Bloqueio financeiro explícito e revogação de patrocínio continuam
+  distintos do vencimento. Novas criações e publicação exigem plano vigente.
+  Prévias concluídas e sua proveniência saem da limpeza automática por prazo;
+  tentativas visuais iniciadas sem resultado resolvido também são conservadas.
+- **Autor sem acesso (C10), implementação de suporte adiada em 29/10:** outro
+  owner não pode substituir nem descartar sua alteração pendente. Essa proteção
+  permanece; a recuperação staff fica para evolução de gestão de acesso/suporte.
+  A exceção continua bloqueada e não impede fechar a fatia simulada validada.
 
-O código ainda usa prazos de propostas/prévias e verifica plano na conclusão e
-na leitura. C08/C09 exigem adaptar esses caminhos e a limpeza, preservando a
-proveniência. A migration 0058 cobre materiais WhatsApp, não prévias. URL
-assinada de arquivo, validade de fato e prazo de aprovação são conceitos
-separados da preservação do arquivo.
+A admissão simulada verifica proposta, fontes, usuário/membership, aceite e plano
+sob locks na ordem proposta → visual → comercial, antes de gravar o run. A reserva
+financeira continua em outra transação/role: falha ou confirmação perdida mantém
+o run bloqueante e não libera repetição. Isso não fecha a guarda do provedor real
+nem a hierarquia global de escritores. C08 cobre o caminho `visual_fake`; o
+renderer local legado ainda não recebe a mesma exceção de conclusão. `expires_at`
+continua delimitando criação/aprovação, sem apagar uma prévia concluída. URL
+assinada, validade factual e prazo de aprovação permanecem separados da preservação.
 
 O prazo de exclusão após encerramento da conta foi explicitamente adiado para
 essa fase; não implementar exclusão automática nesta etapa (P03). Vencimento do
@@ -70,7 +78,7 @@ plano não equivale a encerrar conta nem a perder membership.
 | Contexto e texto | Fatos/preferências versionados, propostas/roteiros, adapter editorial, reservas/tokens e projeção administrativa restrita | Qualidade comercial, conversa com memória, pesquisa ampla e skills executáveis. |
 | BL01/BL02 | Vitrine fictícia de cafeteria, escolha e edição guiada de kit, logo privado, rascunho, confirmação e histórico | Kit `public_demo` não tem liberação comercial; produção real ainda não aplica o kit. |
 | BL03.1/BL03.2 | Cadastro manual de produtos/serviços/promoções e fotos privadas de item/espaço | Importação de cardápio é BL03.3 futura; contexto visual real integrado ainda falta. |
-| BL04 | Retrieval do acervo e Jev opcionais no worker de desenvolvimento/teste; briefing, fontes, adapter de imagem, ledger, acabamento e prévia simulada | Coordenação completa, C08/C09/C10 e conexão do provedor real; qualidade/custo por peça aceita. |
+| BL04 | Retrieval/Jev opcionais, prévia simulada, admissão com fontes/plano/aceite, continuidade `visual_fake` após vencimento e preservação de concluídas/proveniência | Coordenação completa entre roles/escritores, recuperação staff C10 e provedor real; qualidade/custo por peça aceita. |
 | F04/F06 | Prévias técnicas estáticas/vídeo, candidata, revisão e publicação simulada com versão/hash | Ajuste não regenera automaticamente; candidata WhatsApp e Instagram reais pendentes. |
 | F08 | Compose, CI e workflow manual de deploy preparados | AWS/staging, recuperação coordenada, observabilidade operacional e capacidade não homologadas. |
 
@@ -98,10 +106,12 @@ histórico `posts_per_week` é preservado, sem campo manual de frequência.
 
 ## Próxima entrega e sequência
 
-1. **BL04.2:** adaptar a execução e a preservação às decisões C08/C09/C10;
-   completar a coordenação de fontes, plano/acesso, orçamento e recuperação com
-   as roles existentes. Demonstrar o percurso com provedor simulado antes de
-   ligar dispatcher, workflow e provedor real.
+1. **BL04.2:** concluir coordenação dos escritores ainda não cobertos, orçamento
+   e resultados incertos entre as roles existentes. A recuperação staff C10 foi
+   adiada e não é bloqueio desta fatia simulada.
+   Ampliar a prova de concorrência/recuperação do modo simulado antes de ligar
+   dispatcher, workflow e provedor real. C08 está no caminho `visual_fake`;
+   concluídas e proveniência já não são apagadas por prazo (C09).
 2. **BL04.3:** produzir post/story pelo produto, revisar com titular e fontes
    consentidas, medir fidelidade, texto, legibilidade, rejeições e custo por
    peça aceita, incluindo refações.
@@ -132,12 +142,14 @@ access token em memória e refresh HttpOnly. Staff/MFA não equivale a owner.
 Os modelos atuais são configuração, não escolha comercial definitiva. Contexto
 versionado não treina automaticamente modelos e tokens não são COGS monetário.
 
-Última validação de aplicação: 1.583 testes backend e complemento de 24 testes
+Evidência anterior de aplicação: 1.583 testes backend e complemento de 24 testes
 com sete casos novos; cobertura final de 100% de linhas/branches. Web: 360 testes,
 100% nos quatro critérios, build e três jornadas Chromium. Evidências datadas
-no [CHANGELOG](CHANGELOG.md). Esta revisão documental valida links, referências,
-integridade dos snapshots e coerência com o código; não reexecuta chamadas pagas
-ou suítes de aplicação sem mudança de comportamento.
+no [CHANGELOG](CHANGELOG.md). A fatia atual passou em `make ci`: 1.642 testes,
+100% de linhas e branches (8.942 statements e 2.446 branches), Ruff/formatação e
+mypy. PostgreSQL `_test` com roles restritas e Temporal locais cobrem admissão
+concorrente, continuidade, preservação e recusa de outro owner. Não houve chamada
+paga nem homologação externa nesta fatia; a web não foi alterada nem revalidada.
 
 Diretórios/remotos continuam `local-spark-platform` e `local-spark-web`, com marca
 Meu Braço Direito, prefixo `MEU_BRACO_DIREITO_` e bancos renomeados conforme

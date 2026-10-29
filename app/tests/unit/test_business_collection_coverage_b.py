@@ -225,3 +225,17 @@ async def test_pending_upload_with_live_writer_cannot_be_discarded(monkeypatch):
     with pytest.raises(AuthError, match="COLLECTION_PHOTO_NOT_READY"):
         await instance.delete(tenant, business, actor, photo_id, uuid4(), 0)
     store.delete.assert_not_awaited()
+
+
+async def test_other_owner_cannot_discard_failed_staged_photo(monkeypatch):
+    instance, store = service(monkeypatch)
+    tenant, business, actor, photo_id = (uuid4() for _ in range(4))
+    instance._operation_guard = AsyncMock()
+    instance._row = AsyncMock(return_value={"state": "pending", "version": 1})
+    instance._replay = AsyncMock(return_value=None)
+    instance.database.session.scalar = AsyncMock(return_value=uuid4())
+    monkeypatch.setattr(VisualPendingChanges, "status_in_session", AsyncMock(return_value={"status": "failed"}))
+    with pytest.raises(AuthError, match="VISUAL_CHANGE_STAFF_REQUIRED"):
+        await instance.delete(tenant, business, actor, photo_id, uuid4(), 1)
+    store.delete.assert_not_awaited()
+    assert not instance.database.session.statements

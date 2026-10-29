@@ -21,6 +21,7 @@ class WhatsAppMaterialsService:
         found = await session.scalar(
             text("""SELECT 1 FROM business_profiles p JOIN memberships m
               ON m.tenant_id=p.tenant_id AND m.actor_id=:actor AND m.active AND m.role='owner'
+              JOIN user_accounts u ON u.id=m.actor_id AND u.active
               WHERE p.tenant_id=:tenant AND p.business_id=:business"""),
             {"tenant": tenant, "business": business, "actor": actor},
         )

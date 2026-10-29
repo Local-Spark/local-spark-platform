@@ -353,9 +353,11 @@ class EditorialProposalService:
             rows = (
                 (
                     await session.execute(
-                        text("""SELECT * FROM editorial_proposals
-              WHERE tenant_id=:tenant AND business_id=:business AND expires_at>now()
-              ORDER BY created_at DESC,id DESC LIMIT :limit"""),
+                        text("""SELECT e.* FROM editorial_proposals e
+              WHERE e.tenant_id=:tenant AND e.business_id=:business
+                AND (e.expires_at>now() OR EXISTS(SELECT 1 FROM media_previews p
+                  WHERE p.proposal_id=e.id AND p.state='completed'))
+              ORDER BY e.created_at DESC,e.id DESC LIMIT :limit"""),
                         {"tenant": tenant, "business": business, "limit": limit},
                     )
                 )
@@ -1181,5 +1183,11 @@ async def reconcile_stale_proposals(database: Database, limit: int = 100) -> int
                 {"id": row["id"]},
             )
             await _audit(session, row, "editorial.proposal_uncertain")
-        await session.execute(text("DELETE FROM editorial_proposals WHERE expires_at<=now()"))
+        # A preview's source document, script history and kit snapshot remain its
+        # provenance after the proposal's creation/approval window has elapsed.
+        # Keep pending attempts too until their own recovery/cleanup completes.
+        await session.execute(
+            text("""DELETE FROM editorial_proposals e WHERE e.expires_at<=now()
+              AND NOT EXISTS(SELECT 1 FROM media_previews p WHERE p.proposal_id=e.id)""")
+        )
         return len(rows)

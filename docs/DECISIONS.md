@@ -1,6 +1,7 @@
 # Decisões vigentes e pendências
 
-Atualizado em **28/10/2026** após confirmação do proprietário nesta conversa.
+Atualizado em **29/10/2026**, incluindo o adiamento da recuperação de suporte C10
+confirmado pelo proprietário.
 Este registro reúne decisões de produto; implementação e contratos técnicos
 ficam no [PROJECT](PROJECT.md), no [SDD](SDD.md) e nos [SDDs de fase](phases/README.md).
 Uma decisão aprovada ainda não implementada deve aparecer com esse estado em
@@ -41,9 +42,9 @@ não afirmar que documentação, flag ou migration isoladas já a resolveram.
 | C05 | Trocar de número não interrompe o processamento de materiais já associados. A futura prévia e aprovação seguem para o número ativo novo. | Processamento e entrega simulada adaptados. Envio real de candidata WhatsApp pendente. Mensagens ainda não associadas não ganham origem retroativa por suposição. |
 | C06 | Alterar kit, foto do acervo ou contexto durante uma criação aguarda os processos iniciados; cancela a fila ainda não iniciada e bloqueia novas admissões até aplicar a mudança. | Parcial no modo simulado: contexto, catálogo, confirmação de kit e fotos. Cobertura de todos os escritores, recuperação e integração real ainda faltam. |
 | C07 | A prévia anterior à alteração continua disponível para revisão e deve ser identificada como anterior à mudança. | Há provas e campos no fluxo simulado. Preservar para revisão não confirma fatos vencidos, direitos ou aprovação de publicação. |
-| C08 | Se o plano vencer durante uma criação já iniciada, concluir e permitir revisar a prévia privada; bloquear novas criações e publicação até renovar. | **Aprovado em 28/10, ainda não implementado de ponta a ponta.** O código atual revalida acesso durante geração, conclusão e leitura. Alterar esses caminhos junto com testes e tratamento de incerteza. Perda de membership não é vencimento do plano. |
-| C09 | Preservar as prévias geradas sem expiração automática enquanto a conta estiver ativa. | **Aprovado em 28/10, ainda não implementado.** Propostas/prévias e limpeza ainda usam `expires_at`; preservar também a proveniência necessária à revisão. A migration 0058 não cobre prévias. URL assinada, validade factual e janela de aprovação continuam prazos diferentes. |
-| C10 | Se quem iniciou uma alteração perder acesso, somente a equipe da plataforma pode resolver a pendência, com ação registrada. | **Aprovado em 28/10, ainda não implementado.** Não transferir a autoria para outro proprietário nem simular sua identidade. Criar recuperação de suporte restrita e auditada; staff não recebe acesso geral a mídia privada. |
+| C08 | Se o plano vencer durante uma criação já iniciada, concluir e permitir revisar a prévia privada; bloquear novas criações e publicação até renovar. | Implementado no recorte `visual_fake`: admissão durável com plano vigente e continuidade/revisão após vencimento financeiro. Bloqueio explícito, revogação de patrocínio e perda de identidade/membership continuam distintos. Novos inícios/publicação exigem plano. A exceção de conclusão ainda não cobre o renderer local legado nem o provedor real. |
+| C09 | Preservar as prévias geradas sem expiração automática enquanto a conta estiver ativa. | Prévias concluídas saem do purge por prazo; propostas, roteiro e snapshots referenciados são conservados e a revisão histórica usa links privados. Tentativas visuais iniciadas sem resultado resolvido também são preservadas. `expires_at` continua delimitando criação/aprovação, sem apagar a concluída. URL assinada e validade factual mantêm prazos próprios. Sem exclusão automática após encerramento nesta etapa. |
+| C10 | Se quem iniciou uma alteração perder acesso, somente a equipe da plataforma pode resolver a pendência, com ação registrada. | Outro owner já não pode substituir nem descartar a pendência do autor original. **Implementação da recuperação staff adiada pelo proprietário em 29/10/2026**, para evolução de gestão de acesso/suporte; não bloqueia o fechamento da fatia simulada validada. Até lá, a pendência excepcional permanece bloqueada. A proposta de novas permissões não foi aprovada; manter autoria, RLS e auditoria existentes. |
 | C11 | Publicação exige aprovação explícita da versão, arquivo/hash, legenda, destino e horário aplicáveis. | Revisão/publicação simuladas locais. Escolher kit, confirmar fato, aceitar o serviço ou permanecer em silêncio não aprova publicação. Meta/Instagram reais pendentes. |
 | C12 | Foto e story são os formatos da oferta inicial. Vídeo e suas franquias/preço serão definidos depois; avatar/voz sintética ficam após o primeiro piloto comercial. | Regra inicial de formatos no código; não há franquia comercial final nem qualidade homologada. R$ 99/mês e teto total de R$ 50/cliente/mês orientam medição. |
 | C13 | Provar a primeira peça personalizada antes de ampliar nichos; fechar BL04, depois a jornada/ajuste/proatividade BL05. | BL01/BL02 e BL03.1/BL03.2 locais; BL04 em implementação. BL03.3, BL06, pesquisa ampla, avatar e expansão multicanal têm etapas próprias. |
@@ -52,13 +53,27 @@ não afirmar que documentação, flag ou migration isoladas já a resolveram.
 
 | Referência da pergunta | Resolução |
 | --- | --- |
-| P01 — plano vencido durante criação | Respondida pelo proprietário; aplicar C08 na implementação futura. |
-| P02 — prazo das prévias | Respondida pelo proprietário; aplicar C09. |
-| P04 — autor sem acesso com alteração pendente | Respondida pelo proprietário; aplicar C10. |
+| P01 — plano vencido durante criação | Respondida pelo proprietário; C08 aplicada no caminho `visual_fake`, com os limites descritos acima. |
+| P02 — prazo das prévias | Respondida pelo proprietário; C09 aplicada às prévias concluídas e sua proveniência. |
+| P04 — autor sem acesso com alteração pendente | Regra C10 confirmada; implementação de suporte adiada em 29/10/2026. |
 
-Não reapresentar essas perguntas como dúvida de produto. Falta implementar e
-validar o comportamento aceito; isso não autoriza remover verificações de
+Não reapresentar essas perguntas como dúvida de produto. Restam os limites de
+implementação e validação descritos acima; isso não autoriza remover verificações de
 identidade, direitos, assinatura, orçamento ou versão sem uma solução equivalente.
+
+## Priorização de C10 — 29/10/2026
+
+O proprietário decidiu registrar e implementar futuramente a recuperação de
+pendências de autores sem acesso. Essa exceção administrativa não é necessária
+para encerrar a fatia atual de admissão, continuidade financeira e preservação
+com provedor simulado, já validada. A regra de recuperação exclusiva de staff
+continua aceita; sua implementação sai da próxima fatia obrigatória.
+
+Se a exceção ocorrer antes dessa entrega futura, conservar a pendência bloqueada,
+sem aplicação automática, troca de autoria ou ampliação de permissões. A proposta
+[de suporte restrito](design/BL04-staff-recovery-review.md) fica preservada como
+referência futura, sem aprovação de funções privilegiadas ou grants. O adiamento
+não encerra a BL04 nem libera o provedor real, que mantém os demais gates técnicos.
 
 ## Pendências delimitadas
 
@@ -72,12 +87,14 @@ Contratos comerciais definitivos, homologação Meta, staging e recuperação
 operacional são entregas de prontidão, não prova já obtida nem motivo para
 pedir outra autorização individual de IA ao cliente.
 
-## Próxima entrega após a revisão documental
+## Próxima entrega após a fatia simulada
 
-Detalhar e implementar, em fatias revisáveis, C08/C09/C10 e a coordenação de
-fontes/orçamento BL04.2 usando o aceite único C01. Começar com provedor simulado,
-PostgreSQL/RLS e Temporal reais. Só conectar o provedor visual após demonstrar
-concorrência, recuperação, orçamento e ausência de submissão duplicada.
-
-Esta revisão **altera somente documentação**. Nenhum prazo, job de limpeza,
-política de acesso, role, fornecedor ou banco é alterado por este arquivo.
+Concluir a coordenação dos escritores/fontes/orçamento ainda não cobertos na
+BL04.2, usando o aceite único C01. C10 foi adiada conforme a prioridade acima.
+A admissão simulada
+agora revalida proposta/fontes/aceite/plano antes do run durável; reserva e fence
+continuam em outra transação/role, com falhas bloqueantes. Só conectar o provedor
+visual após demonstrar concorrência, recuperação, orçamento e ausência de
+submissão duplicada. A fatia passou em `make ci`, com 1.642 testes e 100% de linhas
+e branches; evidência no CHANGELOG. Não houve chamada paga ou integração real
+habilitada.

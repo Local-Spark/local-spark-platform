@@ -176,7 +176,8 @@ async def test_automatic_candidate_is_private_and_does_not_accept_script(admin, 
                 text("UPDATE editorial_proposals SET review_state='changes_requested' WHERE id=:id"),
                 {"id": proposal},
             )
-        assert all(item.id != candidate.id for item in await service.list(tenant, business, actor))
+        assert any(item.id == candidate.id for item in await service.list(tenant, business, actor))
+        assert await service.file_key(tenant, business, actor, candidate.id, review=True)
         with pytest.raises(AuthError) as error:
             await service.file_key(tenant, business, actor, candidate.id)
         assert error.value.code == "PREVIEW_NOT_READY"
@@ -532,7 +533,7 @@ async def test_retention_hides_and_erases_private_output(admin, seeded, settings
 
 
 @pytest.mark.parametrize("mode", ["local", "visual_fake"])
-async def test_retention_deletes_the_recorded_fenced_attempt_key(admin, seeded, settings, mode):
+async def test_retention_deletes_the_recorded_abandoned_attempt_key(admin, seeded, settings, mode):
     tenant, business, actor, _, proposal, _ = await _accepted_case(admin, seeded)
     owner_db = Database(settings)
     worker = Database(settings, correlator=True)
@@ -543,11 +544,11 @@ async def test_retention_deletes_the_recorded_fenced_attempt_key(admin, seeded, 
         stored_key = f"previews/{tenant}/{business}/{preview.id}/attempt-3/committed.jpg"
         async with admin.begin() as conn:
             await conn.execute(
-                text("""UPDATE media_previews SET state='completed',object_key=:key,sha256=:sha,
+                text("""UPDATE media_previews SET state='failed',object_key=:key,
                   expires_at=now()-interval '1 second',generation_mode=:mode,
                   visual_fingerprint=CASE WHEN :mode='visual_fake' THEN CAST(:fingerprint AS char(64)) ELSE NULL END
                   WHERE id=:id"""),
-                {"key": stored_key, "sha": "a" * 64, "fingerprint": "a" * 64, "id": preview.id, "mode": mode},
+                {"key": stored_key, "fingerprint": "a" * 64, "id": preview.id, "mode": mode},
             )
         store = AsyncMock()
         assert await purge_expired_previews(worker, store, uuid4()) == 1
@@ -667,7 +668,7 @@ async def test_static_preview_owner_lifecycle_and_tenant_isolation(admin, api, d
             )
         with pytest.raises(AuthError, match="PREVIEW_NOT_READY"):
             await owner_service.file_key(tenant, business, actor, claim.id)
-        assert (await api.get(previews_url + f"/{claim.id}/download-link", headers=owner)).status_code == 404
+        assert (await api.get(previews_url + f"/{claim.id}/download-link", headers=owner)).status_code == 200
     finally:
         await worker.close()
 
@@ -724,10 +725,10 @@ async def test_short_video_preview_is_private_fenced_and_expires_with_offer(admi
                 text("UPDATE media_previews SET expires_at=now()-interval '1 second' WHERE id=:id"),
                 {"id": claim.id},
             )
-        assert (await api.get(url, headers=owner)).json() == []
-        assert (await api.get(url + f"/{claim.id}/download-link", headers=owner)).status_code == 404
-        assert await purge_expired_previews(worker, store, uuid4()) == 1
-        assert store.delete.call_args.args[0].endswith(".mp4")
+        assert (await api.get(url, headers=owner)).json()[0]["id"] == str(claim.id)
+        assert (await api.get(url + f"/{claim.id}/download-link", headers=owner)).status_code == 200
+        assert await purge_expired_previews(worker, store, uuid4()) == 0
+        store.delete.assert_not_awaited()
     finally:
         await worker.close()
 

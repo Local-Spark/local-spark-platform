@@ -1,6 +1,6 @@
 # Sequência de entrega até produção e evolução do escopo
 
-Atualizado em 28/10/2026. Complementa o [índice](../phases/README.md) e a
+Atualizado em 29/10/2026. Complementa o [índice](../phases/README.md) e a
 [trilha BL](../phases/BL-brand-library.md). F00–F08 representam áreas técnicas;
 BL01–BL06 ordenam o produto. As duas numerações não são projetos concorrentes.
 “Concluído localmente” não significa homologação, qualidade ou operação comercial.
@@ -14,16 +14,19 @@ BL02 entrega escolha e edição guiada do kit. A auditoria P1–P15 simplificou 
 jornada sem apagar os domínios necessários. Nenhuma dessas entregas demonstra
 sozinha uma publicação final com qualidade comercial.
 
-## Ponto de retomada em 28/10
+## Ponto de retomada em 29/10
 
 BL03.1/BL03.2 estão implementadas localmente. BL04.1 já oferece retrieval/Jev
 opcionais no worker dev/test, desligados por padrão e sob aceite único. BL04.2
 prepara fontes e prévia fake com kit, mas guarda/dispatcher/worker visuais reais
-seguem desconectados. A próxima fatia implementa [C08/C09/C10](../DECISIONS.md)
-e coordenação de fontes/acesso/orçamento: concluir/revisar após plano vencido,
-preservar prévias enquanto conta ativa e recuperação restrita/auditada por staff.
-Depois conectar real, validar BL04.3 e seguir BL05. Materiais WhatsApp associados
-já são duráveis (0058); isso não implementa retenção de prévias nem memória geral.
+seguem desconectados. A fatia simulada já aplica C08 à criação `visual_fake`
+admitida e C09 às concluídas/proveniência, com revisão após vencimento financeiro.
+A próxima fatia amplia coordenação de fontes/acesso/orçamento e recuperação entre
+commits. A recuperação staff C10 foi adiada pelo proprietário em 29/10; a exceção
+permanece bloqueada e não impede fechar o recorte simulado validado. Depois dos
+demais gates, conectar real, validar BL04.3 e seguir BL05. Materiais WhatsApp
+associados já são duráveis (0058); isso não implementa memória geral. Ver
+[decisões](../DECISIONS.md).
 
 ## Ordem até o primeiro piloto comercial
 

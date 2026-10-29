@@ -1,4 +1,4 @@
-"""Lease expired or source-revoked previews and erase their private objects."""
+"""Erase abandoned preview attempts while preserving completed private artifacts."""
 
 import logging
 from dataclasses import dataclass
@@ -27,7 +27,9 @@ async def claim_expired_previews(database: Database, owner: UUID, limit: int = 5
             (
                 await session.execute(
                     text("""WITH due AS (
-                      SELECT p.id FROM media_previews p WHERE
+                      SELECT p.id FROM media_previews p WHERE p.state<>'completed'
+                        AND NOT (p.object_key IS NOT NULL AND p.sha256 IS NOT NULL)
+                        AND (p.generation_mode<>'visual_fake' OR p.attempts=0) AND
                         (p.expires_at<=now() OR
                           NOT EXISTS(SELECT 1 FROM editorial_proposals e WHERE e.id=p.proposal_id) OR
                           (p.source_asset_id IS NOT NULL AND NOT EXISTS(
