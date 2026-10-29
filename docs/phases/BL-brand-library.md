@@ -185,8 +185,9 @@ A tela deixa visível o que está confirmado para a IA e o que ainda é rascunho
 Jev opcional e briefing com busca seletiva de acervo, desligados por padrão.
 Usa o aceite único do serviço e orçamento interno, sem autorização TypeSafe
 separada. A prévia simulada aplica o kit e tem reserva/fence; `visual_ai` conecta
-o caminho real ao worker/guarda/adapter, validado com HTTP simulado e sem chamada
-paga. O [SDD BL04](BL04-context-and-ai-production.md) e o
+o caminho real ao worker/guarda/adapter, validado com HTTP simulado na parte 2.
+A parte 3 concluiu uma imagem real de feed pelo produto, sem publicação; ver
+[evidência](../evals/bl042-first-product-image-2026-10-29.md). O [SDD BL04](BL04-context-and-ai-production.md) e o
 [desenho de integração segura](../design/BL04-integration-safety.md) registram
 os passos pendentes. O [ensaio sintético vertical](../evals/bl04-visual-synthetic-story-2026-10-27.md)
 fez uma chamada real controlada; não é gate comercial. A [avaliação Jev](../evals/jev-intent-ptbr-v1.md)
@@ -226,10 +227,17 @@ orçamento/claim e resultado privado com writers financeiros coordenados.
 
 **Parte 2 conectada:** modo `visual_ai` na persistência/API liga
 workflow/dispatcher/worker/runner à guarda concreta da parte 1 e ao adapter real,
-com transporte HTTP simulado nos testes de PostgreSQL/Temporal e validação final
-em andamento. Execução desligada por padrão, reserva zero e ausência de configuração
-completa não acionam placeholder local. A próxima fatia é a **parte 3**, primeira
-chamada paga controlada com fontes/credenciais/teto explicitamente autorizados.
+com transporte HTTP simulado nos testes de PostgreSQL/Temporal e CI completo
+aprovado. Execução desligada por padrão, reserva zero e ausência de configuração
+completa não acionam placeholder local. A **parte 3** concluiu uma imagem paga
+de feed, com Jev real e acabamento do kit/logo, sob autorização de Café do Cedro,
+fontes CC0/logo e teto total de US$ 1, sem publicação. A estimativa de US$ 0,029701
+inclui duas interpretações Jev e não é fatura; a reserva visual continua incerta.
+Meta de entrada/canal e entrega de candidata permaneceram simuladas. A próxima
+fatia é **BL04.3**, revisão de feed e conjunto post/story com custo por peça aceita,
+depois BL05, WhatsApp como jornada principal, ajuste/aprovação e proatividade.
+Parte 3 validada com 94 unitários e lint/types, leitura/hash com geração desligada;
+sem novos grants ou ativação persistente. CI completo da parte 2 não repetido.
 O ledger agregado OpenAI já existe. A admissão de ambos os modos visuais revalida fontes/aceite/plano sob
 locks; sua criação admitida conclui e permite revisão após vencimento financeiro,
 enquanto novos inícios/publicação aguardam renovação. Prévias concluídas e sua

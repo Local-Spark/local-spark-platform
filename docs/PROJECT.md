@@ -1,8 +1,8 @@
 # Meu Braço Direito — contexto vigente
 
-Atualizado em **29/10/2026**, com a parte 2 da conexão visual: modo `visual_ai`,
-API, dispatcher e worker ligados à guarda concreta. A validação usa HTTP simulado;
-a primeira chamada paga pelo produto continua na parte 3. Decisões de produto e pendências ficam em
+Atualizado em **29/10/2026**, após a primeira imagem real pelo caminho do produto
+na parte 3: Café do Cedro, com fontes autorizadas, teto de US$ 1 e sem publicação.
+A próxima fatia é BL04.3, qualidade e custo por peça aceita. Decisões de produto e pendências ficam em
 [DECISIONS](DECISIONS.md); contratos no [SDD](SDD.md); sequência no
 [índice de fases](phases/README.md) e na [trilha BL](phases/BL-brand-library.md).
 As versões anteriores foram [preservadas integralmente](history/2026-10-28-pre-documentation-reconciliation/index.md).
@@ -72,7 +72,9 @@ Troca de telefone não muda a identidade de fonte já atribuída. O protocolo do
 escritores atuais está no [desenho da guarda](design/BL04-effect-guard.md).
 O modo persistido `visual_ai` agora liga essa guarda ao adapter OpenAI por um
 runner e workflow próprios; os testes usam transporte HTTP simulado. A ativação
-continua desligada por padrão e não houve chamada paga nesta entrega.
+continua desligada por padrão. A parte 3 executou uma chamada real de imagem com
+Jev, guarda, kit/logo e prévia privada, sob autorização delimitada; ver
+[evidência](evals/bl042-first-product-image-2026-10-29.md).
 C08 cobre `visual_fake` e `visual_ai`; o
 renderer local legado ainda não recebe a mesma exceção de conclusão. `expires_at`
 continua delimitando criação/aprovação, sem apagar uma prévia concluída. URL
@@ -91,9 +93,9 @@ plano não equivale a encerrar conta nem a perder membership.
 | Contratação | Stripe sandbox, webhook/jobs/reconciliação, patrocínio e aceite único versionado por negócio | Contratos comerciais definitivos, franquias e cenários externos restantes. Cadastro e retorno de checkout não ativam plano. |
 | WhatsApp | Inbox assinada/cifrada, vínculo, correlação, processamento, transcrição configurável e preservação de materiais | Meta oficial, envio real de candidata e conversa completa ainda não homologados. |
 | Contexto e texto | Fatos/preferências versionados, propostas/roteiros, adapter editorial, reservas/tokens e projeção administrativa restrita | Qualidade comercial, conversa com memória, pesquisa ampla e skills executáveis. |
-| BL01/BL02 | Vitrine fictícia de cafeteria, escolha e edição guiada de kit, logo privado, rascunho, confirmação e histórico | Kit `public_demo` não tem liberação comercial; produção real ainda não aplica o kit. |
-| BL03.1/BL03.2 | Cadastro manual de produtos/serviços/promoções e fotos privadas de item/espaço | Importação de cardápio é BL03.3 futura; contexto visual real integrado ainda falta. |
-| BL04 | Retrieval/Jev opcionais, prévia simulada e caminho `visual_ai` ligado da API ao worker/guarda/adapter, continuidade e preservação/proveniência | Primeira chamada controlada pelo produto (parte 3), qualidade/custo por peça aceita e evolução operacional. Integração atual exercitada com HTTP simulado. |
+| BL01/BL02 | Vitrine fictícia de cafeteria, escolha/edição de kit e logo privado; kit/logo aplicados à primeira imagem real controlada | Kit `public_demo` não tem liberação comercial; fidelidade precisa de revisão. |
+| BL03.1/BL03.2 | Catálogo/fotos privadas e uso seletivo de fontes na primeira imagem real controlada | Importação de cardápio é BL03.3 futura; qualidade/fidelidade do contexto aplicado ainda requer avaliação. |
+| BL04 | Caminho `visual_ai`, Jev, guarda e adapter exercitados com uma imagem real de feed e prévia privada preservada | BL04.3: revisão de post/story, fidelidade e custo por peça aceita. Uma chamada não comprova qualidade, fatura ou margem. |
 | F04/F06 | Prévias técnicas estáticas/vídeo, candidata, revisão e publicação simulada com versão/hash | Ajuste não regenera automaticamente; candidata WhatsApp e Instagram reais pendentes. |
 | F08 | Compose, CI e workflow manual de deploy preparados | AWS/staging, recuperação coordenada, observabilidade operacional e capacidade não homologadas. |
 
@@ -101,6 +103,10 @@ Os ensaios em [evals](evals/) são evidências datadas, não features ou aceites
 comerciais. As imagens reais de IA de 27/10 e 28/10 foram geradas em ensaios
 isolados, fora do worker do cliente. Não comprovam fidelidade, margem ou custo
 mensal. Consultar perfil público não concede direitos sobre o material observado.
+A [execução de 29/10](evals/bl042-first-product-image-2026-10-29.md) percorreu o
+worker do produto e exportou o JPEG pela API autenticada e S3 privado. Meta de
+entrada/prova de canal foram sintéticas e a entrega da candidata permaneceu
+simulada; isso ainda não comprova conversa WhatsApp completa ou homologação.
 
 ## Jornada web vigente
 
@@ -121,20 +127,16 @@ histórico `posts_per_week` é preservado, sem campo manual de frequência.
 
 ## Próxima entrega e sequência
 
-1. **BL04.2, parte 3:** primeira chamada real controlada pelo produto, com fontes
-   autorizadas, credenciais configuradas e autorização explícita do teto de gasto.
-   O caminho da parte 2 está conectado, com validação de HTTP simulado, PostgreSQL
-   e Temporal locais; essa implementação não autoriza gasto. Não introduz novas
-   roles/grants. C10, varredura de recuperação e limpeza de órfãos continuam em
-   evolução operacional, com exceções bloqueadas.
-2. **BL04.3:** produzir post/story pelo produto, revisar com titular e fontes
+1. **BL04.3:** revisar o feed produzido e completar o conjunto post/story pelo
+   produto, com titular e fontes
    consentidas, medir fidelidade, texto, legibilidade, rejeições e custo por
-   peça aceita, incluindo refações.
-3. **BL05:** fechar jornada local de mensagem → prévia → ajuste → aprovação →
-   publicação simulada, incluindo iniciativa em dia sem mensagem e pausa.
-4. **Piloto:** homologar Meta/Instagram, aplicar franquias F07 e operar staging,
+   peça aceita, incluindo refações. Novas chamadas exigem autorização própria;
+   a autorização delimitada de US$ 1 não ativa uso recorrente.
+2. **BL05:** fechar WhatsApp como jornada principal de mensagem → prévia → ajuste
+   → aprovação → publicação simulada, incluindo iniciativa sem mensagem e pausa.
+3. **Piloto:** homologar Meta/Instagram, aplicar franquias F07 e operar staging,
    observabilidade e recuperação F08. A Meta pendente não impede testes locais.
-5. **Expansão:** BL03.3 importa cardápio como rascunho; BL06 amplia kits/nichos e
+4. **Expansão:** BL03.3 importa cardápio como rascunho; BL06 amplia kits/nichos e
    catálogo/CDN. Pesquisa ampla, avatar/voz e multicanal seguem fases próprias.
 
 Foto e story são os formatos iniciais; vídeo e suas franquias/preço permanecem
@@ -187,7 +189,25 @@ linhas e branches** (9.394 statements, 2.582 branches), Ruff/formatação e mypy
 e **quatro jornadas Chromium** na árvore final (conteúdo local/IA, laboratório e
 aceite). As contagens anteriores são evidências da parte 1. A migration 0059 foi
 aplicada somente ao `_test`, sem migrar o banco da aplicação, chamar fornecedor
-pago ou alterar grants.
+pago ou alterar grants naquela entrega.
+
+A parte 3 concluiu uma imagem real de feed com `gpt-image-2.5-flare-2026-09-08`,
+Jev real e acabamento determinístico do kit/logo, preservando candidata pendente
+e publicação nula. Estimativa por uso: **US$ 0,029701**, incluindo duas
+interpretações Jev; não é fatura. A reserva visual de **US$ 0,99** continua
+`uncertain`, com custo efetivo desconhecido, e o run terminou. A primeira entrada
+resultou em story e o wrapper bloqueou antes do HTTP de imagem; prova de zero
+submissões permitiu reconciliar a reserva antiga em zero, preservando tentativa
+e auditoria. Uma nova origem esclarecida gerou o feed sob a mesma autorização;
+não houve edição manual de roteiro nem aprovação/publicação. A migration 0059
+agora também foi aplicada ao banco local da aplicação para essa execução.
+Flags persistentes seguem desligadas, sem novos grants ou código de produção.
+`make lint types` aprovado (151 módulos) e **94 testes unitários dirigidos**
+aprovados; código de produção inalterado. O `make ci` acima é da parte 2 e não
+foi repetido nesta execução operacional. Com geração `disabled`, flag desligada
+e limites zero, owner listou/baixou o mesmo hash; acesso anônimo retornou 401.
+Os processos temporariamente habilitados foram encerrados. Uma imagem isolada
+não substitui as provas C08/C09 da suíte ou a revisão humana de BL04.3.
 
 Diretórios/remotos continuam `local-spark-platform` e `local-spark-web`, com marca
 Meu Braço Direito, prefixo `MEU_BRACO_DIREITO_` e bancos renomeados conforme

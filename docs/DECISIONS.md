@@ -1,7 +1,7 @@
 # Decisões vigentes e pendências
 
-Atualizado em **29/10/2026**, incluindo a implementação da conexão visual da
-parte 2 e o adiamento da recuperação de suporte C10 confirmado pelo proprietário.
+Atualizado em **29/10/2026**, incluindo a primeira imagem paga autorizada pelo
+produto (parte 3) e o adiamento da recuperação de suporte C10 confirmado pelo proprietário.
 Este registro reúne decisões de produto; implementação e contratos técnicos
 ficam no [PROJECT](PROJECT.md), no [SDD](SDD.md) e nos [SDDs de fase](phases/README.md).
 Uma decisão aprovada ainda não implementada deve aparecer com esse estado em
@@ -35,7 +35,7 @@ não afirmar que documentação, flag ou migration isoladas já a resolveram.
 
 | ID | Decisão de produto | Implementação local e limite |
 | --- | --- | --- |
-| C01 | IA para interpretação, texto, imagem e transcrição integra o serviço. Um único aceite explícito por negócio em Plano e acesso, antes do checkout; contas existentes aceitam a versão uma vez. | GET/POST versionado com hash, ator, data e auditoria; web sem permissões por fornecedor. `visual_ai` conectado exige enforcement do aceite; credenciais, orçamento e plano continuam internos. Registros antigos não são reescritos; primeira chamada paga pelo produto segue pendente. |
+| C01 | IA para interpretação, texto, imagem e transcrição integra o serviço. Um único aceite explícito por negócio em Plano e acesso, antes do checkout; contas existentes aceitam a versão uma vez. | GET/POST versionado com hash, ator, data e auditoria; web sem permissões por fornecedor. `visual_ai` exige enforcement do aceite; primeira imagem real executada sob autorização delimitada, sem ativar uso recorrente. Credenciais/orçamento/plano continuam internos; registros antigos não são reescritos. |
 | C02 | Cada negócio tem conta de cliente e organização próprias, com cobrança e aceite próprios. | Onboarding cria organização/negócio; API e migration 0057 garantem no máximo um negócio por organização. Cobrança continua por organização. Memberships/seleção legadas e staff são preservados. |
 | C03 | Um número de cliente WhatsApp ativo por negócio na primeira versão. | Vínculo único local. Múltiplos números e sua experiência ficam para evolução posterior. |
 | C04 | Envios WhatsApp associados ao negócio são preservados sem expiração automática e não oferecem exclusão pelo histórico, para texto, imagem, áudio e vídeo. | Migration 0058 e leitores adaptados; API recusa exclusão. Eventos técnicos não atribuídos e uploads órfãos têm limpeza própria. Preservação não cria automaticamente memória pesquisável ou produto confirmado. |
@@ -87,15 +87,23 @@ Contratos comerciais definitivos, homologação Meta, staging e recuperação
 operacional são entregas de prontidão, não prova já obtida nem motivo para
 pedir outra autorização individual de IA ao cliente.
 
-## Próxima entrega após a conexão da parte 2
+## Próxima entrega após a primeira imagem da parte 3
 
 O modo `visual_ai` já conecta API, dispatcher, workflow/worker, runner e adapter
 à guarda concreta, usando o aceite único C01. O percurso usa HTTP simulado nos
-testes com PostgreSQL e Temporal locais; validação final aprovada. A flag
-de execução permanece desligada por padrão, com reserva zero. A próxima entrega
-é a **parte 3**, primeira chamada paga controlada pelo produto, após autorização
-explícita das fontes, credenciais e teto de gasto. Configuração ou autorização
-histórica de um ensaio isolado não concede novo orçamento.
+testes com PostgreSQL e Temporal locais; validação final da parte 2 aprovada.
+Na parte 3, o proprietário autorizou Café do Cedro com foto CC0/logo, teto total
+de US$ 1 e uma imagem, sem publicação. Uma chamada de imagem real concluiu a
+prévia privada; duas interpretações Jev integraram a mesma autorização. Estimativa
+total de uso: US$ 0,029701, sem comprovação de fatura ou margem. A reserva visual
+incerta permanece no ledger, e a candidata aguarda decisão. A flag persistente
+continua desligada; a autorização é delimitada, sem novo orçamento recorrente.
+Registro em [evidência da parte 3](evals/bl042-first-product-image-2026-10-29.md).
+
+A próxima entrega é **BL04.3**, revisar feed e completar post/story com titular,
+medindo qualidade e custo por peça aceita; depois BL05 fecha WhatsApp como jornada
+principal de prévia/ajuste/aprovação e proatividade. Novas chamadas exigem autorização
+apropriada às fontes e ao teto; a existência de saldo estimado não concede gasto.
 
 A admissão revalida proposta/fontes/aceite/plano antes do run durável; reserva e
 fence continuam em outra transação/role. A recuperação exige prova de ausência
@@ -104,8 +112,12 @@ com replay somente da reconciliação. `visual_ai` usa tentativa única e ID Tem
 estável; confirmação perdida ou resultado incerto não autoriza redispatch ou
 troca automática de provedor. Prévias concluídas ficam revisáveis com a execução
 desligada, conservando identidade, acesso, fontes e prova durável. C10 continua
-adiada. Não houve nova decisão de produto, chamada paga ou ampliação de roles;
-a migration 0059 foi aplicada somente ao banco `_test`.
+adiada. A migration 0059 foi aplicada ao banco local da aplicação para a execução
+da parte 3, sem novos grants ou código de produção. Meta de entrada/canal foi
+sintética, entrega da candidata simulada e publicação nula; não afirmar WhatsApp
+completo ou homologação. Validação dirigida aprovada: 94 unitários, lint/types
+(151 módulos), sem mudança de código. Consulta/download owner funcionaram com
+execução desligada e limites zero; o último CI completo é o da parte 2.
 
 ## Esclarecimento de jornada — 29/10/2026
 

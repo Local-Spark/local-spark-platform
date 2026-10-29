@@ -1,7 +1,9 @@
 # BL04 — integração segura de IA visual à prévia
 
-Atualizado em **29/10/2026**. Estado: **parte 2 conectada com validação final em
-andamento e HTTP simulado; primeira chamada paga pendente**. Complementa o
+Atualizado em **29/10/2026**. Estado: **parte 2 validada com HTTP simulado e
+parte 3 concluída com uma imagem paga autorizada**, sem publicação. Validação
+dirigida aprovada (94 unitários, lint/types e leitura/hash com geração desligada),
+sem repetir o CI completo da parte 2. Complementa o
 [SDD BL04](../phases/BL04-context-and-ai-production.md) e a
 [coordenação transacional](BL04-atomicity-proposal.md).
 
@@ -28,7 +30,7 @@ roteiro, contexto, kit, acervo e referências. O hash idempotente inclui o modo 
 geração e os campos relevantes; mesmo UUID com conteúdo diferente é conflito.
 A API/schema aceitam `local`, `visual_fake` e `visual_ai`. A migration 0059 exige
 fingerprint visual e recusa downgrade com linhas `visual_ai`, sem novos grants;
-foi aplicada somente ao `_test`. O modo real exige opt-in separado, com flag
+foi validada no `_test` e aplicada ao banco local para a parte 3. O modo real exige opt-in separado, com flag
 desligada/reserva zero por padrão, chaves, C01 e tetos por tenant/agregado.
 
 O servidor constrói snapshot mínimo verificável: IDs/versões/hashes, fatos e
@@ -108,9 +110,13 @@ testes concorrentes, crash entre
 commits, resultado incerto sem segundo gasto, limites de orçamento, mudança de
 fonte, expiração de plano, revisão preservada, publicação bloqueada, isolamento e
 proteção de objetos incertos. Limpeza física de órfãos e varredura de recuperação
-seguem como evolução operacional, mantendo exceções bloqueadas. A parte 3 exige
-fontes/credenciais/teto de gasto explicitamente autorizados antes da chamada paga.
-Depois avaliar qualidade BL04.3: fidelidade,
+seguem como evolução operacional, mantendo exceções bloqueadas. A parte 3 concluiu
+uma imagem de feed sob autorização de Café do Cedro, foto CC0/logo e teto total de
+US$ 1, com Jev real, guarda/worker e JPEG privado pela API/S3. Sem publicação ou
+edição manual de roteiro; ingresso/canal Meta e entrega de candidata foram simulados.
+Reserva visual conserva custo incerto; flags persistentes desligadas e autorização
+sem recorrência. [Evidência](../evals/bl042-first-product-image-2026-10-29.md).
+Próxima fatia: qualidade BL04.3, fidelidade,
 texto/logo, legibilidade móvel, aceite do titular e custo por peça aceita com refações.
 
 Versão anterior integral: [snapshot de 28/10/2026](../history/2026-10-28-pre-documentation-reconciliation/design/BL04-integration-safety.md).

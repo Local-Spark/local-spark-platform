@@ -1,5 +1,48 @@
 # Registro de mudanças
 
+## 2026-10-29 — BL04.2 parte 3: primeira imagem real pelo produto
+
+- Sob autorização explícita de Café do Cedro com foto CC0/logo, teto total de
+  **US$ 1** e uma imagem sem publicação, o fluxo do produto concluiu um feed
+  `visual_ai` 1024×1280. Jev e OpenAI foram reais; Temporal/worker, guarda,
+  claim/ledger e acabamento determinístico do kit/logo produziram JPEG privado,
+  obtido pela API autenticada e S3. [Evidência](evals/bl042-first-product-image-2026-10-29.md).
+- Uma chamada de imagem `gpt-image-2.5-flare-2026-09-08`, medium, retornou
+  2.363 tokens de entrada (2.160 imagem/203 texto) e 378 de saída. Estimativa
+  visual: **US$ 0,029635**; duas interpretações Jev somam **US$ 0,000066**;
+  total **US$ 0,029701** estimados. Uso não é fatura: a reserva visual de
+  **US$ 0,99** permanece `uncertain`, `actual_usd_micros=NULL`, mesmo com run
+  terminado e prévia concluída. Não comprova margem ou custo por peça aceita.
+- A primeira interpretação não informou formato e o baseline criou story.
+  O wrapper de autorização barrou o tamanho antes do delegate HTTP, com zero
+  chamadas de imagem demonstradas pela execução única. Conferência do hash
+  original/preparo e reprodução dessa barreira sustentaram reconciliação da
+  reserva antiga em zero e término explícito do run com efeito resolvido,
+  preservando tentativa, marcadores e auditoria. Uma nova origem esclarecida
+  como foto/feed e legenda gerou a imagem sob a mesma autorização; não houve
+  edição manual de roteiro ou repetição de imagem com resultado desconhecido.
+- Prévia `7cda1858-8b68-4350-8734-dc9f4ca115d2` concluída, run `finished`,
+  candidata pendente e publicação nula. Hash do JPEG privado:
+  `18ee9ae8fe0edcee080fd6d2506b03c18ac4b95fdfa3bef17ba31fe12186e427`.
+  Ingresso/prova de canal Meta foram sintéticos e a entrega da candidata foi
+  simulada; a execução não comprova WhatsApp completo ou homologação Meta.
+- Migration 0059 aplicada ao banco local da aplicação para a execução autorizada.
+  Flags persistentes continuam desligadas, sem novos grants ou mudanças no código
+  de produção. A autorização é delimitada e não habilita chamadas recorrentes.
+  As provas C08/C09 continuam na suíte anterior; uma imagem não revalida todos
+  esses cenários. C10 permanece adiada e estados sem prova ficam bloqueados.
+- PROJECT, SDD, DECISIONS, fase ativa, índices, README/operação e contratos
+  técnicos atualizados. Próxima fatia: **BL04.3**, revisão de feed e conjunto
+  post/story com qualidade/custo por peça aceita; depois **BL05**, WhatsApp como
+  jornada principal de prévia/ajuste/aprovação e proatividade.
+- Validação dirigida aprovada: **94 testes unitários**, `make lint types` e mypy
+  em 151 módulos. Com modo `disabled`, flag desligada e limites zero, owner
+  consultou a prévia e baixou hash idêntico; acesso anônimo retornou 401.
+  Processos temporariamente habilitados encerrados. O `make ci` de **1.914 testes**
+  e **100% de linhas/branches** abaixo é o último CI completo, da parte 2 e do
+  mesmo código, não repetido nesta execução operacional. Nenhum novo resultado
+  de suíte foi inferido da chamada paga.
+
 ## 2026-10-29 — BL04.2 parte 2: caminho visual completo conectado
 
 - Persistência/API acrescentam `generation_mode=visual_ai`, distinto de `local`

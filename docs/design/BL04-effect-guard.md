@@ -1,8 +1,8 @@
 # BL04.2 — guarda concreta e conexão do provedor
 
-Estado em **29/10/2026**: parte 1 implementa a guarda e a parte 2 conecta o modo
-persistido `visual_ai` ao worker/adapter. Testes usam imagens e HTTP simulados;
-validação final aprovada, sem chamada paga ou novos grants. Produto em
+Estado em **29/10/2026**: guarda e conexão validadas na parte 2; parte 3 concluiu
+uma imagem real de feed sob autorização delimitada, sem publicação ou novos
+grants. A reserva do resultado concluído continua incerta. Produto em
 [DECISIONS](../DECISIONS.md); sequência em
 [BL04](../phases/BL04-context-and-ai-production.md).
 
@@ -95,8 +95,8 @@ prova durável existente, sem reescrever hashes.
 
 **Parte 2 conectada:** `visual_ai` distinto na persistência/API,
 dispatcher/worker/runner e esta guarda/claims em testes com PostgreSQL, Temporal
-e transporte HTTP simulado do adapter real. Migration 0059 aplicada somente ao
-`_test`. Flag de execução desligada e reserva zero por padrão; habilitar exige
+e transporte HTTP simulado do adapter real. Migration 0059 validada no `_test`
+e aplicada ao banco local da aplicação para a parte 3. Flag de execução desligada e reserva zero por padrão; habilitar exige
 desenvolvimento/teste, modo OpenAI, chaves, C01 e reserva dentro dos tetos por
 tenant/agregado. Worker exige pool correlator restrito; API usa somente owner.
 
@@ -106,8 +106,16 @@ Leitura/revisão de uma prévia concluída independe de manter execução habili
 preservando identidade, fontes/direitos e prova durável. Tempos e replay no
 [contrato Temporal](BL04-visual-temporal-execution.md).
 
-**Parte 3:** chamada real controlada pelo produto, com credenciais, fontes e teto
-de gasto explícitos. BL04.3 mede qualidade/custo por peça aceita após a conexão.
+**Parte 3 concluída:** uma imagem real para Café do Cedro, com fontes CC0/logo e
+teto total de US$ 1 autorizados, Jev real, guarda/worker/adapter e JPEG privado pela
+API/S3. Candidata pendente, publicação nula e flags persistentes desligadas.
+A primeira tentativa de formato foi barrada antes do HTTP de imagem e reconciliada
+com prova de zero submissões, preservando seus registros; não houve reenvio de
+imagem incerta. [Evidência](../evals/bl042-first-product-image-2026-10-29.md).
+Meta de entrada/canal e entrega de candidata foram simuladas; validação dirigida
+aprovada (94 unitários, lint/types e leitura/hash com execução desligada), sem
+repetir o CI completo da parte 2. Próxima fatia BL04.3 mede qualidade/custo por
+peça aceita, depois BL05.
 C10, limpeza física de PUT incerto, varredura fora do redispatch e suporte seguem
 em evoluções próprias. Exceções sem prova de resolução permanecem bloqueadas;
 não ampliar permissões nem repetir possível efeito pago para contorná-las.

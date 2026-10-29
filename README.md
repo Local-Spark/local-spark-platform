@@ -200,15 +200,23 @@ ou deploy AWS demonstrados por esta entrega.
 ## Próxima implementação aprovada
 
 A BL04.2 conecta `visual_ai` da API ao dispatcher/Temporal/worker, à guarda e ao
-adapter de imagem. A parte 2 usa HTTP simulado, PostgreSQL/Temporal locais e
-validação final aprovada; nenhuma chamada paga. Execução desligada e reserva
+adapter de imagem. A parte 2 passou em CI com HTTP simulado; a parte 3 concluiu
+uma imagem real de feed para Café do Cedro sob teto autorizado de US$ 1, sem
+publicação. Jev e imagem foram reais; ingresso/prova de canal Meta e entrega da
+candidata foram simulados. [Evidência](docs/evals/bl042-first-product-image-2026-10-29.md).
+Execução desligada e reserva
 zero por padrão; habilitar exige chaves, aceite único e tetos explícitos conforme
 [operação](docs/operations.md#ia-e-falhas-externas). A API mantém somente a role
-owner; o worker usa seu pool correlator restrito. A migration 0059 foi aplicada
-somente ao `_test`, sem migrar o banco da aplicação.
+owner; o worker usa seu pool correlator restrito. A migration 0059 foi validada
+no `_test` e aplicada ao banco local da aplicação para a parte 3; flags persistentes
+seguem desligadas, sem novos grants.
 
-A próxima fatia é a **parte 3**, primeira chamada real controlada pelo produto,
-com fontes/credenciais e teto de gasto explicitamente autorizados. Os caminhos
+A próxima fatia é **BL04.3**, revisar o feed e completar post/story, medindo
+qualidade e custo por peça aceita; depois BL05 fecha WhatsApp como jornada
+principal de ajuste/aprovação e proatividade. A estimativa por uso foi de
+**US$ 0,029701**, incluindo duas interpretações Jev, sem comprovar fatura:
+a reserva de imagem continua incerta. Novas chamadas exigem autorização própria.
+Os caminhos
 visuais já concluem criações admitidas após vencimento financeiro e preservam
 prévias/proveniência para revisão, inclusive com execução desligada; novos
 inícios/publicação exigem plano. URL assinada e validade de fatos/decisões

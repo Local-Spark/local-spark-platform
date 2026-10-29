@@ -1,6 +1,7 @@
 # BL04 — contexto seletivo e produção visual com IA
 
-Atualizado em **29/10/2026**, com a parte 2 conectada e validação final aprovada.
+Atualizado em **29/10/2026**, com a primeira imagem real pelo produto concluída
+na parte 3 e a avaliação de qualidade/custo BL04.3 como próxima fatia.
 Estado: **em implementação local**, sem aprovação
 comercial. Este é o contrato vigente da fase, junto ao [SDD geral](../SDD.md), à
 [trilha BL](BL-brand-library.md#bl04--recuperar-contexto-e-produzir-uma-peça-nova)
@@ -232,13 +233,14 @@ reserva ou commit conserva prova/hold e, quando aplicável, objeto. Nenhum reenv
 automático. Na entrega da parte 1, essa guarda foi exercitada somente com
 simulação persistida; a parte 2 acrescenta o modo explícito abaixo.
 
-## BL04.2 — parte 2: caminho completo conectado, execução paga pendente
+## BL04.2 — parte 2: caminho completo conectado
 
 O modo persistido/API `visual_ai` identifica geração pelo adapter de imagem,
 sem confundir resultados com `local` ou `visual_fake`. A migration 0059 exige
 fingerprint para ambos os modos visuais, preserva os registros existentes e
 recusa downgrade com prévias `visual_ai`. Não altera grants; foi aplicada
-somente ao banco `_test`, sem migrar o banco da aplicação.
+somente ao banco `_test` na parte 2. Para a execução autorizada da parte 3,
+também foi aplicada ao banco local da aplicação.
 
 `DatabaseVisualGenerationRunner` liga o pedido ao preparo/normalização de fontes,
 guarda concreta, reserva, claim única, adapter OpenAI, acabamento, storage privado
@@ -247,6 +249,7 @@ nem precisa receber o pool correlator. O worker usa pools owner e correlator
 restritos e registra workflow/activity visual apenas com a execução habilitada.
 Os testes usam o adapter real com transporte HTTP simulado, PostgreSQL e Temporal
 locais; storage/interpretação externos são simulados. Não houve chamada paga.
+Essa é a validação da parte 2; a chamada controlada posterior está registrada abaixo.
 
 A ativação exige desenvolvimento/teste e, com prefixo `MEU_BRACO_DIREITO_`,
 `VISUAL_AI_MODE=openai`, `VISUAL_AI_EXECUTION_ENABLED=true`,
@@ -290,14 +293,47 @@ sem resolver as inversões atuais. Não há rede enquanto se mantém row lock.
 Propostas anteriores de grants e retirada de consentimento por modalidade ficam
 como histórico técnico, sem tornar novos controles de IA requisito do produto.
 
+## BL04.2 — parte 3: primeira imagem real pelo produto concluída
+
+O proprietário autorizou Café do Cedro com foto CC0 e logo, uma imagem e teto
+total de **US$ 1**, sem publicação. A execução concluiu um feed `visual_ai`
+1024×1280 com `gpt-image-2.5-flare-2026-09-08`, qualidade medium, Jev real,
+guarda/claim/ledger, Temporal/worker e acabamento determinístico do kit/logo.
+O JPEG foi obtido pela API autenticada e S3 privado; run `finished`, prévia
+`completed`, candidata com decisão pendente e publicação nula. Evidência no
+[relatório de 29/10](../evals/bl042-first-product-image-2026-10-29.md).
+
+Foram **uma chamada OpenAI de imagem e duas interpretações Jev**, com estimativa
+de uso de **US$ 0,029701** no conjunto. Não é fatura nem custo por peça aceita:
+a reserva visual de **US$ 0,99** permanece `uncertain`, com custo efetivo
+desconhecido (`actual_usd_micros=NULL`), sem crédito inferido
+da resposta. A primeira interpretação retornou formato nulo e o baseline criou
+story; o wrapper de autorização recusou esse formato antes de delegar ao HTTP,
+com zero chamadas de imagem demonstradas. A reconciliação em zero dessa reserva
+antiga e o término explícito do run preservaram tentativa, marcadores e auditoria.
+Uma nova origem esclareceu foto/feed e legenda sob a mesma autorização; não
+houve edição manual de roteiro, reenvio de imagem incerta ou aprovação/publicação.
+
+A migration 0059 foi aplicada ao banco local para esse percurso. Flags
+persistentes continuam desligadas, sem novos grants ou mudanças no código de
+produção. Ingresso Meta e prova de canal continuaram sintéticos, com entrega de
+candidata simulada: não é prova de WhatsApp completo nem homologação Meta.
+Validação dirigida aprovada: 94 unitários e `make lint types` (151 módulos).
+Owner listou/baixou o hash idêntico com geração desligada e limites zero;
+acesso anônimo retornou 401. Os processos habilitados foram encerrados.
+O último CI completo continua o da parte 2, sem repetição nesta execução.
+Os testes C08/C09 permanecem a
+evidência das suas demais condições; esta única imagem não as demonstra novamente.
+
 ## Próxima fatia de desenvolvimento
 
-1. **Parte 3:** primeira chamada real controlada pelo produto com fontes
-   autorizadas, credenciais configuradas e autorização explícita do teto de gasto.
-   A conexão da parte 2 usa HTTP simulado nos testes; configuração não autoriza
-   gasto novo nem reutiliza orçamento de ensaio histórico.
-2. Fechar BL04.3 e depois BL05: qualidade, custo por peça aceita, ajustes
-   automáticos e proposta sem nova mensagem. BL03.3 não bloqueia esta sequência.
+1. **BL04.3:** revisar o feed e completar post/story pelo produto com titular e
+   fontes autorizadas; medir fidelidade, legibilidade, texto literal, rejeições,
+   refações e custo por peça aceita. Uma chamada bem-sucedida não encerra esse gate.
+2. **BL05:** WhatsApp como jornada principal de prévia, ajuste, aprovação e
+   publicação simulada, incluindo proatividade sem nova mensagem. BL03.3 não
+   bloqueia esta sequência. Novas chamadas precisam de autorização de gasto;
+   a execução delimitada da parte 3 não habilita uso recorrente.
 
 C10, recuperação automática fora do redispatch, limpeza física de PUT incerto e
 suporte operacional seguem como evoluções próprias, com exceções bloqueadas até
@@ -328,6 +364,13 @@ cenários, sem substituir os gates de qualidade e aceite.
 
 ## Evidência datada e histórico
 
+- Parte 3, primeira imagem: uma chamada real de imagem, duas Jev e JPEG privado
+  pelo fluxo do produto, sem aprovação/publicação e com reserva de custo incerta.
+  Meta de entrada/canal e entrega de candidata permaneceram simuladas. Estimativa
+  total US$ 0,029701, sem fatura ou gate de qualidade comercial. Validação dirigida
+  aprovada: 94 unitários, lint/types (151 módulos) e leitura/hash com geração
+  desligada; CI completo da parte 2 não repetido.
+  [Evidência](../evals/bl042-first-product-image-2026-10-29.md).
 - Parte 2, conexão completa: `make ci` aprovado com **1.914 testes**,
   **100% de linhas e branches** (9.394 statements, 2.582 branches), Ruff/formatação
   e mypy (151 módulos). Web: **375 testes**, **100% nas quatro métricas**,

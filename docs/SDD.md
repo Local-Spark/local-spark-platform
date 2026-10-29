@@ -210,18 +210,24 @@ Retirada de consentimento por fornecedor permanece somente como compatibilidade
 legada para negócios sem o
 contrato; não é um novo fluxo de produto a desenvolver para quem aceitou C01.
 
-### Integração visual conectada; chamada paga pendente
+### Integração visual conectada e primeira chamada controlada concluída
 
 Persistência/API aceitam `local`, `visual_fake` e `visual_ai`. A migration 0059
 exige fingerprint para ambos os modos visuais e recusa downgrade que perderia
 uma identidade `visual_ai`; não relabela simulações existentes nem acrescenta
-grants. Nesta entrega foi aplicada somente ao banco `_test`.
+grants. Foi validada no `_test` na parte 2 e aplicada ao banco local da aplicação
+para a execução autorizada da parte 3.
 
 `visual_ai` liga pedido, dispatcher, `VisualGenerationWorkflow`, activity e
 `DatabaseVisualGenerationRunner` à preparação de fontes, guarda, adapter OpenAI,
 acabamento e commit privado. O percurso é exercitado com PostgreSQL/Temporal
-locais e transporte HTTP simulado do adapter real; não houve chamada paga.
-Os ensaios pagos anteriores continuam isolados, sem autorização para novo gasto.
+locais e transporte HTTP simulado do adapter real na parte 2. A parte 3 concluiu
+uma chamada OpenAI real de feed para Café do Cedro, após autorização de fontes
+CC0/logo e teto total de US$ 1. Jev, workflow/worker, guarda, adapter, acabamento
+e leitura autenticada da prévia privada participaram; entrada/prova de canal Meta
+foram sintéticas e a entrega da candidata foi simulada. Não houve publicação,
+edição manual de roteiro ou homologação WhatsApp/Instagram. Evidência em
+[primeira imagem pelo produto](evals/bl042-first-product-image-2026-10-29.md).
 
 Ativação exige desenvolvimento/teste, `VISUAL_AI_MODE=openai`, flag
 `VISUAL_AI_EXECUTION_ENABLED=true`, chaves não vazias de provedor e criptografia,
@@ -237,8 +243,9 @@ com roles existentes: prova owner renovada, reserva/fence por tenant/agregado,
 claim durável única e commit privado. Roteiro coordena mudanças pendentes em
 transação proposta → visual após finish; writers financeiros usam o comercial.
 Material atribuído não muda de identidade quando o telefone é trocado. A parte 2
-liga a guarda ao modo explícito `visual_ai`; a parte 3 fará a chamada controlada
-após autorização de credenciais/fontes e teto de gasto.
+liga a guarda ao modo explícito `visual_ai`; a parte 3 exercitou essa conexão
+com uma imagem paga autorizada. Flags persistentes seguem desligadas; a execução
+delimitada não autoriza uso recorrente ou novo orçamento.
 Detalhes no [protocolo da guarda](design/BL04-effect-guard.md).
 
 Fontes/aceite/plano e o run são validados na mesma transação owner; a reserva e o
@@ -327,13 +334,13 @@ fornecedor ou torna todo controle uma etapa da interface.
 
 Stripe tem adapter sandbox exercitado; produção/staging pendentes. SMTP/Mailpit
 captura e-mails localmente. Twilio depende de configuração/homologação por
-ambiente. Meta/Instagram reais e primeira execução visual paga pelo produto ainda faltam. AWS/Redis/CDN
+ambiente. Meta/Instagram reais e avaliação comercial da imagem produzida ainda faltam. AWS/Redis/CDN
 não são serviços comerciais ativos só por constarem no desenho.
 
 ## 11. Sequência e condições de liberação
 
-BL01/BL02 e BL03.1/BL03.2 locais → BL04.2 guarda e conexão visual implementadas
-(partes 1/2), chamada controlada pendente (parte 3) → BL04.3 qualidade/custo
+BL01/BL02 e BL03.1/BL03.2 locais → BL04.2 guarda, conexão e primeira chamada
+controlada concluídas (partes 1/2/3) → BL04.3 qualidade/custo
 → BL05 jornada, ajuste e proatividade → expansão.
 BL03.3 importa cardápio depois; BL06 amplia nichos/CDN depois de provar reaplicação.
 
@@ -370,7 +377,23 @@ Parte 2: `make ci` aprovado com **1.914 testes**, **100% de linhas e branches**
 novos cobrem modo/API, wiring Temporal, adapter real com HTTP simulado,
 versão/hash, orçamento e resultado incerto sem nova submissão. Web: **375 testes**,
 **100% nas quatro métricas**, build/formatação e **quatro jornadas Chromium** na
-árvore final. Nenhuma chamada paga, novo grant ou migração do banco da aplicação.
+árvore final. Não houve chamada paga, novo grant ou migração do banco da aplicação
+na parte 2.
+
+Parte 3: uma imagem de feed `visual_ai` concluída e run `finished`, JPEG privado
+obtido pela API/S3, candidata pendente e publicação nula. Estimativa de uso total
+de **US$ 0,029701** (uma imagem e duas interpretações Jev); não é fatura e a
+reserva visual de **US$ 0,99** conserva custo incerto. A tentativa anterior foi
+interrompida no wrapper antes do HTTP de imagem, com zero submissões demonstradas;
+reconciliação explícita em zero preservou tentativa, marcadores e auditoria.
+Nova origem com formato esclarecido produziu o feed sob a mesma autorização,
+sem reenvio de imagem incerta. `make lint types` e **94 testes unitários dirigidos**
+aprovados, mypy em 151 módulos; código de produção inalterado, sem novos grants.
+O último `make ci` é o da parte 2, não repetido nesta execução. Consulta/download
+owner mantiveram o hash com modo `disabled`, flag desligada e limites zero;
+acesso anônimo retornou 401 e os processos habilitados foram encerrados.
+Essa peça não revalida nem substitui os testes C08/C09
+ou o gate BL04.3 de post/story, revisão de titular e custo por peça aceita.
 
 Em cada entrega, atualizar PROJECT, SDD, fase e CHANGELOG. Decisões novas entram
 em DECISIONS; distinguir decisão aceita, código implementado e homologação.

@@ -18,7 +18,8 @@ peça nova.
 - F04/F06: prévias estáticas/vídeo locais e candidata/aprovação/publicação
   **simuladas**. F03 congela kit; BL04 recupera acervo no worker experimental e
   aplica kit à simulação. `visual_ai` já liga o fluxo ao adapter real, com
-  validação por HTTP simulado; primeira chamada paga pelo produto pendente.
+  validação por HTTP simulado e uma imagem real de feed concluída na parte 3,
+  sob fontes/teto autorizados e sem publicação. Meta/canal continuaram sintéticos.
 - BL01: um kit fictício de cafeteria e simuladores públicos/cliente locais.
   Ver a vitrine não é escolher ou editar o kit.
 - BL02: seleção e edição guiada do kit na área autenticada, logo privado,
@@ -36,9 +37,15 @@ guarda concreta de fontes, aceite, acesso, reserva/claim e resultado privado,
 incluindo roteiro/cobrança e troca de telefone, com roles existentes e mocks.
 A **parte 2** conecta `visual_ai` na persistência/API ao dispatcher, workflow,
 worker, runner e adapter, com transporte HTTP simulado nos testes de PostgreSQL/
-Temporal. A validação final foi aprovada. A próxima fatia é a **parte 3**:
-primeira chamada real controlada pelo produto, com credenciais/fontes e teto de
-gasto explicitamente autorizados. A execução continua desligada por padrão.
+Temporal. A validação final da parte 2 foi aprovada. A **parte 3** concluiu uma
+imagem real de feed para Café do Cedro, com Jev real, teto total autorizado de
+US$ 1 e sem aprovação/publicação. Estimativa total US$ 0,029701; reserva visual
+incerta, sem fatura. A execução continua desligada por padrão e a autorização
+não é recorrente. [Evidência](../evals/bl042-first-product-image-2026-10-29.md).
+A próxima fatia é **BL04.3**, revisar feed e completar post/story com titular,
+medindo fidelidade e custo por peça aceita; depois BL05 fecha WhatsApp como
+jornada principal e proatividade. Parte 3 validada com 94 unitários, lint/types
+e leitura/hash com geração desligada; último CI completo permanece o da parte 2.
 
 A admissão `visual_fake` e `visual_ai` revalida fontes, aceite e plano sob locks; depois de
 admitida, a criação conclui e permite revisão privada após vencimento financeiro.

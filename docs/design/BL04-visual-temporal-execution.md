@@ -1,10 +1,12 @@
 # BL04.2 — execução Temporal da prévia visual
 
-Atualizado em **29/10/2026**. **Parte 2 conectada**, com validação final em
-andamento: `visual_ai` tem persistência/API próprias e usa dispatcher, workflow,
-activity e runner ligados à guarda concreta e ao adapter OpenAI. Os testes usam
-PostgreSQL/Temporal locais, fontes sintéticas e transporte HTTP simulado; não
-houve chamada paga. O caminho `StaticPreviewWorkflow` conserva seus contratos e
+Atualizado em **29/10/2026**. **Partes 2/3 conectadas e exercitadas**: `visual_ai`
+tem persistência/API próprias e usa dispatcher, workflow, activity e runner
+ligados à guarda concreta e ao adapter OpenAI. CI da parte 2 usa HTTP simulado;
+a parte 3 concluiu uma imagem real de feed com teto/fontes autorizados, sem
+publicação. Validação dirigida aprovada: 94 unitários, lint/types e leitura/hash
+com execução desligada; CI completo da parte 2 não repetido.
+O caminho `StaticPreviewWorkflow` conserva seus contratos e
 IDs históricos. Produto e próxima entrega em [BL04](../phases/BL04-context-and-ai-production.md).
 
 ## Percurso conectado
@@ -12,7 +14,7 @@ IDs históricos. Produto e próxima entrega em [BL04](../phases/BL04-context-and
 1. A API owner persiste a prévia `visual_ai`, a operação, tenant/negócio/ator,
    proposta, candidata e fingerprint das fontes. A migration 0059 diferencia
    esse modo de `local` e `visual_fake`; não altera grants nem relabela registros.
-   Foi aplicada somente ao banco `_test` nesta entrega.
+   Foi validada no `_test` e aplicada ao banco local da aplicação para a parte 3.
 2. O dispatcher reclama prévia pendente com fence/lease e inicia
    `VisualGenerationWorkflow` com ID estável `visual-preview/<preview>` e
    `REJECT_DUPLICATE`. O worker exige pools owner e correlator restritos e
@@ -76,9 +78,17 @@ substitui a imagem por um placeholder local. API usa apenas owner; worker exige
 seu pool correlator. Resolução automática de item/fontes depende da configuração
 Jev já existente com credencial/teto próprios, sem fallback lexical automático.
 
-A próxima fatia é a **parte 3**, primeira chamada paga controlada pelo produto,
-com fontes e teto de gasto explicitamente autorizados. A conexão implementada
-não autoriza esse gasto. Qualidade/custo por peça aceita é BL04.3; conversão
-JPEG, imagem de teste ou HTTP simulado não comprovam fidelidade comercial.
+A **parte 3** concluiu uma chamada real de imagem para Café do Cedro com foto
+CC0/logo e teto total de US$ 1 autorizados, além de duas interpretações Jev.
+JPEG privado obtido pela API/S3; run terminado, candidata pendente e publicação
+nula. Reserva visual permanece incerta: uso estimado não é fatura. A primeira
+tentativa foi barrada pelo wrapper antes do HTTP de imagem e reconciliada com
+prova de zero submissões, sem reenvio de efeito incerto. Entrada/canal Meta e
+entrega de candidata foram simuladas. [Evidência](../evals/bl042-first-product-image-2026-10-29.md).
+
+A próxima fatia é **BL04.3**, revisão de feed/post/story e custo por peça aceita,
+seguida de BL05, WhatsApp como jornada principal e proatividade. Flags persistentes
+seguem desligadas; essa autorização não é recorrente. A chamada isolada não
+comprova fidelidade comercial, fatura ou margem.
 
 Versão anterior integral: [snapshot de 28/10/2026](../history/2026-10-28-pre-documentation-reconciliation/design/BL04-visual-temporal-execution.md).

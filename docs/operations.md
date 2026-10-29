@@ -1,11 +1,13 @@
 # Operação e deploy
 
-Revisado em **29/10/2026**, com a conexão visual da parte 2 e o adiamento do suporte C10. Decisões de produto em
+Revisado em **29/10/2026**, após a primeira imagem real controlada da parte 3 e
+mantendo o adiamento do suporte C10. Decisões de produto em
 [DECISIONS](DECISIONS.md), contratos no [SDD](SDD.md) e estado em
 [PROJECT](PROJECT.md). O [texto anterior](history/2026-10-28-pre-documentation-reconciliation/operations.md)
 foi preservado; a cronologia de migrations não substitui este procedimento.
-A migration 0059 foi aplicada somente ao banco dedicado `_test` nesta entrega;
-o banco da aplicação e credenciais de execução paga não foram alterados.
+A migration 0059 foi validada no `_test` e aplicada ao banco local da aplicação
+para a execução autorizada da parte 3. Flags persistentes continuam desligadas;
+nenhum grant novo ou código de produção foi introduzido nessa execução.
 
 ## Ambiente local
 
@@ -26,7 +28,7 @@ habilitadas. Código da 0058 entende `expires_at=NULL` nos materiais; versões
 anteriores podem limpar dados ou falhar ao ler esses valores. O head 0059 admite
 `visual_ai`, exige fingerprint visual e recusa downgrade enquanto houver linhas
 desse modo. Atualizar o código requer migração planejada do ambiente; a aplicação
-local ainda não foi migrada nesta entrega.
+local foi migrada para a chamada controlada da parte 3, sem autorizar gasto recorrente.
 
 ## Contratação e acesso
 
@@ -146,10 +148,27 @@ adapters, modos, chaves e tetos são configuração interna por capacidade.
 Padrões são desligados e limites zero; configuração por si só não homologa uma
 capacidade. Jev é opcional no worker de desenvolvimento/teste. O modo persistido
 `visual_ai` conecta a API ao dispatcher/worker, runner, guarda e adapter OpenAI.
-A parte 2 usa transporte HTTP simulado em PostgreSQL/Temporal locais; não houve
-chamada paga. A primeira execução pelo produto continua na parte 3, com fontes
-e teto de gasto explicitamente autorizados; a autorização histórica de ensaio
-isolado não autoriza esse gasto.
+A parte 2 usa transporte HTTP simulado em PostgreSQL/Temporal locais. A parte 3
+concluiu uma imagem real de feed para Café do Cedro, com Jev e imagem reais,
+fontes CC0/logo e teto total de US$ 1 autorizados. A prévia privada foi lida pela
+API autenticada/S3; candidata pendente, sem aprovação/publicação. Meta de entrada
+e canal foram sintéticos, com entrega de candidata simulada; não é homologação
+de WhatsApp. [Evidência](evals/bl042-first-product-image-2026-10-29.md).
+
+A estimativa por uso foi **US$ 0,029701** (imagem e duas interpretações Jev),
+sem comprovar fatura. A reserva visual de US$ 0,99 continua `uncertain` com
+`actual_usd_micros=NULL`, apesar do run terminado e arquivo concluído. O primeiro
+formato story foi barrado pelo wrapper antes do HTTP de imagem; prova da execução
+única com zero submissões permitiu reconciliar a reserva antiga em zero e encerrar
+o run explicitamente, preservando tentativa/marcadores/auditoria. Uma nova origem
+esclarecida gerou o feed sob a mesma autorização; isso não foi reenvio de uma imagem
+incerta. Não generalizar esse caso para uma falha sem prova de ausência de efeito.
+Validação dirigida aprovada: 94 unitários, `make lint types` e mypy em 151 módulos.
+Com geração `disabled`, flag desligada e limites zero, owner consultou/baixou
+o hash idêntico; acesso anônimo retornou 401. Processos habilitados encerrados.
+O último CI completo é o da parte 2, sem repetição nesta execução operacional.
+Novas chamadas exigem autorização própria; flags persistentes continuam desligadas
+e a autorização não é recorrente.
 
 O opt-in exige desenvolvimento/teste e as variáveis abaixo com o prefixo
 `MEU_BRACO_DIREITO_`. Não registrar os valores das chaves nos relatórios.
@@ -226,6 +245,8 @@ Antes da 0059/código novo, drenar workers/dispatchers antigos e fila admitida;
 não entregar `visual_ai` a um worker antigo. Não converter registros `visual_fake`
 em reais nem remover `visual_ai` para permitir downgrade. A ativação do fluxo e
 a chamada paga exigem seu próprio planejamento/autorização, além da migração.
+Esse procedimento foi aplicado à execução local delimitada da parte 3; não é
+liberação de staging/produção nem homologação de operação contínua.
 
 Backup só de PostgreSQL não inclui objetos, estado Temporal, ACLs ou propriedade
 validada. Restore deve considerar banco, mídia, execução e ledger para não
