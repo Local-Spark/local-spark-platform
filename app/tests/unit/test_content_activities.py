@@ -182,13 +182,25 @@ async def test_openai_visual_mode_fails_closed_without_creating_a_local_preview(
 
 
 @pytest.mark.parametrize(
-    "mode,briefing,expected", [("disabled", True, "local"), ("fake", False, "local"), ("fake", True, "visual_fake")]
+    "mode,briefing,expected",
+    [
+        ("disabled", True, "local"),
+        ("fake", False, "local"),
+        ("fake", True, "visual_fake"),
+        ("openai", True, "visual_ai"),
+        ("openai", False, "visual_ai"),
+    ],
 )
 async def test_explicit_local_and_fake_modes_keep_their_existing_preview_behavior(
     settings, monkeypatch, mode, briefing, expected
 ):
     adapter, worker, _ = activities(settings)
-    adapter.settings = adapter.settings.model_copy(update={"visual_ai_mode": mode})
+    adapter.settings = adapter.settings.model_copy(
+        update={
+            "visual_ai_mode": mode,
+            "visual_ai_execution_enabled": mode == "openai",
+        }
+    )
     worker.session.row = {
         "tenant_id": uuid4(),
         "business_id": uuid4(),

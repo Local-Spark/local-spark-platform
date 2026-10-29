@@ -54,8 +54,8 @@ def _digest(value: object) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True, default=str, ensure_ascii=False).encode()).hexdigest()
 
 
-def _visual_render_key(fingerprint: str, operation: UUID, candidate: bool) -> str:
-    return _digest({"fingerprint": fingerprint, "operation": operation, "candidate": candidate, "mode": "visual_fake"})
+def _visual_render_key(fingerprint: str, operation: UUID, candidate: bool, mode: str = "visual_fake") -> str:
+    return _digest({"fingerprint": fingerprint, "operation": operation, "candidate": candidate, "mode": mode})
 
 
 class MediaPreviewService:
@@ -244,7 +244,7 @@ class MediaPreviewService:
     async def _request(
         self, tenant: UUID, business: UUID, actor: UUID, payload: PreviewRequest, *, candidate: bool
     ) -> PreviewRead:
-        if payload.generation_mode == "visual_fake":
+        if payload.generation_mode in {"visual_fake", "visual_ai"}:
             return await self._request_visual_fake(tenant, business, actor, payload, candidate=candidate)
         request_hash = _digest(
             {"proposal_id": payload.proposal_id}
@@ -406,12 +406,17 @@ class MediaPreviewService:
     async def _request_visual_fake(
         self, tenant: UUID, business: UUID, actor: UUID, payload: PreviewRequest, *, candidate: bool
     ) -> PreviewRead:
-        """Explicitly simulated preview: no external visual provider is called."""
+        """Queue a source-bound visual preview; provider IO belongs to its worker."""
         from app.services.visual_consent_gate import VisualConsentGate
         from app.services.visual_context import VisualContextService
         from app.services.visual_pending_changes import VisualPendingChanges
 
-        if self.settings.environment not in {"development", "testing"} or self.settings.visual_ai_mode != "fake":
+        mode = payload.generation_mode
+        if mode == "visual_ai":
+            from app.services.visual_execution import require_visual_execution
+
+            require_visual_execution(self.settings)
+        elif self.settings.environment not in {"development", "testing"} or self.settings.visual_ai_mode != "fake":
             raise AuthError("VISUAL_FAKE_DISABLED", 409)
         from app.services.service_agreement import service_agreement_allowed
 
@@ -429,8 +434,8 @@ class MediaPreviewService:
         context = await VisualContextService(self.settings, self.owner_database).capture(
             tenant, business, actor, payload.proposal_id, candidate=candidate
         )
-        render_key = _visual_render_key(context.fingerprint, payload.operation_id, candidate)
-        request_hash = _digest({"proposal": payload.proposal_id, "mode": "visual_fake", "candidate": candidate})
+        render_key = _visual_render_key(context.fingerprint, payload.operation_id, candidate, mode)
+        request_hash = _digest({"proposal": payload.proposal_id, "mode": mode, "candidate": candidate})
         async with self.database.transaction(tenant, actor) as session:
             await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
             # Keep explicit authorization and serialize acceptance with withdrawal.
@@ -481,7 +486,7 @@ class MediaPreviewService:
                template_version,context_version,script_version,source_asset_id,fact_ids,expires_at,mime_type,
                parent_preview_id,emphasis,revision,candidate,generation_mode,visual_fingerprint)
               VALUES(:id,:tenant,:business,:proposal,:actor,:operation,:hash,:key,1,:version,:script,
-                :source,'[]'::jsonb,:expires,'image/jpeg',NULL,'balanced',1,:candidate,'visual_fake',:fingerprint)
+                :source,'[]'::jsonb,:expires,'image/jpeg',NULL,'balanced',1,:candidate,:mode,:fingerprint)
               ON CONFLICT DO NOTHING RETURNING *"""),
                         {
                             "id": uuid4(),
@@ -497,6 +502,7 @@ class MediaPreviewService:
                             "source": context.source_asset_id,
                             "expires": proposal["expires_at"],
                             "candidate": candidate,
+                            "mode": mode,
                             "fingerprint": context.fingerprint,
                         },
                     )
@@ -537,11 +543,12 @@ class MediaPreviewService:
                             AND (p.state='completed' OR (e.script_version=p.script_version
                             AND ((p.candidate AND e.review_state IS NULL)
                               OR (NOT p.candidate AND e.review_state='accepted')))))
-                          AND (p.state='completed' OR p.generation_mode='visual_fake'
+                          AND (p.state='completed' OR p.generation_mode IN ('visual_fake','visual_ai')
                             OR EXISTS(SELECT 1 FROM business_context_heads h
                             WHERE h.tenant_id=p.tenant_id AND h.business_id=p.business_id
                               AND h.version=p.context_version))
-                          AND (p.generation_mode<>'visual_fake' OR p.state NOT IN ('pending','rendering')
+                          AND (p.generation_mode NOT IN ('visual_fake','visual_ai')
+                            OR p.state NOT IN ('pending','rendering')
                             OR NOT EXISTS(SELECT 1 FROM visual_consent_gates g WHERE g.tenant_id=p.tenant_id
                               AND g.business_id=p.business_id AND g.state<>'active')
                             OR EXISTS(SELECT 1 FROM visual_consent_runs r WHERE r.tenant_id=p.tenant_id
@@ -561,7 +568,7 @@ class MediaPreviewService:
         visible = []
         for row in rows:
             created_before_change = False
-            if row["generation_mode"] == "visual_fake":
+            if row["generation_mode"] in {"visual_fake", "visual_ai"}:
                 try:
                     created_before_change = await self._validate_visual(row, actor, view_only=True)
                 except AuthError:
@@ -572,7 +579,9 @@ class MediaPreviewService:
     async def _validate_visual(self, row: Any, actor: UUID, *, view_only: bool = False) -> bool:
         from app.services.visual_context import VisualContextService
 
-        if row["generation_mode"] != "visual_fake" or self.settings.visual_ai_mode != "fake":
+        if row["generation_mode"] not in {"visual_fake", "visual_ai"}:
+            raise AuthError("VISUAL_FAKE_DISABLED", 409)
+        if not view_only and row["generation_mode"] == "visual_fake" and self.settings.visual_ai_mode != "fake":
             raise AuthError("VISUAL_FAKE_DISABLED", 409)
         try:
             current = await VisualContextService(self.settings, self.owner_database).capture(
@@ -610,6 +619,7 @@ class MediaPreviewService:
                 "VISUAL_CONTEXT_CHANGED",
                 "PREVIEW_SCRIPT_EXPIRED",
                 "PREVIEW_SCRIPT_NOT_ACCEPTED",
+                "VISUAL_AI_DISABLED",
             }:
                 raise
         if not view_only or row["state"] != "completed" or not row["sha256"] or not row["object_key"]:
@@ -734,7 +744,7 @@ class MediaPreviewService:
                 raise AuthError("PREVIEW_NOT_READY", 404)
             if review and row["generation_mode"] == "local":
                 return str(row["object_key"])
-            if row["generation_mode"] == "visual_fake":
+            if row["generation_mode"] in {"visual_fake", "visual_ai"}:
                 try:
                     await self._validate_visual(row, actor, view_only=review)
                 except AuthError as exc:
@@ -799,6 +809,10 @@ class MediaPreviewService:
             )
         if mode == "visual_fake":
             return await self._render_visual_fake(preview_id, fence)
+        if mode == "visual_ai":
+            # A legacy workflow must never replace an AI request with a local
+            # render. Only the separately registered guarded runner owns it.
+            return "skipped"
         return await self._render_local(preview_id, fence)
 
     async def _render_visual_fake(self, preview_id: UUID, fence: int) -> str:

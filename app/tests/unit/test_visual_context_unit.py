@@ -220,6 +220,15 @@ async def test_candidate_and_configuration_guards(setup_case):
         await c.service.capture(*c.ids[:4])
 
 
+async def test_completed_visual_review_can_validate_sources_after_execution_is_disabled(setup_case):
+    c = setup_case
+    c.service.settings = c.cfg.model_copy(update={"visual_ai_mode": "disabled"})
+    result = await c.service.capture(*c.ids[:4], completed_preview_id=uuid4())
+    assert result.format == "photo"
+    assert len(result.fingerprint) == 64
+    c.owner.assert_awaited_once()
+
+
 async def test_capture_includes_current_authorized_logo_hash(setup_case):
     c = setup_case
     c.session.proposal["brand_kit_document"]["overrides"]["logo_asset_id"] = str(uuid4())

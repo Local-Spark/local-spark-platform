@@ -123,7 +123,27 @@ async def test_missing_or_ineligible_preview_cannot_become_abort_proof(settings,
     context.audit.assert_not_awaited()
     assert context.worker_session.execute.await_count == 1
     query = str(context.worker_session.execute.await_args.args[0])
-    assert "generation_mode='visual_fake' FOR UPDATE" in query
+    assert "generation_mode=:generation_mode FOR UPDATE" in query
+    assert context.worker_session.execute.await_args.args[1]["generation_mode"] == "visual_fake"
+
+
+@pytest.mark.parametrize("ready", [False, True])
+async def test_provider_mode_requires_readiness_and_binds_its_distinct_persisted_mode(settings, monkeypatch, ready):
+    context = _setup(settings, monkeypatch)
+    context.service.generation_mode = "visual_ai"
+    require = MagicMock(side_effect=None if ready else AuthError("VISUAL_EXECUTION_DISABLED", 409))
+    monkeypatch.setattr(recovery, "require_visual_execution", require)
+    assert await context.service.recover(*context.ids) is ready
+    require.assert_called_once_with(context.service.settings)
+    if ready:
+        query, params = context.worker_session.execute.await_args_list[0].args
+        assert "generation_mode=:generation_mode FOR UPDATE" in str(query)
+        assert params["generation_mode"] == "visual_ai"
+        context.gate.finish.assert_awaited_once()
+    else:
+        context.owner.transaction.assert_not_called()
+        context.worker.transaction.assert_not_called()
+        context.gate.finish.assert_not_awaited()
 
 
 async def test_live_or_older_fence_remains_blocking(settings, monkeypatch):

@@ -79,7 +79,10 @@ async def test_admission_and_withdrawal_cannot_both_win(admin, database, seeded)
         assert await session.scalar(text("SELECT count(*) FROM visual_consent_runs")) == 0
 
 
-async def test_only_successful_admitted_preview_completed_during_withdrawal_remains_visible(admin, database, seeded):
+@pytest.mark.parametrize("generation_mode", ["visual_fake", "visual_ai"])
+async def test_only_successful_admitted_preview_completed_during_withdrawal_remains_visible(
+    admin, database, seeded, generation_mode
+):
     tenant, actor = seeded["t1"], seeded["a1"]
     business = await _business(admin, seeded)
     service = VisualConsentGate(database)
@@ -88,9 +91,9 @@ async def test_only_successful_admitted_preview_completed_during_withdrawal_rema
     second = await create_preview(admin, tenant, business, actor)
     async with admin.begin() as conn:
         await conn.execute(
-            text("""UPDATE media_previews SET generation_mode='visual_fake',
+            text("""UPDATE media_previews SET generation_mode=:generation_mode,
           visual_fingerprint=:fingerprint WHERE id IN (:first,:second)"""),
-            {"first": first, "second": second, "fingerprint": "b" * 64},
+            {"first": first, "second": second, "fingerprint": "b" * 64, "generation_mode": generation_mode},
         )
     first_operation, second_operation = uuid4(), uuid4()
     assert await service.admit(tenant, business, actor, first, first_operation, 1)
@@ -100,8 +103,8 @@ async def test_only_successful_admitted_preview_completed_during_withdrawal_rema
     async with admin.begin() as conn:
         await conn.execute(
             text("""UPDATE media_previews SET state='completed',sha256=:sha,object_key='previews/test.jpg',
-          generation_mode='visual_fake',visual_fingerprint=:fingerprint WHERE id=:id"""),
-            {"id": first, "sha": "a" * 64, "fingerprint": "b" * 64},
+          generation_mode=:generation_mode,visual_fingerprint=:fingerprint WHERE id=:id"""),
+            {"id": first, "sha": "a" * 64, "fingerprint": "b" * 64, "generation_mode": generation_mode},
         )
     assert (
         await service.finish(tenant, business, actor, first_operation, 1, preview_completed=True)

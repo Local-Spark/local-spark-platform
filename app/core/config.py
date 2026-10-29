@@ -69,6 +69,8 @@ class Settings(BaseSettings):
     # The reviewed Jev price may be raised conservatively, never understated.
     intent_ai_input_rate_usd_micros: int = Field(default=42_000, ge=42_000)
     visual_ai_mode: Literal["disabled", "fake", "openai"] = "disabled"
+    visual_ai_execution_enabled: bool = False
+    visual_ai_reservation_usd_micros: int = Field(default=0, ge=0, le=1_000_000_000_000)
     visual_ai_monthly_budget_usd_micros: int = Field(default=0, ge=0, le=1_000_000_000_000)
     visual_ai_global_monthly_budget_usd_micros: int = Field(default=0, ge=0, le=1_000_000_000_000)
     jwt_secret: SecretStr = Field(min_length=32)
@@ -216,6 +218,11 @@ class Settings(BaseSettings):
                 or self.visual_ai_monthly_budget_usd_micros <= 0
             ):
                 raise ValueError("Visual AI requires explicit credentials and a monthly budget")
+        if self.visual_ai_execution_enabled and not self.visual_execution_ready():
+            raise ValueError(
+                "Visual execution requires development/testing, OpenAI credentials, encryption, "
+                "service agreement and explicit per-attempt, tenant and aggregate budgets"
+            )
         if self.editorial_creative_experimental and self.environment not in {"development", "testing"}:
             raise ValueError("Experimental editorial copy is restricted to development and testing")
         if self.intent_ai_mode == "jev":
@@ -230,6 +237,22 @@ class Settings(BaseSettings):
         if not self.editorial_ai_model or len(self.editorial_ai_model) > 80:
             raise ValueError("Invalid editorial model")
         return self
+
+    def visual_execution_ready(self) -> bool:
+        """One technical configuration rule for API, dispatch and worker wiring."""
+        return bool(
+            self.visual_ai_execution_enabled
+            and self.environment in {"development", "testing"}
+            and self.visual_ai_mode == "openai"
+            and self.openai_api_key
+            and self.openai_api_key.get_secret_value().strip()
+            and self.meta_encryption_key
+            and self.meta_encryption_key.get_secret_value().strip()
+            and self.service_agreement_required
+            and 0
+            < self.visual_ai_reservation_usd_micros
+            <= min(self.visual_ai_monthly_budget_usd_micros, self.visual_ai_global_monthly_budget_usd_micros)
+        )
 
 
 @lru_cache

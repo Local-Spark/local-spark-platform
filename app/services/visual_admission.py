@@ -1,8 +1,8 @@
-"""Owner-side admission checks for simulated visual work, before its durable run.
+"""Owner-side admission checks for visual work, before its durable run.
 
 The reservation remains a separate restricted-worker transaction. A committed
 run blocks re-admission if that second transaction or its acknowledgement fails;
-these checks do not authorize a real external provider.
+these checks alone do not authorize an external provider effect.
 """
 
 from dataclasses import dataclass

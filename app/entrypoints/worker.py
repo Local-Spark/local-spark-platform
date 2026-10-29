@@ -12,6 +12,7 @@ from app.db.session import Database
 from app.services.audio_transcription import AudioTranscriptionService
 from app.services.editorial_proposals import EditorialProposalService
 from app.services.media_previews import MediaPreviewService
+from app.services.visual_generation_runner import DatabaseVisualGenerationRunner
 from app.services.whatsapp_processing import MaterialProcessor
 from app.workflows.activities import FoundationActivities
 from app.workflows.content_activities import ContentCandidateActivities
@@ -22,6 +23,8 @@ from app.workflows.editorial_proposal import EditorialProposalWorkflow
 from app.workflows.foundation import BrandKitChangedWorkflow, BusinessCreatedWorkflow
 from app.workflows.media_activities import MediaPreviewActivities
 from app.workflows.media_preview import StaticPreviewWorkflow
+from app.workflows.visual_generation import VisualGenerationWorkflow
+from app.workflows.visual_generation_activities import VisualGenerationActivities
 from app.workflows.whatsapp_activities import WhatsAppMaterialActivities
 from app.workflows.whatsapp_material import WhatsAppMaterialWorkflow
 
@@ -41,6 +44,8 @@ async def run_worker() -> None:
     database = Database(settings)
     material_database = Database(settings, correlator=True) if settings.correlator_database_url else None
     try:
+        if settings.visual_ai_execution_enabled and material_database is None:
+            raise RuntimeError("VISUAL_WORKER_DATABASE_REQUIRED")
         client = await connect_temporal(settings)
         material_activities = (
             WhatsAppMaterialActivities(
@@ -71,6 +76,11 @@ async def run_worker() -> None:
             if material_database and settings.meta_encryption_key
             else None
         )
+        visual_activities = (
+            VisualGenerationActivities(DatabaseVisualGenerationRunner(settings, database, material_database))
+            if material_database and settings.visual_ai_execution_enabled
+            else None
+        )
         worker = Worker(
             client,
             task_queue=settings.temporal_task_queue,
@@ -78,6 +88,7 @@ async def run_worker() -> None:
             + ([WhatsAppMaterialWorkflow] if material_activities else [])
             + ([EditorialProposalWorkflow] if editorial_activities else [])
             + ([StaticPreviewWorkflow] if media_activities else [])
+            + ([VisualGenerationWorkflow] if visual_activities else [])
             + ([ContentCandidateWorkflow, FakeContentPublicationWorkflow] if content_activities else []),
             activities=[
                 FoundationActivities(database).record_business_created,
@@ -94,6 +105,7 @@ async def run_worker() -> None:
             )
             + ([editorial_activities.generate_editorial_proposal] if editorial_activities else [])
             + ([media_activities.render_static_preview] if media_activities else [])
+            + ([visual_activities.run_visual_generation] if visual_activities else [])
             + (
                 [
                     content_activities.request_candidate_proposal,

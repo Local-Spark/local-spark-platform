@@ -1,7 +1,7 @@
 # Decisões vigentes e pendências
 
-Atualizado em **29/10/2026**, incluindo o adiamento da recuperação de suporte C10
-confirmado pelo proprietário.
+Atualizado em **29/10/2026**, incluindo a implementação da conexão visual da
+parte 2 e o adiamento da recuperação de suporte C10 confirmado pelo proprietário.
 Este registro reúne decisões de produto; implementação e contratos técnicos
 ficam no [PROJECT](PROJECT.md), no [SDD](SDD.md) e nos [SDDs de fase](phases/README.md).
 Uma decisão aprovada ainda não implementada deve aparecer com esse estado em
@@ -35,14 +35,14 @@ não afirmar que documentação, flag ou migration isoladas já a resolveram.
 
 | ID | Decisão de produto | Implementação local e limite |
 | --- | --- | --- |
-| C01 | IA para interpretação, texto, imagem e transcrição integra o serviço. Um único aceite explícito por negócio em Plano e acesso, antes do checkout; contas existentes aceitam a versão uma vez. | GET/POST versionado com hash, ator, data e auditoria; web sem permissões por fornecedor. Credenciais, orçamento e plano continuam internos. Registros antigos não são reescritos; geração visual real segue pendente. |
+| C01 | IA para interpretação, texto, imagem e transcrição integra o serviço. Um único aceite explícito por negócio em Plano e acesso, antes do checkout; contas existentes aceitam a versão uma vez. | GET/POST versionado com hash, ator, data e auditoria; web sem permissões por fornecedor. `visual_ai` conectado exige enforcement do aceite; credenciais, orçamento e plano continuam internos. Registros antigos não são reescritos; primeira chamada paga pelo produto segue pendente. |
 | C02 | Cada negócio tem conta de cliente e organização próprias, com cobrança e aceite próprios. | Onboarding cria organização/negócio; API e migration 0057 garantem no máximo um negócio por organização. Cobrança continua por organização. Memberships/seleção legadas e staff são preservados. |
 | C03 | Um número de cliente WhatsApp ativo por negócio na primeira versão. | Vínculo único local. Múltiplos números e sua experiência ficam para evolução posterior. |
 | C04 | Envios WhatsApp associados ao negócio são preservados sem expiração automática e não oferecem exclusão pelo histórico, para texto, imagem, áudio e vídeo. | Migration 0058 e leitores adaptados; API recusa exclusão. Eventos técnicos não atribuídos e uploads órfãos têm limpeza própria. Preservação não cria automaticamente memória pesquisável ou produto confirmado. |
 | C05 | Trocar de número não interrompe o processamento de materiais já associados. A futura prévia e aprovação seguem para o número ativo novo. | Processamento e entrega simulada adaptados. Envio real de candidata WhatsApp pendente. Mensagens ainda não associadas não ganham origem retroativa por suposição. |
-| C06 | Alterar kit, foto do acervo ou contexto durante uma criação aguarda os processos iniciados; cancela a fila ainda não iniciada e bloqueia novas admissões até aplicar a mudança. | Modo simulado coordena contexto, catálogo, kit, fotos e edição/revisão de roteiro. Guarda concreta e writers financeiros coordenados com roles existentes; conexão real é a parte 2. Novos writers de acesso exigem o mesmo protocolo. |
-| C07 | A prévia anterior à alteração continua disponível para revisão e deve ser identificada como anterior à mudança. | Há provas e campos no fluxo simulado. Preservar para revisão não confirma fatos vencidos, direitos ou aprovação de publicação. |
-| C08 | Se o plano vencer durante uma criação já iniciada, concluir e permitir revisar a prévia privada; bloquear novas criações e publicação até renovar. | Implementado no recorte `visual_fake`: admissão durável com plano vigente e continuidade/revisão após vencimento financeiro. Bloqueio explícito, revogação de patrocínio e perda de identidade/membership continuam distintos. Novos inícios/publicação exigem plano. A exceção de conclusão ainda não cobre o renderer local legado nem o provedor real. |
+| C06 | Alterar kit, foto do acervo ou contexto durante uma criação aguarda os processos iniciados; cancela a fila ainda não iniciada e bloqueia novas admissões até aplicar a mudança. | `visual_fake` e `visual_ai` coordenam contexto, catálogo, kit, fotos e edição/revisão de roteiro pela mesma guarda, com writers financeiros e roles existentes. Novos writers de acesso exigem o mesmo protocolo. |
+| C07 | A prévia anterior à alteração continua disponível para revisão e deve ser identificada como anterior à mudança. | Provas e campos de revisão estendidos a `visual_ai`. Preservar para revisão não confirma fatos vencidos, direitos ou aprovação de publicação. |
+| C08 | Se o plano vencer durante uma criação já iniciada, concluir e permitir revisar a prévia privada; bloquear novas criações e publicação até renovar. | Implementado em `visual_fake` e `visual_ai`: admissão durável com plano vigente e continuidade/revisão após vencimento financeiro. Bloqueio explícito, revogação de patrocínio e perda de identidade/membership continuam distintos. Novos inícios/publicação exigem plano; renderer local legado conserva seu limite de conclusão. Conexão real validada com HTTP simulado, sem gasto novo. |
 | C09 | Preservar as prévias geradas sem expiração automática enquanto a conta estiver ativa. | Prévias concluídas saem do purge por prazo; propostas, roteiro e snapshots referenciados são conservados e a revisão histórica usa links privados. Tentativas visuais iniciadas sem resultado resolvido também são preservadas. `expires_at` continua delimitando criação/aprovação, sem apagar a concluída. URL assinada e validade factual mantêm prazos próprios. Sem exclusão automática após encerramento nesta etapa. |
 | C10 | Se quem iniciou uma alteração perder acesso, somente a equipe da plataforma pode resolver a pendência, com ação registrada. | Outro owner já não pode substituir nem descartar a pendência do autor original. **Implementação da recuperação staff adiada pelo proprietário em 29/10/2026**, para evolução de gestão de acesso/suporte; não bloqueia o fechamento da fatia simulada validada. Até lá, a pendência excepcional permanece bloqueada. A proposta de novas permissões não foi aprovada; manter autoria, RLS e auditoria existentes. |
 | C11 | Publicação exige aprovação explícita da versão, arquivo/hash, legenda, destino e horário aplicáveis. | Revisão/publicação simuladas locais. Escolher kit, confirmar fato, aceitar o serviço ou permanecer em silêncio não aprova publicação. Meta/Instagram reais pendentes. |
@@ -53,7 +53,7 @@ não afirmar que documentação, flag ou migration isoladas já a resolveram.
 
 | Referência da pergunta | Resolução |
 | --- | --- |
-| P01 — plano vencido durante criação | Respondida pelo proprietário; C08 aplicada no caminho `visual_fake`, com os limites descritos acima. |
+| P01 — plano vencido durante criação | Respondida pelo proprietário; C08 aplicada nos caminhos `visual_fake` e `visual_ai`, com os limites descritos acima. |
 | P02 — prazo das prévias | Respondida pelo proprietário; C09 aplicada às prévias concluídas e sua proveniência. |
 | P04 — autor sem acesso com alteração pendente | Regra C10 confirmada; implementação de suporte adiada em 29/10/2026. |
 
@@ -87,23 +87,25 @@ Contratos comerciais definitivos, homologação Meta, staging e recuperação
 operacional são entregas de prontidão, não prova já obtida nem motivo para
 pedir outra autorização individual de IA ao cliente.
 
-## Próxima entrega após a fatia simulada
+## Próxima entrega após a conexão da parte 2
 
-Conectar modo real/API, dispatcher/worker e runner à guarda concreta da parte 1,
-usando o aceite único C01; testar o percurso com mocks antes da chamada paga
-controlada da parte 3. C10 foi adiada conforme a prioridade acima.
-A admissão simulada
-revalida proposta/fontes/aceite/plano antes do run durável; reserva e fence
-continuam em outra transação/role. A fatia de recuperação de 29/10 acrescenta
-prova de ausência de tentativa/reserva e encerramento da prévia antes de liberar
-o run original, com replay somente da reconciliação. Reservas e resultados incertos
-continuam bloqueantes; não houve nova decisão de produto ou ampliação de roles.
-Só conectar o provedor
-visual após demonstrar concorrência, recuperação, orçamento e ausência de
-submissão duplicada. A entrega anterior de admissão/continuidade passou em `make ci`,
-com 1.642 testes e 100% de linhas e branches; a evidência da fatia de recuperação
-fica no CHANGELOG. Não houve chamada paga ou integração real
-habilitada.
+O modo `visual_ai` já conecta API, dispatcher, workflow/worker, runner e adapter
+à guarda concreta, usando o aceite único C01. O percurso usa HTTP simulado nos
+testes com PostgreSQL e Temporal locais; validação final aprovada. A flag
+de execução permanece desligada por padrão, com reserva zero. A próxima entrega
+é a **parte 3**, primeira chamada paga controlada pelo produto, após autorização
+explícita das fontes, credenciais e teto de gasto. Configuração ou autorização
+histórica de um ensaio isolado não concede novo orçamento.
+
+A admissão revalida proposta/fontes/aceite/plano antes do run durável; reserva e
+fence continuam em outra transação/role. A recuperação exige prova de ausência
+de tentativa/reserva e encerramento da prévia antes de liberar o run original,
+com replay somente da reconciliação. `visual_ai` usa tentativa única e ID Temporal
+estável; confirmação perdida ou resultado incerto não autoriza redispatch ou
+troca automática de provedor. Prévias concluídas ficam revisáveis com a execução
+desligada, conservando identidade, acesso, fontes e prova durável. C10 continua
+adiada. Não houve nova decisão de produto, chamada paga ou ampliação de roles;
+a migration 0059 foi aplicada somente ao banco `_test`.
 
 ## Esclarecimento de jornada — 29/10/2026
 

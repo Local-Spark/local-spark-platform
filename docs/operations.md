@@ -1,10 +1,11 @@
 # Operação e deploy
 
-Revisado em **29/10/2026**, incluindo o adiamento do suporte C10. Decisões de produto em
+Revisado em **29/10/2026**, com a conexão visual da parte 2 e o adiamento do suporte C10. Decisões de produto em
 [DECISIONS](DECISIONS.md), contratos no [SDD](SDD.md) e estado em
 [PROJECT](PROJECT.md). O [texto anterior](history/2026-10-28-pre-documentation-reconciliation/operations.md)
 foi preservado; a cronologia de migrations não substitui este procedimento.
-Não houve operação em serviços, dados, credenciais ou infraestrutura nesta revisão.
+A migration 0059 foi aplicada somente ao banco dedicado `_test` nesta entrega;
+o banco da aplicação e credenciais de execução paga não foram alterados.
 
 ## Ambiente local
 
@@ -22,7 +23,10 @@ necessidade antes de executá-los no ambiente correto.
 API requer o **head Alembic exato**, não apenas a migration que criou uma rota.
 `/health/live` não consulta banco; `/health/ready` verifica schema e conexões
 habilitadas. Código da 0058 entende `expires_at=NULL` nos materiais; versões
-anteriores podem limpar dados ou falhar ao ler esses valores.
+anteriores podem limpar dados ou falhar ao ler esses valores. O head 0059 admite
+`visual_ai`, exige fingerprint visual e recusa downgrade enquanto houver linhas
+desse modo. Atualizar o código requer migração planejada do ambiente; a aplicação
+local ainda não foi migrada nesta entrega.
 
 ## Contratação e acesso
 
@@ -51,9 +55,11 @@ outbox financeira sem consumidor, preservando `billing_audit`; `billing_jobs`
 permanece. Não redirecionar esses eventos para recibos genéricos de CRUD.
 
 Patrocínio é concessão distinta de receita, com início/fim e revogação próprios.
-O comportamento aprovado para plano vencido durante criação (C08) ainda precisa
-ser integrado: hoje há revalidações de plano na conclusão e leitura. Não afirmar
-que o runtime já conserva o acesso de revisão após vencimento.
+Nos caminhos `visual_fake` e `visual_ai`, C08 permite concluir criação admitida
+com plano vigente e revisar a prévia após vencimento financeiro. Novos inícios e
+publicação exigem renovação. Bloqueio explícito, patrocínio revogado e identidade/
+membership perdidos continuam impedimentos distintos; o renderer local legado
+conserva seu limite de conclusão.
 
 ## Identidade, convites e telefone
 
@@ -138,14 +144,50 @@ Permissão sobre o arquivo e expiração da URL são verificações distintas.
 Texto, transcrição, interpretação e imagem usam o mesmo aceite contratual;
 adapters, modos, chaves e tetos são configuração interna por capacidade.
 Padrões são desligados e limites zero; configuração por si só não homologa uma
-capacidade. Jev é opcional no worker de desenvolvimento/teste. A prévia visual
-do produto é `visual_fake`; workflow/orquestrador real permanecem desconectados.
+capacidade. Jev é opcional no worker de desenvolvimento/teste. O modo persistido
+`visual_ai` conecta a API ao dispatcher/worker, runner, guarda e adapter OpenAI.
+A parte 2 usa transporte HTTP simulado em PostgreSQL/Temporal locais; não houve
+chamada paga. A primeira execução pelo produto continua na parte 3, com fontes
+e teto de gasto explicitamente autorizados; a autorização histórica de ensaio
+isolado não autoriza esse gasto.
+
+O opt-in exige desenvolvimento/teste e as variáveis abaixo com o prefixo
+`MEU_BRACO_DIREITO_`. Não registrar os valores das chaves nos relatórios.
+
+| Configuração | Requisito da conexão visual |
+| --- | --- |
+| `VISUAL_AI_MODE` | `openai`; configurar somente o adapter não habilita o fluxo. |
+| `VISUAL_AI_EXECUTION_ENABLED` | `true` explicitamente; padrão `false`. |
+| `VISUAL_AI_RESERVATION_USD_MICROS` | Positiva; padrão zero; não excede nenhum dos dois tetos mensais. |
+| `VISUAL_AI_MONTHLY_BUDGET_USD_MICROS` | Teto positivo por tenant das reservas do ledger. |
+| `VISUAL_AI_GLOBAL_MONTHLY_BUDGET_USD_MICROS` | Teto positivo agregado das reservas OpenAI do fluxo. |
+| `OPENAI_API_KEY` e `META_ENCRYPTION_KEY` | Chaves não vazias, configuradas fora do Git/logs. |
+| `SERVICE_AGREEMENT_REQUIRED` | `true`; cada negócio precisa do aceite único C01 vigente. |
+
+A API de pedido usa somente o pool owner; não ampliar sua capacidade de banco
+para executar imagem. O worker exige `CORRELATOR_DATABASE_URL` próprio/restrito,
+além do pool owner, e registra workflow/activity visual apenas com o opt-in.
+A resolução automática de item/fontes exige `INTENT_AI_MODE=jev`, sua credencial
+e teto diário existentes; não há fallback de seleção automática por palavras.
+O valor reservado é um limite conservador por tentativa, não um preço comercial
+ou comprovação de fatura. A configuração ainda não é homologada para produção.
 
 Não repetir efeito pago após timeout, perda de lease ou confirmação perdida.
 Registrar operação, fence, estado conhecido/incerto e reserva; reconciliação
 precisa provar o que ocorreu. Rede, storage e render ficam fora de row locks;
-workflows determinísticos não fazem IO. A próxima coordenação BL04.2 usa o
-contrato atual e amplia a prova do recorte C08/C09 entregue no modo simulado.
+workflows determinísticos não fazem IO. `visual_ai` usa ID Temporal estável
+`visual-preview/<preview>`, uma tentativa, activity de até dez minutos, espera de
+agendamento de um minuto e lease de 12 minutos. Confirmação de início perdida
+não enfileira outra tentativa; lease vencida marca `VISUAL_OUTCOME_UNCERTAIN` e
+conserva run/hold. Não redispatchar nem trocar provedor automaticamente.
+Recuperação só libera admissão após tornar a prévia terminal e comprovar ausência
+de tentativa/reserva, inclusive não vinculada. Não há varredura automática de todos
+os runs abandonados; a exceção permanece bloqueada sem prova segura. Históricos
+de `StaticPreviewWorkflow` conservam contrato e IDs; o patch
+`visual-preview-wait-v1` amplia a espera das candidatas novas com replay compatível.
+Prévia visual concluída e proveniência continuam revisáveis com execução visual
+desligada, exigindo owner, fonte autorizada e prova durável. A aprovação continua
+exigindo os prazos e verificações atuais.
 A recuperação staff C10 foi adiada pelo proprietário em 29/10 para evolução de
 gestão de acesso/suporte; manter a exceção bloqueada até sua entrega. Não impede
 fechar a fatia simulada validada nem aprova permissões adicionais. Não reintroduzir
@@ -180,6 +222,10 @@ migração e código compatíveis em todos os processos envolvidos. Não executa
 versões mistas que possam apagar materiais duráveis ou ignorar barreiras.
 A 0058 recusa claims/pedidos de exclusão não resolvidos e não recupera objetos
 já apagados. A 0055/quarentena também exige avaliação de efeitos legados.
+Antes da 0059/código novo, drenar workers/dispatchers antigos e fila admitida;
+não entregar `visual_ai` a um worker antigo. Não converter registros `visual_fake`
+em reais nem remover `visual_ai` para permitir downgrade. A ativação do fluxo e
+a chamada paga exigem seu próprio planejamento/autorização, além da migração.
 
 Backup só de PostgreSQL não inclui objetos, estado Temporal, ACLs ou propriedade
 validada. Restore deve considerar banco, mídia, execução e ledger para não

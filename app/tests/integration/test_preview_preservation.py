@@ -20,7 +20,7 @@ from app.tests.integration.test_media_previews import _accepted_case, _attach_so
 pytestmark = pytest.mark.integration
 
 
-@pytest.mark.parametrize("mode", ["local", "visual_fake"])
+@pytest.mark.parametrize("mode", ["local", "visual_fake", "visual_ai"])
 @pytest.mark.parametrize("source_revoked", [False, True])
 async def test_completed_preview_preserves_artifact_and_provenance(admin, seeded, settings, mode, source_revoked):
     tenant, business, actor, _, proposal, document = await _accepted_case(admin, seeded)
@@ -36,7 +36,7 @@ async def test_completed_preview_preserves_artifact_and_provenance(admin, seeded
             await connection.execute(
                 text("""UPDATE media_previews SET state='completed',object_key=:key,sha256=:sha,
                   generation_mode=:mode,
-                  visual_fingerprint=CASE WHEN :mode='visual_fake' THEN CAST(:sha AS char(64)) ELSE NULL END,
+                  visual_fingerprint=CASE WHEN :mode<>'local' THEN CAST(:sha AS char(64)) ELSE NULL END,
                   expires_at=now()-interval '2 days' WHERE id=:id"""),
                 {"key": key, "sha": "b" * 64, "mode": mode, "id": preview.id},
             )
@@ -78,7 +78,8 @@ async def test_completed_preview_preserves_artifact_and_provenance(admin, seeded
         await owner.close()
 
 
-async def test_unresolved_visual_admission_is_not_purged_when_lease_expires(admin, seeded, settings):
+@pytest.mark.parametrize("mode", ["visual_fake", "visual_ai"])
+async def test_unresolved_visual_admission_is_not_purged_when_lease_expires(admin, seeded, settings, mode):
     tenant, business, actor, _, proposal, _ = await _accepted_case(admin, seeded)
     owner, worker = Database(settings), Database(settings, correlator=True)
     try:
@@ -88,9 +89,9 @@ async def test_unresolved_visual_admission_is_not_purged_when_lease_expires(admi
         async with admin.begin() as connection:
             await connection.execute(
                 text("""UPDATE media_previews SET state='rendering',expires_at=now()-interval '2 days',
-                  generation_mode='visual_fake',visual_fingerprint=:sha,attempts=1,
+                  generation_mode=:mode,visual_fingerprint=:sha,attempts=1,
                   dispatch_lease_until=now()-interval '1 second' WHERE id=:id"""),
-                {"id": preview.id, "sha": "d" * 64},
+                {"id": preview.id, "sha": "d" * 64, "mode": mode},
             )
         assert await claim_expired_previews(worker, uuid4()) == []
     finally:
@@ -98,7 +99,7 @@ async def test_unresolved_visual_admission_is_not_purged_when_lease_expires(admi
         await owner.close()
 
 
-@pytest.mark.parametrize("mode", ["local", "visual_fake"])
+@pytest.mark.parametrize("mode", ["local", "visual_fake", "visual_ai"])
 async def test_legacy_purge_claim_with_known_artifact_requires_reconciliation(admin, seeded, settings, mode):
     tenant, business, actor, _, proposal, _ = await _accepted_case(admin, seeded)
     owner, worker = Database(settings), Database(settings, correlator=True)
@@ -112,7 +113,7 @@ async def test_legacy_purge_claim_with_known_artifact_requires_reconciliation(ad
             await connection.execute(
                 text("""UPDATE media_previews SET state='purging',object_key=:key,sha256=:sha,
                   generation_mode=:mode,
-                  visual_fingerprint=CASE WHEN :mode='visual_fake' THEN CAST(:sha AS char(64)) ELSE NULL END,
+                  visual_fingerprint=CASE WHEN :mode<>'local' THEN CAST(:sha AS char(64)) ELSE NULL END,
                   dispatch_owner=:owner,dispatch_lease_until=now()-interval '1 minute',
                   expires_at=now()-interval '2 days' WHERE id=:id"""),
                 {"key": key, "sha": "e" * 64, "mode": mode, "owner": uuid4(), "id": preview.id},

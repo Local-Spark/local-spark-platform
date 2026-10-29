@@ -1,5 +1,57 @@
 # Registro de mudanças
 
+## 2026-10-29 — BL04.2 parte 2: caminho visual completo conectado
+
+- Persistência/API acrescentam `generation_mode=visual_ai`, distinto de `local`
+  e `visual_fake`, com identidade de pedido/fingerprint próprios. A migration
+  0059 conserva os registros existentes, exige fingerprint visual e recusa
+  downgrade com linhas reais; foi aplicada somente ao banco dedicado `_test`.
+  Sem migração do banco da aplicação, novas roles ou grants.
+- `DatabaseVisualGenerationRunner` liga pedido, preparo das fontes, guarda
+  concreta, reserva por tenant/agregado, claim única, adapter OpenAI, acabamento
+  do kit e commit privado por versão/fence/hash. O modo da guarda/claim precisa
+  corresponder à prévia persistida; imagem real não é rotulada como simulação.
+- Opt-in separado de configuração isolada do adapter:
+  `VISUAL_AI_EXECUTION_ENABLED=false` e reserva por tentativa zero por padrão.
+  Habilitar exige desenvolvimento/teste, modo OpenAI, chaves de provedor e
+  criptografia, aceite único C01 e reserva positiva dentro de ambos os tetos
+  mensais. A API usa apenas o pool owner; o worker exige seu pool correlator
+  restrito. Configuração incompleta não aciona placeholder local.
+- Dispatcher inicia workflow visual com ID estável por prévia, rejeição de
+  duplicata e lease de 12 minutos. Activity com prazo de dez minutos, espera de
+  agendamento de um minuto e tentativa única. Confirmação perdida ou lease
+  vencida não autoriza redispatch do efeito; resultado incerto mantém run/hold.
+  Recuperação somente encerra admissão após prova de ausência de tentativa e
+  reserva, inclusive não vinculada, e commit terminal da prévia confirmado.
+- `StaticPreviewWorkflow` conserva IDs/tempos antigos. A espera da candidata é
+  ampliada pelo patch Temporal `visual-preview-wait-v1`, preservando replay.
+  A seleção automática de item/fontes exige Jev com credencial/orçamento
+  existentes; correspondência lexical não substitui a interpretação.
+- C06–C09 e leitores de candidata/consentimento/continuidade/retenção cobrem
+  `visual_ai`. Prévias concluídas, versão/hash e proveniência permanecem para
+  revisão privada mesmo com execução visual desligada, conservando acesso e
+  direitos. Criação admitida conclui após vencimento financeiro; novos inícios
+  e publicação exigem plano. Bloqueio explícito, patrocínio revogado e perda de
+  identidade continuam impedimentos distintos.
+- Web reconhece o modo visual real nos contratos/estados sem tratar simulação
+  como geração de IA; laboratório manual continua ferramenta interna DEV.
+  PROJECT, SDD, DECISIONS, fase ativa, índices, operação e contratos técnicos
+  registram a entrega e deixam a **parte 3** como próxima fatia: primeira chamada
+  paga pelo produto, com fontes/credenciais e teto explicitamente autorizados.
+- Validação: `make ci` aprovado com **1.914 testes**, **100% de linhas e
+  branches** (9.394 statements, 2.582 branches), Ruff/formatação e mypy
+  (151 módulos). Web: **375 testes**, **100% nas quatro métricas**, build/formatação
+  e **quatro jornadas Chromium** na árvore final (conteúdo local/IA, laboratório e
+  aceite). Compose validado sem resolver/imprimir segredos e `git diff --check`
+  aprovado nos dois repositórios. Testes novos percorrem API → dispatcher →
+  Temporal → runner/guarda → adapter real com transporte HTTP simulado →
+  acabamento → revisão privada; PostgreSQL `_test` e Temporal locais,
+  fontes/interpretação/storage simulados. Cobrem modo/versão/hash, orçamento,
+  continuidade/preservação, resultado incerto e ausência de nova submissão.
+  Nenhuma chamada paga nesta entrega. C10, varredura de recuperação e limpeza
+  física de PUT incerto continuam evoluções delimitadas, sem desbloqueio por
+  inferência nem autorização adicional de gasto.
+
 ## 2026-10-29 — BL04.2 parte 1: guarda concreta para a próxima conexão visual
 
 - `DatabaseVisualEffectGuard` e `GuardedVisualSubmissionClaims` implementam

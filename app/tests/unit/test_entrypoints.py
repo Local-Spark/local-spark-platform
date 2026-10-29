@@ -61,6 +61,45 @@ async def test_material_worker_registers_activities_and_closes_both_pools(settin
     assert database.close.await_count == 2
 
 
+async def test_explicit_visual_worker_registers_new_workflow_alongside_legacy(settings, monkeypatch):
+    from app.tests.unit.test_visual_generation_runner import _enabled
+
+    database = AsyncMock()
+    monkeypatch.setattr(worker, "get_settings", lambda: _enabled(settings))
+    monkeypatch.setattr(worker, "Database", lambda *args, **kwargs: database)
+    monkeypatch.setattr(worker, "connect_temporal", AsyncMock())
+    runner = MagicMock()
+    constructor = MagicMock(return_value=runner)
+    monkeypatch.setattr(worker, "DatabaseVisualGenerationRunner", constructor)
+    execution = MagicMock(run=AsyncMock())
+    temporal_worker = MagicMock(return_value=execution)
+    monkeypatch.setattr(worker, "Worker", temporal_worker)
+    await worker.run_worker()
+    constructor.assert_called_once()
+    workflows = temporal_worker.call_args.kwargs["workflows"]
+    assert worker.VisualGenerationWorkflow in workflows and worker.StaticPreviewWorkflow in workflows
+    assert len(workflows) == 8
+    assert any(
+        activity.__name__ == "run_visual_generation" for activity in temporal_worker.call_args.kwargs["activities"]
+    )
+    assert database.close.await_count == 2
+
+
+async def test_visual_worker_without_restricted_pool_fails_before_connecting(settings, monkeypatch):
+    from app.tests.unit.test_visual_generation_runner import _enabled
+
+    database = AsyncMock()
+    configured = _enabled(settings).model_copy(update={"correlator_database_url": None})
+    monkeypatch.setattr(worker, "get_settings", lambda: configured)
+    monkeypatch.setattr(worker, "Database", lambda *args, **kwargs: database)
+    connect = AsyncMock()
+    monkeypatch.setattr(worker, "connect_temporal", connect)
+    with pytest.raises(RuntimeError, match="VISUAL_WORKER_DATABASE_REQUIRED"):
+        await worker.run_worker()
+    database.close.assert_awaited_once()
+    connect.assert_not_awaited()
+
+
 async def test_worker_does_not_register_material_activity_without_cipher_key(settings, monkeypatch):
     database = AsyncMock()
     configured = settings.model_copy(

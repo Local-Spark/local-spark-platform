@@ -1,7 +1,8 @@
-# BL04.2 — guarda concreta antes da integração do provedor
+# BL04.2 — guarda concreta e conexão do provedor
 
-Estado em **29/10/2026**: parte 1 implementada com imagens sintéticas, sem
-habilitar chamadas pagas, modo real persistido ou novos grants. Produto em
+Estado em **29/10/2026**: parte 1 implementa a guarda e a parte 2 conecta o modo
+persistido `visual_ai` ao worker/adapter. Testes usam imagens e HTTP simulados;
+validação final aprovada, sem chamada paga ou novos grants. Produto em
 [DECISIONS](../DECISIONS.md); sequência em
 [BL04](../phases/BL04-context-and-ai-production.md).
 
@@ -12,6 +13,10 @@ habilitar chamadas pagas, modo real persistido ou novos grants. Produto em
 A operação financeira é `uuid5(..., visual-preview:<preview>)`; operação do
 pedido, tenant, negócio, ator, proposta, candidata, fingerprint e fence também
 precisam corresponder à prévia persistida. Header não concede acesso.
+O modo da guarda é explícito: `visual_fake` preserva a simulação existente e
+`visual_ai` exige opt-in, chave/criptografia, aceite único e reserva/tetos
+configurados. As consultas e claims conferem o modo persistido; saída real não
+pode ser armazenada como simulação. O pedido da API não recebe a role correlator.
 
 As sessões owner e correlator têm commits separados. A barreira entre elas é o
 run durável: escritores coordenados aguardam sua conclusão e não mudam as fontes
@@ -88,10 +93,18 @@ admitidas com fingerprints antigos antes de carregar o novo worker. Não mistura
 código antigo/novo na mesma criação. Concluídas antigas continuam revisáveis pela
 prova durável existente, sem reescrever hashes.
 
-**Parte 2:** modo real distinto na persistência/API, dispatcher/worker/runner e
-esta guarda/claims em testes ponta a ponta, preservando históricos Temporal.
-Nesta parte 1 a guarda aceita somente simulação em desenvolvimento/teste; adapter
-real não foi ligado à aplicação.
+**Parte 2 conectada:** `visual_ai` distinto na persistência/API,
+dispatcher/worker/runner e esta guarda/claims em testes com PostgreSQL, Temporal
+e transporte HTTP simulado do adapter real. Migration 0059 aplicada somente ao
+`_test`. Flag de execução desligada e reserva zero por padrão; habilitar exige
+desenvolvimento/teste, modo OpenAI, chaves, C01 e reserva dentro dos tetos por
+tenant/agregado. Worker exige pool correlator restrito; API usa somente owner.
+
+O workflow visual usa uma tentativa e ID estável por prévia; lease de 12 minutos
+não permite redispatch de um efeito real. Resultado incerto conserva run/hold.
+Leitura/revisão de uma prévia concluída independe de manter execução habilitada,
+preservando identidade, fontes/direitos e prova durável. Tempos e replay no
+[contrato Temporal](BL04-visual-temporal-execution.md).
 
 **Parte 3:** chamada real controlada pelo produto, com credenciais, fontes e teto
 de gasto explícitos. BL04.3 mede qualidade/custo por peça aceita após a conexão.

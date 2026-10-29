@@ -1,8 +1,4 @@
-"""A separate, single-attempt Temporal workflow for paid visual effects.
-
-The worker and dispatcher must not register this workflow until a complete
-source and consent guard is connected. This does not authorize provider use.
-"""
+"""Separate single-attempt workflow; the runner authorizes every visual effect."""
 
 from datetime import timedelta
 from typing import cast

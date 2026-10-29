@@ -1,6 +1,7 @@
 # BL04 — contexto seletivo e produção visual com IA
 
-Atualizado em **29/10/2026**. Estado: **em implementação local**, sem aprovação
+Atualizado em **29/10/2026**, com a parte 2 conectada e validação final aprovada.
+Estado: **em implementação local**, sem aprovação
 comercial. Este é o contrato vigente da fase, junto ao [SDD geral](../SDD.md), à
 [trilha BL](BL-brand-library.md#bl04--recuperar-contexto-e-produzir-uma-peça-nova)
 e ao [registro de decisões](../DECISIONS.md). A versão anterior foi preservada
@@ -47,7 +48,7 @@ e publicação oficial continuam dependentes de homologação Meta.
   vínculo verificado, o destino é o número ativo novo. A origem histórica não
   fixa o destinatário. Há um número ativo por negócio na versão inicial.
 - **Plano vencido e prévias — C08/C09 entregues no recorte local.** A criação
-  `visual_fake` admitida tem prova durável para concluir após o vencimento
+  `visual_fake` ou `visual_ai` admitida tem prova durável para concluir após o vencimento
   financeiro e permitir revisão privada. Novas criações e publicação continuam
   exigindo plano vigente. Bloqueio financeiro explícito, revogação de patrocínio
   e perda de identidade/membership não são vencimento. A exceção de conclusão
@@ -56,6 +57,7 @@ e publicação oficial continuam dependentes de homologação Meta.
   sem resultado resolvido também são preservadas. `expires_at` continua sendo
   janela de criação/aprovação. URL assinada curta, validade factual e aprovação
   permanecem conceitos separados da preservação, sem atualização implícita de fatos.
+  A revisão de resultados concluídos não depende de manter o modo de execução ativo.
 - **Alterações aguardam trabalhos admitidos.** Solicitações de mudança de fonte
   bloqueiam novas admissões e cancelam a fila não iniciada. Trabalhos já admitidos
   terminam antes da aplicação da mudança. A prévia concluída permanece para
@@ -104,8 +106,8 @@ não comprova qualidade comercial. O resultado é revalidado no acesso e na revi
 `MEU_BRACO_DIREITO_VISUAL_AI_MODE=fake` e teto positivo
 `MEU_BRACO_DIREITO_VISUAL_AI_MONTHLY_BUDGET_USD_MICROS` habilitam a simulação
 somente em desenvolvimento/teste. A reserva fictícia é de um milionésimo de dólar,
-liquidada em zero. API/schema oferecem os caminhos local e simulado; mudar a
-configuração para `openai` não conecta o caminho real.
+liquidada em zero. API/schema preservam esses caminhos; mudar somente a
+configuração para `openai` não habilita a execução conectada descrita na parte 2.
 
 Um teste sintético usa Temporal e PostgreSQL reais: material já processado,
 contexto/acervo, roteiro, dispatchers, prévia simulada com kit e revisão. Intérprete
@@ -227,25 +229,52 @@ O orquestrador instala/restaura `admitted_visual_run` e distingue efeito termina
 de custo liquidado. Resposta conhecida permite concluir o run sem liberar custo
 incerto. Resposta tardia não vence fence novo; confirmação perdida de claim,
 reserva ou commit conserva prova/hold e, quando aplicável, objeto. Nenhum reenvio
-automático. A guarda está restrita à simulação persistida nesta parte 1.
+automático. Na entrega da parte 1, essa guarda foi exercitada somente com
+simulação persistida; a parte 2 acrescenta o modo explícito abaixo.
 
-## BL04.2 — parte 2: caminho real ainda não conectado
+## BL04.2 — parte 2: caminho completo conectado, execução paga pendente
 
-Há adapter de imagem, executor com CAS no ledger e orquestrador de geração e
-acabamento isolados. `VisualEffectGuard` tem a implementação concreta acima,
-exercitada com provedor injetado simulado. API e persistência ainda não têm modo
-real distinto; a aplicação não constrói essa integração.
-O fence/reserva são atômicos entre si. No caminho simulado, fontes, aceite, plano
-e run compartilham a transação owner; a reserva continua em outra transação/role.
+O modo persistido/API `visual_ai` identifica geração pelo adapter de imagem,
+sem confundir resultados com `local` ou `visual_fake`. A migration 0059 exige
+fingerprint para ambos os modos visuais, preserva os registros existentes e
+recusa downgrade com prévias `visual_ai`. Não altera grants; foi aplicada
+somente ao banco `_test`, sem migrar o banco da aplicação.
+
+`DatabaseVisualGenerationRunner` liga o pedido ao preparo/normalização de fontes,
+guarda concreta, reserva, claim única, adapter OpenAI, acabamento, storage privado
+e commit por versão/fence/hash. A API somente enfileira: não faz chamada de imagem
+nem precisa receber o pool correlator. O worker usa pools owner e correlator
+restritos e registra workflow/activity visual apenas com a execução habilitada.
+Os testes usam o adapter real com transporte HTTP simulado, PostgreSQL e Temporal
+locais; storage/interpretação externos são simulados. Não houve chamada paga.
+
+A ativação exige desenvolvimento/teste e, com prefixo `MEU_BRACO_DIREITO_`,
+`VISUAL_AI_MODE=openai`, `VISUAL_AI_EXECUTION_ENABLED=true`,
+`VISUAL_AI_RESERVATION_USD_MICROS>0`, tetos mensal por tenant e agregado pelo
+menos iguais à reserva, chaves de provedor/criptografia e enforcement do aceite
+único C01. A flag é desligada e a reserva zero por padrão; configuração incompleta
+é recusada e não troca a geração por um placeholder local. Seleção automática de
+item/fontes exige a interpretação Jev existente, com sua chave/teto próprios;
+correspondência lexical de candidatos não vira seleção automática silenciosa.
+
+O fence/reserva são atômicos entre si. Fontes, aceite, plano e run compartilham
+a transação owner; a reserva continua em outra transação/role.
 Falha entre os commits conserva uma admissão bloqueante, sem reenvio automático.
 Essa sequência não é uma transação única; a barreira durável e a claim coordenam
 os escritores atuais conforme o desenho. Novas capacidades de acesso precisam
 participar do protocolo, sem inferir novos privilégios de banco.
 
-`VisualGenerationWorkflow` e sua activity têm uma tentativa e prazos próprios,
-testados com Temporal real. O workflow permanece separado, sem registro no worker
-ou ligação ao dispatcher/runner. Preservar históricos do `StaticPreviewWorkflow`
-existente ao integrar o novo caminho. Não há geração visual real pelo fluxo do cliente.
+O dispatcher inicia `VisualGenerationWorkflow` com ID estável
+`visual-preview/<preview>`, rejeição de duplicata e lease de 12 minutos. A activity
+tem até dez minutos, espera de agendamento de um minuto e uma tentativa. Uma
+confirmação de início perdida conserva a mesma identidade/fence; prévia real já
+reclamada não é redispatchada. Lease vencida marca `VISUAL_OUTCOME_UNCERTAIN`,
+conservando run/reserva e sem inferir que o provedor parou. Recuperação só libera
+admissão após prova de ausência de tentativa e reserva; não há varredura automática
+de todos os runs abandonados. `StaticPreviewWorkflow` conserva IDs/tempos antigos;
+o patch `visual-preview-wait-v1` amplia a espera da candidata sem alterar replay
+dos históricos anteriores. A revisão privada conserva resultados concluídos e
+proveniência de ambos os modos visuais mesmo com execução desligada.
 
 O ledger já possui teto mensal agregado de reservas OpenAI, além do teto por
 tenant (`0049`). Valores incertos permanecem reservados. É controle das operações
@@ -263,12 +292,11 @@ como histórico técnico, sem tornar novos controles de IA requisito do produto.
 
 ## Próxima fatia de desenvolvimento
 
-1. **Parte 2:** acrescentar modo real distinto na persistência/API e ligar
-   dispatcher, workflow/worker e runner à guarda/claims existentes. Provar o
-   percurso com mocks, preservando históricos Temporal, versão/hash e orçamento.
-2. **Parte 3:** chamada real controlada pelo produto com fontes autorizadas,
-   credenciais e teto de gasto explícitos. Configuração não autoriza gasto novo.
-3. Fechar BL04.3 e depois BL05: qualidade, custo por peça aceita, ajustes
+1. **Parte 3:** primeira chamada real controlada pelo produto com fontes
+   autorizadas, credenciais configuradas e autorização explícita do teto de gasto.
+   A conexão da parte 2 usa HTTP simulado nos testes; configuração não autoriza
+   gasto novo nem reutiliza orçamento de ensaio histórico.
+2. Fechar BL04.3 e depois BL05: qualidade, custo por peça aceita, ajustes
    automáticos e proposta sem nova mensagem. BL03.3 não bloqueia esta sequência.
 
 C10, recuperação automática fora do redispatch, limpeza física de PUT incerto e
@@ -300,13 +328,22 @@ cenários, sem substituir os gates de qualidade e aceite.
 
 ## Evidência datada e histórico
 
+- Parte 2, conexão completa: `make ci` aprovado com **1.914 testes**,
+  **100% de linhas e branches** (9.394 statements, 2.582 branches), Ruff/formatação
+  e mypy (151 módulos). Web: **375 testes**, **100% nas quatro métricas**,
+  build/formatação e **quatro jornadas Chromium** na árvore final. O percurso API →
+  dispatcher → Temporal → runner/guarda → adapter com HTTP simulado → acabamento
+  → prévia privada exercita modo persistido, fontes, versão/hash, revisão e
+  orçamento; complementos cobrem resultado incerto sem nova submissão,
+  continuidade/preservação e leitura com execução desligada. A migration 0059 foi
+  aplicada somente ao `_test`; sem chamada paga ou novos grants.
 - Parte 1, guarda concreta: `make ci` aprovado com **1.829 testes**, **100% de
   linhas e branches** (9.284 statements/2.550 branches), Ruff/formatação e mypy
   (149 módulos), PostgreSQL `_test`/roles restritas e Temporal locais. Prova de
   fontes/roteiro, finanças/acesso, relink por outro owner, validade factual após
   locks, claim única, resposta tardia e commits incertos. Web: 365 testes/100% nas
   quatro métricas, build/formatação e três jornadas Chromium. Sem chamada paga
-  ou novos grants; próxima entrega é modo/API e wiring da parte 2.
+  ou novos grants; à época, a próxima entrega era modo/API e wiring da parte 2.
 - Recuperação sem reserva e concorrência, 29/10: `make ci` aprovado com 1.688
   testes, 100% de linhas e branches (8.989 statements, 2.462 branches), Ruff,
   formatação e mypy. PostgreSQL `_test`/roles restritas e Temporal locais; crash,

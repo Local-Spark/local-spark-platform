@@ -81,10 +81,10 @@ class VisualContextService:
         completed_preview_id: UUID | None = None,
     ) -> VisualContextSnapshot:
         """Capture with the caller's existing owner-scoped transaction, without committing."""
-        if self.settings.environment not in {"development", "testing"} or self.settings.visual_ai_mode not in {
-            "openai",
-            "fake",
-        }:
+        if completed_preview_id is None and (
+            self.settings.environment not in {"development", "testing"}
+            or self.settings.visual_ai_mode not in {"openai", "fake"}
+        ):
             raise AuthError("VISUAL_AI_DISABLED", 409)
         key = self.settings.meta_encryption_key
         if key is None or not key.get_secret_value().strip():
@@ -104,7 +104,7 @@ class VisualContextService:
                 params,
             )
         else:
-            # Narrow exception for viewing an already-admitted simulation which
+            # Narrow exception for viewing an already-admitted visual result which
             # finished during withdrawal. It never authorizes a new generation.
             visual_consent = await session.scalar(
                 text(f"""SELECT coalesce((SELECT CASE WHEN r.preview_id IS NULL THEN c.accepted_at
@@ -114,7 +114,8 @@ class VisualContextService:
                     AND r.preview_id=:preview AND r.state='finished' AND r.finished_during_withdrawal
                     AND EXISTS (SELECT 1 FROM media_previews p WHERE p.id=r.preview_id
                       AND p.tenant_id=:tenant AND p.business_id=:business AND p.actor_id=:actor
-                      AND p.proposal_id=:id AND p.state='completed' AND p.generation_mode='visual_fake'
+                      AND p.proposal_id=:id AND p.state='completed'
+                      AND p.generation_mode IN ('visual_fake','visual_ai')
                       AND p.dispatch_fence=r.fence AND p.object_key IS NOT NULL
                       AND p.sha256=r.completed_sha256)
                   WHERE c.tenant_id=:tenant AND c.business_id=:business

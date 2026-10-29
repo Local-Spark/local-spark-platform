@@ -1,5 +1,6 @@
 """Activity adapters for a candidate generated from linked WhatsApp material."""
 
+from typing import Literal
 from uuid import NAMESPACE_URL, UUID, uuid5
 
 from cryptography.fernet import Fernet
@@ -171,9 +172,9 @@ class ContentCandidateActivities:
 
     @activity.defn
     async def request_candidate_preview(self, ids: list[str]) -> str:
-        # OpenAI mode is not connected to a reviewed effect guard. Returning a
-        # locally rendered placeholder here would falsely imply real AI output.
-        if self.settings.visual_ai_mode == "openai":
+        # A configured isolated adapter is not opt-in to the product workflow.
+        # Never substitute a local placeholder for a disabled real pipeline.
+        if self.settings.visual_ai_mode == "openai" and not self.settings.visual_ai_execution_enabled:
             return "blocked"
         event, proposal = UUID(ids[0]), UUID(ids[1])
         async with self.worker_database.sessions() as session, session.begin():
@@ -190,6 +191,13 @@ class ContentCandidateActivities:
             )
         if row is None:
             return "blocked"
+        mode: Literal["local", "visual_fake", "visual_ai"] = "local"
+        if self.settings.visual_ai_mode == "openai":
+            # Missing prepared context must be refused by the visual service,
+            # never silently rendered as a local placeholder.
+            mode = "visual_ai"
+        elif self.settings.visual_ai_mode == "fake" and row.get("briefing_required"):
+            mode = "visual_fake"
         try:
             preview = await MediaPreviewService(self.settings, self.app_database).request_candidate(
                 row["tenant_id"],
@@ -198,9 +206,7 @@ class ContentCandidateActivities:
                 PreviewRequest(
                     operation_id=uuid5(NAMESPACE_URL, f"candidate-preview:{event}"),
                     proposal_id=proposal,
-                    generation_mode="visual_fake"
-                    if self.settings.visual_ai_mode == "fake" and row["briefing_required"]
-                    else "local",
+                    generation_mode=mode,
                 ),
             )
         except AuthError:

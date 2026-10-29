@@ -268,7 +268,7 @@ class ContentDeliveryService:
                 .one()
             )
             preview_service = MediaPreviewService(self.settings, self.app_database)
-            if preview["generation_mode"] == "visual_fake":
+            if preview["generation_mode"] in {"visual_fake", "visual_ai"}:
                 await preview_service._validate_visual(preview, actor)
                 valid_inputs = True
             else:

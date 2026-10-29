@@ -102,7 +102,8 @@ class ContentCandidateWorkflow:
         )
         if preview_id == "blocked":
             return "preview_blocked"
-        for _ in range(60):
+        preview_polls = 156 if workflow.patched("visual-preview-wait-v1") else 60
+        for _ in range(preview_polls):
             state = await workflow.execute_activity(
                 "candidate_preview_state",
                 preview_id,

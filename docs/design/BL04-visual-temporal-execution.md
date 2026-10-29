@@ -1,70 +1,84 @@
 # BL04.2 — execução Temporal da prévia visual
 
-Atualizado em **28/10/2026**. **Contrato isolado implementado/testado:**
-`VisualGenerationWorkflow` e sua activity usam prazo próprio e uma tentativa.
-**Integração pendente:** workflow não registrado no worker, dispatcher/runner
-não o iniciam e a guarda real não foi implementada. Isso não libera chamadas pagas.
-O caminho existente `StaticPreviewWorkflow` permanece local/simulado; alterar o
-novo fluxo não autoriza quebrar replay de execuções antigas.
+Atualizado em **29/10/2026**. **Parte 2 conectada**, com validação final em
+andamento: `visual_ai` tem persistência/API próprias e usa dispatcher, workflow,
+activity e runner ligados à guarda concreta e ao adapter OpenAI. Os testes usam
+PostgreSQL/Temporal locais, fontes sintéticas e transporte HTTP simulado; não
+houve chamada paga. O caminho `StaticPreviewWorkflow` conserva seus contratos e
+IDs históricos. Produto e próxima entrega em [BL04](../phases/BL04-context-and-ai-production.md).
 
-## Percurso a conectar depois da guarda
+## Percurso conectado
 
-1. Persistir prévia, identidade imutável de operação, tenant/negócio/owner,
-   proposta, fontes, kit e formato. Schema/API do modo real precisam de contrato
-   específico; hoje existem `local` e `visual_fake`.
-2. Dispatcher reclama fence/lease e inicia workflow estável para a prévia.
-   Activity prepara fontes e executa a guarda completa de contrato único, owner,
-   acesso, direitos, versões, orçamento e claim durável de submissão.
-3. Confirmar admissão/reserva antes da chamada única. Leituras/escritas de
-   arquivos e rede ficam fora de transações e locks. Não executar IO no workflow.
-4. Persistir resultado por operação/fence/hash e liquidar custo conhecido ou
-   manter incerto. Aplicar mudanças pendentes quando todos os trabalhos admitidos
-   tiverem conclusão conhecida. O modo simulado já cobre parte de contexto,
-   catálogo, kit e fotos do acervo; ainda falta cobrir todos os escritores no real.
-5. Preservar prévia privada para revisão, marcando criação anterior à mudança.
-   Vencimento do plano após admissão permite terminar/revisar e bloqueia novas
-   criações e publicação até renovação. Prévias devem deixar de expirar enquanto
-   conta ativa; retenção/acesso atuais ainda exigem essa implementação coordenada.
+1. A API owner persiste a prévia `visual_ai`, a operação, tenant/negócio/ator,
+   proposta, candidata e fingerprint das fontes. A migration 0059 diferencia
+   esse modo de `local` e `visual_fake`; não altera grants nem relabela registros.
+   Foi aplicada somente ao banco `_test` nesta entrega.
+2. O dispatcher reclama prévia pendente com fence/lease e inicia
+   `VisualGenerationWorkflow` com ID estável `visual-preview/<preview>` e
+   `REJECT_DUPLICATE`. O worker exige pools owner e correlator restritos e
+   registra a activity visual somente quando a execução está habilitada.
+3. `DatabaseVisualGenerationRunner` reconstrói a identidade persistida. A guarda
+   admite fontes/owner/aceite/plano em owner; reserva orçamento e executa claim
+   única na role correlator. Preparação, leitura de arquivos e chamada ao provider
+   acontecem fora de row locks. Não há IO no workflow determinístico.
+4. Após a resposta, o acabamento aplica o kit e produz JPEG privado por
+   operação/fence/hash. Antes do commit, a guarda renova autorização e revalida
+   prazos e identidade. Resposta/tokens não comprovam a fatura; custo desconhecido
+   continua reservado mesmo com resultado conhecido e run concluído.
+5. Mudanças de contexto/catálogo/kit/fotos/roteiro aguardam runs admitidos e só
+   aplicam após conclusão segura. Prévias concluídas e proveniência permanecem
+   para revisão, marcadas quando anteriores à mudança. C08 permite concluir e
+   revisar criação admitida após vencimento financeiro; novos inícios/publicação
+   exigem plano. Revisão histórica não exige execução visual habilitada.
 
-O aceite é único; retirada individual por fornecedor/modalidade é compatibilidade
-legada, sem etapa nova na experiência. Owner revogado não recebe acesso por causa
-da preservação. Somente staff poderá resolver pendência do autor sem acesso, com
-registro/auditoria e acesso restrito; outro owner não assume a operação. Esse fluxo
-ainda precisa de implementação. Retenção após encerramento fica para sua fase,
+O [protocolo da guarda](BL04-effect-guard.md) detalha ordem de locks, fronteiras
+das roles e efeitos incertos. O aceite é único C01; APIs de retirada individual
+são compatibilidade legada, sem nova etapa da experiência. Perda de identidade/
+membership e direitos continuam impedimentos. C10 foi adiada pelo proprietário;
+outro owner não assume a pendência. Retenção pós-encerramento fica para sua fase,
 sem exclusão automática agora. Ver [registro](../DECISIONS.md).
 
-## Tempos do contrato isolado e integração restante
+## Tempos, duplicatas e incerteza
 
-O adapter HTTP usa timeout de 180 s. O desenho isolado usa activity de até dez
-minutos, espera de agendamento de um minuto e `maximum_attempts=1`; lease de doze
-minutos é proposta para cobrir fila, execução e margem. Esses valores precisam
-ser ligados e medidos como conjunto, incluindo limites de banco/storage e prazo
-total da operação HTTP. Não são garantia operacional de produção.
+O adapter HTTP tem timeout de 180 s. A activity visual usa
+`schedule_to_start_timeout=1 minuto`, `start_to_close_timeout=10 minutos` e
+`maximum_attempts=1`; a lease é de **12 minutos**. Esses limites cobrem a
+integração local e ainda precisam de medição operacional em produção.
 
-O dispatcher atual de prévia usa lease de três minutos e o workflow estático
-permite dois minutos de activity. Reutilizá-los sem mudança coordenada para uma
-chamada visual de 180 s seria incorreto. Não ampliar tempos do workflow histórico
-sem versão/patching e teste de replay.
+Uma confirmação de início perdida não devolve `visual_ai` para a fila. Prévia
+real já reclamada não é redispatchada; lease vencida marca
+`VISUAL_OUTCOME_UNCERTAIN`, conservando a identidade do run e a reserva. Após
+claim, timeout/cancelamento/lease vencida não provam que o provedor parou. Nunca
+trocar provedor ou repetir a geração para resolver o resultado desconhecido.
+Fence vencido impede commit tardio e não apaga custo ocorrido.
 
-Timeout de agendamento pode ocorrer antes do início da activity. Redispatch só
-é seguro quando o estado durável comprovar ausência de claim de submissão.
-Após claim, cancelamento, timeout ou lease vencida não provam que o fornecedor
-parou: preservar estado/reserva e recuperar sem repetir geração. Fence vencido
-impede commit da peça, sem apagar um custo ocorrido ou comprovar custo zero.
-A recuperação ainda precisa ser demonstrada entre PostgreSQL, Temporal e storage.
+A recuperação somente libera run obsoleto/falhado após tornar a prévia terminal
+sob lock correlator e comprovar ausência de tentativa/reserva, inclusive não
+vinculada. Depois do commit confirmado, owner conclui o run. Confirmação perdida
+repete somente essa reconciliação. Uma duplicata viva conserva o run original;
+qualquer tentativa/reserva bloqueia a recuperação sem prova adicional. Não há
+varredura automática de todos os runs abandonados nesta fatia.
 
-## Saída e gate de ativação
+`StaticPreviewWorkflow` conserva lease de três minutos, activity de dois minutos
+e IDs `media-preview/<preview>/<attempt>`. A espera da candidata usa o patch
+Temporal `visual-preview-wait-v1`: históricos antigos mantêm 60 consultas e
+novos usam 156, com intervalo de cinco segundos. Esse patch não autoriza
+reexecutar a geração visual.
 
-O acabamento experimental produz PNG e o orquestrador isolado entrega JPEG
-qualidade 95 sem subsampling/EXIF/ICC, com hash dos bytes finais. Um gradiente
-sintético validou apenas perda técnica de conversão e remoção de metadados;
-não prova qualidade de foto, logo ou texto. O acabamento do modo fake está ligado;
-o provedor real continua isolado.
+## Ativação e próxima entrega
 
-Antes de registrar o novo worker/dispatcher: implementar e testar
-[coordenação transacional](BL04-atomicity-proposal.md), orçamento por tenant e
-agregado, resultado incerto, fonte mutável, mudança comercial, crash, lease/fence,
-replay, retenção e acesso das prévias. Usar provedores falsos no `_test` e
-Temporal local. Homologação de qualidade/custo é BL04.3, distinta desses testes.
+O opt-in exige desenvolvimento/teste, modo `openai`,
+`VISUAL_AI_EXECUTION_ENABLED=true`, chaves de provedor/criptografia, enforcement
+do aceite único e reserva positiva dentro dos tetos mensal por tenant e
+agregado. Variáveis usam o prefixo `MEU_BRACO_DIREITO_`; a flag é `false` e a
+reserva zero por padrão. Configuração incompleta bloqueia o caminho e não
+substitui a imagem por um placeholder local. API usa apenas owner; worker exige
+seu pool correlator. Resolução automática de item/fontes depende da configuração
+Jev já existente com credencial/teto próprios, sem fallback lexical automático.
+
+A próxima fatia é a **parte 3**, primeira chamada paga controlada pelo produto,
+com fontes e teto de gasto explicitamente autorizados. A conexão implementada
+não autoriza esse gasto. Qualidade/custo por peça aceita é BL04.3; conversão
+JPEG, imagem de teste ou HTTP simulado não comprovam fidelidade comercial.
 
 Versão anterior integral: [snapshot de 28/10/2026](../history/2026-10-28-pre-documentation-reconciliation/design/BL04-visual-temporal-execution.md).

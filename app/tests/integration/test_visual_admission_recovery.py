@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock
 from uuid import NAMESPACE_URL, uuid4, uuid5
 
 import pytest
+from pydantic import SecretStr
 from sqlalchemy import text
 
 from app.db.session import Database
@@ -170,6 +171,48 @@ async def test_financial_evidence_never_releases_admission(admin, database, reco
         await ledger.reserve(c.tenant, c.business, c.actor, uuid4(), "fake", "test", "b" * 64, 31)
     async with admin.connect() as connection:
         assert await connection.scalar(text("SELECT sum(reserved_usd_micros) FROM visual_cost_reservations")) == 70
+    c.store.put.assert_not_awaited()
+
+
+@pytest.mark.parametrize("financial_state", ["none", "submitted", "uncertain", "unbound"])
+async def test_real_mode_recovery_releases_only_a_proven_unreserved_run(
+    admin, database, recovery_case, financial_state
+):
+    c = recovery_case
+    # This fixture contains synthetic sources and has made no provider effect.
+    cfg = c.cfg.model_copy(
+        update={
+            "visual_ai_mode": "openai",
+            "visual_ai_execution_enabled": True,
+            "visual_ai_reservation_usd_micros": 70,
+            "visual_ai_global_monthly_budget_usd_micros": 100,
+            "openai_api_key": SecretStr("synthetic-key-never-sent"),
+            "service_agreement_required": True,
+        }
+    )
+    async with admin.begin() as connection:
+        await connection.execute(
+            text("UPDATE media_previews SET generation_mode='visual_ai' WHERE id=:id"), {"id": c.preview.id}
+        )
+    ledger = VisualCostLedger(cfg, c.worker)
+    if financial_state == "unbound":
+        await ledger.reserve(c.tenant, c.business, c.actor, c.operation, "openai", "test", "a" * 64, 70)
+    elif financial_state != "none":
+        attempt = await VisualAttemptService(cfg, c.worker).reserve(*c.reserve_args[:6], "openai", "test", "a" * 64, 70)
+        if financial_state == "uncertain":
+            await ledger.finish(c.tenant, c.actor, attempt.reservation.id, actual_usd_micros=None)
+    await _expire(admin, c)
+    # A simulation worker cannot claim responsibility for this persisted mode.
+    assert not await c.recovery.recover(*c.args)
+    assert await _in_flight(database, c) == 1
+    recovered = await VisualAdmissionRecovery(cfg, c.worker, database, generation_mode="visual_ai").recover(*c.args)
+    assert recovered is (financial_state == "none")
+    assert await _in_flight(database, c) == int(financial_state != "none")
+    async with admin.connect() as connection:
+        assert await connection.scalar(text("SELECT generation_mode FROM media_previews")) == "visual_ai"
+        assert await connection.scalar(text("SELECT count(*) FROM visual_ai_attempts")) == int(
+            financial_state in {"submitted", "uncertain"}
+        )
     c.store.put.assert_not_awaited()
 
 

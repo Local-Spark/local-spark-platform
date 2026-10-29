@@ -1,4 +1,4 @@
-"""Abort an unreserved simulation without retrying generation or crossing RLS roles.
+"""Abort unreserved visual work without retrying generation or crossing RLS roles.
 
 The correlator first makes the preview terminal under its row lock. Only after
 that commit is acknowledged may the original owner finish the admission. A lost
@@ -6,30 +6,53 @@ acknowledgement is recovered by repeating this protocol, never by resubmitting.
 Existing attempts and even unbound reservations remain unresolved holds.
 """
 
+from typing import Literal
 from uuid import UUID
 
 from sqlalchemy import text
 
 from app.core.config import Settings
 from app.db.session import Database
+from app.services.auth import AuthError
 from app.services.editorial_proposals import _audit
 from app.services.visual_consent_gate import VisualConsentGate
+from app.services.visual_execution import require_visual_execution
 
 
 class VisualAdmissionRecovery:
-    def __init__(self, settings: Settings, worker: Database, owner: Database) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        worker: Database,
+        owner: Database,
+        *,
+        generation_mode: Literal["visual_fake", "visual_ai"] = "visual_fake",
+    ) -> None:
         self.settings, self.worker, self.owner = settings, worker, owner
+        self.generation_mode = generation_mode
 
     async def recover(self, tenant: UUID, business: UUID, actor: UUID, preview: UUID, operation: UUID) -> bool:
-        """Release only an obsolete/failed fake run with proof of no reservation.
+        """Release only obsolete/failed visual work with proof of no reservation.
 
         The caller is the existing Temporal activity using its existing pools.
         A live same-fence execution, financial uncertainty, or lost author access
         remains blocked. No locks span the two transactions or any object IO.
         """
-        if self.settings.environment not in {"development", "testing"} or self.settings.visual_ai_mode != "fake":
+        if self.generation_mode == "visual_ai":
+            try:
+                require_visual_execution(self.settings)
+            except AuthError:
+                return False
+        elif self.settings.environment not in {"development", "testing"} or self.settings.visual_ai_mode != "fake":
             return False
-        params = {"tenant": tenant, "business": business, "actor": actor, "preview": preview, "operation": operation}
+        params = {
+            "tenant": tenant,
+            "business": business,
+            "actor": actor,
+            "preview": preview,
+            "operation": operation,
+            "generation_mode": self.generation_mode,
+        }
         gate = VisualConsentGate(self.owner, self.settings)
         async with self.owner.transaction(tenant, actor) as session:
             await gate._lock(session, tenant, business, actor)
@@ -45,7 +68,7 @@ class VisualAdmissionRecovery:
                 (
                     await session.execute(
                         text("""SELECT * FROM media_previews WHERE tenant_id=:tenant AND business_id=:business
-                          AND actor_id=:actor AND id=:preview AND generation_mode='visual_fake' FOR UPDATE"""),
+                          AND actor_id=:actor AND id=:preview AND generation_mode=:generation_mode FOR UPDATE"""),
                         params,
                     )
                 )

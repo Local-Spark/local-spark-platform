@@ -1,7 +1,7 @@
 """One-shot provider execution after an independently authorized transaction.
 
-This module is not connected to the worker and does not authorize paid use.
-The future caller must commit and verify all owner, source, consent, fence and
+This primitive does not independently authorize paid use. Its guarded caller
+must commit and verify all owner, source, consent, fence and
 budget gates before calling it, and revalidate before exposing the output.
 """
 

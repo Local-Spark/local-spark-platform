@@ -184,8 +184,9 @@ A tela deixa visível o que está confirmado para a IA e o que ainda é rascunho
 **Em implementação local:** o worker de desenvolvimento/teste pode usar
 Jev opcional e briefing com busca seletiva de acervo, desligados por padrão.
 Usa o aceite único do serviço e orçamento interno, sem autorização TypeSafe
-separada. A prévia simulada aplica o kit e tem reserva/fence; geração visual
-real continua desconectada. O [SDD BL04](BL04-context-and-ai-production.md) e o
+separada. A prévia simulada aplica o kit e tem reserva/fence; `visual_ai` conecta
+o caminho real ao worker/guarda/adapter, validado com HTTP simulado e sem chamada
+paga. O [SDD BL04](BL04-context-and-ai-production.md) e o
 [desenho de integração segura](../design/BL04-integration-safety.md) registram
 os passos pendentes. O [ensaio sintético vertical](../evals/bl04-visual-synthetic-story-2026-10-27.md)
 fez uma chamada real controlada; não é gate comercial. A [avaliação Jev](../evals/jev-intent-ptbr-v1.md)
@@ -218,18 +219,25 @@ um café ou alimento inventado como foto documental. Preço vencido, foto de
 outro item e material sem direito bloqueiam a afirmação. Solicitar mudança de
 fonte bloqueia novos inícios e cancela fila não admitida; criações já iniciadas
 terminam antes de aplicar a alteração. A prévia anterior permanece identificada
-para revisão, sem dispensar direitos/aprovação. O modo simulado coordena contexto,
+para revisão, sem dispensar direitos/aprovação. Os modos `visual_fake` e
+`visual_ai` coordenam contexto,
 catálogo, kit, fotos e edição/revisão de roteiro; a guarda concreta revalida acesso,
 orçamento/claim e resultado privado com writers financeiros coordenados.
 
-**Próxima fatia (parte 2):** modo real explícito na persistência/API e ligação
-workflow/dispatcher/worker/runner à guarda concreta da parte 1, com percurso
-simulado ponta a ponta. Parte 3 faz a chamada real controlada. O workflow visual
-separado ainda não está registrado no worker. O ledger agregado
-OpenAI já existe. A admissão `visual_fake` já revalida fontes/aceite/plano sob
+**Parte 2 conectada:** modo `visual_ai` na persistência/API liga
+workflow/dispatcher/worker/runner à guarda concreta da parte 1 e ao adapter real,
+com transporte HTTP simulado nos testes de PostgreSQL/Temporal e validação final
+em andamento. Execução desligada por padrão, reserva zero e ausência de configuração
+completa não acionam placeholder local. A próxima fatia é a **parte 3**, primeira
+chamada paga controlada com fontes/credenciais/teto explicitamente autorizados.
+O ledger agregado OpenAI já existe. A admissão de ambos os modos visuais revalida fontes/aceite/plano sob
 locks; sua criação admitida conclui e permite revisão após vencimento financeiro,
 enquanto novos inícios/publicação aguardam renovação. Prévias concluídas e sua
-proveniência não são apagadas por prazo; a janela de aprovação permanece distinta.
+proveniência não são apagadas por prazo e continuam revisáveis com execução
+desligada; a janela de aprovação permanece distinta. ID Temporal estável e
+tentativa única impedem redispatch automático após resultado incerto. Seleção
+automática de item/fontes exige a configuração Jev e orçamento próprios;
+correspondência lexical não substitui essa interpretação.
 Faltam continuidade do renderer local legado e recuperação
 auditada de autor sem acesso por staff. Outro owner já não assume sua pendência;
 a implementação do suporte C10 foi adiada pelo proprietário em 29/10, para evolução

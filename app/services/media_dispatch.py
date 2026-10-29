@@ -1,4 +1,4 @@
-"""Fenced, bounded dispatch of static preview requests to Temporal."""
+"""Fenced dispatch preserving legacy histories and one-shot visual effects."""
 
 import logging
 from dataclasses import dataclass
@@ -12,7 +12,9 @@ from temporalio.exceptions import WorkflowAlreadyStartedError
 
 from app.core.config import Settings
 from app.db.session import Database
+from app.services.auth import AuthError
 from app.services.editorial_proposals import _audit
+from app.services.visual_execution import require_visual_execution
 
 logger = logging.getLogger("meu_braco_direito.media_dispatch")
 
@@ -23,33 +25,46 @@ class PreviewClaim:
     owner: UUID
     fence: int
     attempt: int
+    generation_mode: str = "local"
 
 
-async def claim_previews(database: Database, owner: UUID, limit: int = 10) -> list[PreviewClaim]:
+async def claim_previews(
+    database: Database, owner: UUID, limit: int = 10, *, visual_enabled: bool = False
+) -> list[PreviewClaim]:
     async with database.sessions() as session, session.begin():
         rows = (
             (
                 await session.execute(
                     text("""WITH due AS (
                       SELECT id FROM media_previews WHERE
-                        (state='pending' OR (state='rendering' AND dispatch_lease_until<now()))
+                        (state='pending' OR (state='rendering' AND dispatch_lease_until<now()
+                          AND generation_mode<>'visual_ai'))
+                        AND (generation_mode<>'visual_ai' OR :visual_enabled)
                         AND attempts<3 AND expires_at>now()
                       ORDER BY created_at,id LIMIT :limit FOR UPDATE SKIP LOCKED)
                       UPDATE media_previews p SET state='rendering',attempts=p.attempts+1,
-                        dispatch_owner=:owner,dispatch_lease_until=now()+interval '3 minutes',
+                        dispatch_owner=:owner,dispatch_lease_until=now()+CASE
+                          WHEN p.generation_mode='visual_ai' THEN interval '12 minutes'
+                          ELSE interval '3 minutes' END,
                         dispatch_fence=p.dispatch_fence+1,updated_at=now()
-                      FROM due WHERE p.id=due.id RETURNING p.id,p.dispatch_fence,p.attempts"""),
-                    {"owner": owner, "limit": limit},
+                      FROM due WHERE p.id=due.id
+                      RETURNING p.id,p.dispatch_fence,p.attempts,p.generation_mode"""),
+                    {"owner": owner, "limit": limit, "visual_enabled": visual_enabled},
                 )
             )
             .mappings()
             .all()
         )
-        return [PreviewClaim(row["id"], owner, row["dispatch_fence"], row["attempts"]) for row in rows]
+        return [
+            PreviewClaim(row["id"], owner, row["dispatch_fence"], row["attempts"], row["generation_mode"])
+            for row in rows
+        ]
 
 
 async def finish_preview_dispatch(database: Database, claim: PreviewClaim, accepted: bool) -> None:
-    if accepted:
+    if accepted or claim.generation_mode == "visual_ai":
+        # A failed start acknowledgement can still mean Temporal accepted the
+        # execution. Keep its exact ID/fence and never enqueue another effect.
         return
     async with database.sessions() as session, session.begin():
         row = (
@@ -72,14 +87,21 @@ async def finish_preview_dispatch(database: Database, claim: PreviewClaim, accep
 
 
 async def dispatch_previews(database: Database, client: Client, settings: Settings, owner: UUID) -> int:
-    claims = await claim_previews(database, owner)
+    try:
+        require_visual_execution(settings)
+        visual_enabled = True
+    except AuthError:
+        visual_enabled = False
+    claims = await claim_previews(database, owner, visual_enabled=visual_enabled)
     for claim in claims:
         accepted = True
         try:
             await client.start_workflow(
-                "StaticPreviewWorkflow",
+                "VisualGenerationWorkflow" if claim.generation_mode == "visual_ai" else "StaticPreviewWorkflow",
                 args=[str(claim.id), claim.fence],
-                id=f"media-preview/{claim.id}/{claim.attempt}",
+                id=f"visual-preview/{claim.id}"
+                if claim.generation_mode == "visual_ai"
+                else f"media-preview/{claim.id}/{claim.attempt}",
                 task_queue=settings.temporal_task_queue,
                 id_reuse_policy=WorkflowIDReusePolicy.REJECT_DUPLICATE,
                 rpc_timeout=timedelta(seconds=5),
@@ -98,9 +120,12 @@ async def reconcile_stale_previews(database: Database) -> int:
         rows = (
             (
                 await session.execute(
-                    text("""UPDATE media_previews SET state='failed',error_code='PREVIEW_WORKER_TIMEOUT',
+                    text("""UPDATE media_previews SET state='failed',error_code=CASE
+                      WHEN generation_mode='visual_ai' THEN 'VISUAL_OUTCOME_UNCERTAIN'
+                      ELSE 'PREVIEW_WORKER_TIMEOUT' END,
                       dispatch_owner=NULL,dispatch_lease_until=NULL,updated_at=now()
-                      WHERE state='rendering' AND attempts>=3 AND dispatch_lease_until<now()
+                      WHERE state='rendering' AND (attempts>=3 OR generation_mode='visual_ai')
+                        AND dispatch_lease_until<now()
                       RETURNING *"""),
                 )
             )

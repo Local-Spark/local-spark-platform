@@ -241,6 +241,18 @@ async def test_read_only_validation_passes_preview_identity_to_context(visual_ca
     assert capture.await_args.kwargs["completed_preview_id"] == row["id"]
 
 
+async def test_legacy_renderer_does_not_downgrade_real_generation(visual_case):
+    c = visual_case
+    db, session = _database([])
+    session.scalar.return_value = "visual_ai"
+    service = MediaPreviewService(c.cfg, db)
+    service._render_local = AsyncMock()
+    service._render_visual_fake = AsyncMock()
+    assert await service.render(uuid4(), 1) == "skipped"
+    service._render_local.assert_not_awaited()
+    service._render_visual_fake.assert_not_awaited()
+
+
 async def test_interrupted_admitted_execution_stays_unresolved(visual_case, monkeypatch):
     c = visual_case
     finish = AsyncMock()

@@ -1,16 +1,15 @@
-"""Concrete two-role visual authorization, exercised only with simulated previews.
+"""Concrete two-role authorization for an explicitly identified visual mode.
 
 The owner run durably freezes coordinated sources. The worker reservation and
 one-shot claim use their existing restricted role, with a fresh owner proof and
 financial/identity checks at the claim. These are separate commits, not a single
 distributed transaction. Any ambiguous commit preserves the run and hold.
-No route or worker enables a real image provider through this module yet.
 """
 
 import hashlib
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import NAMESPACE_URL, UUID, uuid5
 
 from sqlalchemy import text
@@ -29,6 +28,7 @@ from app.services.visual_attempts import FencedVisualReservation, VisualAttemptS
 from app.services.visual_consent_gate import VisualConsentGate
 from app.services.visual_context import VisualContextService
 from app.services.visual_copy_authorization import authorize_visual_copy
+from app.services.visual_execution import require_visual_execution
 from app.services.visual_provider_execution import (
     VisualSubmissionClaims,
     VisualSubmissionIdentity,
@@ -50,20 +50,31 @@ def visual_operation(preview: UUID) -> UUID:
 
 
 class DatabaseVisualEffectGuard:
-    def __init__(self, settings: Settings, owner: Database, worker: Database, *, reserved_usd_micros: int) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        owner: Database,
+        worker: Database,
+        *,
+        reserved_usd_micros: int,
+        generation_mode: Literal["visual_fake", "visual_ai"] = "visual_fake",
+    ) -> None:
         self.settings, self.owner, self.worker = settings, owner, worker
         self.reserved_usd_micros = reserved_usd_micros
+        self.generation_mode = generation_mode
         self.gate = VisualConsentGate(owner, settings)
         self.claims = GuardedVisualSubmissionClaims(self)
 
     def _require_mode(self) -> None:
-        # Part 2 adds the distinct persisted real mode and its wiring. Never
-        # persist a paid output under the existing simulation label.
+        if self.generation_mode == "visual_ai":
+            require_visual_execution(self.settings)
+            if self.reserved_usd_micros != self.settings.visual_ai_reservation_usd_micros:
+                raise AuthError("VISUAL_RESERVATION_CONFIG_CHANGED", 409)
+            return
         if self.settings.environment not in {"development", "testing"} or self.settings.visual_ai_mode != "fake":
             raise AuthError("VISUAL_GUARD_SIMULATION_REQUIRED", 409)
 
-    @staticmethod
-    def _params(scope: VisualRunScope) -> dict[str, Any]:
+    def _params(self, scope: VisualRunScope) -> dict[str, Any]:
         return {
             "tenant": scope.tenant,
             "business": scope.business,
@@ -75,6 +86,7 @@ class DatabaseVisualEffectGuard:
             "fence": scope.fence,
             "fingerprint": scope.fingerprint,
             "candidate": scope.candidate,
+            "generation_mode": self.generation_mode,
         }
 
     async def _preview(self, session: Any, scope: VisualRunScope, *, lock: bool = False) -> Any:
@@ -83,7 +95,7 @@ class DatabaseVisualEffectGuard:
                 """SELECT * FROM media_previews WHERE id=:preview AND tenant_id=:tenant AND business_id=:business
               AND actor_id=:actor AND proposal_id=:proposal AND operation_id=:operation
               AND dispatch_fence=:fence AND visual_fingerprint=:fingerprint AND candidate=:candidate
-              AND generation_mode='visual_fake'"""
+              AND generation_mode=:generation_mode"""
                 + (" FOR UPDATE" if lock else "")
             ),
             self._params(scope),
@@ -262,7 +274,7 @@ class DatabaseVisualEffectGuard:
                             text("""SELECT * FROM media_previews WHERE id=:preview AND tenant_id=:tenant
                       AND business_id=:business AND actor_id=:actor AND proposal_id=:proposal
                       AND operation_id=:operation AND visual_fingerprint=:fingerprint AND candidate=:candidate
-                      AND generation_mode='visual_fake' AND dispatch_fence>:fence FOR UPDATE"""),
+                      AND generation_mode=:generation_mode AND dispatch_fence>:fence FOR UPDATE"""),
                             self._params(scope),
                         )
                     )
@@ -335,7 +347,11 @@ class GuardedVisualSubmissionClaims(VisualSubmissionClaims):
                 .mappings()
                 .one_or_none()
             )
-        if row is None or identity.operation != visual_operation(identity.preview):
+        if (
+            row is None
+            or row["generation_mode"] != self.guard.generation_mode
+            or identity.operation != visual_operation(identity.preview)
+        ):
             return False
         scope = VisualRunScope(
             identity.tenant,

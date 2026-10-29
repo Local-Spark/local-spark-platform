@@ -15,15 +15,15 @@ from app.tests.integration.test_visual_attempts import preview as create_preview
 pytestmark = pytest.mark.integration
 
 
-async def _case(admin, database, seeded):
+async def _case(admin, database, seeded, generation_mode="visual_fake"):
     tenant, actor = seeded["t1"], seeded["a1"]
     business = await _business(admin, seeded)
     preview, source, operation = await create_preview(admin, tenant, business, actor), uuid4(), uuid4()
     async with admin.begin() as connection:
         await connection.execute(
-            text("""UPDATE media_previews SET source_asset_id=:source,generation_mode='visual_fake',
+            text("""UPDATE media_previews SET source_asset_id=:source,generation_mode=:generation_mode,
               visual_fingerprint=:fingerprint,expires_at=now()-interval '1 day' WHERE id=:preview"""),
-            {"source": source, "preview": preview, "fingerprint": "a" * 64},
+            {"source": source, "preview": preview, "fingerprint": "a" * 64, "generation_mode": generation_mode},
         )
         await connection.execute(
             text("""UPDATE billing_sponsorships SET starts_at=now()-interval '8 months',
@@ -37,8 +37,11 @@ async def _case(admin, database, seeded):
 
 
 @pytest.mark.parametrize("change", ["expired", "blocked", "revoked", "wrong_fence", "local", "wrong_source"])
-async def test_only_admitted_fake_creation_continues_after_financial_expiry(admin, database, seeded, change):
-    tenant, business, actor, source, preview, operation = await _case(admin, database, seeded)
+@pytest.mark.parametrize("generation_mode", ["visual_fake", "visual_ai"])
+async def test_only_admitted_visual_creation_continues_after_financial_expiry(
+    admin, database, seeded, change, generation_mode
+):
+    tenant, business, actor, source, preview, operation = await _case(admin, database, seeded, generation_mode)
     async with admin.begin() as connection:
         if change == "blocked":
             await connection.execute(
@@ -65,8 +68,9 @@ async def test_only_admitted_fake_creation_continues_after_financial_expiry(admi
 
 
 @pytest.mark.parametrize("change", ["expired", "in_flight", "rendering", "local", "wrong_source", "revoked_owner"])
-async def test_historical_review_requires_a_completed_scoped_proof(admin, database, seeded, change):
-    tenant, business, actor, source, preview, operation = await _case(admin, database, seeded)
+@pytest.mark.parametrize("generation_mode", ["visual_fake", "visual_ai"])
+async def test_historical_review_requires_a_completed_scoped_proof(admin, database, seeded, change, generation_mode):
+    tenant, business, actor, source, preview, operation = await _case(admin, database, seeded, generation_mode)
     async with admin.begin() as connection:
         await connection.execute(
             text("""UPDATE media_previews SET state='completed',sha256=:sha,object_key='private/preserved'

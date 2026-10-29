@@ -235,7 +235,7 @@ class VisualConsentGate:
                           WHERE r.tenant_id=:tenant AND r.business_id=:business AND r.actor_id=:actor
                             AND r.operation_id=:operation AND r.fence=:fence AND r.state='in_flight'
                             AND p.actor_id=:actor AND p.dispatch_fence=:fence AND p.state='completed'
-                            AND p.generation_mode='visual_fake' AND p.sha256 IS NOT NULL
+                            AND p.generation_mode IN ('visual_fake','visual_ai') AND p.sha256 IS NOT NULL
                             AND p.object_key IS NOT NULL"""),
                     params,
                 )
@@ -274,7 +274,7 @@ class VisualConsentGate:
                   WHERE r.tenant_id=:tenant AND r.business_id=:business AND r.actor_id=:actor
                     AND r.operation_id=:operation AND r.fence=:fence AND r.state='finished'
                     AND p.actor_id=r.actor_id AND p.dispatch_fence=r.fence AND p.state='completed'
-                    AND p.generation_mode='visual_fake' AND p.sha256 IS NOT NULL
+                    AND p.generation_mode IN ('visual_fake','visual_ai') AND p.sha256 IS NOT NULL
                     AND p.visual_fingerprint IS NOT NULL AND p.object_key IS NOT NULL
                   ON CONFLICT DO NOTHING"""),
                     params,
@@ -308,7 +308,7 @@ class VisualConsentGate:
     async def withdrawn_preview_consent(
         self, tenant: UUID, business: UUID, actor: UUID, preview: UUID
     ) -> datetime | None:
-        """Identify the original grant for one eligible completed simulated preview.
+        """Identify the original grant for one eligible completed visual preview.
 
         This is only a read/review exception, never an admission or grant for
         a provider call. Other sources and permissions still require validation.
@@ -324,7 +324,7 @@ class VisualConsentGate:
                       WHERE r.tenant_id=:tenant AND r.business_id=:business AND r.actor_id=:actor
                         AND r.preview_id=:preview AND r.state='finished' AND r.finished_during_withdrawal
                         AND p.actor_id=:actor AND p.dispatch_fence=r.fence AND p.state='completed'
-                        AND p.generation_mode='visual_fake' AND p.sha256=r.completed_sha256
+                        AND p.generation_mode IN ('visual_fake','visual_ai') AND p.sha256=r.completed_sha256
                         AND p.object_key IS NOT NULL"""),
                     params,
                 ),

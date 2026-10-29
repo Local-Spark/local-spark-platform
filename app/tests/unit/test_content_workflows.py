@@ -8,6 +8,11 @@ import pytest
 from app.workflows import content_candidate, content_publication
 
 
+@pytest.fixture(autouse=True)
+def legacy_patch_defaults(monkeypatch):
+    monkeypatch.setattr(content_candidate.workflow, "patched", lambda _: False)
+
+
 @pytest.mark.parametrize(
     "states,expected",
     [
@@ -113,6 +118,18 @@ async def test_candidate_workflow_has_bounded_waits(monkeypatch, stall_at, expec
     monkeypatch.setattr(content_candidate.workflow, "sleep", sleep)
     assert await content_candidate.ContentCandidateWorkflow().run("event-id") == expected
     assert sleep.await_count == 60
+
+
+@pytest.mark.parametrize("patched,polls", [(False, 60), (True, 156)])
+async def test_visual_preview_wait_preserves_legacy_history_and_bounds_new_execution(monkeypatch, patched, polls):
+    execute = AsyncMock(side_effect=["proposal", "completed", "preview"] + ["pending"] * polls)
+    sleep = AsyncMock()
+    monkeypatch.setattr(content_candidate.workflow, "execute_activity", execute)
+    monkeypatch.setattr(content_candidate.workflow, "sleep", sleep)
+    monkeypatch.setattr(content_candidate.workflow, "patched", lambda _: patched)
+    assert await content_candidate.ContentCandidateWorkflow().run("event-id") == "preview_timeout"
+    assert sleep.await_count == polls
+    assert all(call.args == (5,) for call in sleep.await_args_list)
 
 
 async def test_candidate_delivery_waits_for_channel_without_regenerating(monkeypatch):

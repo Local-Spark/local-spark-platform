@@ -41,6 +41,7 @@ def case(settings, monkeypatch):
         "operation_id": scope.operation,
         "candidate": scope.candidate,
         "visual_fingerprint": scope.fingerprint,
+        "generation_mode": "visual_fake",
         "state": "rendering",
         "object_key": None,
         "sha256": None,
@@ -160,6 +161,39 @@ async def test_real_mode_is_not_enabled_by_constructing_the_guard(case, environm
     c.owner.transaction.assert_not_called()
     c.worker.transaction.assert_not_called()
     c.gate.admit.assert_not_awaited()
+
+
+@pytest.mark.parametrize("configured_reservation", [70, 71])
+async def test_provider_mode_requires_explicit_readiness_and_its_configured_reservation(
+    case, monkeypatch, configured_reservation
+):
+    c = case
+    require = MagicMock()
+    monkeypatch.setattr(module, "require_visual_execution", require)
+    c.guard.generation_mode = "visual_ai"
+    c.guard.settings = c.guard.settings.model_copy(update={"visual_ai_reservation_usd_micros": configured_reservation})
+    if configured_reservation == 70:
+        assert await c.guard.admit(c.scope)
+        query, params = c.worker_session.execute.await_args.args
+        assert "generation_mode=:generation_mode" in str(query)
+        assert params["generation_mode"] == "visual_ai"
+    else:
+        with pytest.raises(AuthError, match="VISUAL_RESERVATION_CONFIG_CHANGED"):
+            await c.guard.admit(c.scope)
+        c.worker.transaction.assert_not_called()
+    require.assert_called_once_with(c.guard.settings)
+
+
+async def test_provider_mode_readiness_failure_never_touches_either_database(case, monkeypatch):
+    c = case
+    c.guard.generation_mode = "visual_ai"
+    monkeypatch.setattr(
+        module, "require_visual_execution", MagicMock(side_effect=AuthError("VISUAL_EXECUTION_DISABLED", 409))
+    )
+    with pytest.raises(AuthError, match="VISUAL_EXECUTION_DISABLED"):
+        await c.guard.admit(c.scope)
+    c.owner.transaction.assert_not_called()
+    c.worker.transaction.assert_not_called()
 
 
 @pytest.mark.parametrize("row", [None, {"state": "pending"}])
@@ -478,14 +512,20 @@ async def test_lost_terminal_worker_commit_never_releases_owner_run(case):
     c.gate.finish.assert_not_awaited()
 
 
-@pytest.mark.parametrize("variant", ["missing", "operation", "owner", "claimed"])
-async def test_submission_claim_gets_fresh_owner_proof_and_forwards_its_admission_time(case, monkeypatch, variant):
+@pytest.mark.parametrize("variant", ["missing", "mode", "operation", "owner", "claimed"])
+@pytest.mark.parametrize("generation_mode", ["visual_fake", "visual_ai"])
+async def test_submission_claim_gets_fresh_owner_proof_and_forwards_its_admission_time(
+    case, monkeypatch, variant, generation_mode
+):
     c = case
+    c.guard.generation_mode = c.row["generation_mode"] = generation_mode
     proof = c.guard._owner_proof = AsyncMock(return_value=c.proof)
     original = AsyncMock(return_value=True)
     monkeypatch.setattr(VisualSubmissionClaims, "claim", original)
     if variant == "missing":
         c.worker_session.execute.return_value = _mapped(None)
+    elif variant == "mode":
+        c.row["generation_mode"] = "visual_ai" if generation_mode == "visual_fake" else "visual_fake"
     elif variant == "operation":
         c.identity = replace(c.identity, operation=uuid4())
     elif variant == "owner":

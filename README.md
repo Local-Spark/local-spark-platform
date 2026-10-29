@@ -199,13 +199,21 @@ ou deploy AWS demonstrados por esta entrega.
 
 ## Próxima implementação aprovada
 
-A BL04.2 precisa concluir a coordenação e ligar o provedor visual real. As
-novas decisões são: concluir criação já iniciada e permitir revisão se o plano
-vencer (bloqueando novas criações/publicação); preservar prévias sem expiração
-com conta ativa; recuperação de pendência com autor sem acesso somente por
-staff, com ação registrada. **Ainda não estão implementadas.** O código segue
-usando prazos de propostas/prévias e verificações de plano; a 0058 trata apenas
-materiais WhatsApp. URL assinada e validade de fatos/decisões continuam próprias.
+A BL04.2 conecta `visual_ai` da API ao dispatcher/Temporal/worker, à guarda e ao
+adapter de imagem. A parte 2 usa HTTP simulado, PostgreSQL/Temporal locais e
+validação final aprovada; nenhuma chamada paga. Execução desligada e reserva
+zero por padrão; habilitar exige chaves, aceite único e tetos explícitos conforme
+[operação](docs/operations.md#ia-e-falhas-externas). A API mantém somente a role
+owner; o worker usa seu pool correlator restrito. A migration 0059 foi aplicada
+somente ao `_test`, sem migrar o banco da aplicação.
+
+A próxima fatia é a **parte 3**, primeira chamada real controlada pelo produto,
+com fontes/credenciais e teto de gasto explicitamente autorizados. Os caminhos
+visuais já concluem criações admitidas após vencimento financeiro e preservam
+prévias/proveniência para revisão, inclusive com execução desligada; novos
+inícios/publicação exigem plano. URL assinada e validade de fatos/decisões
+continuam próprias. Recuperação staff de autor sem acesso (C10) foi adiada;
+outro owner não assume a pendência e exceções sem prova permanecem bloqueadas.
 A exclusão após encerramento da conta foi adiada para a fase específica, sem
 implementar exclusão automática nesta etapa. Detalhes em
 [DECISIONS](docs/DECISIONS.md) e no [SDD BL04](docs/phases/BL04-context-and-ai-production.md).

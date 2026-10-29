@@ -188,10 +188,10 @@ Roteiro de gravação e receitas de vídeo real estão em
   Em 29/10, o proprietário adiou essa implementação para evolução de gestão de
   acesso/suporte; não bloqueia o fechamento da fatia simulada validada.
 
-**Estado atual:** C06/C07 têm cobertura parcial no modo simulado. A admissão de
-`visual_fake` revalida usuário/membership, fontes, aceite e plano na transação
+**Estado atual:** C06/C07 coordenam os escritores atuais nos modos `visual_fake`
+e `visual_ai`. A admissão visual revalida usuário/membership, fontes, aceite e plano na transação
 owner antes do run durável, na ordem proposta → visual → comercial. C08 permite
-conclusão e revisão privada de `visual_fake` admitida após o vencimento financeiro;
+conclusão e revisão privada de criação visual admitida após o vencimento financeiro;
 bloqueio explícito e revogação de patrocínio não são tratados como vencimento.
 Novos inícios e publicação continuam exigindo plano vigente. O renderer local
 legado ainda não recebe essa exceção de conclusão.
@@ -199,7 +199,10 @@ legado ainda não recebe essa exceção de conclusão.
 C09 preserva prévias concluídas e proveniência, com consulta histórica e download
 privado para revisão mesmo após o prazo da proposta/prévia. A janela de aprovação
 e a validade de fatos permanecem próprias. Tentativas visuais iniciadas sem
-resultado resolvido não são apagadas pelo purge. C10 bloqueia a substituição ou
+resultado resolvido não são apagadas pelo purge. Resultados concluídos de ambos
+os modos visuais continuam revisáveis quando a execução visual for desligada;
+permissão de revisão não reativa geração nem dispensa owner/direitos/prova durável.
+C10 bloqueia a substituição ou
 o descarte da pendência por outro owner. A recuperação restrita de staff, com
 auditoria, fica adiada; até sua entrega, a exceção administrativa permanece
 bloqueada. O adiamento não aprova novas permissões nem reabre a decisão C10.
@@ -207,40 +210,63 @@ Retirada de consentimento por fornecedor permanece somente como compatibilidade
 legada para negócios sem o
 contrato; não é um novo fluxo de produto a desenvolver para quem aceitou C01.
 
-### Integração visual pendente
+### Integração visual conectada; chamada paga pendente
 
-Preparação de fontes, normalização de cópias, adapter, reserva/fence, ledger e
-acabamento existem; o fluxo do cliente gera apenas `visual_fake` privado e
-identificado. Os ensaios reais foram isolados. `VisualGenerationWorkflow` tem
-prazos e tentativa única testados, mas não está conectado ao dispatcher/worker
-ou ao runner da guarda concreta. A API persistida só aceita `local` e `visual_fake`.
+Persistência/API aceitam `local`, `visual_fake` e `visual_ai`. A migration 0059
+exige fingerprint para ambos os modos visuais e recusa downgrade que perderia
+uma identidade `visual_ai`; não relabela simulações existentes nem acrescenta
+grants. Nesta entrega foi aplicada somente ao banco `_test`.
+
+`visual_ai` liga pedido, dispatcher, `VisualGenerationWorkflow`, activity e
+`DatabaseVisualGenerationRunner` à preparação de fontes, guarda, adapter OpenAI,
+acabamento e commit privado. O percurso é exercitado com PostgreSQL/Temporal
+locais e transporte HTTP simulado do adapter real; não houve chamada paga.
+Os ensaios pagos anteriores continuam isolados, sem autorização para novo gasto.
+
+Ativação exige desenvolvimento/teste, `VISUAL_AI_MODE=openai`, flag
+`VISUAL_AI_EXECUTION_ENABLED=true`, chaves não vazias de provedor e criptografia,
+aceite único C01 exigido e reserva por tentativa positiva dentro dos tetos mensal
+por tenant e agregado. Variáveis usam o prefixo `MEU_BRACO_DIREITO_`; a flag é
+desligada e a reserva zero por padrão. O pedido da API usa apenas o pool owner;
+o worker exige o pool correlator restrito separado. A seleção automática de
+item/fontes usa Jev com configuração e orçamento existentes, sem substituir a
+interpretação por correspondência lexical automática.
 
 A parte 1 implementa `DatabaseVisualEffectGuard` e `GuardedVisualSubmissionClaims`
 com roles existentes: prova owner renovada, reserva/fence por tenant/agregado,
 claim durável única e commit privado. Roteiro coordena mudanças pendentes em
 transação proposta → visual após finish; writers financeiros usam o comercial.
-Material atribuído não muda de identidade quando o telefone é trocado. A guarda
-aceita somente simulação nesta entrega; a parte 2 acrescenta modo real explícito,
-API e ligação dispatcher/worker, e a parte 3 faz a chamada controlada.
+Material atribuído não muda de identidade quando o telefone é trocado. A parte 2
+liga a guarda ao modo explícito `visual_ai`; a parte 3 fará a chamada controlada
+após autorização de credenciais/fontes e teto de gasto.
 Detalhes no [protocolo da guarda](design/BL04-effect-guard.md).
 
 Fontes/aceite/plano e o run são validados na mesma transação owner; a reserva e o
 fence continuam atômicos em outra transação correlator. Os dois commits não são
 uma transação única: falha intermediária conserva a admissão bloqueante e não
-autoriza nova submissão. A recuperação de uma simulação obsoleta/falhada sem
+autoriza nova submissão. A recuperação de criação visual obsoleta/falhada sem
 reserva torna a prévia terminal na transação correlator, provando ausência de
 tentativa e reserva sob locks prévia → ledger tenant. Somente após confirmar
 esse commit conclui o run original na sessão owner. Confirmação perdida permite
 repetir a reconciliação, nunca a geração. Duplicata viva retorna sem falhar a
 execução original; reserva existente, inclusive não vinculada, conserva o bloqueio.
-O renderer usa essa recuperação no redispatch e após falha conhecida sem reserva;
-não há varredura automática para registros fora da fila de redispatch nesta fatia.
+O renderer simulado usa essa recuperação no redispatch; o runner real pode
+recuperar somente uma admissão com ausência comprovada de tentativa e reserva.
+Não há varredura automática para recuperar runs fora desses consumidores nesta fatia.
 O inventário atual identifica fontes imutáveis e escritores coordenados; novos
 writers de acesso devem participar do protocolo antes de ganhar capacidade runtime.
 Não manter locks durante IO.
 Propostas antigas de grants/holds e exclusão WhatsApp são históricas, não
-solução aprovada. Detalhes e testes da próxima fatia estão na
+solução aprovada. Detalhes e testes da entrega estão na
 [BL04](phases/BL04-context-and-ai-production.md).
+
+O dispatcher visual usa ID `visual-preview/<preview>`, rejeição de duplicata e
+lease de 12 minutos. A activity tem até dez minutos, espera de agendamento de um
+minuto e uma tentativa. Falha de confirmação do início não enfileira outro
+efeito; lease vencida marca resultado incerto, conservando run/hold. Não há
+redispatch automático do `visual_ai` já reclamado. O fluxo estático conserva
+workflow/IDs e tempos históricos; a espera da candidata cresce por patch Temporal
+`visual-preview-wait-v1`, preservando replay antigo.
 
 Reserva e claim revalidam os prazos com `clock_timestamp()` em instrução posterior
 à aquisição dos locks; reserva revalida também após esperar orçamento, revertendo
@@ -301,13 +327,13 @@ fornecedor ou torna todo controle uma etapa da interface.
 
 Stripe tem adapter sandbox exercitado; produção/staging pendentes. SMTP/Mailpit
 captura e-mails localmente. Twilio depende de configuração/homologação por
-ambiente. Meta/Instagram reais e IA visual no worker ainda faltam. AWS/Redis/CDN
+ambiente. Meta/Instagram reais e primeira execução visual paga pelo produto ainda faltam. AWS/Redis/CDN
 não são serviços comerciais ativos só por constarem no desenho.
 
 ## 11. Sequência e condições de liberação
 
-BL01/BL02 e BL03.1/BL03.2 locais → BL04.2 guarda concreta entregue (parte 1),
-conexão visual (parte 2) e chamada controlada (parte 3) → BL04.3 qualidade/custo
+BL01/BL02 e BL03.1/BL03.2 locais → BL04.2 guarda e conexão visual implementadas
+(partes 1/2), chamada controlada pendente (parte 3) → BL04.3 qualidade/custo
 → BL05 jornada, ajuste e proatividade → expansão.
 BL03.3 importa cardápio depois; BL06 amplia nichos/CDN depois de provar reaplicação.
 
@@ -337,7 +363,14 @@ relink por outro owner e validade factual após locks. `make ci`: **1.829 testes
 mypy (149 módulos). PostgreSQL `_test`
 com roles restritas e Temporal locais; nenhum efeito pago ou nova homologação
 externa ou novos grants. Web: **365 testes**, 100% nas quatro métricas,
-build/formatação e três jornadas Chromium. Integração real permanece parte 2.
+build/formatação e três jornadas Chromium. São evidências da parte 1.
+
+Parte 2: `make ci` aprovado com **1.914 testes**, **100% de linhas e branches**
+(9.394 statements, 2.582 branches), Ruff/formatação e mypy (151 módulos). Testes
+novos cobrem modo/API, wiring Temporal, adapter real com HTTP simulado,
+versão/hash, orçamento e resultado incerto sem nova submissão. Web: **375 testes**,
+**100% nas quatro métricas**, build/formatação e **quatro jornadas Chromium** na
+árvore final. Nenhuma chamada paga, novo grant ou migração do banco da aplicação.
 
 Em cada entrega, atualizar PROJECT, SDD, fase e CHANGELOG. Decisões novas entram
 em DECISIONS; distinguir decisão aceita, código implementado e homologação.

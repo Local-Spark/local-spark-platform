@@ -17,7 +17,8 @@ peça nova.
   Pesquisa ampla, qualidade comercial e sugestão proativa ainda pendem.
 - F04/F06: prévias estáticas/vídeo locais e candidata/aprovação/publicação
   **simuladas**. F03 congela kit; BL04 recupera acervo no worker experimental e
-  aplica kit à simulação. Geração visual real continua desconectada.
+  aplica kit à simulação. `visual_ai` já liga o fluxo ao adapter real, com
+  validação por HTTP simulado; primeira chamada paga pelo produto pendente.
 - BL01: um kit fictício de cafeteria e simuladores públicos/cliente locais.
   Ver a vitrine não é escolher ou editar o kit.
 - BL02: seleção e edição guiada do kit na área autenticada, logo privado,
@@ -33,14 +34,18 @@ peça nova.
 A fase ativa é [BL04](BL04-context-and-ai-production.md). A parte 1 entrega a
 guarda concreta de fontes, aceite, acesso, reserva/claim e resultado privado,
 incluindo roteiro/cobrança e troca de telefone, com roles existentes e mocks.
-A próxima fatia é a **parte 2**: modo real explícito na persistência/API e ligação
-do workflow/runner ao dispatcher/worker, com percurso ponta a ponta simulado.
-A **parte 3** faz a chamada real controlada com credenciais/fontes/budget explícitos.
+A **parte 2** conecta `visual_ai` na persistência/API ao dispatcher, workflow,
+worker, runner e adapter, com transporte HTTP simulado nos testes de PostgreSQL/
+Temporal. A validação final foi aprovada. A próxima fatia é a **parte 3**:
+primeira chamada real controlada pelo produto, com credenciais/fontes e teto de
+gasto explicitamente autorizados. A execução continua desligada por padrão.
 
-A admissão `visual_fake` já revalida fontes, aceite e plano sob locks; depois de
+A admissão `visual_fake` e `visual_ai` revalida fontes, aceite e plano sob locks; depois de
 admitida, a criação conclui e permite revisão privada após vencimento financeiro.
 Novas criações/publicação esperam renovação. Concluídas e proveniência são
-preservadas sem limpeza por prazo; a janela de aprovação continua independente.
+preservadas sem limpeza por prazo e revisáveis com execução desligada; a janela
+de aprovação continua independente. Tentativa real usa ID Temporal estável e
+lease de 12 minutos; resultado incerto não dispara outro efeito.
 O renderer local legado ainda tem limites próprios. Escritores atuais têm o
 [protocolo documentado](../design/BL04-effect-guard.md); futuras capacidades de
 acesso precisam participar dele antes de serem adicionadas.

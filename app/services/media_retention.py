@@ -29,7 +29,7 @@ async def claim_expired_previews(database: Database, owner: UUID, limit: int = 5
                     text("""WITH due AS (
                       SELECT p.id FROM media_previews p WHERE p.state<>'completed'
                         AND NOT (p.object_key IS NOT NULL AND p.sha256 IS NOT NULL)
-                        AND (p.generation_mode<>'visual_fake' OR p.attempts=0) AND
+                        AND (p.generation_mode NOT IN ('visual_fake','visual_ai') OR p.attempts=0) AND
                         (p.expires_at<=now() OR
                           NOT EXISTS(SELECT 1 FROM editorial_proposals e WHERE e.id=p.proposal_id) OR
                           (p.source_asset_id IS NOT NULL AND NOT EXISTS(
