@@ -62,14 +62,16 @@ async def test_claim_checks_fence_and_commits_only_once():
     request = prepared.request
     database, session = _database([])
     claims = VisualSubmissionClaims(database)
-    session.scalar = AsyncMock(side_effect=[None, 1, None, 1, 1])
+    session.scalar = AsyncMock(side_effect=[None, 1, None, 1, 1, None, 1, 1, 1])
     session.execute = AsyncMock()
+    assert not await claims.claim(identity, attempt.reservation.id, request.model, prepared.context.proposal_id)
     assert not await claims.claim(identity, attempt.reservation.id, request.model, prepared.context.proposal_id)
     assert not await claims.claim(identity, attempt.reservation.id, request.model, prepared.context.proposal_id)
     assert await claims.claim(identity, attempt.reservation.id, request.model, prepared.context.proposal_id)
     queries = [str(call.args[0]) for call in session.scalar.await_args_list]
-    assert all("FOR UPDATE OF p" in queries[n] for n in (0, 1, 3))
-    assert all("UPDATE visual_cost_reservations SET state='uncertain'" in queries[n] for n in (2, 4))
+    assert all("FOR UPDATE OF p" in queries[n] for n in (0, 1, 3, 6))
+    assert all("clock_timestamp()" in queries[n] for n in (2, 4, 7))
+    assert all("UPDATE visual_cost_reservations SET state='uncertain'" in queries[n] for n in (5, 8))
     executed = [str(call.args[0]) for call in session.execute.await_args_list]
     assert "pg_advisory_xact_lock" in executed[0] and "visual_cost_events" in executed[-1]
 

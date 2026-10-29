@@ -166,6 +166,10 @@ class VisualPendingChanges:
             .all()
         )
         for row in rows:
+            if row["kind"] in {"script_edit", "script_review"}:
+                # Script application locks proposal before visual in a separate
+                # transaction. Never invert that order from this visual gate.
+                break
             if row["kind"] == "photo_create":
                 photo = await session.scalar(
                     text("""SELECT version FROM business_collection_photos WHERE tenant_id=:tenant

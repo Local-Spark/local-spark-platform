@@ -806,6 +806,7 @@ class MediaPreviewService:
         from app.adapters.brand_overlay import BrandOverlayError
         from app.services.editorial_consent_scope import VisualRunScope, admitted_visual_run
         from app.services.visual_admission import VisualAdmissionChecks
+        from app.services.visual_admission_recovery import VisualAdmissionRecovery
         from app.services.visual_attempts import VisualAttemptService
         from app.services.visual_brand_finish import VisualBrandFinishService
         from app.services.visual_consent_gate import VisualConsentGate
@@ -830,7 +831,7 @@ class MediaPreviewService:
             return "skipped"
         brand_service = VisualBrandFinishService(self.settings, self.owner_database, self.store)
         operation = uuid5(NAMESPACE_URL, f"visual-preview:{preview_id}")
-        gate = VisualConsentGate(self.owner_database)
+        gate = VisualConsentGate(self.owner_database, self.settings)
         admitted = False
         terminal = False
         completed = False
@@ -862,7 +863,12 @@ class MediaPreviewService:
                 ),
             )
             if not admitted:
-                return await self._fail(preview_id, fence, "VISUAL_OUTCOME_UNCERTAIN", False)
+                recovered = await VisualAdmissionRecovery(self.settings, self.database, self.owner_database).recover(
+                    row["tenant_id"], row["business_id"], row["actor_id"], preview_id, operation
+                )
+                # A duplicate must not fail the original live execution. Recovery
+                # can only abort an obsolete/failed preview with no reservation.
+                return "failed" if recovered else "skipped"
             consent_scope = admitted_visual_run(
                 VisualRunScope(row["tenant_id"], row["business_id"], row["actor_id"], operation, fence)
             )
@@ -985,14 +991,11 @@ class MediaPreviewService:
         finally:
             if consent_scope is not None:
                 consent_scope.__exit__(None, None, None)
-            try:
-                if reservation is not None:
-                    await VisualCostLedger(self.settings, self.database).finish(
-                        row["tenant_id"], row["actor_id"], reservation, actual_usd_micros=0
-                    )
-            finally:
-                # This path uses only the fake renderer. Cancellation, crash or a
-                # previous uncertain reservation leaves admission unresolved.
+            if reservation is not None:
+                await VisualCostLedger(self.settings, self.database).finish(
+                    row["tenant_id"], row["actor_id"], reservation, actual_usd_micros=0
+                )
+                # A lost settlement acknowledgement keeps the run unresolved.
                 if admitted and terminal:
                     await gate.finish(
                         row["tenant_id"],
@@ -1002,6 +1005,12 @@ class MediaPreviewService:
                         fence,
                         preview_completed=completed,
                     )
+            elif admitted and terminal:
+                # A reservation error may describe an existing unbound hold.
+                # Prove absence under the worker locks before releasing the run.
+                await VisualAdmissionRecovery(self.settings, self.database, self.owner_database).recover(
+                    row["tenant_id"], row["business_id"], row["actor_id"], preview_id, operation
+                )
 
     async def _discard_visual_object(self, key: str) -> None:
         try:

@@ -30,16 +30,20 @@ peça nova.
 
 ## Próxima fatia e decisões aprovadas pendentes
 
-A fase ativa é [BL04](BL04-context-and-ai-production.md). Completar a coordenação
-interna de fontes, aceite único existente, plano/acesso e orçamento por tenant/
-agregado, com mocks e prova concorrente, antes de conectar provedor real. O
-workflow visual tem teste Temporal, mas ainda está separado do worker/dispatcher.
+A fase ativa é [BL04](BL04-context-and-ai-production.md). A parte 1 entrega a
+guarda concreta de fontes, aceite, acesso, reserva/claim e resultado privado,
+incluindo roteiro/cobrança e troca de telefone, com roles existentes e mocks.
+A próxima fatia é a **parte 2**: modo real explícito na persistência/API e ligação
+do workflow/runner ao dispatcher/worker, com percurso ponta a ponta simulado.
+A **parte 3** faz a chamada real controlada com credenciais/fontes/budget explícitos.
 
 A admissão `visual_fake` já revalida fontes, aceite e plano sob locks; depois de
 admitida, a criação conclui e permite revisão privada após vencimento financeiro.
 Novas criações/publicação esperam renovação. Concluídas e proveniência são
 preservadas sem limpeza por prazo; a janela de aprovação continua independente.
-O renderer local legado e a coordenação de todos os escritores ainda faltam.
+O renderer local legado ainda tem limites próprios. Escritores atuais têm o
+[protocolo documentado](../design/BL04-effect-guard.md); futuras capacidades de
+acesso precisam participar dele antes de serem adicionadas.
 Outro owner não assume pendência do autor original. A implementação da recuperação
 staff C10 foi adiada pelo proprietário em 29/10, para evolução de gestão de acesso
 e suporte; não bloqueia o fechamento do recorte simulado. A exceção permanece

@@ -294,6 +294,7 @@ async def test_review_denies_missing_briefing_and_restricted_environment(
         settings.model_copy(update={"environment": environment}), MemoryDatabase(session)
     )
     monkeypatch.setattr("app.services.whatsapp_materials.WhatsAppMaterialsService._require_owner", AsyncMock())
+    monkeypatch.setattr("app.services.visual_consent_gate.VisualConsentGate._lock", AsyncMock())
     with pytest.raises(AuthError, match="SCRIPT_CONTEXT_CHANGED"):
         await service.review_script(
             tenant, business, actor, proposal, ScriptReview(operation_id=operation, decision="accepted")
@@ -322,6 +323,11 @@ async def test_review_accepts_only_after_prepared_briefing_is_revalidated(settin
     session = SimpleNamespace(execute=AsyncMock(side_effect=execute), scalar=AsyncMock(return_value=None))
     service = EditorialProposalService(settings, MemoryDatabase(session))
     monkeypatch.setattr("app.services.whatsapp_materials.WhatsAppMaterialsService._require_owner", AsyncMock())
+    monkeypatch.setattr("app.services.visual_consent_gate.VisualConsentGate._lock", AsyncMock())
+    monkeypatch.setattr(
+        "app.services.visual_pending_changes.VisualPendingChanges.enqueue_in_session", AsyncMock(return_value=False)
+    )
+    monkeypatch.setattr("app.services.visual_pending_scripts.require_script_change_slot", AsyncMock())
     read = AsyncMock(return_value=("prepared", {"offering": {}}))
     monkeypatch.setattr(EditorialBriefingService, "read_valid", read)
     marker = object()

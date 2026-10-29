@@ -218,18 +218,19 @@ um café ou alimento inventado como foto documental. Preço vencido, foto de
 outro item e material sem direito bloqueiam a afirmação. Solicitar mudança de
 fonte bloqueia novos inícios e cancela fila não admitida; criações já iniciadas
 terminam antes de aplicar a alteração. A prévia anterior permanece identificada
-para revisão, sem dispensar direitos/aprovação. O modo simulado cobre parcialmente
-contexto, catálogo, kit e fotos; outros escritores e a coordenação real pendem.
+para revisão, sem dispensar direitos/aprovação. O modo simulado coordena contexto,
+catálogo, kit, fotos e edição/revisão de roteiro; a guarda concreta revalida acesso,
+orçamento/claim e resultado privado com writers financeiros coordenados.
 
-**Próxima fatia:** completar a guarda interna de fontes, aceite único, acesso,
-plano e orçamento por tenant/agregado, com concorrência e mocks; só então ligar
-workflow/dispatcher/provedor real. `VisualEffectGuard` ainda é interface e o
-workflow visual separado não está registrado no worker. O ledger agregado
+**Próxima fatia (parte 2):** modo real explícito na persistência/API e ligação
+workflow/dispatcher/worker/runner à guarda concreta da parte 1, com percurso
+simulado ponta a ponta. Parte 3 faz a chamada real controlada. O workflow visual
+separado ainda não está registrado no worker. O ledger agregado
 OpenAI já existe. A admissão `visual_fake` já revalida fontes/aceite/plano sob
 locks; sua criação admitida conclui e permite revisão após vencimento financeiro,
 enquanto novos inícios/publicação aguardam renovação. Prévias concluídas e sua
 proveniência não são apagadas por prazo; a janela de aprovação permanece distinta.
-Faltam continuidade do renderer local legado, demais escritores e recuperação
+Faltam continuidade do renderer local legado e recuperação
 auditada de autor sem acesso por staff. Outro owner já não assume sua pendência;
 a implementação do suporte C10 foi adiada pelo proprietário em 29/10, para evolução
 de gestão de acesso/suporte, sem bloquear o fechamento da fatia simulada. A exceção

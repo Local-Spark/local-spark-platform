@@ -40,7 +40,7 @@ não afirmar que documentação, flag ou migration isoladas já a resolveram.
 | C03 | Um número de cliente WhatsApp ativo por negócio na primeira versão. | Vínculo único local. Múltiplos números e sua experiência ficam para evolução posterior. |
 | C04 | Envios WhatsApp associados ao negócio são preservados sem expiração automática e não oferecem exclusão pelo histórico, para texto, imagem, áudio e vídeo. | Migration 0058 e leitores adaptados; API recusa exclusão. Eventos técnicos não atribuídos e uploads órfãos têm limpeza própria. Preservação não cria automaticamente memória pesquisável ou produto confirmado. |
 | C05 | Trocar de número não interrompe o processamento de materiais já associados. A futura prévia e aprovação seguem para o número ativo novo. | Processamento e entrega simulada adaptados. Envio real de candidata WhatsApp pendente. Mensagens ainda não associadas não ganham origem retroativa por suposição. |
-| C06 | Alterar kit, foto do acervo ou contexto durante uma criação aguarda os processos iniciados; cancela a fila ainda não iniciada e bloqueia novas admissões até aplicar a mudança. | Parcial no modo simulado: contexto, catálogo, confirmação de kit e fotos. Cobertura de todos os escritores, recuperação e integração real ainda faltam. |
+| C06 | Alterar kit, foto do acervo ou contexto durante uma criação aguarda os processos iniciados; cancela a fila ainda não iniciada e bloqueia novas admissões até aplicar a mudança. | Modo simulado coordena contexto, catálogo, kit, fotos e edição/revisão de roteiro. Guarda concreta e writers financeiros coordenados com roles existentes; conexão real é a parte 2. Novos writers de acesso exigem o mesmo protocolo. |
 | C07 | A prévia anterior à alteração continua disponível para revisão e deve ser identificada como anterior à mudança. | Há provas e campos no fluxo simulado. Preservar para revisão não confirma fatos vencidos, direitos ou aprovação de publicação. |
 | C08 | Se o plano vencer durante uma criação já iniciada, concluir e permitir revisar a prévia privada; bloquear novas criações e publicação até renovar. | Implementado no recorte `visual_fake`: admissão durável com plano vigente e continuidade/revisão após vencimento financeiro. Bloqueio explícito, revogação de patrocínio e perda de identidade/membership continuam distintos. Novos inícios/publicação exigem plano. A exceção de conclusão ainda não cobre o renderer local legado nem o provedor real. |
 | C09 | Preservar as prévias geradas sem expiração automática enquanto a conta estiver ativa. | Prévias concluídas saem do purge por prazo; propostas, roteiro e snapshots referenciados são conservados e a revisão histórica usa links privados. Tentativas visuais iniciadas sem resultado resolvido também são preservadas. `expires_at` continua delimitando criação/aprovação, sem apagar a concluída. URL assinada e validade factual mantêm prazos próprios. Sem exclusão automática após encerramento nesta etapa. |
@@ -89,12 +89,29 @@ pedir outra autorização individual de IA ao cliente.
 
 ## Próxima entrega após a fatia simulada
 
-Concluir a coordenação dos escritores/fontes/orçamento ainda não cobertos na
-BL04.2, usando o aceite único C01. C10 foi adiada conforme a prioridade acima.
+Conectar modo real/API, dispatcher/worker e runner à guarda concreta da parte 1,
+usando o aceite único C01; testar o percurso com mocks antes da chamada paga
+controlada da parte 3. C10 foi adiada conforme a prioridade acima.
 A admissão simulada
-agora revalida proposta/fontes/aceite/plano antes do run durável; reserva e fence
-continuam em outra transação/role, com falhas bloqueantes. Só conectar o provedor
+revalida proposta/fontes/aceite/plano antes do run durável; reserva e fence
+continuam em outra transação/role. A fatia de recuperação de 29/10 acrescenta
+prova de ausência de tentativa/reserva e encerramento da prévia antes de liberar
+o run original, com replay somente da reconciliação. Reservas e resultados incertos
+continuam bloqueantes; não houve nova decisão de produto ou ampliação de roles.
+Só conectar o provedor
 visual após demonstrar concorrência, recuperação, orçamento e ausência de
-submissão duplicada. A fatia passou em `make ci`, com 1.642 testes e 100% de linhas
-e branches; evidência no CHANGELOG. Não houve chamada paga ou integração real
+submissão duplicada. A entrega anterior de admissão/continuidade passou em `make ci`,
+com 1.642 testes e 100% de linhas e branches; a evidência da fatia de recuperação
+fica no CHANGELOG. Não houve chamada paga ou integração real
 habilitada.
+
+## Esclarecimento de jornada — 29/10/2026
+
+O proprietário reafirmou que a IA cria o roteiro a partir da mensagem WhatsApp e
+do contexto do negócio. O cliente revisa a prévia e pede ajustes; o editor manual
+existente é ferramenta interna do laboratório DEV, não uma etapa da jornada do
+cliente. A coordenação dessa ferramenta integra a proteção de fontes da parte 1.
+Quando outra alteração já aguarda aplicação, o laboratório conserva o formulário
+e pede retry depois; não cria um segundo comando conflitante. Isso é tratamento
+técnico interno, sem nova decisão de produto, editor obrigatório ou entrega do
+ajuste automático WhatsApp, que permanece BL05.

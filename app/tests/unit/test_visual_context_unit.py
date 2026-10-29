@@ -138,10 +138,9 @@ async def test_capture_is_owner_scoped_and_only_exposes_ids_and_keyed_fingerprin
         "whatsapp_processing_consents",
         "intent_jev_consents",
         "editorial_ai_consents",
-        "whatsapp_channel_links",
     ],
 )
-async def test_withdraw_and_regrant_or_relink_invalidates_old_fingerprint(setup_case, changed):
+async def test_withdraw_and_regrant_invalidates_old_fingerprint(setup_case, changed):
     c = setup_case
     before = await c.service.capture(*c.ids[:4])
     if changed == "visual_ai_consents":
@@ -150,6 +149,13 @@ async def test_withdraw_and_regrant_or_relink_invalidates_old_fingerprint(setup_
         c.session.consent_dates[changed] = "new grant"
     after = await c.service.capture(*c.ids[:4])
     assert before.fingerprint != after.fingerprint
+
+
+async def test_channel_relink_does_not_invalidate_already_attributed_source(setup_case):
+    c = setup_case
+    before = await c.service.capture(*c.ids[:4])
+    c.session.consent_dates["whatsapp_channel_links"] = "new channel proof"
+    assert before.fingerprint == (await c.service.capture(*c.ids[:4])).fingerprint
 
 
 @pytest.mark.parametrize(

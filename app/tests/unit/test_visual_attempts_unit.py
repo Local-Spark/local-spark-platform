@@ -31,7 +31,7 @@ def setup(settings, *, row=True, owner=True, previous=None, reservation=None):
         "reserved_usd_micros": 100,
     }
     session = MagicMock()
-    session.scalar = AsyncMock(return_value=owner)
+    session.scalar = AsyncMock(side_effect=[True, owner, True])
     session.execute = AsyncMock(side_effect=[mapped({"id": preview} if row else None), mapped(previous), None])
 
     @asynccontextmanager
@@ -54,6 +54,8 @@ async def test_new_fenced_reservation_records_intent_in_same_transaction(setting
     assert "FOR UPDATE" in str(session.execute.await_args_list[0].args[0])
     assert "INSERT INTO visual_ai_attempts" in str(session.execute.await_args_list[2].args[0])
     assert service.ledger.reserve_in_transaction.await_args.args[0] is session
+    assert "clock_timestamp()" in str(session.scalar.await_args_list[0].args[0])
+    assert "clock_timestamp()" in str(session.scalar.await_args_list[2].args[0])
 
 
 async def test_stale_fence_and_inactive_owner_cannot_reserve(settings):
@@ -65,6 +67,16 @@ async def test_stale_fence_and_inactive_owner_cannot_reserve(settings):
     with pytest.raises(VisualCostError, match="VISUAL_OWNER_REQUIRED"):
         await service.reserve(**params)
     service.ledger.reserve_in_transaction.assert_not_awaited()
+
+
+@pytest.mark.parametrize("expired_after_ledger", [False, True])
+async def test_expiry_after_lock_wait_never_records_attempt(settings, expired_after_ledger):
+    service, session, params = setup(settings)
+    session.scalar.side_effect = [True, True, False] if expired_after_ledger else [False]
+    with pytest.raises(VisualCostError, match="VISUAL_PREVIEW_FENCE_INVALID"):
+        await service.reserve(**params)
+    assert service.ledger.reserve_in_transaction.await_count == int(expired_after_ledger)
+    assert all("INSERT INTO visual_ai_attempts" not in str(call.args[0]) for call in session.execute.await_args_list)
 
 
 async def test_same_operation_replay_never_creates_a_second_attempt(settings):

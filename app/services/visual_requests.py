@@ -8,24 +8,15 @@ import hashlib
 import hmac
 import json
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
-from typing import Any
 from uuid import UUID
-from zoneinfo import ZoneInfo
-
-from sqlalchemy import text
 
 from app.adapters.material_media import MaterialStore
 from app.adapters.visual_ai import VisualRequest
 from app.core.config import Settings
 from app.db.session import Database
-from app.schemas.brand_kits import BrandKitOverrides
-from app.schemas.editorial_context import ContextContent
-from app.schemas.editorial_proposals import ProposalDraft
 from app.services.auth import AuthError
-from app.services.editorial_briefings import EditorialBriefingService
-from app.services.editorial_proposals import _COMMERCIAL_CLAIM, _catalog_fact
 from app.services.visual_context import VisualContextService, VisualContextSnapshot
+from app.services.visual_copy_authorization import authorize_visual_copy
 from app.services.visual_references import VisualReferenceService, VisualReferenceSource
 
 _MODEL = "gpt-image-2.5-flare-2026-09-08"
@@ -76,53 +67,10 @@ class VisualRequestService:
             tenant, business, actor, proposal, candidate=candidate
         )
         async with self.database.transaction(tenant, actor) as session:
-            status, catalog = await EditorialBriefingService(self.settings, self.database).read_valid(
-                session, tenant, business, actor, refs.context.briefing_id
+            copy = await authorize_visual_copy(
+                session, self.settings, self.database, tenant, business, actor, proposal, refs.context.briefing_id
             )
-            result = await session.execute(
-                text("""SELECT brand_kit_document,document,context_version FROM editorial_proposals
-                  WHERE tenant_id=:tenant AND business_id=:business AND id=:proposal"""),
-                {"tenant": tenant, "business": business, "proposal": proposal},
-            )
-            row = result.mappings().one_or_none()
-            if status != "prepared" or catalog is None or row is None or row["brand_kit_document"] is None:
-                raise AuthError("VISUAL_CONTEXT_CHANGED", 409)
-            kit = BrandKitOverrides.model_validate(row["brand_kit_document"]["overrides"])
-            draft = ProposalDraft.model_validate(row["document"])
-            offering: Any = catalog["offering"]
-            product_name = offering["name"]
-            fact_scenes = [scene for scene in draft.script if scene.role == "fact"]
-            cta_scenes = [scene for scene in draft.script if scene.role == "cta"]
-            if len(fact_scenes) != 1 or len(fact_scenes[0].fact_ids) != 1 or len(cta_scenes) != 1:
-                raise AuthError("VISUAL_COPY_UNVERIFIED", 409)
-            scene = fact_scenes[0]
-            catalog_fact = _catalog_fact(catalog)
-            statement = None
-            if catalog_fact is not None and str(scene.fact_ids[0]) == catalog_fact["id"]:
-                statement = str(catalog_fact["statement"]).rstrip(". ") + "."
-            elif row["context_version"]:
-                params = {"tenant": tenant, "business": business, "version": row["context_version"]}
-                context_doc = await session.scalar(
-                    text("""SELECT document FROM business_context_versions
-                  WHERE tenant_id=:tenant AND business_id=:business AND version=:version"""),
-                    params,
-                )
-                timezone = await session.scalar(
-                    text("""SELECT timezone FROM businesses
-                  WHERE tenant_id=:tenant AND id=:business"""),
-                    params,
-                )
-                if context_doc is not None and timezone is not None:
-                    context = ContextContent.model_validate(context_doc)
-                    today = datetime.now(UTC).astimezone(ZoneInfo(timezone)).date()
-                    fact = next((item for item in context.facts if item.id == scene.fact_ids[0]), None)
-                    if fact is not None and (fact.valid_until is None or fact.valid_until >= today):
-                        statement = fact.statement.rstrip(". ") + "."
-            if statement is None or scene.on_screen_text != statement or scene.voiceover != statement:
-                raise AuthError("VISUAL_COPY_UNVERIFIED", 409)
-            cta = cta_scenes[0].on_screen_text
-            if _COMMERCIAL_CLAIM.search(cta):
-                raise AuthError("VISUAL_COPY_UNVERIFIED", 409)
+        kit, product_name, statement, cta = copy.kit, copy.product_name, copy.statement, copy.cta
         current = await VisualContextService(self.settings, self.database).capture(
             tenant, business, actor, proposal, candidate=candidate
         )

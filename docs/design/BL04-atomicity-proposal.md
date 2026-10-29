@@ -1,10 +1,13 @@
 # BL04.2 — coordenação transacional antes da geração visual real
 
-Atualizado em **29/10/2026**. Estado: **admissão simulada implementada no recorte
-descrito abaixo; guarda real não implementada**. O [SDD BL04](../phases/BL04-context-and-ai-production.md)
+Atualizado em **29/10/2026**. Estado: **análise e recortes anteriores preservados;
+guarda concreta da parte 1 implementada em simulação**. O protocolo atual está
+no [desenho da guarda](BL04-effect-guard.md); as referências a escritores e guarda
+pendentes abaixo registram o inventário anterior, complementado por essa entrega.
+O [SDD BL04](../phases/BL04-context-and-ai-production.md)
 define a fase; o [registro de decisões](../DECISIONS.md) define produto e dúvidas.
 
-## Problema ainda vigente
+## Problema que motivou o protocolo
 
 O preparo e a revalidação de contexto, kit, acervo e contrato usam a sessão owner.
 A admissão simulada agora revalida essas fontes e o plano sob locks antes de
@@ -14,8 +17,9 @@ separados e não demonstram uma guarda integral de submissão paga. O run bloque
 as mudanças já coordenadas; escritores ainda não cobertos podem deixar janelas
 concorrentes. Fence protege o commit de um worker vencido; sozinho não impede gasto.
 
-`VisualEffectGuard` é somente um protocolo do orquestrador isolado. Ainda falta
-uma implementação que demonstre admissão e recuperação completas antes do envio.
+Na análise original, `VisualEffectGuard` era somente um protocolo do orquestrador
+isolado. A parte 1 entrega sua implementação concreta, prova renovada antes da
+claim e escritores atuais coordenados conforme o desenho vinculado acima.
 O workflow visual separado também não está ligado ao dispatcher/worker. Configurar
 chave, modo ou budget não fecha essas lacunas e não libera chamada real.
 
@@ -62,10 +66,44 @@ como encerramento da conta ou como autorização de acesso para owner revogado.
    correlator continua vinculando fence, tentativa e ledger em sua transação,
    com orçamento por tenant e agregado aplicável já existentes. Não foram
    criadas tabelas, roles ou concessões de leitura adicionais nesta fatia.
-4. Um run existente não autoriza nova execução. Falha entre commits, lease vencida
-   ou resultado incerto conservam a evidência e bloqueiam repetição; não se presume
-   rollback conjunto nem conclusão do efeito externo. Tentativas visuais iniciadas
-   sem resultado resolvido não são apagadas pelo purge.
+4. Um run existente não autoriza nova execução. Duplicata viva não falha o original.
+   Falha entre commits, lease vencida ou resultado incerto conservam a evidência e
+   bloqueiam repetição; não se presume rollback conjunto nem conclusão do efeito
+   externo. Tentativas visuais iniciadas sem resultado resolvido não são apagadas
+   pelo purge. A recuperação sem reserva segue o protocolo abaixo.
+
+### Protocolo entregue de aborto sem reserva
+
+O serviço `VisualAdmissionRecovery` lê o run com o ator original na role owner e
+fecha essa sessão. Na role correlator, adquire prévia → advisory ledger tenant,
+confere escopo/modo fake, estado, fence/lease e ausência de arquivo/hash; exige
+ausência tanto de tentativa por prévia/operação quanto de reserva por operação,
+inclusive não vinculada. Só recupera prévia falhada, lease vencida ou fence novo.
+A prévia vira `failed`/`VISUAL_ADMISSION_ABORTED`, com auditoria transacional.
+Assim, a tentativa tardia não consegue reservar nem concluir. Depois do commit
+confirmado, a role owner chama `finish` com a operação/fence originais e aplica
+as alterações elegíveis. Não há locks entre sessões, IO de objetos, nova role,
+tabela, grant ou função privilegiada nesse protocolo.
+
+Se a confirmação de qualquer commit se perde, repetir somente a reconciliação.
+A prova terminal conserva sua identidade e não duplica auditoria. Reserva existente
+ou incerta conserva run/hold; ausência de lease não prova ausência de efeito.
+Se a liquidação não é confirmada, o renderer não conclui o run em seu `finally`.
+Autor sem acesso mantém a exceção C10; não assumir sua identidade.
+
+O renderer chama o serviço em redispatch com run existente e após falha conhecida
+sem reserva. Uma execução viva retorna sem alterar o original. Prévia vencida,
+falhada ou com tentativas exauridas fora do redispatch exige invocação interna
+explícita; não foi adicionado consumidor periódico ou ação administrativa.
+Concluídas com reserva e resultados incertos também não são recuperados por esse
+protocolo de ausência. Essas reconciliações permanecem na próxima fatia.
+
+Reserva e claim fazem nova verificação com `clock_timestamp()` depois dos locks;
+reserva revalida também após aguardar o ledger/agregado. Prazo vencido reverte a
+transação inteira, inclusive total agregado. Provas PostgreSQL de orçamento unem
+admissão owner real e tentativa correlator, sem adapter/rede. Provas de kit/logo
+confirmam espera, bloqueio de novos inícios, cancelamento da fila e revisão com a
+fonte anterior; logo ready é imutável, sua seleção muda só na confirmação do kit.
 
 A exceção financeira consulta o run/fence efetivo durante execução e o resultado
 concluído na revisão. Vencimento não é bloqueio financeiro explícito, revogação
@@ -99,7 +137,7 @@ Preparar bytes, ler/escrever storage e chamar fornecedor sempre fora de locks e
 transações. Verificação posterior não desfaz uma chamada já cobrada; o controle
 precisa impedir admissão inválida antes dela.
 
-## Cobertura parcial e escritores ainda a inventariar
+## Inventário inicial, complementado na parte 1
 
 O modo simulado já coordena alterações/restauração de contexto, catálogo,
 confirmação de kit e inclusão/alteração/exclusão de fotos do acervo, com plano e

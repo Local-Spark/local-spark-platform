@@ -11,6 +11,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import Settings
 from app.db.session import Database
 from app.services.auth import AuthError
 from app.services.service_agreement_scope import (
@@ -27,8 +28,8 @@ GateState = Literal["active", "revocation_pending", "revoked"]
 
 
 class VisualConsentGate:
-    def __init__(self, database: Database) -> None:
-        self.database = database
+    def __init__(self, database: Database, settings: Settings | None = None) -> None:
+        self.database, self.settings = database, settings
 
     @staticmethod
     async def _lock(session: AsyncSession, tenant: UUID, business: UUID, actor: UUID) -> None:
@@ -296,10 +297,13 @@ class VisualConsentGate:
                         params,
                     )
                     await self._audit(session, tenant, business, actor, "visual.ai_revoked")
-                    await VisualPendingChanges.apply_pending_in_session(session, tenant, business)
-                    return "revoked"
+                    state = "revoked"
             await VisualPendingChanges.apply_pending_in_session(session, tenant, business)
-            return state
+        if self.settings is not None:
+            from app.services.visual_pending_scripts import apply_pending_script_changes
+
+            await apply_pending_script_changes(self.settings, self.database, tenant, business, actor)
+        return state
 
     async def withdrawn_preview_consent(
         self, tenant: UUID, business: UUID, actor: UUID, preview: UUID

@@ -55,6 +55,9 @@ def visual_case(settings, monkeypatch):
     monkeypatch.setattr("app.services.visual_consent_gate.VisualConsentGate._state", AsyncMock(return_value="active"))
     monkeypatch.setattr("app.services.visual_consent_gate.VisualConsentGate.admit", AsyncMock(return_value=True))
     monkeypatch.setattr("app.services.visual_consent_gate.VisualConsentGate.finish", AsyncMock(return_value="active"))
+    monkeypatch.setattr(
+        "app.services.visual_admission_recovery.VisualAdmissionRecovery.recover", AsyncMock(return_value=False)
+    )
     monkeypatch.setattr("app.services.media_previews.PreviewRead.model_validate", lambda row: row)
     row = {
         "tenant_id": tenant,
@@ -133,9 +136,11 @@ async def test_visual_fake_worker_checks_agreement_before_admission(visual_case,
     service = MediaPreviewService(c.cfg, db, AsyncMock())
     service._fail = AsyncMock(return_value="failed")
     preview = uuid4()
-    assert await service._render_visual_fake(preview, 1) == "failed"
-    error = "VISUAL_OUTCOME_UNCERTAIN" if allowed else "SERVICE_AGREEMENT_REQUIRED"
-    service._fail.assert_awaited_once_with(preview, 1, error, False)
+    assert await service._render_visual_fake(preview, 1) == ("skipped" if allowed else "failed")
+    if allowed:
+        service._fail.assert_not_awaited()
+    else:
+        service._fail.assert_awaited_once_with(preview, 1, "SERVICE_AGREEMENT_REQUIRED", False)
     assert admit.await_count == int(allowed)
     c.prepare.assert_not_awaited()
 
@@ -149,8 +154,38 @@ async def test_existing_admission_never_starts_a_second_execution(visual_case, m
     db, _ = _database([c.row])
     service = MediaPreviewService(c.cfg, db, AsyncMock())
     service._fail = AsyncMock(return_value="failed")
-    assert await service._render_visual_fake(uuid4(), 1) == "failed"
+    assert await service._render_visual_fake(uuid4(), 1) == "skipped"
     c.prepare.assert_not_awaited()
+    finish.assert_not_awaited()
+
+
+async def test_replayed_unreserved_obsolete_admission_is_aborted(visual_case, monkeypatch):
+    c = visual_case
+    monkeypatch.setattr("app.services.visual_consent_gate.VisualConsentGate.admit", AsyncMock(return_value=False))
+    recover = AsyncMock(return_value=True)
+    monkeypatch.setattr("app.services.visual_admission_recovery.VisualAdmissionRecovery.recover", recover)
+    db, _ = _database([c.row])
+    store = AsyncMock()
+    assert await MediaPreviewService(c.cfg, db, store)._render_visual_fake(uuid4(), 2) == "failed"
+    recover.assert_awaited_once()
+    c.prepare.assert_not_awaited()
+    store.put.assert_not_awaited()
+
+
+async def test_lost_settlement_acknowledgement_keeps_admission_blocking(visual_case, monkeypatch):
+    c = visual_case
+    finish = AsyncMock()
+    monkeypatch.setattr("app.services.visual_consent_gate.VisualConsentGate.finish", finish)
+    monkeypatch.setattr(
+        "app.services.visual_attempts.VisualAttemptService.reserve",
+        AsyncMock(return_value=SimpleNamespace(created=True, reservation=SimpleNamespace(id=uuid4()))),
+    )
+    monkeypatch.setattr(
+        "app.services.visual_cost_ledger.VisualCostLedger.finish", AsyncMock(side_effect=RuntimeError("lost ack"))
+    )
+    db, _ = _database([c.row, c.row])
+    with pytest.raises(RuntimeError, match="lost ack"):
+        await MediaPreviewService(c.cfg, db, AsyncMock())._render_visual_fake(uuid4(), 1)
     finish.assert_not_awaited()
 
 

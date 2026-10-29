@@ -140,11 +140,6 @@ class VisualContextService:
               AND business_id=:business AND revoked_at IS NULL), {contract_at})"""),
             params,
         )
-        channel_link = await session.scalar(
-            text("""SELECT linked_at FROM whatsapp_channel_links WHERE tenant_id=:tenant
-              AND business_id=:business AND actor_id=:actor AND active"""),
-            {**params, "actor": actor},
-        )
         proposal = (
             (
                 await session.execute(
@@ -242,6 +237,9 @@ class VisualContextService:
         )
         if context_version != proposal["context_version"]:
             raise AuthError("VISUAL_CONTEXT_CHANGED", 409)
+        # The source is already attributed to this business. A new channel proof
+        # changes the delivery destination, not its provenance or authorization
+        # to finish admitted work (C05); do not fingerprint the current link.
         # These are server-side documents verified in the same owner-scoped transaction.
         # They are fingerprinted, not exported to logs or a provider.
         digest = _fingerprint(
@@ -265,7 +263,6 @@ class VisualContextService:
                 "whatsapp_consent": whatsapp_consent,
                 "jev_consent": jev_consent,
                 "editorial_consent": editorial_consent,
-                "channel_link": channel_link,
             },
         )
         return VisualContextSnapshot(

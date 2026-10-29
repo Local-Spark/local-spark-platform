@@ -5,7 +5,7 @@ import hashlib
 import io
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
-from uuid import uuid4
+from uuid import NAMESPACE_URL, uuid4, uuid5
 
 import pytest
 from PIL import Image, ImageChops, ImageStat
@@ -14,6 +14,7 @@ from app.adapters.brand_overlay import BrandOverlayError
 from app.adapters.material_media import FetchedMedia
 from app.adapters.visual_ai import VisualAIError, VisualResult
 from app.services.auth import AuthError
+from app.services.editorial_consent_scope import current_visual_run
 from app.services.visual_provider_execution import VisualSubmissionError
 from app.services.visual_real_orchestrator import (
     VisualRealOrchestrator,
@@ -74,7 +75,7 @@ async def test_success_requires_admission_revalidation_and_commit(case):
     c.guard.authorize.assert_awaited_once()
     assert c.guard.current.await_count == 3
     c.guard.commit.assert_awaited_once()
-    c.guard.finish.assert_awaited_once_with(c.scope, completed=True)
+    c.guard.finish.assert_awaited_once_with(c.scope, completed=True, effect_resolved=True)
     c.submit.assert_awaited_once()
     key, stored = c.store.put.await_args.args
     assert key.startswith(f"previews/{c.scope.tenant}/{c.scope.business}/{c.scope.preview}/attempt-2/")
@@ -133,7 +134,7 @@ async def test_changed_scope_is_discarded_before_reserving(case, field):
     assert await c.service.run(c.scope) == "stale"
     c.guard.authorize.assert_not_awaited()
     c.submit.assert_not_awaited()
-    c.guard.finish.assert_awaited_once_with(c.scope, completed=False)
+    c.guard.finish.assert_awaited_once_with(c.scope, completed=False, effect_resolved=False)
 
 
 @pytest.mark.parametrize("check", [0, 1, 2])
@@ -144,7 +145,7 @@ async def test_changed_context_before_or_after_upload_never_becomes_visible(case
     c.guard.commit.assert_not_awaited()
     assert c.store.put.await_count == int(check == 2)
     assert c.store.delete.await_count == int(check == 2)
-    c.guard.finish.assert_awaited_once_with(c.scope, completed=False)
+    c.guard.finish.assert_awaited_once_with(c.scope, completed=False, effect_resolved=True)
 
 
 async def test_expired_fence_discards_only_its_own_object(case):
@@ -153,7 +154,7 @@ async def test_expired_fence_discards_only_its_own_object(case):
     assert await c.service.run(c.scope) == "stale"
     key = c.store.put.await_args.args[0]
     c.store.delete.assert_awaited_once_with(key)
-    c.guard.finish.assert_awaited_once_with(c.scope, completed=False)
+    c.guard.finish.assert_awaited_once_with(c.scope, completed=False, effect_resolved=True)
 
 
 @pytest.mark.parametrize(
@@ -178,13 +179,86 @@ async def test_pre_call_failure_closes_admission_but_cancellation_does_not(case)
     c.brand.prepare.side_effect = ValueError("synthetic")
     with pytest.raises(ValueError):
         await c.service.run(c.scope)
-    c.guard.finish.assert_awaited_once_with(c.scope, completed=False)
+    c.guard.finish.assert_awaited_once_with(c.scope, completed=False, effect_resolved=False)
     c.guard.finish.reset_mock()
     c.brand.prepare.side_effect = None
     c.submit.side_effect = asyncio.CancelledError
     with pytest.raises(asyncio.CancelledError):
         await c.service.run(c.scope)
     c.guard.finish.assert_not_awaited()
+
+
+@pytest.mark.parametrize("error", [RuntimeError("lost reservation acknowledgement"), AuthError("OWNER_LOST", 403)])
+async def test_authorization_failure_does_not_claim_a_resolved_financial_effect(case, error):
+    c = case
+    c.guard.authorize.side_effect = error
+    if isinstance(error, AuthError):
+        assert await c.service.run(c.scope) == "stale"
+    else:
+        with pytest.raises(RuntimeError, match="lost reservation acknowledgement"):
+            await c.service.run(c.scope)
+    c.guard.finish.assert_awaited_once_with(c.scope, completed=False, effect_resolved=False)
+    c.submit.assert_not_awaited()
+    c.store.put.assert_not_awaited()
+
+
+@pytest.mark.parametrize("failure", [None, "prepare", "authorize", "provider"])
+async def test_admitted_context_is_available_throughout_execution_and_always_resets(case, failure):
+    c = case
+    expected_operation = uuid5(NAMESPACE_URL, f"visual-preview:{c.scope.preview}")
+    before = current_visual_run()
+    observed = []
+
+    def check(stage):
+        actual = current_visual_run()
+        assert actual is not None
+        assert (actual.tenant, actual.business, actual.actor, actual.operation, actual.fence) == (
+            c.scope.tenant,
+            c.scope.business,
+            c.scope.actor,
+            expected_operation,
+            c.scope.fence,
+        )
+        observed.append(stage)
+
+    brand_data = c.brand.prepare.return_value
+
+    async def prepare(*_args, **_kwargs):
+        check("prepare")
+        if failure == "prepare":
+            raise RuntimeError("synthetic failure")
+        return brand_data
+
+    async def authorize(*_args):
+        check("authorize")
+        if failure == "authorize":
+            raise RuntimeError("synthetic failure")
+        return object()
+
+    async def provider(**_kwargs):
+        check("provider")
+        if failure == "provider":
+            raise asyncio.CancelledError
+        return c.result
+
+    async def finish(*_args, **_kwargs):
+        check("finish")
+
+    c.brand.prepare.side_effect = prepare
+    c.guard.authorize.side_effect = authorize
+    c.submit.side_effect = provider
+    c.guard.finish.side_effect = finish
+    if failure is None:
+        assert await c.service.run(c.scope) == "completed"
+        assert observed == ["prepare", "authorize", "provider", "finish"]
+    else:
+        with pytest.raises(asyncio.CancelledError if failure == "provider" else RuntimeError):
+            await c.service.run(c.scope)
+        if failure == "provider":
+            c.guard.finish.assert_not_awaited()
+        else:
+            assert observed[-1] == "finish"
+    assert current_visual_run() is before
 
 
 async def test_failed_upload_attempts_cleanup_without_claiming_completion(case):
@@ -194,7 +268,7 @@ async def test_failed_upload_attempts_cleanup_without_claiming_completion(case):
     with pytest.raises(RuntimeError):
         await c.service.run(c.scope)
     c.store.delete.assert_awaited_once()
-    c.guard.finish.assert_awaited_once_with(c.scope, completed=False)
+    c.guard.finish.assert_awaited_once_with(c.scope, completed=False, effect_resolved=True)
 
 
 @pytest.mark.parametrize("check", [0, 1, 2])
@@ -203,7 +277,7 @@ async def test_failed_revalidation_after_provider_finishes_admission(case, check
     c.guard.current.side_effect = [True] * check + [RuntimeError("synthetic")]
     with pytest.raises(RuntimeError, match="synthetic"):
         await c.service.run(c.scope)
-    c.guard.finish.assert_awaited_once_with(c.scope, completed=False)
+    c.guard.finish.assert_awaited_once_with(c.scope, completed=False, effect_resolved=True)
     assert c.store.delete.await_count == int(check == 2)
 
 
@@ -224,7 +298,7 @@ async def test_resolved_rejected_commit_finishes_even_when_cleanup_fails(case):
     c.store.delete.side_effect = RuntimeError("synthetic")
     with pytest.raises(RuntimeError, match="synthetic"):
         await c.service.run(c.scope)
-    c.guard.finish.assert_awaited_once_with(c.scope, completed=False)
+    c.guard.finish.assert_awaited_once_with(c.scope, completed=False, effect_resolved=True)
 
 
 async def test_kit_change_after_provider_response_discards_and_finishes(case):
@@ -233,7 +307,7 @@ async def test_kit_change_after_provider_response_discards_and_finishes(case):
     assert await c.service.run(c.scope) == "stale"
     c.submit.assert_awaited_once()
     c.store.put.assert_not_awaited()
-    c.guard.finish.assert_awaited_once_with(c.scope, completed=False)
+    c.guard.finish.assert_awaited_once_with(c.scope, completed=False, effect_resolved=True)
 
 
 async def test_local_finish_error_finishes_but_unknown_provider_error_does_not(case):
@@ -241,7 +315,7 @@ async def test_local_finish_error_finishes_but_unknown_provider_error_does_not(c
     c.brand.finish.side_effect = BrandOverlayError("BRAND_COPY_TOO_LONG")
     with pytest.raises(BrandOverlayError):
         await c.service.run(c.scope)
-    c.guard.finish.assert_awaited_once_with(c.scope, completed=False)
+    c.guard.finish.assert_awaited_once_with(c.scope, completed=False, effect_resolved=True)
     c.guard.finish.reset_mock()
     c.brand.finish.side_effect = None
     c.submit.side_effect = AuthError("synthetic", 409)
@@ -260,7 +334,7 @@ async def test_failed_output_validation_never_persists_and_finishes(case):
     with pytest.raises(VisualRunError, match="VISUAL_OUTPUT_INVALID"):
         await c.service.run(c.scope)
     c.store.put.assert_not_awaited()
-    c.guard.finish.assert_awaited_once_with(c.scope, completed=False)
+    c.guard.finish.assert_awaited_once_with(c.scope, completed=False, effect_resolved=True)
 
 
 @pytest.mark.parametrize("fence,fingerprint", [(0, "a" * 64), (1, "bad"), (1, "z" * 64)])

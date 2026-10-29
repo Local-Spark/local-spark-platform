@@ -69,8 +69,6 @@ class EditorialBriefingService:
                 await session.execute(
                     text(f"""SELECT a.kind,a.ciphertext,a.transcript_ciphertext
                       FROM whatsapp_material_assets a JOIN whatsapp_material_events e ON e.id=a.id
-                      JOIN whatsapp_channel_links l ON l.tenant_id=e.tenant_id AND l.business_id=e.business_id
-                        AND l.actor_id=:actor
                       LEFT JOIN whatsapp_processing_consents c ON c.tenant_id=e.tenant_id
                         AND c.business_id=e.business_id
                       WHERE a.id=:source AND a.tenant_id=:tenant AND a.business_id=:business
@@ -87,6 +85,9 @@ class EditorialBriefingService:
         )
         if row is None:
             raise AuthError("MATERIAL_NOT_FOUND", 404)
+        # Attribution is durable on asset/event, while the channel's owner and
+        # phone can change. Current business ownership and the applicable grant
+        # above authorize this read; the current delivery link is not its origin.
         # Audio is usable only after transcription; no guessing from audio bytes.
         if row["kind"] == "audio" and not row["transcript_ciphertext"]:
             return None

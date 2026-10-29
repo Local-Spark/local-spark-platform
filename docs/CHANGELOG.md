@@ -1,5 +1,97 @@
 # Registro de mudanças
 
+## 2026-10-29 — BL04.2 parte 1: guarda concreta para a próxima conexão visual
+
+- `DatabaseVisualEffectGuard` e `GuardedVisualSubmissionClaims` implementam
+  prova owner de fontes/aceite/run, reserva por tenant/agregado, claim durável
+  única com acesso/financeiro revalidados e commit privado por versão/fence/hash.
+  Sessões mantêm suas roles e commits separados, sem novos grants ou tabelas.
+  O run conserva fontes entre as transações; não há rede sob row lock.
+- `admitted_visual_run` envolve o orquestrador inteiro. `effect_resolved` distingue
+  efeito terminado de custo conhecido: dinheiro incerto continua reservado.
+  Confirmações perdidas de reserva/claim/arquivo conservam prova/hold e objetos
+  possivelmente referenciados. Resposta conhecida tardia não vence fence novo
+  e encerra a substituta antes de liberar alterações pendentes.
+- Edição/revisão de roteiro agora enfileiram comandos, preservando a versão
+  atual até o término das criações. Aplicação acontece em nova transação
+  proposta → visual após o commit de finish; nunca visual → proposta. Autoria
+  é conservada. Alteração de outra fonte já pendente/falhada impede novo comando
+  conflitante no laboratório, que conserva formulário para retry.
+- Esclarecimento do proprietário: a IA cria roteiro a partir do WhatsApp/contexto;
+  o cliente revisa a peça e pede ajustes. Editor manual continua só no laboratório
+  DEV. A web mostra espera/falha e consulta aplicação sem antecipar sucesso;
+  `pending_change` é opcional nos contratos. Ajuste automático WhatsApp segue BL05.
+- `BillingProcessor.save` participa do comercial antes de alterar acesso.
+  Revogação de patrocínio já usava `clock_timestamp()` corretamente; regressão
+  comprova revogação em transação antiga aplicada após admissão. Usuário/membership
+  são revalidados sem criar escritores ou grants de active/papel.
+- C05: canal/telefone atuais deixam de compor a identidade da fonte atribuída,
+  e a leitura não depende do ator atual do vínculo. Mesmo com relink por outro
+  owner válido, a criação original termina e a entrega usa o novo destino.
+  Origem exige asset/event do negócio, owner ativo, estado processado e aceite;
+  nenhuma mensagem não atribuída ganha origem retroativa.
+- `authorize_visual_copy` concentra a validação de fato/texto/CTA antes existente
+  no preparo e agora também na guarda. A prova leva o limite factual/proposta/
+  preço/promoção para comparação de relógio real na claim/commit após locks,
+  evitando iniciar gasto com informação vencida durante espera.
+- Rollout: drenar fila/criações com fingerprints antigos antes do novo worker.
+  Concluídas preservam revisão pela prova histórica, sem reescrever hashes.
+- PROJECT, DECISIONS, SDD geral, fase ativa, índices e
+  [protocolo da guarda](design/BL04-effect-guard.md) registram escopo e sequência.
+  Mudanças já staged da fatia anterior foram preservadas; nenhum commit/push.
+- Próxima entrega delimitada: **parte 2**, modo real explícito na persistência/API
+  e conexão dispatcher/worker/runner com percurso simulado; **parte 3**, primeira
+  chamada real controlada com fontes, credenciais e teto de gasto explícitos.
+  C10, varredura fora do redispatch e limpeza de PUT incerto seguem operacionais,
+  mantendo exceções bloqueadas. Nenhum provedor real foi ligado nesta parte 1.
+- Validação final: `make ci` aprovado com **1.829 testes**, **100% de linhas e
+  branches** (9.284 statements/2.550 branches), Ruff/formatação e mypy (149 módulos),
+  PostgreSQL `_test` com logins restritos e Temporal locais. Web: **365 testes**
+  com **100% nas quatro métricas** (1.609 statements/2.142 branches/653 funções/
+  1.513 linhas), build/formatação e três jornadas Chromium (laboratório pendente,
+  conteúdo e aceite). As primeiras execuções web tiveram timeouts em testes
+  existentes sob concorrência e passaram sem alterar limites com `--maxWorkers=1`.
+  Links locais dos 13 documentos e `git diff --check` conferidos. Caches uv/mypy
+  isolados em `/private/tmp`; somente fontes fictícias e providers/storage/HTTP
+  simulados, sem chamada paga ou banco da aplicação.
+
+## 2026-10-29 — BL04.2: recuperação sem reserva e provas de concorrência
+
+- O renderer simulado recupera admissão obsoleta/falhada sem tentativa financeira:
+  sob locks prévia → ledger tenant, a role correlator comprova ausência de tentativa
+  e reserva (inclusive não vinculada), torna a prévia terminal e audita. Só após
+  confirmar o commit a role owner conclui o run com o ator/fence originais e aplica
+  mudanças elegíveis. Sem tabelas, grants, roles ou efeitos pagos novos.
+- Crash e confirmação perdida repetem somente a reconciliação, com prova durável
+  e auditoria sem duplicação. Um worker atrasado não reserva nem conclui; uma
+  duplicata viva não falha o original. Reserva existente/incerta impede liberação,
+  e confirmação perdida da liquidação conserva a admissão bloqueante.
+- Reserva e claim usam tempo real em nova instrução após os locks. A reserva
+  revalida também após aguardar orçamento; prazo vencido reverte tentativa, reserva
+  e agregado. Testes cobrem locks de prévia, ledger tenant e agregado OpenAI.
+- Provas integradas de admissão owner → tentativa correlator exercitam a última
+  reserva concorrente por tenant/agregado, retenção de custo incerto e ajuste
+  tardio sem crédito duplicado. Selecionar a categoria OpenAI no ledger sintético
+  não constrói adapter nem chama fornecedor.
+- Provas de kit/logo demonstram upload imutável sem alterar a fonte confirmada,
+  serialização de draft/confirmação, espera dos runs, bloqueio de novos inícios,
+  cancelamento da fila e revisão da prévia com o logo anterior.
+- PROJECT, DECISIONS, SDD geral, fase ativa e desenho de atomicidade registram
+  escopo e limites. Backend/web estavam limpos ao começar; instruções e SDDs da
+  web foram consultados, sem mudança de contrato/API ou arquivos web.
+- Permanecem: edição/revisão de roteiro, transições de acesso, recuperação de PUT
+  incerto de logo pendente, coordenação global e resultados com reserva/objeto
+  incertos. O serviço de recuperação participa do redispatch e de falha conhecida;
+  registros fora dessa fila ainda exigem invocação interna explícita, sem varredura
+  automática ou ação web/staff. C10 e retenção pós-encerramento seguem adiadas.
+- Validação final: `make ci` aprovado com **1.688 testes**, Ruff/formatação e mypy
+  (146 módulos); **100% de linhas e branches** (8.989 statements e 2.462 branches),
+  sem novas exclusões. PostgreSQL `_test` com logins restritos e Temporal locais,
+  fontes fictícias e storage/provedores simulados; nenhum banco da aplicação,
+  chamada paga ou homologação externa. Links locais e `git diff --check` aprovados.
+  Caches uv/mypy isolados em `/private/tmp` por restrição do ambiente. A web não
+  mudou e suas suítes não foram repetidas.
+
 ## 2026-10-29 — Recuperação staff C10 adiada
 
 - O proprietário decidiu registrar e implementar futuramente a recuperação de

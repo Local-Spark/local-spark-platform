@@ -110,8 +110,8 @@ configuração para `openai` não conecta o caminho real.
 Um teste sintético usa Temporal e PostgreSQL reais: material já processado,
 contexto/acervo, roteiro, dispatchers, prévia simulada com kit e revisão. Intérprete
 e storage são stubs; não chama Meta/OpenAI e não começa no webhook completo.
-Outros testes unem preparo, reserva, adapter e orquestrador com HTTP/guarda
-simulados; eles não implementam a guarda concreta de concorrência.
+Os testes iniciais uniam preparo, reserva, adapter e orquestrador com HTTP/guarda
+simulados. A parte 1 abaixo acrescenta a guarda concreta com PostgreSQL restrito.
 
 A admissão simulada agora bloqueia a proposta, depois o gate visual e o domínio
 comercial, revalidando fontes/fingerprint, usuário ativo, membership, aceite e
@@ -122,6 +122,44 @@ gravado não autoriza repetição quando a etapa seguinte falha ou fica incerta.
 Os testes adicionados exercitam captura real e concorrência PostgreSQL com
 catálogo e alteração comercial. Isso não prova serialização de todos os escritores
 nem autoriza o provedor real.
+
+### Recuperação sem reserva e concorrência — 29/10/2026
+
+`VisualAdmissionRecovery` cobre uma queda entre a admissão owner e a reserva
+correlator usando somente as tabelas, locks e roles existentes:
+
+1. Consulta o run com o ator original e o gate owner, sem transferir sua autoria.
+2. Em outra transação, bloqueia a prévia fake e depois o ledger tenant. Exige
+   prévia falhada, lease vencida ou fence substituído, sem arquivo/hash concluídos,
+   e prova ausência de tentativa e de reserva, inclusive uma reserva não vinculada.
+3. Marca a prévia como `failed`/`VISUAL_ADMISSION_ABORTED` e grava auditoria.
+   O commit impede reserva e conclusão por um worker atrasado antes de liberar
+   qualquer alteração de fonte pendente.
+4. Somente após confirmação do commit correlator chama `finish` owner com o
+   fence original. Crash/confirmação perdida permite repetir essa reconciliação;
+   a auditoria da prova terminal não duplica, e a geração nunca é retomada.
+
+Uma duplicata de execução ainda viva retorna `skipped`, conservando o trabalho
+original. Reserva existente ou incerta impede a liberação; uma liquidação sem
+confirmação também conserva a admissão. O renderer usa a recuperação ao reencontrar
+um run no redispatch e após uma falha conhecida sem reserva. Registros já fora
+da fila (prévia vencida, falhada ou tentativas exauridas) exigem invocação interna
+explícita do serviço; ainda não existe varredura automática nem ação web/staff.
+O autor sem acesso continua bloqueado conforme C10, adiada.
+
+Reserva e claim verificam `clock_timestamp()` após adquirir os locks, em nova
+instrução. A reserva verifica novamente após os locks financeiros e reverte
+tentativa/reserva/total agregado se os prazos venceram durante a espera. Os testes
+usam PostgreSQL restrito e cobrem locks da prévia, do tenant e do agregado, sem
+submeter imagem. Tetos concorrentes por tenant e agregado são exercitados com
+run owner real → tentativa correlator; custo incerto conserva a reserva e custo
+tardio comprovado ajusta apenas a diferença, sem crédito duplicado.
+
+A composição kit/logo também tem prova: upload de outro logo imutável não muda a
+fonte pronta; draft e confirmação participam do gate; confirmação espera os runs,
+bloqueia novos inícios e cancela a fila anterior. A prévia concluída continua
+revisável com o kit/logo anterior. A recuperação de PUT incerto de logo ainda
+pendente continua operacional; a parte 1 abaixo coordena edição/revisão de roteiro.
 
 A consulta e o download para revisão preservam concluídas após o prazo da prévia
 ou da proposta, sem usar esse acesso como autorização de geração/publicação.
@@ -136,12 +174,13 @@ pela limpeza nova; conservam estado e bytes para conciliação manual. Não infe
 que um arquivo já apagado foi recuperado. A revisão visual por outro owner ainda
 pode depender do ator/vínculo original, e permanece fora deste recorte.
 
-A fila durável de alterações cobre parcialmente atualização/restauração do
+A fila durável de alterações cobre atualização/restauração do
 contexto, catálogo, confirmação de kit e criação/alteração/exclusão de fotos do
 acervo. Bloqueia novas admissões, espera as iniciadas e preserva a prévia anterior
 com indicação visível. Erros previstos mantêm a alteração explícita e o bloqueio.
-Outros escritores, edição de roteiro, logos e transições de acesso ainda não
-estão coordenados integralmente. A decisão C10 já definiu recuperação exclusiva
+Edição/revisão de roteiro e writers financeiros são cobertos pela parte 1 abaixo;
+logo ready é imutável e novas capacidades de acesso devem seguir o protocolo.
+A decisão C10 já definiu recuperação exclusiva
 pela equipe da plataforma, com ação registrada/auditada. Esta fatia recusa que
 outro owner substitua ou descarte a pendência do autor original. A recuperação
 staff foi adiada pelo proprietário em 29/10 para evolução de gestão de acesso e
@@ -155,16 +194,53 @@ de PUT de tentativa única. Não há limpeza física automática da quarentena n
 fluxo de suporte para recuperar a pendência se o autor perder acesso. O rollout
 requer drenagem e avaliação dos órfãos legados conforme o [procedimento](../design/BL04-quarantine-rollout.md).
 
-## BL04.2 — caminho real ainda não conectado
+## BL04.2 — parte 1: guarda concreta e escritores coordenados
+
+`DatabaseVisualEffectGuard` e `GuardedVisualSubmissionClaims` implementam a prova
+owner de fontes/aceite/run, reserva por tenant/agregado, claim única com revalidação
+financeira/de identidade e commit privado por versão/fence/hash. As duas roles
+continuam com commits separados; run durável conserva as fontes entre eles.
+O [protocolo e inventário dos escritores atuais](../design/BL04-effect-guard.md)
+documenta a ordem dos locks, o ponto de início durável e as falhas conservadas.
+Não foram criados grants, roles ou tabelas para contornar a fronteira.
+
+Edição e revisão de roteiro agora enfileiram comandos e conservam a versão atual
+durante a criação. Após o commit de finish, a aplicação adquire proposta → visual
+em outra transação; nunca adquire proposta a partir do gate visual. Leituras do
+autor retomam aplicação pendente. O editor é ferramenta interna DEV; a IA cria o
+roteiro a partir do WhatsApp/contexto, e o cliente revisa a peça. O laboratório
+aguarda alteração de outra fonte pendente/falhada, conservando o formulário para
+retry. Contratos opcionais `pending_change` e polling não antecipam sucesso.
+
+`BillingProcessor.save` participa do lock comercial antes de mudar acesso.
+Revogação de patrocínio usa o relógio real após a espera. Usuário/membership são
+revalidados; não há writer runtime ou grant de atualização de active/papel de
+cliente. Fontes WhatsApp processadas, transcrição concluída, logo ready e briefing
+preparado são imutáveis nos fluxos atuais; mudanças de seleção usam comandos
+coordenados. Upload de logo pendente é evolução de órfãos, não fonte selecionável.
+
+Troca de telefone não muda mais o fingerprint de material já atribuído (C05),
+e a entrega usa o vínculo novo verificado. Drenar fila/criações com fingerprints
+antigos antes do rollout; concluídas antigas mantêm revisão por prova durável.
+
+O orquestrador instala/restaura `admitted_visual_run` e distingue efeito terminado
+de custo liquidado. Resposta conhecida permite concluir o run sem liberar custo
+incerto. Resposta tardia não vence fence novo; confirmação perdida de claim,
+reserva ou commit conserva prova/hold e, quando aplicável, objeto. Nenhum reenvio
+automático. A guarda está restrita à simulação persistida nesta parte 1.
+
+## BL04.2 — parte 2: caminho real ainda não conectado
 
 Há adapter de imagem, executor com CAS no ledger e orquestrador de geração e
-acabamento isolados. `VisualEffectGuard` continua uma interface (`Protocol`),
-sem implementação concreta que coordene fontes, acesso, plano e orçamento.
+acabamento isolados. `VisualEffectGuard` tem a implementação concreta acima,
+exercitada com provedor injetado simulado. API e persistência ainda não têm modo
+real distinto; a aplicação não constrói essa integração.
 O fence/reserva são atômicos entre si. No caminho simulado, fontes, aceite, plano
 e run compartilham a transação owner; a reserva continua em outra transação/role.
 Falha entre os commits conserva uma admissão bloqueante, sem reenvio automático.
-Essa sequência não é uma transação única nem comprova a coordenação integral
-para submissão paga ou a hierarquia global de locks.
+Essa sequência não é uma transação única; a barreira durável e a claim coordenam
+os escritores atuais conforme o desenho. Novas capacidades de acesso precisam
+participar do protocolo, sem inferir novos privilégios de banco.
 
 `VisualGenerationWorkflow` e sua activity têm uma tentativa e prazos próprios,
 testados com Temporal real. O workflow permanece separado, sem registro no worker
@@ -174,8 +250,8 @@ existente ao integrar o novo caminho. Não há geração visual real pelo fluxo 
 O ledger já possui teto mensal agregado de reservas OpenAI, além do teto por
 tenant (`0049`). Valores incertos permanecem reservados. É controle das operações
 que passam por esse ledger, não limite da fatura OpenAI nem cobertura de chamadas
-externas ao fluxo. O controle agregado existente deve ser integrado à admissão;
-não é uma tabela ainda a criar. Resultado desconhecido exige prova/reconciliação;
+externas ao fluxo. A guarda concreta já usa os tetos por tenant e agregado na
+reserva; não é uma tabela ainda a criar. Resultado desconhecido exige prova/reconciliação;
 lease vencido não demonstra que a chamada terminou. Não repetir nem trocar
 provedor automaticamente após possível submissão paga.
 
@@ -187,26 +263,18 @@ como histórico técnico, sem tornar novos controles de IA requisito do produto.
 
 ## Próxima fatia de desenvolvimento
 
-1. Completar a coordenação dos demais escritores e provar recuperação entre
-   admissão owner e reserva correlator, incluindo os tetos por tenant/agregado.
-   A ordem proposta → visual → comercial
-   implementada no fake não fecha a hierarquia global. Reusar registros e roles
-   existentes; qualquer capacidade nova exige desenho explícito.
-2. Ampliar as provas com mocks para crash entre commits, resultado incerto e
-   resposta tardia, além dos escritores ainda não cobertos. C08 já cobre conclusão
-   `visual_fake` e revisão após vencimento financeiro; C09 já conserva concluídas e
-   proveniência. Validar esses limites sem tratar prazo de aprovação como retenção.
-   As decisões de produto estão no [registro](../DECISIONS.md); retenção
-   pós-encerramento segue adiada, sem exclusão automática nesta etapa.
-   Demonstrar também o bloqueio de novos inícios, cancelamento da fila, espera
-   das admitidas, preservação da prévia, mudanças de fontes/acesso e resultado
-   incerto. Não ampliar concessões de banco ou ligar efeito pago para contornar
-   uma lacuna da coordenação.
-3. Implementar a guarda concreta e conectar dispatcher, workflow e provedor real,
-   preservando idempotência, versão/hash das fontes, orçamento e históricos.
-   Novo ensaio real exige credenciais, orçamento explícito e escopo definido.
-4. Fechar BL04.3 e depois BL05: qualidade, custo por peça aceita, ajustes
+1. **Parte 2:** acrescentar modo real distinto na persistência/API e ligar
+   dispatcher, workflow/worker e runner à guarda/claims existentes. Provar o
+   percurso com mocks, preservando históricos Temporal, versão/hash e orçamento.
+2. **Parte 3:** chamada real controlada pelo produto com fontes autorizadas,
+   credenciais e teto de gasto explícitos. Configuração não autoriza gasto novo.
+3. Fechar BL04.3 e depois BL05: qualidade, custo por peça aceita, ajustes
    automáticos e proposta sem nova mensagem. BL03.3 não bloqueia esta sequência.
+
+C10, recuperação automática fora do redispatch, limpeza física de PUT incerto e
+suporte operacional seguem como evoluções próprias, com exceções bloqueadas até
+prova segura. Não são novos poderes concedidos nem autorização para duplicar
+um efeito. Retenção pós-encerramento continua adiada, sem exclusão automática.
 
 **Adiada em 29/10/2026:** recuperação exclusiva e auditada de staff para autor
 sem acesso (C10), na evolução de gestão de acesso/suporte. A proteção que impede
@@ -232,7 +300,20 @@ cenários, sem substituir os gates de qualidade e aceite.
 
 ## Evidência datada e histórico
 
-- Fatia atual de admissão/continuidade/preservação: novos testes unitários e
+- Parte 1, guarda concreta: `make ci` aprovado com **1.829 testes**, **100% de
+  linhas e branches** (9.284 statements/2.550 branches), Ruff/formatação e mypy
+  (149 módulos), PostgreSQL `_test`/roles restritas e Temporal locais. Prova de
+  fontes/roteiro, finanças/acesso, relink por outro owner, validade factual após
+  locks, claim única, resposta tardia e commits incertos. Web: 365 testes/100% nas
+  quatro métricas, build/formatação e três jornadas Chromium. Sem chamada paga
+  ou novos grants; próxima entrega é modo/API e wiring da parte 2.
+- Recuperação sem reserva e concorrência, 29/10: `make ci` aprovado com 1.688
+  testes, 100% de linhas e branches (8.989 statements, 2.462 branches), Ruff,
+  formatação e mypy. PostgreSQL `_test`/roles restritas e Temporal locais; crash,
+  confirmações perdidas, tentativa tardia, RLS/autoria, orçamento concorrente e
+  custo tardio, prazos após locks e kit/logo. Nenhuma chamada paga, mudança web
+  ou liberação da guarda real. Limites do consumidor de recuperação acima.
+- Entrega anterior de admissão/continuidade/preservação: novos testes unitários e
   PostgreSQL para fontes e transição comercial concorrentes, plano vencendo após
   admissão, retenção/proveniência, prazos de aprovação e recusa de outro owner.
   `make ci`: 1.642 testes aprovados, 100% de linhas e branches (8.942 statements,

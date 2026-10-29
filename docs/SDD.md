@@ -213,17 +213,40 @@ Preparação de fontes, normalização de cópias, adapter, reserva/fence, ledge
 acabamento existem; o fluxo do cliente gera apenas `visual_fake` privado e
 identificado. Os ensaios reais foram isolados. `VisualGenerationWorkflow` tem
 prazos e tentativa única testados, mas não está conectado ao dispatcher/worker
-ou à guarda real. A API persistida só aceita modos `local` e `visual_fake`.
+ou ao runner da guarda concreta. A API persistida só aceita `local` e `visual_fake`.
+
+A parte 1 implementa `DatabaseVisualEffectGuard` e `GuardedVisualSubmissionClaims`
+com roles existentes: prova owner renovada, reserva/fence por tenant/agregado,
+claim durável única e commit privado. Roteiro coordena mudanças pendentes em
+transação proposta → visual após finish; writers financeiros usam o comercial.
+Material atribuído não muda de identidade quando o telefone é trocado. A guarda
+aceita somente simulação nesta entrega; a parte 2 acrescenta modo real explícito,
+API e ligação dispatcher/worker, e a parte 3 faz a chamada controlada.
+Detalhes no [protocolo da guarda](design/BL04-effect-guard.md).
 
 Fontes/aceite/plano e o run são validados na mesma transação owner; a reserva e o
 fence continuam atômicos em outra transação correlator. Os dois commits não são
 uma transação única: falha intermediária conserva a admissão bloqueante e não
-autoriza nova submissão. A ordem adotada não prova a hierarquia global de locks;
-outros escritores e recuperação ainda precisam de prova antes do efeito real.
+autoriza nova submissão. A recuperação de uma simulação obsoleta/falhada sem
+reserva torna a prévia terminal na transação correlator, provando ausência de
+tentativa e reserva sob locks prévia → ledger tenant. Somente após confirmar
+esse commit conclui o run original na sessão owner. Confirmação perdida permite
+repetir a reconciliação, nunca a geração. Duplicata viva retorna sem falhar a
+execução original; reserva existente, inclusive não vinculada, conserva o bloqueio.
+O renderer usa essa recuperação no redispatch e após falha conhecida sem reserva;
+não há varredura automática para registros fora da fila de redispatch nesta fatia.
+O inventário atual identifica fontes imutáveis e escritores coordenados; novos
+writers de acesso devem participar do protocolo antes de ganhar capacidade runtime.
 Não manter locks durante IO.
 Propostas antigas de grants/holds e exclusão WhatsApp são históricas, não
 solução aprovada. Detalhes e testes da próxima fatia estão na
 [BL04](phases/BL04-context-and-ai-production.md).
+
+Reserva e claim revalidam os prazos com `clock_timestamp()` em instrução posterior
+à aquisição dos locks; reserva revalida também após esperar orçamento, revertendo
+a transação se a lease/janela venceu. Os testes cobrem espera pela prévia, ledger
+tenant e agregado OpenAI, concorrência da última reserva e custo tardio sem crédito
+duplicado. Uma liquidação sem confirmação não conclui automaticamente o run.
 
 Gate BL04.3: titular avalia post/story novos no celular, com fontes consentidas,
 texto/preço/CTA exatos, legibilidade, identidade e fidelidade a produto/local.
@@ -283,8 +306,9 @@ não são serviços comerciais ativos só por constarem no desenho.
 
 ## 11. Sequência e condições de liberação
 
-BL01/BL02 e BL03.1/BL03.2 locais → BL04.2 coordenação restante e integração
-visual → BL04.3 qualidade/custo → BL05 jornada, ajuste e proatividade → expansão.
+BL01/BL02 e BL03.1/BL03.2 locais → BL04.2 guarda concreta entregue (parte 1),
+conexão visual (parte 2) e chamada controlada (parte 3) → BL04.3 qualidade/custo
+→ BL05 jornada, ajuste e proatividade → expansão.
 BL03.3 importa cardápio depois; BL06 amplia nichos/CDN depois de provar reaplicação.
 
 Piloto exige receitas aprovadas, material consentido, franquia/orçamento,
@@ -303,12 +327,17 @@ ou migrar o banco da aplicação para testes. Falta de serviço falha, não vira
 
 Evidência anterior de aplicação: 1.583 testes backend e complemento de 24 com sete
 casos novos, cobertura final 100%; web com 360 testes/cobertura integral, build e
-três jornadas Chromium. Ver [CHANGELOG](CHANGELOG.md). A fatia atual acrescenta
+três jornadas Chromium. Ver [CHANGELOG](CHANGELOG.md). A parte 1 acrescenta
 testes de admissão concorrente, continuidade, retenção/proveniência e autoria de
-pendências. `make ci` passou com 1.642 testes, 100% de linhas e branches
-(8.942 statements, 2.446 branches), Ruff/formatação e mypy. PostgreSQL `_test`
+pendências. A entrega de recuperação acrescenta crash/confirmação perdida entre
+commits, tentativa tardia, espera de locks até vencer prazo, tetos concorrentes
+e mudança de kit/logo, guarda concreta, roteiro pendente, writers financeiros,
+relink por outro owner e validade factual após locks. `make ci`: **1.829 testes**,
+**100% de linhas e branches** (9.284 statements, 2.550 branches), Ruff/formatação e
+mypy (149 módulos). PostgreSQL `_test`
 com roles restritas e Temporal locais; nenhum efeito pago ou nova homologação
-externa. A web não mudou e suas suítes não foram repetidas nesta fatia.
+externa ou novos grants. Web: **365 testes**, 100% nas quatro métricas,
+build/formatação e três jornadas Chromium. Integração real permanece parte 2.
 
 Em cada entrega, atualizar PROJECT, SDD, fase e CHANGELOG. Decisões novas entram
 em DECISIONS; distinguir decisão aceita, código implementado e homologação.

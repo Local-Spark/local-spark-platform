@@ -20,6 +20,8 @@ from app.adapters.brand_overlay import BrandOverlayError
 from app.adapters.material_media import FetchedMedia, MaterialStore
 from app.adapters.visual_ai import VisualAIError
 from app.services.auth import AuthError
+from app.services.editorial_consent_scope import VisualRunScope as AdmittedVisualRunScope
+from app.services.editorial_consent_scope import admitted_visual_run
 from app.services.visual_attempts import FencedVisualReservation
 from app.services.visual_provider_execution import (
     VisualLedger,
@@ -64,12 +66,14 @@ class VisualBrandPreparation(Protocol[BrandT]):
 
 
 class VisualEffectGuard(Protocol):
-    """Contract only: no implementation is currently approved for real effects.
+    """Contract for durable authorization and fenced private-result publication.
 
     `authorize` must commit current source/consent checks, fence and budget
     intent under a reviewed concurrency protocol. `commit` must atomically
     enforce the fence and current permissions before making the private object
     available. No guard may keep a DB lock across a provider or storage call.
+    `finish` must prove a safe terminal state: `effect_resolved` describes the
+    provider outcome, not settled cost, and False never proves no reservation.
     """
 
     async def admit(self, scope: VisualRunScope) -> bool: ...
@@ -82,7 +86,7 @@ class VisualEffectGuard(Protocol):
 
     async def commit(self, scope: VisualRunScope, key: str, media: FetchedMedia, width: int, height: int) -> bool: ...
 
-    async def finish(self, scope: VisualRunScope, *, completed: bool) -> None: ...
+    async def finish(self, scope: VisualRunScope, *, completed: bool, effect_resolved: bool = False) -> None: ...
 
 
 class VisualRunError(Exception):
@@ -146,10 +150,23 @@ class VisualRealOrchestrator[BrandT: PreparedBrand]:
         if not await self.guard.admit(scope):
             return "not_started"
 
+        with admitted_visual_run(
+            AdmittedVisualRunScope(
+                scope.tenant,
+                scope.business,
+                scope.actor,
+                uuid5(NAMESPACE_URL, f"visual-preview:{scope.preview}"),
+                scope.fence,
+            )
+        ):
+            return await self._run_admitted(scope)
+
+    async def _run_admitted(self, scope: VisualRunScope) -> Literal["completed", "stale", "not_started", "uncertain"]:
         known_terminal = False
         completed = False
         submission_possible = False
         response_received = False
+        effect_resolved = False
         uploaded_key: str | None = None
         commit_started = False
         commit_resolved = False
@@ -190,12 +207,14 @@ class VisualRealOrchestrator[BrandT: PreparedBrand]:
                     claims=self.claims,
                 )
                 response_received = True
+                effect_resolved = True
             except VisualSubmissionError:
                 # Another claim or an invalid payload must never cause a retry.
                 return "uncertain"
             except VisualAIError as exc:
                 if exc.uncertain:
                     return "uncertain"
+                effect_resolved = True
                 known_terminal = True
                 return "not_started"
             if not await self.guard.current(scope, prepared):
@@ -254,6 +273,9 @@ class VisualRealOrchestrator[BrandT: PreparedBrand]:
                 except Exception:
                     # An orphan is never made visible; cleanup may be retried separately.
                     logger.warning("visual.orphan_cleanup_failed")
-            # An unknown provider/worker outcome must keep the admission pending.
+            # Before submission, even a failed authorize() may have committed a
+            # reservation. The concrete guard must prove absence or a resolved
+            # effect; this callback never treats a missing acknowledgement as
+            # proof that the financial transaction rolled back.
             if known_terminal or not submission_possible:
-                await self.guard.finish(scope, completed=completed)
+                await self.guard.finish(scope, completed=completed, effect_resolved=effect_resolved)

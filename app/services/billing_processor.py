@@ -116,6 +116,10 @@ class BillingProcessor:
     ) -> None:
         values = {**account, **(snapshot or {})}
         async with self.database.sessions() as db, db.begin():
+            # Canonical provider snapshots change creation/publication access.
+            # Serialize their commit with admission and sponsorship changes;
+            # provider IO has already completed outside this transaction.
+            await lock_commercial_change(db, account["tenant_id"])
             updated = await db.scalar(
                 text("""UPDATE billing_accounts SET status=:status,paid_until=:paid_until,
               subscription_id=:subscription_id,customer_id=:customer_id,blocked=:blocked,lease_until=NULL

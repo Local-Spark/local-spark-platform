@@ -1,7 +1,8 @@
 """Fenced reservation primitives; not authorization to call an external provider.
 
 Caller must independently serialize and revalidate all source, owner, plan and
-consent changes before an effect. No caller currently satisfies that contract.
+consent changes before an effect. The concrete guard exercises this contract
+with simulated providers; real application wiring remains separate.
 """
 
 from dataclasses import dataclass
@@ -75,7 +76,13 @@ class VisualAttemptService:
         The caller must hold the appropriate permissions and source locks. A new
         reservation does not authorize an effect until commit and all gates pass.
         """
-        params = {"tenant": tenant, "business": business, "actor": actor, "preview": preview, "fence": fence}
+        params: dict[str, UUID | int] = {
+            "tenant": tenant,
+            "business": business,
+            "actor": actor,
+            "preview": preview,
+            "fence": fence,
+        }
         # Lock the preview before the ledger's tenant advisory lock. A dispatcher
         # cannot replace its fence until the attempt and reservation commit.
         row = (
@@ -84,7 +91,7 @@ class VisualAttemptService:
                     text("""SELECT id FROM media_previews WHERE id=:preview
                       AND tenant_id=:tenant AND business_id=:business AND actor_id=:actor
                       AND state='rendering' AND dispatch_fence=:fence
-                      AND dispatch_lease_until>now() AND expires_at>now() FOR UPDATE"""),
+                      FOR UPDATE"""),
                     params,
                 )
             )
@@ -93,6 +100,7 @@ class VisualAttemptService:
         )
         if row is None:
             raise VisualCostError("VISUAL_PREVIEW_FENCE_INVALID")
+        await self._require_live_deadlines(session, params)
         if not await session.scalar(
             text("""SELECT 1 FROM memberships WHERE tenant_id=:tenant AND actor_id=:actor
               AND role='owner' AND active"""),
@@ -119,6 +127,9 @@ class VisualAttemptService:
         reservation = await self.ledger.reserve_in_transaction(
             session, tenant, business, actor, operation, provider, model, request_hash, reserved_usd_micros
         )
+        # The ledger can wait for tenant/global budget locks after the preview
+        # lock was acquired. Expiry during that wait rolls back its reservation.
+        await self._require_live_deadlines(session, params)
         if previous is not None:
             if reservation.created or previous["reservation_id"] != reservation.id:
                 raise VisualCostError("VISUAL_ATTEMPT_INCONSISTENT")
@@ -134,3 +145,15 @@ class VisualAttemptService:
             {**params, "operation": operation, "hash": request_hash, "reservation": reservation.id},
         )
         return FencedVisualReservation(reservation, True)
+
+    @staticmethod
+    async def _require_live_deadlines(session: AsyncSession, params: dict[str, UUID | int]) -> None:
+        # A WHERE predicate on SELECT FOR UPDATE can run before waiting for its
+        # row lock. Read the wall clock in a separate statement after acquisition.
+        if not await session.scalar(
+            text("""SELECT 1 FROM media_previews WHERE id=:preview AND tenant_id=:tenant
+              AND business_id=:business AND actor_id=:actor AND state='rendering' AND dispatch_fence=:fence
+              AND dispatch_lease_until>clock_timestamp() AND expires_at>clock_timestamp()"""),
+            params,
+        ):
+            raise VisualCostError("VISUAL_PREVIEW_FENCE_INVALID")

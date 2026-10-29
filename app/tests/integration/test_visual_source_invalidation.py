@@ -12,7 +12,7 @@ from pydantic import SecretStr
 from sqlalchemy import text
 
 from app.db.session import Database
-from app.schemas.brand_kits import BrandKitConfirmRequest, BrandKitDraftRequest
+from app.schemas.brand_kits import BrandKitConfirmRequest, BrandKitDraftRequest, BrandKitLogoUpload
 from app.schemas.business_catalog import CatalogUpdate
 from app.schemas.business_collection import CollectionPhotoUpdate
 from app.schemas.media_previews import PreviewRequest
@@ -26,7 +26,7 @@ from app.services.editorial_proposals import EditorialProposalService
 from app.services.media_dispatch import claim_previews
 from app.services.media_previews import MediaPreviewService
 from app.services.visual_consent import VisualConsentService
-from app.tests.integration.test_brand_kits import _draft, _overrides
+from app.tests.integration.test_brand_kits import _draft, _logo, _overrides
 from app.tests.integration.test_business_catalog import _payload
 from app.tests.integration.test_business_collection import Store
 from app.tests.integration.test_editorial_briefings import _enable
@@ -52,7 +52,7 @@ class PausingStore(Store):
             await self.release.wait()
 
 
-@pytest.mark.parametrize("change", ["kit", "photo", "photo_update", "catalog"])
+@pytest.mark.parametrize("change", ["kit", "logo", "photo", "photo_update", "catalog"])
 async def test_kit_or_photo_change_waits_and_preview_remains_reviewable(change, admin, database, seeded, settings):
     tenant, actor = seeded["t1"], seeded["a1"]
     business = await _business(admin, seeded)
@@ -77,7 +77,18 @@ async def test_kit_or_photo_change_waits_and_preview_remains_reviewable(change, 
         upload(item_id=catalog["offerings"][0]["id"], space_kind=None),
     )
     kits = BrandKitService(cfg, database, store)
-    draft = await kits.draft(tenant, business, actor, BrandKitDraftRequest.model_validate(_draft(0)))
+    overrides = _overrides()
+    if change == "logo":
+        original_logo = await kits.upload_logo(
+            tenant,
+            business,
+            actor,
+            BrandKitLogoUpload(
+                operation_id=uuid4(), mime_type="image/png", content_base64=_logo(), rights_confirmed=True
+            ),
+        )
+        overrides["logo_asset_id"] = str(original_logo.id)
+    draft = await kits.draft(tenant, business, actor, BrandKitDraftRequest.model_validate(_draft(0, overrides)))
     assert draft.draft is not None
     await kits.confirm(
         tenant,
@@ -110,14 +121,33 @@ async def test_kit_or_photo_change_waits_and_preview_remains_reviewable(change, 
         task = asyncio.create_task(renderer.render(preview.id, claim.fence))
         try:
             await asyncio.wait_for(store.entered.wait(), 20)
-            if change == "kit":
+            if change in {"kit", "logo"}:
                 current = await kits.read(tenant, business, actor)
+                changed_overrides = _overrides("Novo nome")
+                if change == "logo":
+                    new_logo = await asyncio.wait_for(
+                        kits.upload_logo(
+                            tenant,
+                            business,
+                            actor,
+                            BrandKitLogoUpload(
+                                operation_id=uuid4(),
+                                mime_type="image/png",
+                                content_base64=_logo((200, 30, 40, 220)),
+                                rights_confirmed=True,
+                            ),
+                        ),
+                        5,
+                    )
+                    changed_overrides["logo_asset_id"] = str(new_logo.id)
+                    assert current.confirmed.overrides.logo_asset_id == original_logo.id
+                    assert await kits.reconcile_pending_logos(tenant, business, actor) == 0
                 changed = await asyncio.wait_for(
                     kits.draft(
                         tenant,
                         business,
                         actor,
-                        BrandKitDraftRequest.model_validate(_draft(current.head_version, _overrides("Novo nome"))),
+                        BrandKitDraftRequest.model_validate(_draft(current.head_version, changed_overrides)),
                     ),
                     5,
                 )
@@ -132,7 +162,10 @@ async def test_kit_or_photo_change_waits_and_preview_remains_reviewable(change, 
                     5,
                 )
                 assert confirmation.pending_change is True
-                assert (await kits.read(tenant, business, actor)).pending_change is True
+                waiting = await kits.read(tenant, business, actor)
+                assert waiting.pending_change is True
+                if change == "logo":
+                    assert waiting.confirmed.overrides.logo_asset_id == original_logo.id
             elif change == "photo":
                 deleted = await asyncio.wait_for(
                     collection.delete(tenant, business, actor, photo.id, uuid4(), photo.version), 5
@@ -177,10 +210,18 @@ async def test_kit_or_photo_change_waits_and_preview_remains_reviewable(change, 
         async with admin.connect() as conn:
             state = await conn.scalar(text("SELECT state FROM media_previews WHERE id=:id"), {"id": preview.id})
             assert state == "completed"
-        if change == "kit":
+        if change in {"kit", "logo"}:
             updated = await kits.read(tenant, business, actor)
             assert not updated.pending_change
             assert updated.confirmed is not None and updated.confirmed.overrides.brand_name == "Novo nome"
+            if change == "logo":
+                assert updated.confirmed.overrides.logo_asset_id == new_logo.id
+                assert await kits.logo_url(tenant, business, actor, original_logo.id)
+                async with admin.connect() as conn:
+                    frozen = await conn.scalar(
+                        text("SELECT brand_kit_document FROM editorial_proposals WHERE id=:id"), {"id": proposal}
+                    )
+                    assert frozen["overrides"]["logo_asset_id"] == str(original_logo.id)
             # The preserved-preview proof must match the actual image and must
             # not bypass a later withdrawal of editorial permission.
             async with admin.begin() as conn:

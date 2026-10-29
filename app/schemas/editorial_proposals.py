@@ -51,6 +51,12 @@ class BriefingRead(BaseModel):
     has_space_photo: bool = False
 
 
+class ScriptPendingChange(BaseModel):
+    operation_id: UUID
+    status: Literal["pending", "failed"]
+    error_code: str | None = None
+
+
 class ProposalRead(BaseModel):
     id: UUID
     briefing: BriefingRead | None = None
@@ -65,6 +71,7 @@ class ProposalRead(BaseModel):
     review_state: Literal["accepted", "changes_requested"] | None = None
     review_note: str | None = None
     script_version: int = 1
+    pending_change: ScriptPendingChange | None = None
 
 
 class ScriptEdit(BaseModel):
@@ -95,6 +102,7 @@ class ScriptVersionRead(BaseModel):
     operation_id: UUID | None
     review_state: Literal["accepted", "changes_requested"] | None
     created_at: datetime
+    pending_change: ScriptPendingChange | None = None
 
 
 class ScriptReview(BaseModel):

@@ -260,7 +260,7 @@ async def test_real_request_and_brand_finish_fit_orchestrator_without_external_c
         with Image.open(io.BytesIO(stored.data)) as output:
             assert output.format == "JPEG" and output.size == (1024, 1280)
         guard.commit.assert_awaited_once()
-        guard.finish.assert_awaited_once_with(scope, completed=True)
+        guard.finish.assert_awaited_once_with(scope, completed=True, effect_resolved=True)
         async with admin.connect() as conn:
             assert (
                 await conn.scalar(text("SELECT count(*) FROM visual_ai_attempts WHERE tenant_id=:t"), {"t": tenant})

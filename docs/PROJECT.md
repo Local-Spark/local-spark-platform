@@ -1,7 +1,7 @@
 # Meu Braço Direito — contexto vigente
 
-Atualizado em **29/10/2026**, com o adiamento de C10 após a fatia local de admissão
-visual simulada, continuidade e preservação. Decisões de produto e pendências ficam em
+Atualizado em **29/10/2026**, com a parte 1 da conexão visual: guarda concreta,
+coordenação de roteiro/cobrança e continuidade na troca de telefone. Decisões de produto e pendências ficam em
 [DECISIONS](DECISIONS.md); contratos no [SDD](SDD.md); sequência no
 [índice de fases](phases/README.md) e na [trilha BL](phases/BL-brand-library.md).
 As versões anteriores foram [preservadas integralmente](history/2026-10-28-pre-documentation-reconciliation/index.md).
@@ -58,8 +58,18 @@ Um número WhatsApp de cliente ativo por negócio na primeira versão.
 A admissão simulada verifica proposta, fontes, usuário/membership, aceite e plano
 sob locks na ordem proposta → visual → comercial, antes de gravar o run. A reserva
 financeira continua em outra transação/role: falha ou confirmação perdida mantém
-o run bloqueante e não libera repetição. Isso não fecha a guarda do provedor real
-nem a hierarquia global de escritores. C08 cobre o caminho `visual_fake`; o
+o run bloqueante e não libera repetição. A recuperação local pode encerrar uma
+tentativa obsoleta/falhada somente após tornar a prévia terminal e comprovar,
+sob locks correlator, ausência de tentativa e de reserva, inclusive não vinculada.
+O commit confirmado precede a conclusão owner; confirmação perdida permite repetir
+somente a reconciliação. Uma duplicata viva não derruba a criação original.
+`DatabaseVisualEffectGuard` agora reúne admissão, fontes, reserva, claim única e
+commit privado com prova owner e revalidação correlator. Roteiro aguarda runs em
+transação separada proposta → visual; writers financeiros participam do comercial.
+Troca de telefone não muda a identidade de fonte já atribuída. O protocolo dos
+escritores atuais está no [desenho da guarda](design/BL04-effect-guard.md).
+Essa guarda foi exercitada somente com provedor injetado simulado; API, modo
+persistido real e ligação ao worker continuam na parte 2. C08 cobre `visual_fake`; o
 renderer local legado ainda não recebe a mesma exceção de conclusão. `expires_at`
 continua delimitando criação/aprovação, sem apagar uma prévia concluída. URL
 assinada, validade factual e prazo de aprovação permanecem separados da preservação.
@@ -78,7 +88,7 @@ plano não equivale a encerrar conta nem a perder membership.
 | Contexto e texto | Fatos/preferências versionados, propostas/roteiros, adapter editorial, reservas/tokens e projeção administrativa restrita | Qualidade comercial, conversa com memória, pesquisa ampla e skills executáveis. |
 | BL01/BL02 | Vitrine fictícia de cafeteria, escolha e edição guiada de kit, logo privado, rascunho, confirmação e histórico | Kit `public_demo` não tem liberação comercial; produção real ainda não aplica o kit. |
 | BL03.1/BL03.2 | Cadastro manual de produtos/serviços/promoções e fotos privadas de item/espaço | Importação de cardápio é BL03.3 futura; contexto visual real integrado ainda falta. |
-| BL04 | Retrieval/Jev opcionais, prévia simulada, admissão com fontes/plano/aceite, continuidade `visual_fake` após vencimento e preservação de concluídas/proveniência | Coordenação completa entre roles/escritores, recuperação staff C10 e provedor real; qualidade/custo por peça aceita. |
+| BL04 | Retrieval/Jev opcionais, prévia simulada, guarda concreta com fontes/plano/aceite/orçamento/claim, roteiro pendente, continuidade na troca de número e após vencimento, preservação/proveniência | Modo/API real e integração dispatcher/worker (parte 2), chamada controlada (parte 3), qualidade/custo por peça aceita e evolução operacional. |
 | F04/F06 | Prévias técnicas estáticas/vídeo, candidata, revisão e publicação simulada com versão/hash | Ajuste não regenera automaticamente; candidata WhatsApp e Instagram reais pendentes. |
 | F08 | Compose, CI e workflow manual de deploy preparados | AWS/staging, recuperação coordenada, observabilidade operacional e capacidade não homologadas. |
 
@@ -106,20 +116,24 @@ histórico `posts_per_week` é preservado, sem campo manual de frequência.
 
 ## Próxima entrega e sequência
 
-1. **BL04.2:** concluir coordenação dos escritores ainda não cobertos, orçamento
-   e resultados incertos entre as roles existentes. A recuperação staff C10 foi
-   adiada e não é bloqueio desta fatia simulada.
-   Ampliar a prova de concorrência/recuperação do modo simulado antes de ligar
-   dispatcher, workflow e provedor real. C08 está no caminho `visual_fake`;
-   concluídas e proveniência já não são apagadas por prazo (C09).
-2. **BL04.3:** produzir post/story pelo produto, revisar com titular e fontes
+1. **BL04.2, parte 2:** conectar o modo real explícito na persistência/API,
+   dispatcher, workflow/worker e runner à guarda concreta entregue na parte 1;
+   provar o percurso completo com provedor simulado e preservar históricos Temporal.
+   A parte 1 coordena os escritores atuais, revalida acesso e conserva resultados
+   incertos sem reenviar. Não introduz novas roles/grants. C10, varredura fora do
+   redispatch e limpeza de órfãos ficam em evolução operacional, com exceções
+   bloqueadas. Novos writers de acesso precisam respeitar o protocolo documentado.
+2. **BL04.2, parte 3:** primeira chamada real controlada pelo produto, com fontes,
+   credenciais e teto de gasto explícitos. A integração pronta e sua execução paga
+   continuam sendo marcos distintos.
+3. **BL04.3:** produzir post/story pelo produto, revisar com titular e fontes
    consentidas, medir fidelidade, texto, legibilidade, rejeições e custo por
    peça aceita, incluindo refações.
-3. **BL05:** fechar jornada local de mensagem → prévia → ajuste → aprovação →
+4. **BL05:** fechar jornada local de mensagem → prévia → ajuste → aprovação →
    publicação simulada, incluindo iniciativa em dia sem mensagem e pausa.
-4. **Piloto:** homologar Meta/Instagram, aplicar franquias F07 e operar staging,
+5. **Piloto:** homologar Meta/Instagram, aplicar franquias F07 e operar staging,
    observabilidade e recuperação F08. A Meta pendente não impede testes locais.
-5. **Expansão:** BL03.3 importa cardápio como rascunho; BL06 amplia kits/nichos e
+6. **Expansão:** BL03.3 importa cardápio como rascunho; BL06 amplia kits/nichos e
    catálogo/CDN. Pesquisa ampla, avatar/voz e multicanal seguem fases próprias.
 
 Foto e story são os formatos iniciais; vídeo e suas franquias/preço permanecem
@@ -145,11 +159,15 @@ versionado não treina automaticamente modelos e tokens não são COGS monetári
 Evidência anterior de aplicação: 1.583 testes backend e complemento de 24 testes
 com sete casos novos; cobertura final de 100% de linhas/branches. Web: 360 testes,
 100% nos quatro critérios, build e três jornadas Chromium. Evidências datadas
-no [CHANGELOG](CHANGELOG.md). A fatia atual passou em `make ci`: 1.642 testes,
-100% de linhas e branches (8.942 statements e 2.446 branches), Ruff/formatação e
-mypy. PostgreSQL `_test` com roles restritas e Temporal locais cobrem admissão
-concorrente, continuidade, preservação e recusa de outro owner. Não houve chamada
-paga nem homologação externa nesta fatia; a web não foi alterada nem revalidada.
+no [CHANGELOG](CHANGELOG.md). A parte 1 passou em `make ci`: **1.829 testes**,
+**100% de linhas e branches** (9.284 statements e 2.550 branches), Ruff/formatação
+e mypy (149 módulos). PostgreSQL `_test` restrito e Temporal locais cobrem admissão,
+continuidade, preservação, autoria, recuperação entre commits e confirmações
+perdidas, tentativa tardia, orçamento concorrente e fontes kit/logo. Não houve chamada
+paga, novos grants ou homologação externa. A guarda concreta também cobre roteiro,
+relink por outro owner, acesso financeiro e prazo factual após locks. Web:
+**365 testes e 100% nos quatro critérios**, build/formatação e três jornadas
+Chromium (laboratório pendente, conteúdo e aceite).
 
 Diretórios/remotos continuam `local-spark-platform` e `local-spark-web`, com marca
 Meu Braço Direito, prefixo `MEU_BRACO_DIREITO_` e bancos renomeados conforme
