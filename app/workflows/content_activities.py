@@ -174,7 +174,9 @@ class ContentCandidateActivities:
     async def request_candidate_preview(self, ids: list[str]) -> str:
         # A configured isolated adapter is not opt-in to the product workflow.
         # Never substitute a local placeholder for a disabled real pipeline.
-        if self.settings.visual_ai_mode == "openai" and not self.settings.visual_ai_execution_enabled:
+        if self.settings.visual_ai_mode == "disabled" or (
+            self.settings.visual_ai_mode == "openai" and not self.settings.visual_ai_execution_enabled
+        ):
             return "blocked"
         event, proposal = UUID(ids[0]), UUID(ids[1])
         async with self.worker_database.sessions() as session, session.begin():
@@ -191,12 +193,12 @@ class ContentCandidateActivities:
             )
         if row is None:
             return "blocked"
-        mode: Literal["local", "visual_fake", "visual_ai"] = "local"
+        mode: Literal["visual_fake", "visual_ai"]
         if self.settings.visual_ai_mode == "openai":
             # Missing prepared context must be refused by the visual service,
             # never silently rendered as a local placeholder.
             mode = "visual_ai"
-        elif self.settings.visual_ai_mode == "fake" and row.get("briefing_required"):
+        else:
             mode = "visual_fake"
         try:
             preview = await MediaPreviewService(self.settings, self.app_database).request_candidate(

@@ -130,13 +130,26 @@ def _validate(request: VisualRequest) -> tuple[int, int]:
         or height > width * 3
     ):
         raise VisualAIError("VISUAL_INVALID_SETTINGS")
-    if len(request.references) > 4:
+    if len(request.references) > 5:
         raise VisualAIError("VISUAL_INVALID_REFERENCE")
     for reference in request.references:
         if reference.mime_type not in _MIME.values() or not 1 <= len(reference.content) <= _MAX_INPUT_BYTES:
             raise VisualAIError("VISUAL_INVALID_REFERENCE")
         _dimensions(reference.content, reference.mime_type, output=False)
     return width, height
+
+
+def visual_request_http_parts(request: VisualRequest) -> tuple[str, dict[str, Any]]:
+    """Return the endpoint and non-image JSON fields used by the Images API."""
+    endpoint = "edits" if request.references else "generations"
+    return f"/v1/images/{endpoint}", {
+        "model": request.model,
+        "prompt": request.prompt,
+        "quality": request.quality,
+        "size": request.size,
+        "output_format": request.output_format,
+        "n": 1,
+    }
 
 
 class OpenAIVisualProvider:
@@ -150,27 +163,19 @@ class OpenAIVisualProvider:
 
     async def generate(self, request: VisualRequest) -> VisualResult:
         width, height = _validate(request)
-        body: dict[str, Any] = {
-            "model": request.model,
-            "prompt": request.prompt,
-            "quality": request.quality,
-            "size": request.size,
-            "output_format": request.output_format,
-            "n": 1,
-        }
+        path, body = visual_request_http_parts(request)
         if request.references:
             body["images"] = [
                 {"image_url": f"data:{ref.mime_type};base64,{base64.b64encode(ref.content).decode('ascii')}"}
                 for ref in request.references
             ]
-        endpoint = "edits" if request.references else "generations"
         try:
             async with httpx.AsyncClient(
                 timeout=180, follow_redirects=False, trust_env=False, transport=self._transport
             ) as client:
                 async with client.stream(
                     "POST",
-                    f"https://api.openai.com/v1/images/{endpoint}",
+                    f"https://api.openai.com{path}",
                     json=body,
                     headers={
                         "Authorization": f"Bearer {self._api_key}",

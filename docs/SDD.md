@@ -7,6 +7,25 @@ O [snapshot anterior](history/2026-10-28-pre-documentation-reconciliation/SDD.md
 preserva a redação substituída. Designs e evals têm estado e data próprios;
 planejamento, teste simulado e homologação comercial são estados distintos.
 
+## Atualização de 30/10 — copy e canal comercial
+
+O contexto versionado admite `preferences.cta_destination` opcional, informado
+pelo titular, distinto do telefone de identificação. Canal e valor devem ser
+compatíveis com a chamada gerada; na ausência, o modelo recebe orientação para
+uma chamada neutra. A solicitação editorial distingue texto público de direção
+visual e dúvidas; a pré-checagem rejeita identificadores internos em copy e
+interação de clique presumida. A conferência factual ignora apenas notações
+técnicas reconhecidas na direção, sem autorizá-las como valores comerciais.
+As mesmas regras são reaplicadas antes do efeito visual. Essa verificação é
+parcial, não inspeciona a imagem e não comprova verdade semântica ou destino
+ativo. Contexto e rastros mantêm os controles e versões existentes.
+
+O percurso futuro de referências deve combinar perfis indicados pelo cliente
+com candidatos descobertos por fonte a avaliar, apresentar até três sugestões
+com motivo e evidência disponíveis e permitir aceitar/rejeitar cada uma. A
+origem, os direitos e a atualidade limitam seu uso. Jev pode ajudar na avaliação
+de candidatos já obtidos, mas a integração atual não é uma fonte de pesquisa.
+
 ## 1. Objetivo e fronteira do produto
 
 Receber material/pedido por WhatsApp, recuperar contexto do próprio negócio,
@@ -137,6 +156,19 @@ aprovação. Os critérios de publicação permanecem atuais e específicos.
 
 ## 6. Conversa e inteligência editorial
 
+A direção de 30/10/2026 é gerar a peça completa com briefing que reúne pedido,
+fatos vigentes, kit, acervo pertinente, skill de feed/story e referências aceitas
+quando disponíveis. A conferência deve avaliar preço, grafia, identidade,
+fidelidade e legibilidade do arquivo resultante; presença desses itens no prompt
+não demonstra que a imagem os reproduziu. O trace deverá ser acessível apenas
+a atores autorizados e preservar versão das fontes e configuração sem imprimir
+mensagens, imagens ou credenciais em logs. A pesquisa e aceite de referências
+externas seguem uma fase futura, sem dados inventados.
+Se a mensagem pedir preço diferente do catálogo e não disser se o cadastro deve
+ser atualizado, a decisão C18 exige perguntar antes de continuar. Interpretação
+estruturada do valor, detecção do conflito e pergunta específica são trabalho
+futuro de WhatsApp/Jev, fora do escopo desta fatia de geração.
+
 Inbox valida assinatura e cifra; correlação atribui origem ao negócio. O
 processamento usa vínculo, acesso, aceite aplicável e controles internos.
 Transcrição tem adapter e teto diário próprios, sem checkbox separado.
@@ -149,19 +181,100 @@ conversa completa com memória. A comparação sintética não homologa produç�
 
 Texto editorial usa OpenAI Responses estruturada, `store: false`, sem tools,
 limites e reservas. `gpt-5-mini` é default configurável, não escolha comercial
-final; transcrição referencia `gpt-transcribe`. Trocar modelo não resolve sozinho
-a qualidade: o grounding atual restringe parte da criatividade ao baseline.
+final; transcrição referencia `gpt-transcribe`. A resposta real deve incluir
+texto da arte, legenda e CTA gerados pelo modelo, guardados na proposta
+versionada e verificados antes do efeito visual. O preço válido e versionado do
+catálogo pode ser citado; resposta incompleta ou fora das regras é rejeitada,
+sem substituição por copy fixa no caminho real. Com provedor editorial desativado,
+uma nova proposta é rejeitada em vez de produzir baseline. O briefing com skill
+usa redação natural e verifica IDs, valores e expressões comerciais delimitadas;
+essa checagem não comprova a verdade semântica e não substitui revisão humana.
+O reconhecimento de que o pedido exige preço ainda não é estruturado; incluí-lo
+entre os fatos e solicitá-lo no prompt não garante sua presença na peça.
+A legenda gerada é devolvida como campo próprio na candidata e compõe a prova
+de aprovação. Aprovação, agendamento e publicação simulada revalidam a validade
+factual; o vencimento não impede o titular de pedir ajustes.
+Para novos feed/story, o briefing inclui a skill versionada, pedido, kit,
+foto de origem e acervo pertinente. A imagem do exemplo do kit demonstrativo do
+formato, identificada por versão e hash, entra como referência visual separada,
+assim como a logo autorizada quando houver. O modelo recebe a direção criativa
+e gera a peça inteira; o serviço não aplica a faixa ou textos fixos anteriores.
+Referências de concorrentes ainda não estão implementadas. O fato selecionado
+tem comprovação e validade verificadas; fatos adicionais no pedido visual ficam
+limitados aos confirmados sem vencimento até existir revalidação individual.
+A conferência semântica automática e a detecção do conflito C18 não existem.
 
-Não existem pesquisa ampla automática, skills executáveis por cliente,
-treinamento automático ou cadência proativa integrada. Retrieval usa somente
+Novas prévias visuais usam `full_piece_v1`; local estático de feed/story,
+receitas visuais anteriores e propostas de baseline com provedor desligado não
+iniciam novos efeitos. Prévias antigas concluídas permanecem acessíveis, e jobs
+legados pendentes não são despachados. A migration 0061 fixa a receita e grava
+traces cifrados com RLS em tabelas próprias, sem conteúdo privado em logs. O
+trace editorial guarda a requisição preparada; o visual inclui método, endpoint,
+corpo sem bytes das imagens, referências/hash, skill e versões. O estado
+`prepared` não prova envio de uma tentativa incerta; a reprodução exige
+recuperar os arquivos autorizados. Endpoints do proprietário usam `no-store`.
+
+A aprovação por API da peça integral exige confirmação humana vinculada ao SHA
+da imagem de preço/condições, grafia, identidade, fidelidade e legibilidade;
+a publicação simulada revalida a confirmação. Não há OCR/visão automática
+comprovando os itens e o fluxo WhatsApp ainda não apresenta esse checklist, logo
+o comando antigo de aprovação não completa a aprovação integral. A geração visual
+real continua restrita a desenvolvimento/teste, desligada por padrão, com
+orçamento e credenciais configurados; não é capacidade de produção homologada.
+No ensaio isolado posterior, quatro das seis artes trazem o preço e duas o
+omitem na imagem; duas propostas usam “apresente” como copy voltada ao público.
+Os pares compartilham a copy e a skill só orienta a imagem; um único fato foi
+pré-selecionado. A guarda aprovou as saídas e não demonstrou qualidade comercial.
+[Evidência](evals/editorial-copy-visual-after-2026-10-29.md).
+
+Não existem pesquisa automática de concorrentes, treinamento automático ou
+cadência proativa integrada. O briefing de feed/story usa skill versionada;
+a avaliação real do novo caminho ainda está pendente. Retrieval usa somente
 fontes pertinentes do negócio. Quando necessária, no máximo uma referência de
 kit do formato escolhido, separada das fotos reais. Não enviar a galeria inteira.
+
+O repositório separado `meu-braco-direito-skills` contém instruções iniciais para
+briefings de feed e story, casos fictícios e protocolo de comparação. Validação
+do formato e dois exercícios independentes com fatos ausentes/vencidos foram
+executados; isso não comprova ganho sobre baseline, imagem gerada ou integração
+ao produto naquele ensaio. O novo caminho seleciona a skill do formato na proposta
+e utiliza seu ID/hash no briefing e no pedido visual; a seleção completa pelo
+WhatsApp e a avaliação com modelos reais continuam pendentes.
+Um ensaio exploratório posterior comparou sonda isolada do baseline com saídas
+de agentes em casos fictícios. Detectou falta de esclarecimento de ambiguidade em
+story; o ajuste foi repetido uma vez com sucesso. Diferenças de entradas e métodos
+impedem atribuir ganho às skills. Nenhum provedor pago ou renderer foi chamado.
+O ensaio pareado real autorizado de texto foi iniciado posteriormente e parou na
+primeira tentativa com resultado incerto, sem resposta completa; não existe
+comparação de qualidade concluída. Preservar hold e identidade conforme a
+[evidência](evals/skills-paired-attempt-2026-10-29.md), sem repetir o efeito.
+Um ensaio visual independente posterior gerou duas peças fictícias com o mesmo
+acervo/kit e acabamento, orientadas com e sem skill, usando o adapter visual;
+não percorreu o worker e não prova ganho ou aprovação comercial. As imagens,
+restrições ignoradas e custos estimados constam na [evidência visual](evals/skills-visual-comparison-2026-10-29.md).
+Um ensaio anterior com três negócios e seis prévias percorreu Temporal e a
+guarda local com Jev/imagem reais. Todas omitiram preços pedidos e confirmados:
+naquele ensaio a copy seguia o primeiro fato do baseline e a skill atuava na
+direção visual. A geração integral de 30/10 ainda não foi avaliada com modelo real.
+Mensagem de origem entra já processada, segunda prévia é solicitada internamente
+e acervo repete a foto; não há prova de webhook Meta, seleção automática da skill
+ou ganho comercial. [Evidência](evals/three-business-visual-ab-2026-10-29.md).
+
+A direção aprovada prioriza skills reutilizáveis para feed/story, alimentadas
+por contexto, kit e acervo privados; depois, referências indicadas pelo cliente
+e descoberta automática de negócios semelhantes em destaque. Resultados externos
+são evidência com origem e limitações, não fatos do cliente nem instruções
+confiáveis; padrões inspiram criação original, sem copiar mídia ou identidade.
+Jev é hipótese a avaliar, sem decisão de fornecedor nem fonte de dados. A
+[proposta por fases](design/skills-e-referencias-editoriais.md) descreve
+integração, avaliações e decisões abertas; nenhuma capacidade nova está entregue.
 
 ## 7. Produção, revisão e publicação
 
 Percurso pretendido: pedido → briefing congelado → geração/edição → prévia →
-ajuste ou aprovação → publicação → resultado. Pillow/FFmpeg são baseline técnico;
-nenhuma receita está aprovada comercialmente só por funcionar nos testes.
+ajuste ou aprovação → publicação → resultado. Pillow prepara arquivos e FFmpeg
+permanece no percurso de vídeo; o acabamento fixo de imagens foi descontinuado.
+Nenhuma receita está aprovada comercialmente só por funcionar nos testes.
 
 Há candidata, decisão explícita e publicação simulada locais; hash do arquivo,
 legenda, destino e horário são revalidados. Ajuste ainda não regenera a peça.
@@ -340,8 +453,11 @@ não são serviços comerciais ativos só por constarem no desenho.
 ## 11. Sequência e condições de liberação
 
 BL01/BL02 e BL03.1/BL03.2 locais → BL04.2 guarda, conexão e primeira chamada
-controlada concluídas (partes 1/2/3) → BL04.3 qualidade/custo
-→ BL05 jornada, ajuste e proatividade → expansão.
+controlada concluídas (partes 1/2/3) → skills de feed/story e avaliação com
+simulações → pesquisa de referências indicadas e descoberta automática → uso
+controlado dos padrões na geração → gate BL04.3 de qualidade/custo com titular
+→ BL05 jornada, ajuste e proatividade → expansão. A pesquisa não depende de
+fechar antecipadamente o gate comercial; continua exigindo fontes permitidas.
 BL03.3 importa cardápio depois; BL06 amplia nichos/CDN depois de provar reaplicação.
 
 Piloto exige receitas aprovadas, material consentido, franquia/orçamento,

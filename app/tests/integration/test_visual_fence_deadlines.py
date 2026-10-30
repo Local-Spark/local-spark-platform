@@ -59,20 +59,28 @@ async def test_visual_deadline_expiring_while_waiting_for_lock_rejects_effect(
             )
 
     entered = asyncio.Event()
+    proceed = asyncio.Event()
     transaction_started = None
+    worker_pid = None
     original_transaction = database.transaction
 
     @asynccontextmanager
     async def observed_transaction(*args):
-        nonlocal transaction_started
+        nonlocal transaction_started, worker_pid
         async with original_transaction(*args) as session:
             transaction_started = await session.scalar(text("SELECT transaction_timestamp()"))
+            worker_pid = await session.scalar(text("SELECT pg_backend_pid()"))
             entered.set()
+            await proceed.wait()
             yield session
 
     monkeypatch.setattr(database, "transaction", observed_transaction)
     task = None
     try:
+        # Open the worker transaction before starting the expiration window, so
+        # connection setup and unrelated test load cannot consume that window.
+        task = asyncio.create_task(execute())
+        await asyncio.wait_for(entered.wait(), 5)
         # Commit this update before taking the test's blocking lock. In the
         # ledger case the worker must be able to acquire its own preview lock.
         async with admin.begin() as connection:
@@ -82,7 +90,7 @@ async def test_visual_deadline_expiring_while_waiting_for_lock_rejects_effect(
                       VALUES(date_trunc('month',clock_timestamp() AT TIME ZONE 'UTC')::date)""")
                 )
             expiry = await connection.scalar(
-                text(f"""UPDATE media_previews SET {deadline}=clock_timestamp()+interval '0.25 second'
+                text(f"""UPDATE media_previews SET {deadline}=clock_timestamp()+interval '2 seconds'
                   WHERE id=:id RETURNING {deadline}"""),
                 {"id": item},
             )
@@ -95,12 +103,23 @@ async def test_visual_deadline_expiring_while_waiting_for_lock_rejects_effect(
                 )
             else:
                 await holder.execute(text("SELECT month FROM visual_global_monthly_budget FOR UPDATE"))
-            task = asyncio.create_task(execute())
-            await asyncio.wait_for(entered.wait(), 5)
+            holder_pid = await holder.scalar(text("SELECT pg_backend_pid()"))
             assert transaction_started < expiry
-            await asyncio.sleep(0.3)
+            proceed.set()
+            # Prove this exact transaction is waiting on the intended holder,
+            # before the deadline expires, instead of guessing from a short sleep.
+            async with asyncio.timeout(5):
+                while not await holder.scalar(
+                    text("SELECT :holder = ANY(pg_blocking_pids(:worker))"),
+                    {"holder": holder_pid, "worker": worker_pid},
+                ):
+                    assert not task.done()
+                    await asyncio.sleep(0.02)
+            assert await holder.scalar(text("SELECT clock_timestamp()<:expiry"), {"expiry": expiry})
+            async with asyncio.timeout(5):
+                while not await holder.scalar(text("SELECT clock_timestamp()>:expiry"), {"expiry": expiry}):
+                    await asyncio.sleep(0.02)
             assert not task.done()
-            assert await holder.scalar(text("SELECT clock_timestamp()>:expiry"), {"expiry": expiry})
         if effect == "claim":
             assert await asyncio.wait_for(task, 5) is False
         else:

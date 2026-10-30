@@ -14,12 +14,13 @@ from sqlalchemy import text
 
 from app.core.config import Settings
 from app.db.session import Database
-from app.schemas.content_deliveries import ContentDecision, ContentDeliveryRead
+from app.schemas.content_deliveries import ContentDecision, ContentDeliveryRead, VisualReviewConfirmation
 from app.schemas.editorial_proposals import ProposalDraft
 from app.services.auth import AuthError
 from app.services.media_previews import MediaPreviewService
 from app.services.phone_verification import e164
 from app.services.service_agreement_scope import accepted_agreement_sql
+from app.services.visual_copy_authorization import authorize_visual_copy
 from app.services.whatsapp_ingest import sender_hash
 from app.services.whatsapp_materials import WhatsAppMaterialsService
 
@@ -88,7 +89,7 @@ class ContentDeliveryService:
                 preview = (
                     (
                         await session.execute(
-                            text("""SELECT p.id,p.sha256,p.expires_at,e.document
+                            text("""SELECT p.id,p.sha256,p.expires_at,p.generation_mode,e.document
                               FROM media_previews p JOIN editorial_proposals e ON e.id=p.proposal_id
                               WHERE p.id=:preview AND p.tenant_id=:tenant AND p.business_id=:business
                                 AND p.candidate AND p.state='completed'
@@ -103,7 +104,15 @@ class ContentDeliveryService:
             if preview is None or preview["sha256"] is None:
                 return None
             draft = ProposalDraft.model_validate(preview["document"])
-            caption = next(scene.on_screen_text for scene in draft.script if scene.role == "fact")
+            generated = any(value is not None for value in (draft.art_text, draft.caption, draft.cta))
+            if generated:
+                if draft.art_text is None or draft.caption is None or draft.cta is None:
+                    return None
+                caption = draft.caption
+            elif preview["generation_mode"] == "visual_ai":
+                return None
+            else:
+                caption = next(scene.on_screen_text for scene in draft.script if scene.role == "fact")
             body = f"Prévia de conteúdo pronta: {caption} Responda Aprovar ou Pedir ajustes nesta mensagem."
             expires_at = preview["expires_at"]
         else:
@@ -233,7 +242,10 @@ class ContentDeliveryService:
             if row["actor_id"] != actor:
                 raise AuthError("CANDIDATE_OWNER_MISMATCH", 403)
             expected = "approved" if body.decision == "approve" else "changes_requested"
-            request_hash = _digest(body.model_dump(mode="json"))
+            request_document = body.model_dump(mode="json")
+            if body.visual_review is None:
+                request_document.pop("visual_review")
+            request_hash = _digest(request_document)
             if row["decision_operation_id"] == body.operation_id:
                 if row["decision_request_hash"] != request_hash:
                     raise AuthError("CANDIDATE_DECISION_CONFLICT", 409)
@@ -268,8 +280,23 @@ class ContentDeliveryService:
                 .one()
             )
             preview_service = MediaPreviewService(self.settings, self.app_database)
+            copy_deadline = None
             if preview["generation_mode"] in {"visual_fake", "visual_ai"}:
                 await preview_service._validate_visual(preview, actor)
+                if body.decision == "approve":
+                    copy = await authorize_visual_copy(
+                        session,
+                        self.settings,
+                        self.app_database,
+                        tenant,
+                        business,
+                        actor,
+                        preview["proposal_id"],
+                        proposal["briefing_id"],
+                        require_generated=preview["generation_mode"] == "visual_ai",
+                        full_piece=preview["visual_recipe"] == "full_piece_v1",
+                    )
+                    copy_deadline = copy.valid_until
                 valid_inputs = True
             else:
                 inputs = await preview_service._inputs(
@@ -282,20 +309,32 @@ class ContentDeliveryService:
                 valid_inputs = inputs.render_key == preview["render_key"]
             if not valid_inputs or preview["sha256"] is None:
                 raise AuthError("CANDIDATE_INVALID", 409)
+            visual_review = None
+            if preview["visual_recipe"] == "full_piece_v1" and body.decision == "approve":
+                if body.visual_review is None:
+                    raise AuthError("VISUAL_REVIEW_REQUIRED", 409)
+                if body.visual_review.preview_sha256 != preview["sha256"]:
+                    raise AuthError("VISUAL_REVIEW_MISMATCH", 409)
+                visual_review = body.visual_review.model_dump(mode="json")
             # Use the transaction clock for immediate publication. Application and
             # database clocks can differ enough to leave an approved item not due.
             when = body.scheduled_at or await session.scalar(text("SELECT now()"))
-            if when > datetime.now(UTC) + timedelta(days=7) or when >= row["expires_at"]:
+            if (
+                when > datetime.now(UTC) + timedelta(days=7)
+                or when >= row["expires_at"]
+                or (copy_deadline is not None and when >= copy_deadline)
+            ):
                 raise AuthError("CANDIDATE_SCHEDULE_INVALID", 409)
-            approval_digest = _digest(
-                {
-                    "preview": row["preview_id"],
-                    "sha256": preview["sha256"],
-                    "caption": row["caption"],
-                    "destination": "instagram",
-                    "scheduled_at": when,
-                }
-            )
+            approval_fields = {
+                "preview": row["preview_id"],
+                "sha256": preview["sha256"],
+                "caption": row["caption"],
+                "destination": "instagram",
+                "scheduled_at": when,
+            }
+            if visual_review is not None:
+                approval_fields["visual_review"] = visual_review
+            approval_digest = _digest(approval_fields)
             updated = (
                 (
                     await session.execute(
@@ -304,6 +343,7 @@ class ContentDeliveryService:
                           decision_request_hash=:request_hash,
                           approved_sha256=CASE WHEN :state='approved' THEN :sha ELSE NULL END,
                           approval_digest=CASE WHEN :state='approved' THEN :approval_digest ELSE NULL END,
+                          visual_review_confirmation=CAST(:visual_review AS jsonb),
                           scheduled_at=CASE WHEN :state='approved' THEN CAST(:scheduled AS timestamptz) ELSE NULL END,
                           publish_state=CASE WHEN :state='approved' THEN 'pending' ELSE NULL END,
                           updated_at=now() WHERE id=:id RETURNING *"""),
@@ -315,6 +355,7 @@ class ContentDeliveryService:
                             "note": body.note,
                             "sha": preview["sha256"],
                             "approval_digest": approval_digest,
+                            "visual_review": json.dumps(visual_review) if visual_review is not None else None,
                             "scheduled": when,
                         },
                     )
@@ -480,18 +521,49 @@ async def publish_fake(
                 row["tenant_id"], row["business_id"], row["actor_id"], row["preview_id"]
             )
             async with worker_database.sessions() as session, session.begin():
-                sha = await session.scalar(
-                    text("SELECT sha256 FROM media_previews WHERE id=:id"), {"id": row["preview_id"]}
+                preview = (
+                    (
+                        await session.execute(
+                            text("""SELECT p.sha256,p.generation_mode,p.visual_recipe,p.proposal_id,e.briefing_id
+                          FROM media_previews p JOIN editorial_proposals e ON e.id=p.proposal_id
+                          WHERE p.id=:id"""),
+                            {"id": row["preview_id"]},
+                        )
+                    )
+                    .mappings()
+                    .one()
                 )
-            valid = sha == row["approved_sha256"] and row["approval_digest"] == _digest(
-                {
-                    "preview": row["preview_id"],
-                    "sha256": sha,
-                    "caption": row["caption"],
-                    "destination": "instagram",
-                    "scheduled_at": row["scheduled_at"],
-                }
-            )
+            sha = preview["sha256"]
+            approval_fields = {
+                "preview": row["preview_id"],
+                "sha256": sha,
+                "caption": row["caption"],
+                "destination": "instagram",
+                "scheduled_at": row["scheduled_at"],
+            }
+            if preview["visual_recipe"] == "full_piece_v1":
+                try:
+                    review = VisualReviewConfirmation.model_validate(row["visual_review_confirmation"])
+                except ValueError:
+                    valid = False
+                else:
+                    valid = review.preview_sha256 == sha
+                    approval_fields["visual_review"] = review.model_dump(mode="json")
+            valid = valid and sha == row["approved_sha256"] and row["approval_digest"] == _digest(approval_fields)
+            if valid and preview["generation_mode"] in {"visual_fake", "visual_ai"}:
+                async with app_database.transaction(row["tenant_id"], row["actor_id"]) as session:
+                    await authorize_visual_copy(
+                        session,
+                        settings,
+                        app_database,
+                        row["tenant_id"],
+                        row["business_id"],
+                        row["actor_id"],
+                        preview["proposal_id"],
+                        preview["briefing_id"],
+                        require_generated=preview["generation_mode"] == "visual_ai",
+                        full_piece=preview["visual_recipe"] == "full_piece_v1",
+                    )
         except AuthError:
             valid = False
     async with worker_database.sessions() as session, session.begin():

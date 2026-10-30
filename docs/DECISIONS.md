@@ -1,7 +1,8 @@
 # Decisões vigentes e pendências
 
 Atualizado em **29/10/2026**, incluindo a primeira imagem paga autorizada pelo
-produto (parte 3) e o adiamento da recuperação de suporte C10 confirmado pelo proprietário.
+produto (parte 3), o adiamento da recuperação de suporte C10 e a prioridade de
+qualidade de conteúdo, skills e pesquisa de referências definida pelo proprietário.
 Este registro reúne decisões de produto; implementação e contratos técnicos
 ficam no [PROJECT](PROJECT.md), no [SDD](SDD.md) e nos [SDDs de fase](phases/README.md).
 Uma decisão aprovada ainda não implementada deve aparecer com esse estado em
@@ -33,6 +34,20 @@ não afirmar que documentação, flag ou migration isoladas já a resolveram.
 
 ## Decisões confirmadas
 
+### Qualidade, canal comercial e referências — 30/10
+
+O titular pode informar o canal preferido de contato, venda ou agendamento
+para orientar as chamadas; esse dado não deve ser inferido do telefone de
+identificação. A chamada depende dos canais realmente informados e não presume
+que uma imagem tenha um botão ou link funcional. Ausência de canal não autoriza
+inventá-lo.
+
+Após as correções de qualidade editorial, usar kit independente para QA e
+desenvolver com a web duas entradas complementares de referências: perfis
+indicados por @ pelo cliente e sugestões de negócios semelhantes obtidas pelo
+sistema, apresentadas para aceite. A capacidade de pesquisa, fontes, métricas
+e fornecedor ainda devem ser avaliados; uso de referências não autoriza cópia.
+
 | ID | Decisão de produto | Implementação local e limite |
 | --- | --- | --- |
 | C01 | IA para interpretação, texto, imagem e transcrição integra o serviço. Um único aceite explícito por negócio em Plano e acesso, antes do checkout; contas existentes aceitam a versão uma vez. | GET/POST versionado com hash, ator, data e auditoria; web sem permissões por fornecedor. `visual_ai` exige enforcement do aceite; primeira imagem real executada sob autorização delimitada, sem ativar uso recorrente. Credenciais/orçamento/plano continuam internos; registros antigos não são reescritos. |
@@ -48,6 +63,11 @@ não afirmar que documentação, flag ou migration isoladas já a resolveram.
 | C11 | Publicação exige aprovação explícita da versão, arquivo/hash, legenda, destino e horário aplicáveis. | Revisão/publicação simuladas locais. Escolher kit, confirmar fato, aceitar o serviço ou permanecer em silêncio não aprova publicação. Meta/Instagram reais pendentes. |
 | C12 | Foto e story são os formatos da oferta inicial. Vídeo e suas franquias/preço serão definidos depois; avatar/voz sintética ficam após o primeiro piloto comercial. | Regra inicial de formatos no código; não há franquia comercial final nem qualidade homologada. R$ 99/mês e teto total de R$ 50/cliente/mês orientam medição. |
 | C13 | Provar a primeira peça personalizada antes de ampliar nichos; fechar BL04, depois a jornada/ajuste/proatividade BL05. | BL01/BL02 e BL03.1/BL03.2 locais; BL04 em implementação. BL03.3, BL06, pesquisa ampla, avatar e expansão multicanal têm etapas próprias. |
+| C14 | Priorizar a qualidade da geração e estudar skills reutilizáveis para orientar as peças antes de avançar na jornada completa. Começar por feed e story e avaliar o resultado com o contexto e os materiais de cada negócio. | A skill do formato entra no briefing editorial e na peça integral, versionada por ID/hash; validação de qualidade real e seleção completa no WhatsApp ainda pendentes. O gate BL04.3 permanece. |
+| C15 | Após o trabalho inicial de skills, desenvolver pesquisa de referências que combine indicações do cliente com descoberta automática de negócios semelhantes em destaque. Usar referências para orientar a criação sem copiar conteúdo ou identidade de terceiros. | Direção aprovada, não implementada. A descoberta automática deve ser estudada e validada quanto a fontes, permissões, relevância e métricas disponíveis; uma indicação do cliente não substitui a descoberta. Jev é uma hipótese a avaliar, não provedor escolhido. |
+| C16 | O modelo deve criar o texto da peça, a legenda e o convite à ação a partir do pedido e das referências do negócio; não substituir sua resposta por texto fixo ou fallback do código na geração real. | O briefing com skill usa redação natural e validação de fonte/valores; não comprova sentido ou qualidade e exige revisão humana. Baseline disabled é rejeitado em novas propostas. A avaliação real do novo caminho ainda está pendente. |
+| C17 | A geração deve reunir pedido, fatos, kit, acervo pertinente, referências externas aceitas quando disponíveis e skill de feed/story em um briefing; solicitar ao modelo a peça final completa, inclusive texto e identidade, e conferir o resultado antes da publicação. O trace deve permitir examinar a entrada e decisões sem expor dados privados em logs. O caminho visual que gera só fundo e aplica layout fixo deve ser descontinuado para novas gerações. | Novo caminho local com skill, referência do kit, peça integral e trace cifrado. Aprovação via API exige conferência humana por SHA; WhatsApp/web ainda não oferecem o checklist. Sem homologação/ensaio real posterior. Pesquisa e aceite de referências externas não existem. Histórico preservado não autoriza novo efeito do caminho antigo. Ideia de concorrentes/fontes do kit fica para estudo posterior. |
+| C18 | Quando uma mensagem pedir peça com preço diferente do catálogo e não esclarecer se deseja atualizar o cadastro, perguntar ao cliente antes de continuar. Não substituir silenciosamente o valor pedido pelo preço antigo. | Decisão de 30/10/2026 para evolução posterior do WhatsApp/Jev. A identificação estruturada do preço, detecção de conflito e pergunta específica ainda não estão implementadas; a geração da peça é a prioridade desta fatia. |
 
 ## Perguntas resolvidas nesta revisão
 
@@ -100,10 +120,22 @@ incerta permanece no ledger, e a candidata aguarda decisão. A flag persistente
 continua desligada; a autorização é delimitada, sem novo orçamento recorrente.
 Registro em [evidência da parte 3](evals/bl042-first-product-image-2026-10-29.md).
 
-A próxima entrega é **BL04.3**, revisar feed e completar post/story com titular,
-medindo qualidade e custo por peça aceita; depois BL05 fecha WhatsApp como jornada
-principal de prévia/ajuste/aprovação e proatividade. Novas chamadas exigem autorização
-apropriada às fontes e ao teto; a existência de saldo estimado não concede gasto.
+A próxima preparação é estudar e desenvolver skills de **feed e story**, com
+avaliação comparativa inicial da geração. Depois do trabalho inicial com skills,
+pesquisar referências tanto indicadas quanto descobertas automaticamente e avaliar
+seu uso na geração; a pesquisa não depende do fechamento do gate comercial.
+**BL04.3** continua exigindo revisão do feed e post/story com titular, medindo
+qualidade e custo por peça aceita, antes da liberação. BL05 fecha a jornada WhatsApp
+de prévia/ajuste/aprovação e proatividade. As fases propostas e seus gates estão em
+[skills e referências editoriais](design/skills-e-referencias-editoriais.md).
+Novas chamadas exigem autorização apropriada às fontes e ao teto; a existência de
+saldo estimado não concede gasto.
+
+Um único repositório com uma pasta por skill é uma **recomendação** para estudo,
+não decisão sobre criação, visibilidade, licença ou distribuição. Instalar uma
+skill em um agente não a integra automaticamente à API do produto. Fornecedor de
+pesquisa, acesso aos dados, critérios de destaque e similaridade, interação do
+cliente com sugestões e custos permanecem a definir e validar em suas fases.
 
 A admissão revalida proposta/fontes/aceite/plano antes do run durável; reserva e
 fence continuam em outra transação/role. A recuperação exige prova de ausência

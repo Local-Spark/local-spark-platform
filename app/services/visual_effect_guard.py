@@ -87,6 +87,7 @@ class DatabaseVisualEffectGuard:
             "fingerprint": scope.fingerprint,
             "candidate": scope.candidate,
             "generation_mode": self.generation_mode,
+            "visual_recipe": scope.visual_recipe,
         }
 
     async def _preview(self, session: Any, scope: VisualRunScope, *, lock: bool = False) -> Any:
@@ -95,7 +96,7 @@ class DatabaseVisualEffectGuard:
                 """SELECT * FROM media_previews WHERE id=:preview AND tenant_id=:tenant AND business_id=:business
               AND actor_id=:actor AND proposal_id=:proposal AND operation_id=:operation
               AND dispatch_fence=:fence AND visual_fingerprint=:fingerprint AND candidate=:candidate
-              AND generation_mode=:generation_mode"""
+              AND generation_mode=:generation_mode AND visual_recipe=:visual_recipe"""
                 + (" FOR UPDATE" if lock else "")
             ),
             self._params(scope),
@@ -104,6 +105,9 @@ class DatabaseVisualEffectGuard:
 
     async def admit(self, scope: VisualRunScope) -> bool:
         self._require_mode()
+        # Old previews stay readable, but never start a new paid legacy effect.
+        if self.generation_mode == "visual_ai" and scope.visual_recipe != "full_piece_v1":
+            return False
         async with self.worker.transaction(scope.tenant, scope.actor) as session:
             row = await self._preview(session, scope)
             if row is None or row["state"] != "rendering":
@@ -140,7 +144,14 @@ class DatabaseVisualEffectGuard:
             ):
                 raise AuthError("SERVICE_AGREEMENT_REQUIRED", 409)
             with admitted_visual_run(
-                AdmittedScope(scope.tenant, scope.business, scope.actor, visual_operation(scope.preview), scope.fence)
+                AdmittedScope(
+                    scope.tenant,
+                    scope.business,
+                    scope.actor,
+                    visual_operation(scope.preview),
+                    scope.fence,
+                    visual_recipe=scope.visual_recipe,
+                )
             ):
                 current = await VisualContextService(self.settings, self.owner).capture_in_transaction(
                     session, scope.tenant, scope.business, scope.actor, scope.proposal, candidate=scope.candidate
@@ -154,6 +165,8 @@ class DatabaseVisualEffectGuard:
                     scope.actor,
                     scope.proposal,
                     current.briefing_id,
+                    require_generated=self.generation_mode == "visual_ai",
+                    full_piece=scope.visual_recipe == "full_piece_v1",
                 )
             if current.fingerprint != scope.fingerprint:
                 raise AuthError("PREVIEW_INPUT_CHANGED", 409)
@@ -163,7 +176,8 @@ class DatabaseVisualEffectGuard:
         self, scope: VisualRunScope, prepared: PreparedVisualRequest, identity: VisualSubmissionIdentity
     ) -> FencedVisualReservation:
         if (
-            prepared.context.fingerprint != scope.fingerprint
+            (self.generation_mode == "visual_ai" and scope.visual_recipe != "full_piece_v1")
+            or prepared.context.fingerprint != scope.fingerprint
             or prepared.context.tenant_id != scope.tenant
             or prepared.context.business_id != scope.business
             or prepared.context.proposal_id != scope.proposal
@@ -182,7 +196,26 @@ class DatabaseVisualEffectGuard:
         ):
             raise AuthError("VISUAL_AUTHORIZATION_SCOPE_INVALID", 409)
         await self._owner_proof(scope)
-        return await VisualAttemptService(self.settings, self.worker).reserve(
+        trace_ciphertext = None
+        if scope.visual_recipe == "full_piece_v1":
+            from app.services.visual_request_trace import encrypt_visual_trace
+
+            trace_ciphertext = encrypt_visual_trace(self.settings, prepared)
+        attempts = VisualAttemptService(self.settings, self.worker)
+        if trace_ciphertext is None:
+            return await attempts.reserve(
+                scope.tenant,
+                scope.business,
+                scope.actor,
+                scope.preview,
+                scope.fence,
+                identity.operation,
+                identity.provider,
+                prepared.request.model,
+                prepared.request_hash,
+                self.reserved_usd_micros,
+            )
+        return await attempts.reserve(
             scope.tenant,
             scope.business,
             scope.actor,
@@ -193,6 +226,7 @@ class DatabaseVisualEffectGuard:
             prepared.request.model,
             prepared.request_hash,
             self.reserved_usd_micros,
+            trace_ciphertext=trace_ciphertext,
         )
 
     async def current(self, scope: VisualRunScope, prepared: PreparedVisualRequest) -> bool:
@@ -351,6 +385,7 @@ class GuardedVisualSubmissionClaims(VisualSubmissionClaims):
             row is None
             or row["generation_mode"] != self.guard.generation_mode
             or identity.operation != visual_operation(identity.preview)
+            or (self.guard.generation_mode == "visual_ai" and row.get("visual_recipe") != "full_piece_v1")
         ):
             return False
         scope = VisualRunScope(
@@ -363,6 +398,9 @@ class GuardedVisualSubmissionClaims(VisualSubmissionClaims):
             identity.fence,
             row["candidate"],
             row["visual_fingerprint"],
+            row.get("visual_skill_id"),
+            row.get("visual_skill_sha256"),
+            row.get("visual_recipe", "legacy_overlay"),
         )
         try:
             proof = await self.guard._owner_proof(scope)

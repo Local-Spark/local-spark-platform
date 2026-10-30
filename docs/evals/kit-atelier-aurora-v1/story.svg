@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <rect width="1080" height="1920" fill="#f6ecdb"/>
+  <rect x="0" y="0" width="1080" height="645" fill="#163942"/>
+  <path d="M0 572L1080 390V645H0Z" fill="#d67250"/>
+  <text x="90" y="185" fill="#f6ecdb" font-family="DejaVu Sans" font-weight="bold" font-size="36" letter-spacing="4">ATELIÊ AURORA</text>
+  <text x="90" y="326" fill="#f6ecdb" font-family="DejaVu Serif" font-size="90">Um novo</text>
+  <text x="90" y="438" fill="#f6ecdb" font-family="DejaVu Serif" font-size="90">olhar.</text>
+  <circle cx="540" cy="1042" r="341" fill="#efba81"/>
+  <circle cx="540" cy="1042" r="284" fill="#163942"/>
+  <path d="M425 1225C358 1124 352 963 405 834C482 878 543 975 552 1083C574 952 629 861 698 820C736 962 694 1124 620 1225Z" fill="#f6ecdb"/>
+  <path d="M493 1194Q542 1050 593 915" fill="none" stroke="#d67250" stroke-width="14"/>
+  <text x="90" y="1557" fill="#163942" font-family="DejaVu Sans" font-size="37" letter-spacing="2">FORMAS QUE CONTAM</text>
+  <text x="90" y="1611" fill="#163942" font-family="DejaVu Sans" font-size="37" letter-spacing="2">NOVAS HISTÓRIAS</text>
+  <path d="M90 1670H740" stroke="#d67250" stroke-width="7"/>
+  <text x="90" y="1788" fill="#163942" font-family="DejaVu Sans" font-size="23" letter-spacing="3">ESTUDO FICTÍCIO DE IDENTIDADE</text>
+</svg>

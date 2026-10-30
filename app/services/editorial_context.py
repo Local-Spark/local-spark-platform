@@ -14,7 +14,13 @@ from app.services.whatsapp_materials import WhatsAppMaterialsService
 
 
 def _digest(content: ContextContent | ContextRestore) -> str:
-    encoded = json.dumps(content.model_dump(mode="json"), sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    document = content.model_dump(mode="json")
+    # Keep idempotency hashes of older requests unchanged when this optional
+    # preference was not yet part of the persisted schema.
+    preferences = document.get("preferences")
+    if isinstance(preferences, dict) and preferences.get("cta_destination") is None:
+        preferences.pop("cta_destination", None)
+    encoded = json.dumps(document, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
     return hashlib.sha256(encoded.encode()).hexdigest()
 
 

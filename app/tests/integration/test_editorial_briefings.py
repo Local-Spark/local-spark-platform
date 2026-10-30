@@ -19,7 +19,7 @@ from app.services.editorial_dispatch import claim_proposals, finish_proposal_dis
 from app.services.editorial_proposals import EditorialProposalService
 from app.services.media_previews import MediaPreviewService
 from app.tests.integration.test_business_catalog import _payload
-from app.tests.integration.test_editorial_proposals import _asset, _business
+from app.tests.integration.test_editorial_proposals import _asset, _business, _seed_historical_proposal
 from app.workflows.content_activities import ContentCandidateActivities
 
 pytestmark = pytest.mark.integration
@@ -100,7 +100,10 @@ async def test_inbound_catalog_briefing_is_durable_scoped_and_revalidated(admin,
         await finish_proposal_dispatch(worker, claims[0], True)
         # The versioned item name is its own source; it does not create a
         # business_context fact or invent a price.
-        assert await EditorialProposalService(cfg, worker, owner_database=database).run(proposal_id) == "completed"
+        assert await EditorialProposalService(cfg, worker, owner_database=database).run(proposal_id) == "rejected"
+        await _seed_historical_proposal(
+            admin, proposal_id, UUID(data["confirmed_facts"][0]["id"]), "Croissant", format="photo"
+        )
         async with admin.connect() as conn:
             document = await conn.scalar(
                 text("SELECT document FROM editorial_proposals WHERE id=:id"), {"id": proposal_id}

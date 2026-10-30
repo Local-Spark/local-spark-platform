@@ -122,9 +122,10 @@ análise automática por raio.
   estatística.
 - **BL03:** acervo privado e opcional em **Sobre meu negócio**, com produtos,
   serviços e fotos do ambiente, sem bloquear pedidos livres.
-- **BL04:** F03 recupera contexto do pedido livre e F04 gera uma nova peça com
-  kit e acervo pertinentes; medir fidelidade, aceitação e custo por peça aceita
-  antes de fechar as franquias F07.
+- **BL04:** preparar skills de feed/story, testar com casos fictícios e integrar
+  as versões avaliadas com kit e acervo pertinentes. A pesquisa de referências
+  indicadas e automaticamente descobertas e sua aplicação vêm em seguida; medir
+  fidelidade, aceitação e custo por peça aceita antes de fechar franquias F07.
 - **BL05 + F03 mínimo + F07 mínimo:** jornada local pelo WhatsApp simulado,
   proatividade, aprovação e ajustes; cadência simples dentro do plano,
   justificativa honesta, pausa e enforcement da franquia.
@@ -132,8 +133,10 @@ análise automática por raio.
   público em objeto/CDN, com gate próprio de qualidade e direitos por kit.
 - **Piloto:** medir custos, aceitação e sinais do próprio negócio; testar
   ajustes de horário/formato sem prometer ganho causal.
-- **F03 pesquisa avançada:** curar referências por nicho/região e integrar
-  somente fontes permitidas; ampliar a biblioteca com padrões auditáveis,
-  depois de validar ganho sobre o baseline sem concorrentes.
+- **F03 pesquisa de referências:** combinar indicação do cliente e descoberta
+  automática por semelhança e destaque, com fontes permitidas e padrões auditáveis.
+  Comparar o ganho sobre o baseline sem referências, sem exigir que o gate
+  comercial BL04.3 tenha sido concluído antes de estudar a pesquisa. Detalhes na
+  [proposta por fases](skills-e-referencias-editoriais.md).
 
 Versão anterior à reconciliação: [snapshot integral de 28/10/2026](../history/2026-10-28-pre-documentation-reconciliation/design/editorial-planning-and-evidence.md).

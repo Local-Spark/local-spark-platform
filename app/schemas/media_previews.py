@@ -25,10 +25,13 @@ class PreviewRequest(BaseModel):
     proposal_id: UUID
     parent_preview_id: UUID | None = None
     emphasis: Literal["balanced", "photo", "text"] = "balanced"
-    generation_mode: Literal["local", "visual_fake", "visual_ai"] = "local"
+    generation_mode: Literal["local", "visual_fake", "visual_ai"] = "visual_ai"
+    visual_skill_id: Literal["instagram-feed-v1", "instagram-story-v1"] | None = None
 
     @model_validator(mode="after")
     def adjustment_requires_parent(self) -> "PreviewRequest":
+        if self.visual_skill_id is not None and self.generation_mode not in {"visual_ai", "visual_fake"}:
+            raise ValueError("VISUAL_SKILL_REQUIRES_AI")
         if self.generation_mode in {"visual_fake", "visual_ai"} and self.parent_preview_id is not None:
             raise ValueError("VISUAL_ADJUSTMENT_UNAVAILABLE")
         if self.parent_preview_id is None and self.emphasis != "balanced":
@@ -45,7 +48,10 @@ class PreviewRead(BaseModel):
     revision: int
     state: Literal["pending", "rendering", "completed", "failed"]
     generation_mode: Literal["local", "visual_fake", "visual_ai"] = "local"
+    visual_skill_id: Literal["instagram-feed-v1", "instagram-story-v1"] | None = None
+    visual_recipe: Literal["legacy_overlay", "full_piece_v1"] = "legacy_overlay"
     created_before_change: bool = False
+    sha256: str | None = None
     error_code: str | None
     context_version: int
     source_asset_id: UUID | None

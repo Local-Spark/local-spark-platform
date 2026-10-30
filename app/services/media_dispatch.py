@@ -40,6 +40,8 @@ async def claim_previews(
                         (state='pending' OR (state='rendering' AND dispatch_lease_until<now()
                           AND generation_mode<>'visual_ai'))
                         AND (generation_mode<>'visual_ai' OR :visual_enabled)
+                        AND (generation_mode<>'local' OR mime_type='video/mp4')
+                        AND (generation_mode NOT IN ('visual_fake','visual_ai') OR visual_recipe='full_piece_v1')
                         AND attempts<3 AND expires_at>now()
                       ORDER BY created_at,id LIMIT :limit FOR UPDATE SKIP LOCKED)
                       UPDATE media_previews p SET state='rendering',attempts=p.attempts+1,

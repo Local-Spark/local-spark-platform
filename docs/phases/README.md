@@ -42,10 +42,17 @@ imagem real de feed para Café do Cedro, com Jev real, teto total autorizado de
 US$ 1 e sem aprovação/publicação. Estimativa total US$ 0,029701; reserva visual
 incerta, sem fatura. A execução continua desligada por padrão e a autorização
 não é recorrente. [Evidência](../evals/bl042-first-product-image-2026-10-29.md).
-A próxima fatia é **BL04.3**, revisar feed e completar post/story com titular,
-medindo fidelidade e custo por peça aceita; depois BL05 fecha WhatsApp como
-jornada principal e proatividade. Parte 3 validada com 94 unitários, lint/types
-e leitura/hash com geração desligada; último CI completo permanece o da parte 2.
+A próxima fatia prioriza **skills de geração para feed e story**: estudo,
+especificação e comparação simulada com o baseline, seguidos de integração
+versionada ao produto. Depois, pesquisar referências indicadas pelo cliente e
+descobertas automaticamente pela plataforma, avaliar fontes e aplicar padrões
+pertinentes à geração sem copiar. A pesquisa não precisa esperar o fechamento
+integral do gate comercial **BL04.3**, que continua exigindo avaliação de
+post/story pelo titular e custo por peça aceita. Depois BL05 fecha WhatsApp como
+jornada principal e proatividade. Detalhes e dependências no
+[plano de skills e referências](../design/skills-e-referencias-editoriais.md).
+Parte 3 foi validada com 94 unitários, lint/types e leitura/hash com geração
+desligada; o último CI completo permanece o da parte 2.
 
 A admissão `visual_fake` e `visual_ai` revalida fontes, aceite e plano sob locks; depois de
 admitida, a criação conclui e permite revisão privada após vencimento financeiro.
@@ -70,9 +77,11 @@ fica para essa fase, sem nova exclusão automática agora. Detalhes e lacunas em
 | 1 | [BL01](BL-brand-library.md#bl01--kit-piloto-e-vitrine-local) | Kit piloto de cafeteria, dez posts, stories, reel e vitrine. | Técnica local pronta; revisão comercial/direitos pendente. |
 | 2 | [BL02](BL-brand-library.md#bl02--escolher-e-editar-o-kit-piloto-para-um-negócio) | Dono seleciona o kit e ajusta cores, fontes, logo, textos e composição guiada de feed/story/capa vertical; vê e confirma prévias versionadas. | Implementada localmente; gate comercial do kit segue pendente. |
 | 3 | [BL03](BL-brand-library.md#bl03--acervo-progressivo-em-sobre-meu-negócio) | Dentro de “Sobre meu negócio”, cadastrar opcionalmente produtos/serviços e fotos reais do espaço; dado privado, confirmado e versionado. | **BL03.1/BL03.2 implementadas localmente; BL03.3 posterior.** |
-| 4 | [BL04](BL-brand-library.md#bl04--recuperar-contexto-e-produzir-uma-peça-nova) | Áudio/texto livre resolve o item e fontes automaticamente; IA visual/receita gera nova peça com kit aplicado; medir fidelidade, aceite e custo completo. | **Em implementação local**; ensaio sintético isolado não encerra o gate. |
-| 5 | [BL05](BL-brand-library.md#bl05--jornada-completa-local-ajuste-e-proatividade-mínima) | WhatsApp simulado e proposta sem mensagem percorrem prévia, ajuste, aprovação e publicação falsa com as mesmas regras. | Contratos F02/F04/F06 parciais já existem; integração pendente. |
-| 6 | [BL06](BL-brand-library.md#bl06--ampliar-a-biblioteca-e-servir-o-catálogo-em-escala) | Kits de manicure e personal, catálogo público versionado em objetos/CDN e revisões por nicho. | Planejada após prova de reaplicação. |
+| 4 | [BL04](BL04-context-and-ai-production.md#próxima-fatia-de-desenvolvimento) | Desenvolver skills de feed/story, comparar com baseline e integrar geração com kit/acervo. | Planejada; biblioteca e integração das skills ainda não existem. |
+| 5 | [F03 — referências externas](../design/skills-e-referencias-editoriais.md) | Cliente indica perfis e plataforma descobre semelhantes em destaque; avaliar fontes, métricas e padrões antes de usá-los na criação. | Planejada após estudo e comparação simulada das skills; Jev é hipótese, sem provedor escolhido. |
+| 6 | [BL04.3](BL04-context-and-ai-production.md#bl043--qualidade-e-economia-pendente) | Avaliar post/story pelo produto, com fontes autorizadas e titular; medir pertinência, fidelidade, aceite e custo completo. | Gate comercial pendente; ensaio sintético isolado não o encerra. |
+| 7 | [BL05](BL-brand-library.md#bl05--jornada-completa-local-ajuste-e-proatividade-mínima) | WhatsApp simulado e proposta sem mensagem percorrem prévia, ajuste, aprovação e publicação falsa com as mesmas regras. | Contratos F02/F04/F06 parciais já existem; integração pendente. |
+| 8 | [BL06](BL-brand-library.md#bl06--ampliar-a-biblioteca-e-servir-o-catálogo-em-escala) | Kits de manicure e personal, catálogo público versionado em objetos/CDN e revisões por nicho. | Planejada após prova de reaplicação. |
 
 BL02 e BL03 podem avançar com a Meta restrita. BL04 testa localmente com
 mocks e, para fechar qualidade comercial, precisa de avaliação de titular
@@ -80,9 +89,10 @@ com material consentido. BL05 exercita integração e falhas locais; uso real
 depende da homologação F02/F06. A expansão BL06 não precisa atrasar o primeiro
 piloto de cafeteria, mas não deve anteceder uma peça personalizada aprovada.
 
-O [roadmap completo até produção e expansão](../design/delivery-roadmap-2026-10-27.md)
-organiza homologação Meta, custo/franquia, AWS e piloto depois da jornada local,
-seguido de importação de cardápio, novos nichos, pesquisa, avatar e multicanal.
+O [roadmap de 27/10 até produção e expansão](../design/delivery-roadmap-2026-10-27.md)
+organiza homologação Meta, custo/franquia, AWS e piloto depois da jornada local.
+A ordem atual para pesquisa e skills é a deste índice e do plano editorial;
+importação de cardápio, novos nichos, avatar e multicanal têm fases próprias.
 BL03 atual entrega cadastro manual/fotos; [BL03.3](BL03-business-collection.md#bl033--importação-automática-de-fotos-de-cardápio-planejada)
 extrairá dados de fotos de cardápio/tabela de serviços e preencherá o acervo
 automaticamente como rascunho para conferência. Não bloqueia a primeira peça.
@@ -94,7 +104,7 @@ automaticamente como rascunho para conferência. Não bloqueia a primeira peça.
 | [F00](F00-foundation.md) | Fundação, Postgres/RLS, Temporal e observabilidade base | Concluída localmente. |
 | [F01](F01-identity-onboarding.md) | Identidade, onboarding, admin e cobrança mínima | Código local; staging/homologação externa pendentes. |
 | [F02](F02-whatsapp-ingestion.md) | WhatsApp, materiais e confirmação | Local/mock; Meta real pendente. |
-| [F03](F03-editorial-research.md) | Contexto, pauta, roteiro, cadência proativa e pesquisa | Parte local; BL02–BL05 integram contexto/kit e proatividade mínima. Pesquisa ampla fica depois. |
+| [F03](F03-editorial-research.md) | Contexto, pauta, roteiro, cadência proativa e pesquisa | Parte local; pesquisa de referências é planejada após estudo e comparação simulada das skills, antes de seu uso na criação. |
 | [F04](F04-media-recipes.md) | Receita visual, IA de imagem/vídeo, prévia e ajuste | Renderer local é baseline técnico; BL04 fecha primeira receita aprovada. |
 | [F05](F05-avatar-generative-video.md) | Avatar, voz e cenas geradas | Avatar do cliente após o primeiro piloto comercial (P15), com consentimento, qualidade e orçamento próprios. |
 | [F06](F06-instagram-publishing.md) | Aprovação, agenda, publicação e métricas Instagram | Fluxo falso local; Meta/Instagram reais pendentes. |
@@ -108,11 +118,11 @@ operar staging F08 com logs, alertas e recuperação. Aprovação de peça é
 distinta de confirmação de preço ou escolha do kit. Não prometer frequência,
 venda, alcance ou canal não comprovados.
 
-**Depois do piloto:** BL06 amplia nichos; F03 acrescenta referências de
-concorrentes com fontes permitidas e evidência de ganho; F05 acrescenta avatar
-somente se qualidade, consentimento e margem sustentarem o formato. A meta de
-200 mil clientes orienta capacidade gradual F08, não bloqueia a primeira
-coorte.
+**Depois do piloto:** BL06 amplia nichos; F05 acrescenta avatar somente se
+qualidade, consentimento e margem sustentarem o formato. Pesquisa de referências
+de concorrentes foi antecipada para a sequência acima, com fontes permitidas e
+evidência de ganho. A meta de 200 mil clientes orienta capacidade gradual F08,
+não bloqueia a primeira coorte.
 
 ## Documentos de decisão
 
@@ -122,6 +132,8 @@ coorte.
   snapshots, adapters, ledger e dados confirmados.
 - [Qualidade criativa](../design/creative-production-quality.md): gates
   por receita e comparação IA/composição.
+- [Skills e referências editoriais](../design/skills-e-referencias-editoriais.md):
+  fases de geração, pesquisa de concorrentes e avaliação.
 - [Cadência e planos](../design/editorial-planning-and-evidence.md):
   franquia do plano, recomendação explicável e evidência.
 - [Decisões vigentes e abertas](../DECISIONS.md): aceite, retenção, acesso,

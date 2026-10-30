@@ -14,6 +14,7 @@ from sqlalchemy import text
 
 from app.db.session import Database
 from app.schemas.business_catalog import CatalogUpdate
+from app.schemas.editorial_proposals import ProposalDraft
 from app.services.auth import AuthError
 from app.services.billing import lock_commercial_change, revoke_sponsorship
 from app.services.business_catalog import BusinessCatalogService
@@ -33,13 +34,22 @@ from app.workflows.content_activities import ContentCandidateActivities
 pytestmark = pytest.mark.integration
 
 
-async def _ready(admin, database, seeded, settings):
+async def _ready(admin, database, seeded, settings, requested_format="photo"):
     tenant, actor = seeded["t1"], seeded["a1"]
     business = await _business(admin, seeded)
     await _enable(admin, tenant, business, actor)
     key = Fernet.generate_key().decode()
-    cfg = settings.model_copy(update={"meta_encryption_key": SecretStr(key), "visual_ai_mode": "fake"})
-    source = await _asset(admin, tenant, business, key, body="Crie uma imagem do croissant")
+    cfg = settings.model_copy(
+        update={
+            "meta_encryption_key": SecretStr(key),
+            "visual_ai_mode": "fake",
+            "editorial_ai_mode": "openai",
+            "editorial_daily_token_limit": 100000,
+            "openai_api_key": SecretStr("synthetic-unused-key"),
+        }
+    )
+    message = "Crie uma imagem do croissant" if requested_format == "photo" else "Crie um story do croissant"
+    source = await _asset(admin, tenant, business, key, body=message)
     catalog = _payload()
     await BusinessCatalogService(database).update(tenant, business, actor, CatalogUpdate.model_validate(catalog))
     async with admin.begin() as conn:
@@ -61,7 +71,9 @@ async def _ready(admin, database, seeded, settings):
         )
     interpreter = SimpleNamespace(
         interpret=AsyncMock(
-            return_value=CatalogIntent("selected", UUID(catalog["offerings"][0]["id"]), "content_request", "photo")
+            return_value=CatalogIntent(
+                "selected", UUID(catalog["offerings"][0]["id"]), "content_request", requested_format
+            )
         )
     )
     worker = Database(cfg, correlator=True)
@@ -70,7 +82,38 @@ async def _ready(admin, database, seeded, settings):
         proposal = UUID(await activity.request_candidate_proposal(str(source)))
         claim = (await claim_proposals(worker, uuid4()))[0]
         await finish_proposal_dispatch(worker, claim, True)
-        assert await EditorialProposalService(cfg, worker, owner_database=database).run(proposal) == "completed"
+
+        async def complete_brief(data, operation, *, prepared_request):
+            assert operation == proposal and prepared_request["input"]
+            fact = data["confirmed_facts"][0]
+            return (
+                ProposalDraft(
+                    title="Croissant para sua pausa",
+                    format=requested_format,
+                    angle="Uma pausa com croissant",
+                    fact_ids=[UUID(fact["id"])],
+                    hypotheses=[],
+                    questions=[],
+                    scene_plan=["fact", "cta"],
+                    art_text="Croissant para sua pausa",
+                    caption="Uma pausa com croissant",
+                    cta="Faça seu pedido",
+                    creative_brief={
+                        "objective": "Divulgar o produto",
+                        "concept": "Pausa com croissant",
+                        "visual_direction": "Valorizar o produto",
+                        "hierarchy": "Nome e chamada",
+                        "photo_use": "Valorizar a fotografia disponível",
+                    },
+                ),
+                100,
+                40,
+            )
+
+        provider = SimpleNamespace(propose=AsyncMock(side_effect=complete_brief))
+        assert (
+            await EditorialProposalService(cfg, worker, provider, owner_database=database).run(proposal) == "completed"
+        )
         await VisualConsentService(cfg, database).set(tenant, business, actor, True)
         context = await VisualContextService(cfg, database).capture(tenant, business, actor, proposal, candidate=True)
         return tenant, business, actor, catalog, VisualAdmissionChecks(cfg, proposal, context.fingerprint, True)

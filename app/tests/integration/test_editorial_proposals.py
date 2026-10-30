@@ -99,6 +99,43 @@ async def _fact(admin, tenant, business, actor):
         )
 
 
+async def _seed_historical_proposal(admin, proposal_id, fact_id, statement, *, format="story"):
+    """Preserve coverage of legacy review/edit using a pre-existing fixture."""
+    document = {
+        "title": "Uma história do seu negócio",
+        "format": format,
+        "angle": f"Apresente este ponto do negócio: {statement}.",
+        "fact_ids": [str(fact_id)],
+        "hypotheses": [],
+        "questions": ["Qual detalhe você gostaria de destacar?"],
+        "scene_plan": ["fact", "cta"],
+        "script": [
+            {
+                "role": "fact",
+                "visual": "brand_card",
+                "on_screen_text": f"{statement}.",
+                "voiceover": f"{statement}.",
+                "fact_ids": [str(fact_id)],
+                "source_asset_id": None,
+            },
+            {
+                "role": "cta",
+                "visual": "brand_card",
+                "on_screen_text": "Fale com o negócio",
+                "voiceover": "Entre em contato para saber mais.",
+                "fact_ids": [],
+                "source_asset_id": None,
+            },
+        ],
+    }
+    async with admin.begin() as connection:
+        await connection.execute(
+            text("""UPDATE editorial_proposals SET state='completed',document=CAST(:document AS jsonb),
+              error_code=NULL,model='baseline-v1' WHERE id=:id"""),
+            {"id": proposal_id, "document": json.dumps(document)},
+        )
+
+
 async def test_baseline_request_consent_replay_and_rls(admin, api, database, seeded, settings):
     business = await _business(admin, seeded)
     tenant, actor = seeded["t1"], seeded["a1"]
@@ -164,7 +201,8 @@ async def test_baseline_request_consent_replay_and_rls(admin, api, database, see
         assert len(claims) == 1
         await finish_proposal_dispatch(worker_db, claims[0], True)
         service = EditorialProposalService(settings, worker_db)
-        assert await service.run(claims[0].id) == "completed"
+        assert await service.run(claims[0].id) == "rejected"
+        await _seed_historical_proposal(admin, claims[0].id, fact, "Cachorro-quente artesanal")
         assert await service.run(claims[0].id) == "skipped"
         result = (await api.get(proposals, headers=owner)).json()[0]
         assert result["document"]["fact_ids"] == [str(fact)]
@@ -240,7 +278,8 @@ async def test_script_edit_versions_replay_review_and_preview_fence(admin, api, 
         claims = await claim_proposals(worker, uuid4())
         assert len(claims) == 1
         await finish_proposal_dispatch(worker, claims[0], True)
-        assert await EditorialProposalService(settings, worker).run(claims[0].id) == "completed"
+        assert await EditorialProposalService(settings, worker).run(claims[0].id) == "rejected"
+        await _seed_historical_proposal(admin, claims[0].id, fact_id, "Cachorro-quente artesanal")
     finally:
         await worker.close()
     original = (await api.get(proposals_url, headers=owner)).json()[0]
@@ -492,8 +531,8 @@ async def test_script_edit_versions_replay_review_and_preview_fence(admin, api, 
         headers=owner,
         json={"operation_id": str(uuid4()), "proposal_id": original["id"]},
     )
-    assert preview.status_code == 202, preview.text
-    assert len((await api.get(preview_url, headers=owner)).json()) == 1
+    assert preview.status_code == 409 and preview.json()["error_code"] == "VISUAL_EXECUTION_DISABLED"
+    assert (await api.get(preview_url, headers=owner)).json() == []
     newer_scenes = [dict(scene) for scene in edited_scenes]
     next(scene for scene in newer_scenes if scene["role"] == "cta")["voiceover"] = "Entre em contato com a gente."
     third = await api.post(
@@ -571,12 +610,15 @@ async def test_paid_reservation_budget_invalid_fact_and_uncertain(admin, seeded,
     fact_id = uuid4()
     provider.propose.return_value = (
         ProposalDraft(
-            title="Promoção incrível do negócio",
+            title="Conheça Pao artesanal",
             format="story",
-            angle="Aproveite a oferta imperdível para você.",
+            angle="Conheça nosso Pao artesanal.",
             fact_ids=[fact_id],
             hypotheses=[],
             questions=[],
+            art_text="Pao artesanal",
+            caption="Sua pausa com Pao artesanal.",
+            cta="Envie mensagem",
         ),
         100,
         50,
@@ -640,8 +682,10 @@ async def test_paid_reservation_budget_invalid_fact_and_uncertain(admin, seeded,
             delivered = await connection.scalar(
                 text("SELECT document FROM editorial_proposals WHERE id=:id"), {"id": request.id}
             )
-            assert delivered["title"] == "Uma história do seu negócio"
-            assert delivered["angle"] == "Apresente este ponto do negócio: Pao artesanal."
+            assert delivered["title"] == "Conheça Pao artesanal"
+            assert delivered["art_text"] == "Pao artesanal"
+            assert delivered["caption"] == "Sua pausa com Pao artesanal."
+            assert delivered["cta"] == "Envie mensagem"
         config.editorial_daily_token_limit = 1
         request2 = await api_service.request(tenant, business, actor, ProposalRequest(operation_id=uuid4()))
         claim2 = (await claim_proposals(worker_db, uuid4()))[0]
@@ -1412,6 +1456,9 @@ async def test_experimental_copy_preserves_provenance_and_abstains_on_unsupporte
             hypotheses=[],
             questions=[],
             scene_plan=["fact", "cta"],
+            art_text="Croissant por R$ 20",
+            caption="Sua pausa com croissant por R$ 20",
+            cta="Envie mensagem",
         )
         provider.propose.return_value = draft, 100, 50
         request = await service.request(tenant, business, actor, ProposalRequest(operation_id=uuid4()))
@@ -1424,8 +1471,20 @@ async def test_experimental_copy_preserves_provenance_and_abstains_on_unsupporte
             )
         assert result["title"] == draft.title and result["angle"] == draft.angle
         assert result["fact_ids"] == [str(selected)]
+        assert result["art_text"] == draft.art_text
+        assert result["caption"] == draft.caption
+        assert result["cta"] == draft.cta
         assert result["script"][0]["on_screen_text"] == "Croissant por R$ 20."
         assert result["script"][0]["fact_ids"] == [str(selected)]
+        edit = ScriptEdit(
+            operation_id=uuid4(),
+            expected_version=1,
+            title=result["title"],
+            angle=result["angle"],
+            script=result["script"],
+        )
+        with pytest.raises(AuthError, match="SCRIPT_GENERATED_COPY_EDIT_UNSUPPORTED"):
+            await service.edit_script(tenant, business, actor, request.id, edit)
         provider.propose.return_value = draft.model_copy(update={"angle": "Conheça croissant por R$ 30"}), 100, 50
         request = await service.request(tenant, business, actor, ProposalRequest(operation_id=uuid4()))
         claim = (await claim_proposals(worker_db, uuid4()))[0]

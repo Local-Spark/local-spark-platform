@@ -41,7 +41,12 @@ async def test_concurrent_operation_conflict_is_detected_after_insert_race(setti
     database, _ = _database(
         [
             None,
-            {"context_version": 1, "script_version": 1, "expires_at": datetime.now(UTC) + timedelta(days=1)},
+            {
+                "context_version": 1,
+                "script_version": 1,
+                "expires_at": datetime.now(UTC) + timedelta(days=1),
+                "document": {"format": "short_video"},
+            },
             None,
             row,
         ]
@@ -51,10 +56,17 @@ async def test_concurrent_operation_conflict_is_detected_after_insert_race(setti
     monkeypatch.setattr(
         service,
         "_inputs",
-        AsyncMock(return_value=RenderInputs("Test", "#6557ed", "photo", "Fato.", None, None, None, uuid4(), "a" * 64)),
+        AsyncMock(
+            return_value=RenderInputs("Test", "#6557ed", "short_video", "Fato.", None, None, None, uuid4(), "a" * 64)
+        ),
     )
     with pytest.raises(AuthError, match="PREVIEW_OPERATION_CONFLICT"):
-        await service.request(tenant, business, actor, PreviewRequest(operation_id=operation, proposal_id=proposal))
+        await service.request(
+            tenant,
+            business,
+            actor,
+            PreviewRequest(operation_id=operation, proposal_id=proposal, generation_mode="local"),
+        )
 
 
 @pytest.mark.parametrize(
@@ -62,7 +74,7 @@ async def test_concurrent_operation_conflict_is_detected_after_insert_race(setti
     [
         ({"missing": True}, True, "photo", "PREVIEW_ADJUSTMENT_UNAVAILABLE"),
         ({"state": "pending"}, True, "photo", "PREVIEW_ADJUSTMENT_UNAVAILABLE"),
-        ({"mime_type": "video/mp4"}, True, "photo", "PREVIEW_ADJUSTMENT_UNAVAILABLE"),
+        ({"mime_type": "application/pdf"}, True, "photo", "PREVIEW_ADJUSTMENT_UNAVAILABLE"),
         ({}, False, "photo", "PREVIEW_ADJUSTMENT_CONFLICT"),
         ({}, True, "balanced", "PREVIEW_ADJUSTMENT_CONFLICT"),
         ({"state": "failed"}, True, "photo", "PREVIEW_ADJUSTMENT_CONFLICT"),
@@ -78,14 +90,18 @@ async def test_adjustment_parent_guard_under_concurrent_changes(
     parent = {
         "id": parent_id,
         "state": "completed",
-        "mime_type": "image/jpeg",
+        "mime_type": "video/mp4",
         "emphasis": "balanced",
         "revision": 1,
         "script_version": 1,
         "context_version": 1,
     } | parent_change
     database, session = _database(
-        [None, {"script_version": 1, "context_version": 1}, None if parent_change.get("missing") else parent]
+        [
+            None,
+            {"script_version": 1, "context_version": 1, "document": {"format": "short_video"}},
+            None if parent_change.get("missing") else parent,
+        ]
     )
     session.scalar.return_value = parent_id if latest_is_parent else uuid4()
     service = MediaPreviewService(settings, database)
@@ -93,7 +109,9 @@ async def test_adjustment_parent_guard_under_concurrent_changes(
     monkeypatch.setattr(
         service,
         "_inputs",
-        AsyncMock(return_value=RenderInputs("Test", "#6557ed", "photo", "Fato.", None, None, None, uuid4(), "a" * 64)),
+        AsyncMock(
+            return_value=RenderInputs("Test", "#6557ed", "short_video", "Fato.", None, None, None, uuid4(), "a" * 64)
+        ),
     )
     with pytest.raises(AuthError, match=code):
         await service.request(
@@ -101,7 +119,11 @@ async def test_adjustment_parent_guard_under_concurrent_changes(
             business,
             actor,
             PreviewRequest(
-                operation_id=operation, proposal_id=proposal, parent_preview_id=parent_id, emphasis=emphasis
+                operation_id=operation,
+                proposal_id=proposal,
+                parent_preview_id=parent_id,
+                emphasis=emphasis,
+                generation_mode="local",
             ),
         )
 
@@ -112,7 +134,7 @@ async def test_adjustment_serializes_parent_and_requires_matching_format(setting
     parent = {
         "id": parent_id,
         "state": "completed",
-        "mime_type": "image/jpeg",
+        "mime_type": "video/mp4",
         "emphasis": "balanced",
         "revision": 1,
         "script_version": 1,
@@ -122,7 +144,12 @@ async def test_adjustment_serializes_parent_and_requires_matching_format(setting
     database, session = _database(
         [
             None,
-            {"script_version": 1, "context_version": 1, "expires_at": datetime.now(UTC) + timedelta(days=1)},
+            {
+                "script_version": 1,
+                "context_version": 1,
+                "expires_at": datetime.now(UTC) + timedelta(days=1),
+                "document": {"format": "short_video"},
+            },
             parent,
             inserted,
         ]
@@ -138,9 +165,13 @@ async def test_adjustment_serializes_parent_and_requires_matching_format(setting
     monkeypatch.setattr("app.services.media_previews._audit", AsyncMock())
     monkeypatch.setattr("app.services.media_previews.PreviewRead.model_validate", lambda row: row)
     payload = PreviewRequest(
-        operation_id=operation, proposal_id=proposal, parent_preview_id=parent_id, emphasis="photo"
+        operation_id=operation,
+        proposal_id=proposal,
+        parent_preview_id=parent_id,
+        emphasis="photo",
+        generation_mode="local",
     )
-    if format == "short_video":
+    if format == "photo":
         with pytest.raises(AuthError, match="PREVIEW_ADJUSTMENT_UNAVAILABLE"):
             await service.request(tenant, business, actor, payload)
         return
@@ -151,7 +182,7 @@ async def test_adjustment_serializes_parent_and_requires_matching_format(setting
 
 async def test_proposal_removed_after_claim_fails_without_render(settings, monkeypatch):
     preview, proposal = uuid4(), uuid4()
-    database, _ = _database([{"proposal_id": proposal}, None])
+    database, _ = _database([{"proposal_id": proposal, "mime_type": "video/mp4"}, None])
     service = MediaPreviewService(settings, database)
     failed = AsyncMock(return_value="skipped")
     monkeypatch.setattr(service, "_fail", failed)

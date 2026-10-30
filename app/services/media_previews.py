@@ -54,8 +54,20 @@ def _digest(value: object) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True, default=str, ensure_ascii=False).encode()).hexdigest()
 
 
-def _visual_render_key(fingerprint: str, operation: UUID, candidate: bool, mode: str = "visual_fake") -> str:
-    return _digest({"fingerprint": fingerprint, "operation": operation, "candidate": candidate, "mode": mode})
+def _visual_render_key(
+    fingerprint: str,
+    operation: UUID,
+    candidate: bool,
+    mode: str = "visual_fake",
+    skill_hash: str | None = None,
+    visual_recipe: str = "legacy_overlay",
+) -> str:
+    data: dict[str, object] = {"fingerprint": fingerprint, "operation": operation, "candidate": candidate, "mode": mode}
+    if skill_hash is not None:
+        data["visual_skill_sha256"] = skill_hash
+    if visual_recipe != "legacy_overlay":
+        data["visual_recipe"] = visual_recipe
+    return _digest(data)
 
 
 class MediaPreviewService:
@@ -244,6 +256,8 @@ class MediaPreviewService:
     async def _request(
         self, tenant: UUID, business: UUID, actor: UUID, payload: PreviewRequest, *, candidate: bool
     ) -> PreviewRead:
+        if payload.visual_skill_id is not None and payload.generation_mode not in {"visual_ai", "visual_fake"}:
+            raise AuthError("VISUAL_SKILL_REQUIRES_AI", 409)
         if payload.generation_mode in {"visual_fake", "visual_ai"}:
             return await self._request_visual_fake(tenant, business, actor, payload, candidate=candidate)
         request_hash = _digest(
@@ -285,6 +299,10 @@ class MediaPreviewService:
             )
             if proposal is None:
                 raise AuthError("PROPOSAL_NOT_FOUND", 404)
+            # Existing static previews remain reviewable, but do not start a
+            # new feed/story through the retired local renderer.
+            if isinstance(proposal["document"], dict) and proposal["document"].get("format") in {"photo", "story"}:
+                raise AuthError("PREVIEW_LEGACY_CREATION_DISABLED", 409)
             revision = 1
             parent_mime: str | None = None
             if payload.parent_preview_id is not None:
@@ -434,8 +452,21 @@ class MediaPreviewService:
         context = await VisualContextService(self.settings, self.owner_database).capture(
             tenant, business, actor, payload.proposal_id, candidate=candidate
         )
-        render_key = _visual_render_key(context.fingerprint, payload.operation_id, candidate, mode)
-        request_hash = _digest({"proposal": payload.proposal_id, "mode": mode, "candidate": candidate})
+        skill_hash = None
+        if payload.visual_skill_id is not None:
+            from app.services.visual_skills import select_visual_skill
+
+            skill_hash = select_visual_skill(self.settings, payload.visual_skill_id, context.format)
+        visual_recipe = "full_piece_v1"
+        render_key = _visual_render_key(
+            context.fingerprint, payload.operation_id, candidate, mode, skill_hash, visual_recipe
+        )
+        request_data: dict[str, object] = {"proposal": payload.proposal_id, "mode": mode, "candidate": candidate}
+        if skill_hash is not None:
+            request_data.update(visual_skill_id=payload.visual_skill_id, visual_skill_sha256=skill_hash)
+        if visual_recipe != "legacy_overlay":
+            request_data["visual_recipe"] = visual_recipe
+        request_hash = _digest(request_data)
         async with self.database.transaction(tenant, actor) as session:
             await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
             # Keep explicit authorization and serialize acceptance with withdrawal.
@@ -484,9 +515,11 @@ class MediaPreviewService:
                         text("""INSERT INTO media_previews
               (id,tenant_id,business_id,proposal_id,actor_id,operation_id,request_hash,render_key,
                template_version,context_version,script_version,source_asset_id,fact_ids,expires_at,mime_type,
-               parent_preview_id,emphasis,revision,candidate,generation_mode,visual_fingerprint)
+               parent_preview_id,emphasis,revision,candidate,generation_mode,visual_fingerprint,
+               visual_skill_id,visual_skill_sha256,visual_recipe)
               VALUES(:id,:tenant,:business,:proposal,:actor,:operation,:hash,:key,1,:version,:script,
-                :source,'[]'::jsonb,:expires,'image/jpeg',NULL,'balanced',1,:candidate,:mode,:fingerprint)
+                :source,'[]'::jsonb,:expires,'image/jpeg',NULL,'balanced',1,:candidate,:mode,:fingerprint,
+                :skill_id,:skill_hash,:visual_recipe)
               ON CONFLICT DO NOTHING RETURNING *"""),
                         {
                             "id": uuid4(),
@@ -504,6 +537,9 @@ class MediaPreviewService:
                             "candidate": candidate,
                             "mode": mode,
                             "fingerprint": context.fingerprint,
+                            "skill_id": payload.visual_skill_id,
+                            "skill_hash": skill_hash,
+                            "visual_recipe": visual_recipe,
                         },
                     )
                 )
@@ -843,6 +879,8 @@ class MediaPreviewService:
             )
         if row is None:
             return "skipped"
+        if row.get("visual_recipe", "legacy_overlay") != "full_piece_v1":
+            return await self._fail(preview_id, fence, "VISUAL_RECIPE_LEGACY_DISABLED", False)
         brand_service = VisualBrandFinishService(self.settings, self.owner_database, self.store)
         operation = uuid5(NAMESPACE_URL, f"visual-preview:{preview_id}")
         gate = VisualConsentGate(self.owner_database, self.settings)
@@ -884,7 +922,17 @@ class MediaPreviewService:
                 # can only abort an obsolete/failed preview with no reservation.
                 return "failed" if recovered else "skipped"
             consent_scope = admitted_visual_run(
-                VisualRunScope(row["tenant_id"], row["business_id"], row["actor_id"], operation, fence)
+                VisualRunScope(
+                    row["tenant_id"],
+                    row["business_id"],
+                    row["actor_id"],
+                    operation,
+                    fence,
+                    preview_id,
+                    row.get("visual_skill_id"),
+                    row.get("visual_skill_sha256"),
+                    row["visual_recipe"],
+                )
             )
             consent_scope.__enter__()
             # A job left in the queue across withdrawal and re-grant must not
@@ -908,11 +956,20 @@ class MediaPreviewService:
             )
             prepared = brand.request
             if (
-                _visual_render_key(prepared.context.fingerprint, row["operation_id"], row["candidate"])
+                _visual_render_key(
+                    prepared.context.fingerprint,
+                    row["operation_id"],
+                    row["candidate"],
+                    row["generation_mode"],
+                    row.get("visual_skill_sha256"),
+                    row["visual_recipe"],
+                )
                 != row["render_key"]
                 or prepared.context.fingerprint != row["visual_fingerprint"]
             ):
                 raise AuthError("PREVIEW_INPUT_CHANGED", 409)
+            from app.services.visual_request_trace import encrypt_visual_trace
+
             attempt = await VisualAttemptService(self.settings, self.database).reserve(
                 row["tenant_id"],
                 row["business_id"],
@@ -924,6 +981,7 @@ class MediaPreviewService:
                 prepared.request.model,
                 prepared.request_hash,
                 1,
+                trace_ciphertext=encrypt_visual_trace(self.settings, prepared),
             )
             if not attempt.created:
                 return await self._fail(preview_id, fence, "VISUAL_OUTCOME_UNCERTAIN", False)
@@ -1059,6 +1117,8 @@ class MediaPreviewService:
                 .one_or_none()
             )
             try:
+                if row["mime_type"] != "video/mp4":
+                    raise AuthError("PREVIEW_LEGACY_CREATION_DISABLED", 409)
                 if proposal is None:
                     raise AuthError("PROPOSAL_NOT_FOUND", 404)
                 await agreement_worker_scope(session, row["tenant_id"])

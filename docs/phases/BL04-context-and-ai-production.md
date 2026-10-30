@@ -1,7 +1,7 @@
 # BL04 — contexto seletivo e produção visual com IA
 
 Atualizado em **29/10/2026**, com a primeira imagem real pelo produto concluída
-na parte 3 e a avaliação de qualidade/custo BL04.3 como próxima fatia.
+na parte 3 e a priorização de skills de geração antes da avaliação BL04.3.
 Estado: **em implementação local**, sem aprovação
 comercial. Este é o contrato vigente da fase, junto ao [SDD geral](../SDD.md), à
 [trilha BL](BL-brand-library.md#bl04--recuperar-contexto-e-produzir-uma-peça-nova)
@@ -9,6 +9,22 @@ e ao [registro de decisões](../DECISIONS.md). A versão anterior foi preservada
 [integralmente no histórico](../history/2026-10-28-pre-documentation-reconciliation/phases/BL04-context-and-ai-production.md);
 pendências datadas de permissões por fornecedor nesse histórico não são novas
 etapas da jornada contratada.
+
+## Qualidade de copy e ação — 30/10/2026
+
+Ensaios diretos em negócios fictícios expuseram bloqueios por notação visual,
+identificadores vazados na copy e CTAs que pressupunham interação. A fatia
+local corrige a distinção de direção/fatos, valida campos públicos e permite
+ao titular informar o canal comercial no contexto versionado. A checagem é
+conservadora e não valida o conteúdo semântico ou a imagem final: revisão humana
+continua obrigatória. O novo caminho precisa de nova avaliação real controlada;
+os ensaios anteriores exigiram ajustes manuais e não provam essa correção.
+
+Foi criado um segundo [kit fictício Ateliê Aurora](../evals/kit-atelier-aurora-v1/README.md), como fixture isolada de QA,
+sem inclusão no catálogo nem execução pelo produto. Próximos trabalhos: usá-lo
+em ensaio e implementar com a web indicação de perfis e recomendações para
+aceite do cliente. Fonte, disponibilidade de métricas e custos da descoberta
+automática ainda precisam ser demonstrados; não inferir acesso do Jev ao Instagram.
 
 ## Resultado esperado
 
@@ -327,13 +343,93 @@ evidência das suas demais condições; esta única imagem não as demonstra nov
 
 ## Próxima fatia de desenvolvimento
 
-1. **BL04.3:** revisar o feed e completar post/story pelo produto com titular e
-   fontes autorizadas; medir fidelidade, legibilidade, texto literal, rejeições,
-   refações e custo por peça aceita. Uma chamada bem-sucedida não encerra esse gate.
-2. **BL05:** WhatsApp como jornada principal de prévia, ajuste, aprovação e
+**Direção de 30/10/2026:** usar pedido, fatos, kit, acervo, skill adequada e
+referências externas aceitas quando disponíveis para construir briefing e pedir
+ao modelo a peça final completa. Conferir a peça produzida e oferecer trace
+privado; não tratar texto no prompt como prova de que preço ou marca aparecem
+corretamente. Pesquisa e seleção de concorrentes ainda não estão entregues. A
+ideia posterior de sugerir até três referências e orientar seleção de fontes e
+formatos do kit está registrada para estudo no
+[plano de skills e referências](../design/skills-e-referencias-editoriais.md).
+O proprietário adiou a evolução WhatsApp/Jev: quando a mensagem trouxer preço
+diferente do catálogo sem dizer se quer alterá-lo, a decisão C18 é perguntar
+antes de continuar. Extração do valor e pergunta específica ainda não existem;
+priorizar agora a geração da peça, sem alegar que o conflito já é detectado.
+
+A implementação local descontinua novas gerações de fundo/overlay e snapshota
+`full_piece_v1` por prévia. Skill editorial, logo autorizada, fotos e um exemplo
+do kit demo entram no pedido completo; o provedor devolve a peça inteira. O
+trace é cifrado e owner-scoped; a API exige checklist humano por hash antes da
+aprovação. Checagem automática da imagem, checklist no WhatsApp/web, múltiplos
+fatos temporários, concorrentes e avaliação de qualidade real permanecem abertos.
+Suporte real continua limitado a desenvolvimento/teste e desligado por padrão.
+
+**Preparação de três cenários em 29/10:** foi ligada ao percurso visual uma orientação
+experimental de skill para feed/story, selecionada por prévia somente em
+desenvolvimento/teste e desligada por padrão. A migration 0060 adiciona ID/hash,
+protegidos pela identidade do pedido e revalidados no preparo/acabamento. Naquela
+etapa não integrava o briefing editorial completo; o caminho automático do
+WhatsApp ainda não escolhe skill. O A/B local usou a mesma origem e segunda prévia selecionada
+internamente. Três negócios e seis prévias passaram com provedores simulados e
+PostgreSQL/Temporal locais; o evento de imagem entra já processado e a foto do
+acervo é cópia dos mesmos bytes, sem provar webhook Meta ou retrieval entre fotos
+distintas. O ensaio real subsequente gerou seis prévias com Jev e imagem reais:
+todos os pares omitiram o preço confirmado solicitado. Naquele ensaio a skill
+orientava a imagem e a copy seguia baseline. O contrato editorial real foi
+alterado para solicitar ao modelo texto da arte, legenda e CTA, com vínculo a
+fato confirmado ou preço válido do catálogo e rejeição sem fallback fixo. O
+modo simulado continua separado. A barreira lexical daquele ensaio não verificava
+sentido e não substituía revisão humana. O pedido de preço ainda não tem
+interpretação estruturada que garanta sua inclusão; teste real do novo caminho
+integral segue pendente.
+[Evidência](../evals/three-business-visual-ab-2026-10-29.md).
+Validação da correção com provedores simulados: `make ci` aprovado com 1.969
+testes, 100% de linhas e branches, Ruff/formatação e mypy em 152 módulos.
+Ensaio real isolado posterior produziu seis peças: preço em quatro artes, mas
+não nas duas de manicure, e copy artificial em café/delivery. A skill permaneceu
+restrita à imagem e cada par compartilhou a proposta; o executor não exercitou
+seleção factual ou jornada completa. CI não repetido por orientação do titular.
+[Evidência](../evals/editorial-copy-visual-after-2026-10-29.md).
+
+1. **Skills para geração:** estudar e especificar as primeiras skills de feed e
+   story; compará-las com o baseline em casos fictícios e integrar versões
+   aprovadas à geração com kit, contexto e acervo pertinentes. No repositório
+   separado `meu-braco-direito-skills`, há instruções iniciais para feed/story,
+   quatro casos fictícios e protocolo de comparação. Validação estrutural e dois
+   exercícios independentes passaram, sem comparação com baseline ou geração
+   paga; a integração ao produto e a qualidade comercial continuam pendentes.
+   Uma sonda exploratória posterior confrontou baseline isolado e saídas de
+   agentes, com entradas e contratos diferentes. A skill de story não perguntou
+   sobre serviços ambíguos; uma alteração dirigida e uma repetição independente
+   corrigiram o caso observado. Não é comparação controlada nem prova de ganho.
+   Ensaio pareado real de texto sob teto de US$ 5 foi interrompido na primeira
+   tentativa incerta, sem saída e sem custo conhecido; ledger e hold preservados.
+   A [evidência](../evals/skills-paired-attempt-2026-10-29.md) não autoriza
+   reenvio ou avanço automático. Comparação controlada segue pendente.
+   Um novo ensaio visual isolado, sob teto próprio de US$ 5, gerou duas peças
+   de feed para caso fictício com e sem skill, mesma foto/kit/acabamento; duas
+   chamadas textuais orientaram as cenas. Não usa o worker nem comprova ganho,
+   aprovação comercial ou custo por peça aceita. [Evidência](../evals/skills-visual-comparison-2026-10-29.md).
+2. **Pesquisa e referências externas:** estudar e implementar indicação do
+   cliente e descoberta automática de negócios semelhantes em destaque; avaliar
+   fontes, permissões, métricas e relevância antes de aplicar padrões à geração.
+   Jev é hipótese a avaliar, não provedor escolhido. Referência não autoriza cópia;
+   seu estudo pode começar após a comparação simulada das skills, sem esperar
+   o fechamento integral do gate comercial BL04.3.
+3. **BL04.3:** integrar padrões externos aprovados como referência e avaliar
+   post/story pelo produto com titular e fontes autorizadas, incluindo revisão
+   do feed já produzido. Medir pertinência, fidelidade, legibilidade, texto
+   literal, rejeições, refações e custo por peça aceita. Uma chamada bem-sucedida
+   ou um teste fictício não encerra esse gate.
+4. **BL05:** WhatsApp como jornada principal de prévia, ajuste, aprovação e
    publicação simulada, incluindo proatividade sem nova mensagem. BL03.3 não
    bloqueia esta sequência. Novas chamadas precisam de autorização de gasto;
    a execução delimitada da parte 3 não habilita uso recorrente.
+
+As fases, hipóteses e gates de skills e referências estão no
+[plano editorial](../design/skills-e-referencias-editoriais.md). A escolha de
+provedor para pesquisa e a viabilidade das fontes automáticas permanecem abertas;
+o cliente indicar um perfil não substitui a descoberta automática pretendida.
 
 C10, recuperação automática fora do redispatch, limpeza física de PUT incerto e
 suporte operacional seguem como evoluções próprias, com exceções bloqueadas até
@@ -349,6 +445,9 @@ encerrar o recorte simulado validado; os demais gates da BL04/provedor real cont
 
 ## BL04.3 — qualidade e economia: pendente
 
+As skills de feed/story devem ser estudadas, comparadas e integradas antes deste
+gate, respeitando as verificações de fonte, acesso e orçamento existentes. O
+trabalho com dados fictícios prepara a avaliação e não comprova aceite comercial.
 Gerar ao menos um post e um story novos para um caso com fontes autorizadas;
 revisar no celular com titular. Medir identidade, legibilidade, texto literal,
 fidelidade de produto/local, rejeições, retrabalho, todas as tentativas e custo

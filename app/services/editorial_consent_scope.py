@@ -14,6 +14,10 @@ class VisualRunScope:
     actor: UUID
     operation: UUID
     fence: int
+    preview: UUID | None = None
+    skill_id: str | None = None
+    skill_sha256: str | None = None
+    visual_recipe: str = "legacy_overlay"
 
 
 _scope: ContextVar[VisualRunScope | None] = ContextVar("editorial_visual_run_scope", default=None)

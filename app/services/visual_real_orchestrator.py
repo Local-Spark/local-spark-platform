@@ -47,6 +47,9 @@ class VisualRunScope:
     fence: int
     candidate: bool
     fingerprint: str
+    skill_id: str | None = None
+    skill_sha256: str | None = None
+    visual_recipe: str = "legacy_overlay"
 
 
 class PreparedBrand(Protocol):
@@ -157,6 +160,10 @@ class VisualRealOrchestrator[BrandT: PreparedBrand]:
                 scope.actor,
                 uuid5(NAMESPACE_URL, f"visual-preview:{scope.preview}"),
                 scope.fence,
+                scope.preview,
+                scope.skill_id,
+                scope.skill_sha256,
+                scope.visual_recipe,
             )
         ):
             return await self._run_admitted(scope)

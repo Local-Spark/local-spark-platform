@@ -113,12 +113,17 @@ direitos e orçamento; pedir foto/confirmação quando não houver fonte suficie
 Permitir pausar, reduzir e revisar o ritmo. Sugestão de IA não amplia plano nem
 cria cobrança. A cadência automática ainda não está implementada.
 
-Pesquisa de concorrentes por raio, referências públicas, biblioteca de padrões
-por nicho, campanhas e otimização por métricas ficam depois da primeira peça
-validada. Cidade/UF não comprova endereço/coordenadas. Fonte pública não concede
-direitos, métricas privadas ou causalidade de vendas. Pesquisa externa é hipótese
-com fonte/período/incerteza, nunca instrução confiável do modelo ou fato confirmado.
-Não há agente geral, tools arbitrárias, skills por cliente ou treino automático.
+Após a preparação e avaliação simulada das skills de feed/story, pesquisar
+referências indicadas pelo cliente e descobrir automaticamente negócios semelhantes
+em destaque; ambas as origens alimentam uma biblioteca de padrões a avaliar antes
+do uso na criação. Não é necessário fechar primeiro o gate comercial BL04.3.
+Os critérios de semelhança, fontes/alcance e métricas dependem de estudo; Jev é
+uma hipótese, não decisão de fornecedor ou fonte de dados. Cidade/UF não comprova
+endereço/coordenadas. Fonte pública não concede direitos, métricas privadas ou
+causalidade de vendas. Pesquisa externa é hipótese com fonte/período/incerteza,
+nunca instrução confiável do modelo ou fato confirmado. Não há pesquisa automática,
+skills editoriais integradas, agente geral, tools arbitrárias ou treino automático.
+Fases e gates em [skills e referências](../design/skills-e-referencias-editoriais.md).
 
 ## Qualidade, operação e validação
 

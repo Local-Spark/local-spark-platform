@@ -1,0 +1,25 @@
+{
+  "kit_id": "atelier-aurora-qa",
+  "version": 1,
+  "status": "isolated_synthetic_qa_only",
+  "registered_in_product": false,
+  "business": "Ateliê Aurora (fictício)",
+  "purpose": "Referências visuais de estilo para testes locais, sem publicação nem inferência de fatos do negócio atendido.",
+  "palette": {"primary": "#163942", "background": "#F6ECDB", "accent": "#D67250", "secondary": "#EFBA81"},
+  "visual_style": "Composição geométrica autoral, diagonal, ilustração abstrata, serifa com contrastes sóbrios.",
+  "rights": {
+    "design": "Formas geométricas e layouts criados para este ensaio; não usam material de terceiros nem de clientes.",
+    "images": "Não há fotografias nem imagens de concorrentes nos exemplos do kit.",
+    "fonts": "DejaVu fonts; arquivos e licença existentes no catálogo do repositório, sujeitos aos termos da licença citada."
+  },
+  "media": [
+    {"format": "feed", "source": "feed.svg", "source_sha256": "c4a61c29287c6d3d9925ec718d668bab5e4e70bd4beb7d1e8da0f92b78fa0e22", "raster": "feed.png", "raster_sha256": "8a132f58ed112571761050ca7246f9cfb4b996c8b0e0ff23ef30e939c8571a96", "width": 1080, "height": 1350},
+    {"format": "story", "source": "story.svg", "source_sha256": "06302f880549fad88b0027357dd2400f765285a16efda298a3ebd6e3074238d1", "raster": "story.png", "raster_sha256": "29bfd898fa2547bd8d89490f57158bdf78a8208d3d2b21bc7e3138248b96338f", "width": 1080, "height": 1920}
+  ],
+  "fonts": [
+    {"name": "DejaVu Sans", "path": "catalog/kits/cafe-pausas/v1/fonts/DejaVuSans.ttf", "sha256": "57f73e11f51999432bf7ab22ce55b6f945d5eca1bf824404cfa9ec2e3718c84e"},
+    {"name": "DejaVu Serif", "path": "catalog/kits/cafe-pausas/v1/fonts/DejaVuSerif.ttf", "sha256": "8cb29f7db250ebb2551a6ce2c1e0bfd5a0eb520e9e233370db0493e82e1f36f7"}
+  ],
+  "font_license": {"path": "catalog/kits/cafe-pausas/v1/fonts/LICENSE.txt", "sha256": "63d3ba759d12804c5b31a9d5940d855c1820d1f5999e6b0872eb1c7ff045fbc9"},
+  "renderer": {"path": "render.swift", "sha256": "1beb19cbd65ac3664d4780beec49c531885f49766725987e50c320ee50279a98", "technology": "macOS AppKit/CoreText, com fontes registradas localmente", "note": "O SVG é a fonte; rasterizações em outras versões do sistema podem diferir em bytes."}
+}

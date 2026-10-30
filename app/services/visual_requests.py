@@ -15,6 +15,7 @@ from app.adapters.visual_ai import VisualRequest
 from app.core.config import Settings
 from app.db.session import Database
 from app.services.auth import AuthError
+from app.services.editorial_consent_scope import current_visual_run
 from app.services.visual_context import VisualContextService, VisualContextSnapshot
 from app.services.visual_copy_authorization import authorize_visual_copy
 from app.services.visual_references import VisualReferenceService, VisualReferenceSource
@@ -29,6 +30,8 @@ class PreparedVisualRequest:
     sources: tuple[VisualReferenceSource, ...]
     request_hash: str
     request: VisualRequest = field(repr=False)
+    skill_id: str | None = None
+    skill_sha256: str | None = None
 
 
 def visual_request_digest(
@@ -46,6 +49,16 @@ def visual_request_digest(
             "output_format": request.output_format,
             "sources": [
                 (source.kind, str(source.id), source.version, source.source_sha256, source.normalized_sha256)
+                if source.catalog_id is None and source.asset_path is None
+                else (
+                    source.kind,
+                    str(source.id),
+                    source.version,
+                    source.source_sha256,
+                    source.normalized_sha256,
+                    source.catalog_id,
+                    source.asset_path,
+                )
                 for source in sources
             ],
         },
@@ -67,8 +80,17 @@ class VisualRequestService:
             tenant, business, actor, proposal, candidate=candidate
         )
         async with self.database.transaction(tenant, actor) as session:
+            scope = current_visual_run()
             copy = await authorize_visual_copy(
-                session, self.settings, self.database, tenant, business, actor, proposal, refs.context.briefing_id
+                session,
+                self.settings,
+                self.database,
+                tenant,
+                business,
+                actor,
+                proposal,
+                refs.context.briefing_id,
+                full_piece=scope is not None and scope.visual_recipe == "full_piece_v1",
             )
         kit, product_name, statement, cta = copy.kit, copy.product_name, copy.statement, copy.cta
         current = await VisualContextService(self.settings, self.database).capture(

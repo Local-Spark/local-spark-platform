@@ -7,6 +7,18 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
+class CreativeBrief(BaseModel):
+    """Model-generated creative direction, not evidence of a commercial claim."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    objective: str = Field(min_length=3, max_length=300)
+    concept: str = Field(min_length=3, max_length=500)
+    visual_direction: str = Field(min_length=3, max_length=700)
+    hierarchy: str = Field(min_length=3, max_length=400)
+    photo_use: str = Field(min_length=3, max_length=400)
+
+
 class ProposalDraft(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
@@ -18,6 +30,14 @@ class ProposalDraft(BaseModel):
     questions: list[Annotated[str, Field(min_length=4, max_length=160)]] = Field(max_length=5)
     scene_plan: list[Literal["material", "fact", "cta"]] = Field(default_factory=list, max_length=3)
     script: list["ScriptScene"] = Field(default_factory=list, max_length=3)
+    # Optional only to read historical and simulated proposals. Real model
+    # responses must supply all three fields before any generated effect.
+    art_text: str | None = Field(default=None, min_length=3, max_length=120)
+    caption: str | None = Field(default=None, min_length=8, max_length=1000)
+    cta: str | None = Field(default=None, min_length=3, max_length=80)
+    creative_brief: CreativeBrief | None = None
+    editorial_skill_id: str | None = None
+    editorial_skill_sha256: str | None = Field(default=None, min_length=64, max_length=64)
 
 
 class ScriptScene(BaseModel):

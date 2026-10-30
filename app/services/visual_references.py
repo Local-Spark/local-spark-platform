@@ -36,6 +36,8 @@ class VisualReferenceSource:
     version: int
     source_sha256: str
     normalized_sha256: str
+    catalog_id: str | None = None
+    asset_path: str | None = None
 
 
 @dataclass(frozen=True)

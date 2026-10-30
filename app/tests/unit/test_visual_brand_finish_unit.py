@@ -15,11 +15,13 @@ from pydantic import SecretStr
 from app.adapters.material_media import FetchedMedia
 from app.adapters.visual_ai import VisualReference, VisualRequest
 from app.services.auth import AuthError
+from app.services.editorial_consent_scope import admitted_visual_run
 from app.services.visual_brand_finish import VisualBrandFinishService
 from app.services.visual_context import VisualContextSnapshot
 from app.services.visual_references import VisualReferenceSource
 from app.services.visual_requests import PreparedVisualRequest, visual_request_digest
 from app.tests.integration.test_brand_kits import _overrides
+from app.tests.unit.visual_full_fixture import configure_full, result
 
 
 def picture(size=(64, 64), color="white"):
@@ -53,7 +55,7 @@ def brand_case(settings, monkeypatch):
     read = AsyncMock(return_value=("prepared", {"offering": {"name": "Croissant"}}))
     monkeypatch.setattr("app.services.visual_brand_finish.EditorialBriefingService.read_valid", read)
     row = {
-        "brand_kit_document": {"overrides": _overrides()},
+        "brand_kit_document": {"kit_id": "cafe-pausas", "kit_version": 1, "overrides": _overrides()},
         "document": {
             "title": "Uma ideia",
             "format": "photo",
@@ -104,49 +106,49 @@ def brand_case(settings, monkeypatch):
     )
 
 
-async def test_prepare_builds_signed_text_free_scene_and_preserves_copy_for_overlay(brand_case):
+async def test_prepare_builds_signed_full_piece_and_preserves_generated_copy(brand_case):
     c = brand_case
-    prepared = await c.service.prepare(*c.ids)
+    scope, message, _ = configure_full(c)
+    with admitted_visual_run(scope):
+        prepared = await c.service.prepare(*c.ids)
     prompt = prepared.request.request.prompt
-    assert "Croissant" in prompt and "Não acrescente palavras" in prompt
-    assert "Fale com o negócio" not in prompt
-    assert prepared.statement == "Croissant." and prepared.cta == "Fale com o negócio"
+    assert "Croissant" in prompt and message in prompt and "Não acrescente palavras" not in prompt
+    assert prepared.statement == "Croissant R$ 18,00" and prepared.cta == "Faça seu pedido"
     assert prepared.request.request_hash == visual_request_digest(
-        "test-key", c.context, c.original.sources, prepared.request.request
+        c.service.settings.meta_encryption_key.get_secret_value(),
+        c.context,
+        prepared.request.sources,
+        prepared.request.request,
     )
     assert "Croissant" not in repr(prepared)
 
 
 async def test_prepared_logo_is_loaded_by_owner_and_checked_by_hash(brand_case):
     c = brand_case
-    logo = picture(color="red")
-    c.row["brand_kit_document"]["overrides"]["logo_asset_id"] = str(uuid4())
-    logo_row = {"object_key": "private/key", "sha256": logo.sha256, "mime_type": "image/png"}
-    c.session.execute.side_effect = [
-        SimpleNamespace(mappings=lambda: SimpleNamespace(one_or_none=lambda: c.row)),
-        SimpleNamespace(mappings=lambda: SimpleNamespace(one_or_none=lambda: logo_row)),
-    ]
-    c.store.get_image.return_value = logo.data
-    result = await c.service.prepare(*c.ids)
-    assert result.logo == logo
-    c.session.execute.side_effect = [
-        SimpleNamespace(mappings=lambda: SimpleNamespace(one_or_none=lambda: c.row)),
-        SimpleNamespace(mappings=lambda: SimpleNamespace(one_or_none=lambda: logo_row)),
-    ]
+    scope, _, logo = configure_full(c, logo=True)
+    rows = list(c.session.execute.side_effect)
+    c.session.execute.side_effect = rows
+    with admitted_visual_run(scope):
+        prepared = await c.service.prepare(*c.ids)
+    assert prepared.logo == logo
+    c.session.execute.side_effect = rows
     c.store.get_image.return_value = b"different bytes"
-    with pytest.raises(AuthError, match="VISUAL_LOGO_CHANGED"):
+    with admitted_visual_run(scope), pytest.raises(AuthError, match="VISUAL_LOGO_CHANGED"):
         await c.service.prepare(*c.ids)
 
 
 async def test_context_change_blocks_before_provider_request(brand_case):
+    scope, _, _ = configure_full(brand_case)
     brand_case.capture.return_value = replace(brand_case.context, fingerprint="b" * 64)
-    with pytest.raises(AuthError, match="VISUAL_CONTEXT_CHANGED"):
+    with admitted_visual_run(scope), pytest.raises(AuthError, match="VISUAL_CONTEXT_CHANGED"):
         await brand_case.service.prepare(*brand_case.ids)
 
 
 @pytest.mark.parametrize("failure", ["tenant", "business", "proposal", "operation", "briefing", "row", "script", "key"])
 async def test_prepare_rejects_mismatched_or_unverified_inputs(brand_case, monkeypatch, failure):
     c = brand_case
+    scope, _, _ = configure_full(c)
+    rows = list(c.session.execute.side_effect)
     original = c.original
     if failure in {"tenant", "business", "proposal"}:
         attr = {"tenant": "tenant_id", "business": "business_id", "proposal": "proposal_id"}[failure]
@@ -156,7 +158,7 @@ async def test_prepare_rejects_mismatched_or_unverified_inputs(brand_case, monke
     elif failure == "briefing":
         c.read.return_value = ("unavailable", None)
     elif failure == "row":
-        c.session.execute.return_value = SimpleNamespace(mappings=lambda: SimpleNamespace(one_or_none=lambda: None))
+        rows[1] = result(None)
     elif failure == "script":
         c.row["document"]["script"] = []
     else:
@@ -164,23 +166,24 @@ async def test_prepare_rejects_mismatched_or_unverified_inputs(brand_case, monke
     monkeypatch.setattr(
         "app.services.visual_brand_finish.VisualRequestService.prepare", AsyncMock(return_value=original)
     )
-    with pytest.raises(AuthError):
+    c.session.execute.side_effect = rows
+    with admitted_visual_run(scope), pytest.raises(AuthError):
         await c.service.prepare(*c.ids)
 
 
 async def test_missing_logo_or_wrong_tenant_rejects_preparation(brand_case):
     c = brand_case
-    c.row["brand_kit_document"]["overrides"]["logo_asset_id"] = str(uuid4())
-    c.session.execute.side_effect = [
-        SimpleNamespace(mappings=lambda: SimpleNamespace(one_or_none=lambda: c.row)),
-        SimpleNamespace(mappings=lambda: SimpleNamespace(one_or_none=lambda: None)),
-    ]
-    with pytest.raises(AuthError, match="VISUAL_LOGO_CHANGED"):
+    scope, _, _ = configure_full(c, logo=True)
+    rows = list(c.session.execute.side_effect)
+    rows[-1] = result(None)
+    c.session.execute.side_effect = rows
+    with admitted_visual_run(scope), pytest.raises(AuthError, match="VISUAL_LOGO_CHANGED"):
         await c.service.prepare(*c.ids)
 
 
 async def test_space_reference_uses_explicit_real_location_direction(brand_case, monkeypatch):
     c = brand_case
+    scope, _, _ = configure_full(c)
     space = picture()
     source = VisualReferenceSource("space_photo", uuid4(), 1, space.sha256, space.sha256)
     original = replace(
@@ -191,14 +194,16 @@ async def test_space_reference_uses_explicit_real_location_direction(brand_case,
     monkeypatch.setattr(
         "app.services.visual_brand_finish.VisualRequestService.prepare", AsyncMock(return_value=original)
     )
-    result = await c.service.prepare(*c.ids)
-    assert "espaço real do negócio" in result.request.request.prompt
-    assert "Sem referência do espaço" not in result.request.request.prompt
+    with admitted_visual_run(scope):
+        prepared = await c.service.prepare(*c.ids)
+    assert "foto do ambiente do negócio" in prepared.request.request.prompt
 
 
 async def test_finish_renders_actual_scene_with_exact_verified_inputs(brand_case, monkeypatch):
     c = brand_case
-    prepared = await c.service.prepare(*c.ids)
+    scope, _, _ = configure_full(c)
+    with admitted_visual_run(scope):
+        prepared = await c.service.prepare(*c.ids)
     fresh = AsyncMock(return_value=prepared)
     monkeypatch.setattr(c.service, "prepare", fresh)
     scene = picture((1024, 1280), "blue")
@@ -212,9 +217,25 @@ async def test_finish_renders_actual_scene_with_exact_verified_inputs(brand_case
 @pytest.mark.parametrize("changed_at", ["before", "after"])
 async def test_finish_discards_candidate_when_source_changes(brand_case, monkeypatch, changed_at):
     c = brand_case
-    prepared = await c.service.prepare(*c.ids)
+    scope, _, _ = configure_full(c)
+    with admitted_visual_run(scope):
+        prepared = await c.service.prepare(*c.ids)
     changed = replace(prepared, cta="Outra mensagem")
     c.service.prepare = AsyncMock(side_effect=([changed] if changed_at == "before" else [prepared, changed]))
-    monkeypatch.setattr("app.services.visual_brand_finish.render_brand_overlay", lambda *args, **kwargs: picture())
     with pytest.raises(AuthError, match="VISUAL_CONTEXT_CHANGED"):
         await c.service.finish(c.ids[2], prepared, picture())
+
+
+async def test_finish_uses_generated_art_text_and_cta(brand_case):
+    scope, _, _ = configure_full(brand_case)
+    rows = list(brand_case.session.execute.side_effect)
+    brand_case.session.execute.side_effect = rows
+    draft = brand_case.row["document"]
+    draft.update(art_text="Conheça Croissant", caption="Conheça nosso Croissant", cta="Fale com a gente")
+    with admitted_visual_run(scope):
+        prepared = await brand_case.service.prepare(*brand_case.ids)
+    assert prepared.statement == draft["art_text"] and prepared.cta == draft["cta"]
+    draft["caption"] = None
+    brand_case.session.execute.side_effect = rows
+    with admitted_visual_run(scope), pytest.raises(AuthError, match="VISUAL_COPY_UNVERIFIED"):
+        await brand_case.service.prepare(*brand_case.ids)

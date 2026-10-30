@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, Query, Request, Response
 
 from app.api.deps import Actor
 from app.schemas.editorial_proposals import (
@@ -67,6 +67,14 @@ async def list_proposals(
     tenant_id: UUID, business_id: UUID, request: Request, actor: Actor, limit: int = Query(default=30, ge=1, le=100)
 ) -> list[ProposalRead]:
     return await service(request).list(tenant_id, business_id, actor, limit)
+
+
+@proposals_router.get("/{proposal_id}/request-trace")
+async def editorial_request_trace(
+    tenant_id: UUID, business_id: UUID, proposal_id: UUID, request: Request, response: Response, actor: Actor
+) -> dict[str, object]:
+    response.headers["Cache-Control"] = "no-store"
+    return await service(request).get_request_trace(tenant_id, business_id, actor, proposal_id)
 
 
 @proposals_router.post("/{proposal_id}/script-review", response_model=ProposalRead)

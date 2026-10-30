@@ -70,6 +70,7 @@ class Settings(BaseSettings):
     intent_ai_input_rate_usd_micros: int = Field(default=42_000, ge=42_000)
     visual_ai_mode: Literal["disabled", "fake", "openai"] = "disabled"
     visual_ai_execution_enabled: bool = False
+    visual_skill_experiment_enabled: bool = False
     visual_ai_reservation_usd_micros: int = Field(default=0, ge=0, le=1_000_000_000_000)
     visual_ai_monthly_budget_usd_micros: int = Field(default=0, ge=0, le=1_000_000_000_000)
     visual_ai_global_monthly_budget_usd_micros: int = Field(default=0, ge=0, le=1_000_000_000_000)

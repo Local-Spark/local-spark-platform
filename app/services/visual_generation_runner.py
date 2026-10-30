@@ -82,6 +82,9 @@ class DatabaseVisualGenerationRunner:
             fence,
             row["candidate"],
             row["visual_fingerprint"],
+            row.get("visual_skill_id"),
+            row.get("visual_skill_sha256"),
+            row.get("visual_recipe", "legacy_overlay"),
         )
         try:
             outcome = await self.orchestrator.run(scope)

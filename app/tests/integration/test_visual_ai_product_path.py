@@ -6,7 +6,7 @@ import hashlib
 import io
 import json
 import os
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock
 from uuid import UUID, uuid4
 
 import httpx
@@ -18,7 +18,6 @@ from sqlalchemy import text
 from temporalio.client import Client
 from temporalio.worker import Worker
 
-from app.adapters.brand_overlay import render_brand_overlay
 from app.adapters.editorial_ai import OpenAIEditorialProvider
 from app.adapters.jev_intent_ai import JevIntentProvider
 from app.adapters.visual_ai import OpenAIVisualProvider
@@ -28,6 +27,7 @@ from app.entrypoints import worker as worker_entrypoint
 from app.main import create_app
 from app.schemas.brand_kits import BrandKitConfirmRequest, BrandKitDraftRequest
 from app.schemas.business_catalog import CatalogUpdate
+from app.schemas.editorial_proposals import ProposalDraft
 from app.services.brand_kits import BrandKitService
 from app.services.business_catalog import BusinessCatalogService
 from app.services.business_collection import BusinessCollectionService
@@ -108,7 +108,8 @@ async def test_configured_worker_creates_real_mode_private_candidate_with_simula
             "visual_ai_monthly_budget_usd_micros": 100,
             "visual_ai_global_monthly_budget_usd_micros": 100,
             "openai_api_key": SecretStr("synthetic-unused-openai-key"),
-            "editorial_ai_mode": "disabled",
+            "editorial_ai_mode": "openai",
+            "editorial_daily_token_limit": 30000,
             "intent_ai_mode": "jev",
             "typesafe_api_key": SecretStr("synthetic-unused-jev-key"),
             "intent_ai_daily_budget_usd_micros": 3000,
@@ -132,7 +133,7 @@ async def test_configured_worker_creates_real_mode_private_candidate_with_simula
         tenant, business, actor, SERVICE_AGREEMENT_VERSION, SERVICE_AGREEMENT_HASH
     )
     assert agreement["accepted"] and agreement["access_active"]
-    message = "Crie uma imagem do croissant" if format == "photo" else "Crie um story do croissant"
+    message = "Crie uma imagem do croissant com preço" if format == "photo" else "Crie um story do croissant com preço"
     source = await _asset(admin, tenant, business, key, body=message)
     async with admin.begin() as connection:
         await connection.execute(
@@ -143,6 +144,7 @@ async def test_configured_worker_creates_real_mode_private_candidate_with_simula
             },
         )
     catalog = _payload()
+    catalog["promotions"] = []
     await BusinessCatalogService(database).update(tenant, business, actor, CatalogUpdate.model_validate(catalog))
     offering = UUID(catalog["offerings"][0]["id"])
     store = PrivateStore()
@@ -185,9 +187,11 @@ async def test_configured_worker_creates_real_mode_private_candidate_with_simula
         body = json.loads(request.content)
         assert body["size"] == f"{dimensions[0]}x{dimensions[1]}"
         assert body["n"] == 1 and body["output_format"] == "png"
-        assert len(body["images"]) == 1
+        assert len(body["images"]) == 2
         assert body["images"][0]["image_url"].startswith("data:image/png;base64,")
-        assert "Croissant" in body["prompt"] and "Não acrescente palavras" in body["prompt"]
+        assert "Croissant" in body["prompt"] and "R$ 18,00" in body["prompt"]
+        assert "Orientação criativa de referência versionada" in body["prompt"]
+        assert "Não acrescente palavras" not in body["prompt"]
         image_calls.append(request.headers["X-Client-Request-Id"])
         if outcome == "timeout":
             raise httpx.ReadTimeout("synthetic lost response", request=request)
@@ -207,10 +211,39 @@ async def test_configured_worker_creates_real_mode_private_candidate_with_simula
         "app.services.visual_generation_runner.OpenAIVisualProvider",
         lambda secret, **_: OpenAIVisualProvider(secret, transport=httpx.MockTransport(images_http)),
     )
-    editorial_call = AsyncMock(side_effect=AssertionError("editorial provider is disabled"))
+
+    async def editorial_result(payload, proposal_id, *, prepared_request):
+        assert prepared_request["input"][1]["content"]
+        fact = next(item for item in payload["confirmed_facts"] if item["kind"] == "price")
+        assert fact["statement"] == "Croissant por R$ 18,00"
+        assert payload["material"] == message
+        assert payload["editorial_skill"]["id"] == ("instagram-feed-v1" if format == "photo" else "instagram-story-v1")
+        return (
+            ProposalDraft(
+                title="Conheça Croissant",
+                format=format,
+                angle="Conheça o Croissant",
+                fact_ids=[UUID(fact["id"])],
+                hypotheses=[],
+                questions=[],
+                scene_plan=["fact", "cta"],
+                art_text="Croissant por R$ 18,00",
+                caption="Conheça Croissant por R$ 18,00",
+                cta="Fale com a gente",
+                creative_brief={
+                    "objective": "Divulgar croissant",
+                    "concept": "Uma pausa gostosa",
+                    "visual_direction": "Valorizar foto e produto",
+                    "hierarchy": "Produto, preço e chamada",
+                    "photo_use": "Usar a foto como foco",
+                },
+            ),
+            100,
+            100,
+        )
+
+    editorial_call = AsyncMock(side_effect=editorial_result)
     monkeypatch.setattr(OpenAIEditorialProvider, "propose", editorial_call)
-    overlay = Mock(wraps=render_brand_overlay)
-    monkeypatch.setattr("app.services.visual_brand_finish.render_brand_overlay", overlay)
     monkeypatch.setattr(worker_entrypoint, "get_settings", lambda: cfg)
     monkeypatch.setattr(worker_entrypoint, "MaterialStore", lambda _: store)
     monkeypatch.setattr("app.services.visual_generation_runner.MaterialStore", lambda _: store)
@@ -245,14 +278,11 @@ async def test_configured_worker_creates_real_mode_private_candidate_with_simula
                 await asyncio.sleep(0.1)
             assert await result_task == ("candidate_delivered" if outcome == "completed" else "preview_failed")
         assert len(jev_calls) == len(image_calls) == 1
-        editorial_call.assert_not_awaited()
+        editorial_call.assert_awaited_once()
         if outcome == "timeout":
-            assert overlay.call_count == 0
             await _assert_uncertain_path(admin, client, dispatcher_database, cfg, queue, source)
             assert len(jev_calls) == len(image_calls) == 1
             return
-        assert overlay.call_count == 1 and overlay.call_args.kwargs["kit"].brand_name == "Café sintético"
-
         app = create_app(cfg, database)
         base = f"/api/v1/organizations/{tenant}/businesses/{business}"
         owner = {"Authorization": f"Bearer {access_token(cfg, actor)}"}
@@ -272,13 +302,36 @@ async def test_configured_worker_creates_real_mode_private_candidate_with_simula
             object_key = link.json()["url"].removeprefix("https://private.test/").split("?")[0]
             with Image.open(io.BytesIO(store.objects[object_key])) as image:
                 assert image.format == "JPEG" and image.size == dimensions
+                assert image.convert("RGB").getpixel((25, 25)) == image.convert("RGB").getpixel(
+                    (25, dimensions[1] - 25)
+                )
             deliveries = (await api.get(f"{base}/content-deliveries", headers=owner)).json()
             assert len(deliveries) == 1 and deliveries[0]["kind"] == "candidate"
+            assert deliveries[0]["caption"] == "Conheça Croissant por R$ 18,00"
             assert deliveries[0]["preview_id"] == preview["id"] and deliveries[0]["decision_state"] == "pending"
             approval = await api.post(
                 f"{base}/content-deliveries/{deliveries[0]['id']}/decision",
                 headers=owner,
                 json={"operation_id": str(uuid4()), "decision": "approve"},
+            )
+            assert approval.status_code == 409
+            assert approval.json()["error_code"] == "VISUAL_REVIEW_REQUIRED"
+            checksum = hashlib.sha256(store.objects[object_key]).hexdigest()
+            approval = await api.post(
+                f"{base}/content-deliveries/{deliveries[0]['id']}/decision",
+                headers=owner,
+                json={
+                    "operation_id": str(uuid4()),
+                    "decision": "approve",
+                    "visual_review": {
+                        "preview_sha256": checksum,
+                        "price_and_terms": True,
+                        "spelling": True,
+                        "identity": True,
+                        "fidelity": True,
+                        "legibility": True,
+                    },
+                },
             )
             assert approval.status_code == 200, approval.text
             assert approval.json()["decision_state"] == "approved"

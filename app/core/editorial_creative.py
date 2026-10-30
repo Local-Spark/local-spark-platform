@@ -23,7 +23,8 @@ CREATIVE_STYLE_WORDS = frozenset(
     "experiencias experiências seu jeito trabalho trabalho feito feita feito juntos "
     "junto dia dias pequena pequeno pequenos pequenas simples especial especiais "
     "destaque mostrar apresentar publico público clientes cliente gente conversa "
-    "contato saber sobre compartilhar falar fale nós nos ao aos até ate tão tao".split()
+    "contato saber sobre compartilhar falar fale nós nos ao aos até ate tão tao "
+    "whatsapp mensagem mensagens envie enviar peça peca chame chama mande pelo pela".split()
 )
 _CREATIVE_NEGATIONS = frozenset({"não", "nao", "sem", "nunca", "jamais", "nenhum", "nenhuma", "ninguém", "ninguem"})
 _CREATIVE_WORD = re.compile(r"[^\W\d_]+", re.UNICODE)

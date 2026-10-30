@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import builtins
 import hashlib
+import hmac
 import json
 import re
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any, Literal
 from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 from zoneinfo import ZoneInfo
@@ -16,7 +17,7 @@ from sqlalchemy import text
 
 from app.adapters.editorial_ai import EditorialProviderError, OpenAIEditorialProvider
 from app.core.config import Settings
-from app.core.editorial_creative import creative_experiment_enabled, experimental_copy_matches_fact
+from app.core.editorial_creative import experimental_copy_matches_fact
 from app.db.session import Database
 from app.schemas.brand_kits import BrandKitOverrides
 from app.schemas.editorial_context import ContextContent
@@ -33,6 +34,8 @@ from app.schemas.editorial_proposals import (
 )
 from app.services.auth import AuthError
 from app.services.brand_kits import kit_commercially_available
+from app.services.editorial_copy_quality import public_copy_has_no_internal_artifacts
+from app.services.editorial_cta import public_action_matches_destination
 from app.services.plan_capabilities import INITIAL_PLAN_INTENT_FORMATS
 from app.services.service_agreement import service_agreement_allowed
 from app.services.service_agreement_scope import (
@@ -65,6 +68,25 @@ def _access_sql() -> str:
 
 def _script_digest(value: object) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True, default=str, ensure_ascii=False).encode()).hexdigest()
+
+
+def _encode_request_trace(key: str, request: dict[str, object]) -> tuple[str, str]:
+    """Encrypt the exact request and authenticate it without exposing its contents."""
+    body = json.dumps(request, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+    digest = hmac.new(key.encode(), body, hashlib.sha256).hexdigest()
+    return digest, Fernet(key.encode()).encrypt(body).decode()
+
+
+def _decode_request_trace(key: str, digest: str, ciphertext: str) -> dict[str, object]:
+    try:
+        body = Fernet(key.encode()).decrypt(ciphertext.encode())
+        expected = hmac.new(key.encode(), body, hashlib.sha256).hexdigest()
+        value = json.loads(body)
+        if not hmac.compare_digest(digest, expected) or not isinstance(value, dict):
+            raise ValueError("Trace integrity mismatch")
+        return value
+    except (InvalidToken, ValueError, TypeError, UnicodeDecodeError) as exc:
+        raise AuthError("EDITORIAL_TRACE_UNAVAILABLE", 409) from exc
 
 
 def _current_script_version(row: Any) -> ScriptVersionRead:
@@ -116,6 +138,32 @@ def _catalog_fact(snapshot: dict[str, object]) -> dict[str, object] | None:
     }
 
 
+def _catalog_price_fact(snapshot: dict[str, object]) -> dict[str, object] | None:
+    """Create a price fact only from a previously revalidated catalog snapshot."""
+    name_fact = _catalog_fact(snapshot)
+    offering = snapshot.get("offering")
+    if name_fact is None or not isinstance(offering, dict) or snapshot.get("promotions") != []:
+        return None
+    price = offering.get("price")
+    if not isinstance(price, dict) or price.get("status") != "valid" or price.get("currency") != "BRL":
+        return None
+    amount, deadline = price.get("amount_minor"), price.get("valid_until")
+    if type(amount) is not int or not 0 <= amount <= 1000000000 or not isinstance(deadline, str):
+        return None
+    try:
+        if date.fromisoformat(deadline).isoformat() != deadline:
+            return None
+    except ValueError:
+        return None
+    identity = f"catalog-price:{offering['id']}:{offering['version']}:{amount}:{deadline}"
+    return {
+        "id": str(uuid5(NAMESPACE_URL, identity)),
+        "kind": "price",
+        "statement": f"{name_fact['statement']} por R$ {amount // 100},{amount % 100:02d}",
+        "valid_until": deadline,
+    }
+
+
 def _has_unconfirmed_claim(body: ScriptEdit, confirmed_statement: str) -> bool:
     allowed = {match.group().casefold() for match in _COMMERCIAL_CLAIM.finditer(confirmed_statement)}
     copy = [body.title, body.angle]
@@ -123,6 +171,67 @@ def _has_unconfirmed_claim(body: ScriptEdit, confirmed_statement: str) -> bool:
         value for scene in body.script if scene.role != "fact" for value in (scene.on_screen_text, scene.voiceover)
     )
     return any(match.group().casefold() not in allowed for value in copy for match in _COMMERCIAL_CLAIM.finditer(value))
+
+
+def generated_copy_matches_fact(draft: ProposalDraft, statement: str, avoided_topics: list[str]) -> bool:
+    """Conservative lexical check, not proof of semantic truth; owner review remains necessary."""
+    if len(draft.fact_ids) != 1 or not draft.art_text or not draft.caption or not draft.cta:
+        return False
+    copy = " ".join((draft.title, draft.angle, draft.art_text, draft.caption, draft.cta))
+    visible = f"{copy} {statement}".casefold()
+    return experimental_copy_matches_fact(copy, statement) and not any(
+        topic.casefold() in visible for topic in avoided_topics
+    )
+
+
+def _fact_check_direction(direction: str, format: str) -> str:
+    """Remove recognized design notation without granting it factual authority."""
+    result = re.sub(r"#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{4}|[0-9a-f]{3})\b", " ", direction, flags=re.IGNORECASE)
+    result = re.sub(
+        r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b",
+        " ",
+        result,
+        flags=re.IGNORECASE,
+    )
+    ratio = r"(?<!\d)9\s*:\s*16(?!\d)" if format == "story" else r"(?<!\d)4\s*:\s*5(?!\d)"
+    result = re.sub(ratio, " ", result)
+    result = re.sub(r"(?<!\w)\d+\)\s*", " ", result)
+    return re.sub(r"\bmarge(?:m|ns)\s+(?:seguras?\s+)?de\s+\d+(?:[.,]\d+)?\s*%", "margem visual", result)
+
+
+def natural_generated_copy_matches_fact(
+    draft: ProposalDraft, statement: str, avoided_topics: list[str], *, destination: str | None = None
+) -> bool:
+    """Check citations, values and known commercial expressions, not semantic truth.
+
+    This experimental precheck cannot validate arbitrary factual claims: a human
+    must still review the proposed copy and finished visual before publication.
+    """
+    brief = draft.creative_brief
+    if len(draft.fact_ids) != 1 or not draft.art_text or not draft.caption or not draft.cta or brief is None:
+        return False
+    if not public_copy_has_no_internal_artifacts(draft):
+        return False
+    values = [draft.title, draft.angle, draft.art_text, draft.caption, draft.cta]
+    creative_direction = " ".join(
+        (brief.objective, brief.concept, brief.visual_direction, brief.hierarchy, brief.photo_use)
+    ).casefold()
+    copy = " ".join(values).casefold() + " " + creative_direction
+    evidence = statement.casefold()
+    if any(topic.casefold() in copy for topic in avoided_topics):
+        return False
+    allowed_numbers = set(re.findall(r"\d+(?:[.,]\d+)*", evidence))
+    # Technical notation is ignored only in the private direction, never in
+    # public copy or the evidence; it cannot authorize a commercial value.
+    public_copy = " ".join(values).casefold()
+    if destination:
+        # Permit the exact owner-configured contact, not its individual numbers.
+        public_copy = public_copy.replace(destination.casefold(), " ")
+    number_checked = public_copy + " " + _fact_check_direction(creative_direction, draft.format)
+    if any(number not in allowed_numbers for number in re.findall(r"\d+(?:[.,]\d+)*", number_checked)):
+        return False
+    allowed_claims = {re.sub(r"\s+", "", match.group()) for match in _COMMERCIAL_CLAIM.finditer(evidence)}
+    return all(re.sub(r"\s+", "", match.group()) in allowed_claims for match in _COMMERCIAL_CLAIM.finditer(copy))
 
 
 async def _audit(session: Any, row: Any, action: str) -> None:
@@ -152,6 +261,42 @@ class EditorialProposalService:
         self.settings, self.database = settings, database
         self.owner_database = owner_database
         self.provider = provider or OpenAIEditorialProvider(settings)
+
+    async def get_request_trace(
+        self, tenant: UUID, business: UUID, actor: UUID, proposal_id: UUID
+    ) -> dict[str, object]:
+        """Return the encrypted exact provider request only to an authorized owner."""
+        async with self.database.transaction(tenant, actor) as session:
+            await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
+            row = (
+                (
+                    await session.execute(
+                        text("""SELECT t.request_hash,t.ciphertext,t.created_at,
+                          p.state AS proposal_state,p.error_code AS proposal_error_code
+                          FROM editorial_request_traces t JOIN editorial_proposals p
+                            ON p.id=t.proposal_id AND p.tenant_id=t.tenant_id AND p.business_id=t.business_id
+                          WHERE t.tenant_id=:tenant AND t.business_id=:business AND t.proposal_id=:proposal"""),
+                        {"tenant": tenant, "business": business, "proposal": proposal_id},
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+            if row is None:
+                raise AuthError("EDITORIAL_TRACE_NOT_FOUND", 404)
+            key = self.settings.meta_encryption_key
+            if key is None:
+                raise AuthError("EDITORIAL_TRACE_UNAVAILABLE", 409)
+            value = _decode_request_trace(key.get_secret_value(), row["request_hash"], row["ciphertext"])
+            return {
+                "proposal_id": str(proposal_id),
+                "trace_status": "prepared",
+                "proposal_state": row["proposal_state"],
+                "proposal_error_code": row["proposal_error_code"],
+                "request_hash": row["request_hash"],
+                "request": value,
+                "created_at": row["created_at"],
+            }
 
     async def consent_status(self, tenant: UUID, business: UUID, actor: UUID) -> dict[str, bool]:
         async with self.database.transaction(tenant, actor) as session:
@@ -483,6 +628,9 @@ class EditorialProposalService:
         if row["state"] != "completed" or row["document"] is None or row["expires_at"] <= datetime.now(UTC):
             raise AuthError("SCRIPT_NOT_READY", 409)
         original = ProposalDraft.model_validate(row["document"])
+        if original.art_text is not None or original.caption is not None or original.cta is not None:
+            # The legacy editor cannot edit or validate the generated copy fields.
+            raise AuthError("SCRIPT_GENERATED_COPY_EDIT_UNSUPPORTED", 409)
         if len(original.script) != len(body.script) or any(
             (before.role, before.visual, before.fact_ids, before.source_asset_id)
             != (after.role, after.visual, after.fact_ids, after.source_asset_id)
@@ -538,7 +686,10 @@ class EditorialProposalService:
         ).model_dump(mode="json")
         original_hash = _script_digest(row["document"])
         document_hash = _script_digest(document)
-        if document_hash == original_hash:
+        # Historic JSON may omit optional fields added by newer schemas. Compare
+        # the normalized views for no-op detection while retaining the original
+        # raw hash for version provenance and pending-change fencing.
+        if document == original.model_dump(mode="json"):
             raise AuthError("SCRIPT_UNCHANGED", 409)
         if enqueue:
             from app.services.visual_pending_changes import VisualPendingChanges
@@ -932,14 +1083,20 @@ class EditorialProposalService:
                 "has_space_photo": bool(snapshot.get("space_photo")),
             }
             catalog_fact = _catalog_fact(snapshot)
-            if catalog_fact is not None:
-                catalog_id = UUID(str(catalog_fact["id"]))
+            catalog_price = _catalog_price_fact(snapshot)
+            for item in (catalog_fact, catalog_price):
+                if item is None:
+                    continue
+                catalog_id = UUID(str(item["id"]))
                 if catalog_id in valid_ids:
                     return None
                 valid_ids.add(catalog_id)
                 confirmed = data["confirmed_facts"]
                 assert isinstance(confirmed, list)
-                confirmed.insert(0, catalog_fact)
+                if item is catalog_fact:
+                    confirmed.insert(0, item)
+                else:
+                    confirmed.append(item)
         kit_document = row.get("brand_kit_document")
         if kit_document is not None:
             if self.settings.environment == "production" and not kit_commercially_available():
@@ -958,6 +1115,22 @@ class EditorialProposalService:
                 "body_font": overrides.body_font,
                 "formats": overrides.formats.model_dump(),
             }
+        if briefing_id is not None:
+            requested = data.get("requested_format")
+            if requested is None:
+                inferred = self._baseline(data).format
+                if inferred in {"photo", "story"}:
+                    requested = inferred
+                    data["requested_format"] = inferred
+                    data["format_inferred"] = True
+            if requested in {"photo", "story"}:
+                from app.services.visual_skills import resolve_editorial_skill
+
+                try:
+                    skill_id, skill_hash, instructions = resolve_editorial_skill(str(requested))
+                except AuthError:
+                    return None
+                data["editorial_skill"] = {"id": skill_id, "sha256": skill_hash, "instructions": instructions}
         return data, valid_ids
 
     @staticmethod
@@ -1103,6 +1276,48 @@ class EditorialProposalService:
         )
 
     @staticmethod
+    def _safe_generated(
+        draft: ProposalDraft, data: dict[str, object], valid_ids: set[UUID], *, full_piece: bool = False
+    ) -> bool:
+        eligible = data.get("eligible_formats")
+        if isinstance(eligible, list) and (
+            draft.format not in eligible or (data.get("requested_format") and draft.format != data["requested_format"])
+        ):
+            return False
+        if len(draft.fact_ids) != 1 or draft.fact_ids[0] not in valid_ids:
+            return False
+        facts = data["confirmed_facts"]
+        assert isinstance(facts, list)
+        fact = next((item for item in facts if str(item["id"]) == str(draft.fact_ids[0])), None)
+        if fact is None:
+            return False
+        preferences = data["preferences"]
+        assert isinstance(preferences, dict)
+        topics = preferences.get("avoided_topics", [])
+        assert isinstance(topics, list)
+        if full_piece:
+            if not public_action_matches_destination(draft, preferences):
+                return False
+            cta_destination = preferences.get("cta_destination")
+            destination = cta_destination.get("value") if isinstance(cta_destination, dict) else None
+            return natural_generated_copy_matches_fact(
+                draft, str(fact["statement"]), topics, destination=destination if isinstance(destination, str) else None
+            )
+        return generated_copy_matches_fact(draft, str(fact["statement"]), topics)
+
+    @staticmethod
+    def _ground_generated(draft: ProposalDraft, data: dict[str, object]) -> ProposalDraft:
+        script = EditorialProposalService._script(draft, data, experimental=True)
+        assert draft.cta is not None
+        script = [
+            scene.model_copy(update={"on_screen_text": draft.cta, "voiceover": draft.cta})
+            if scene.role == "cta"
+            else scene
+            for scene in script
+        ]
+        return draft.model_copy(update={"script": script})
+
+    @staticmethod
     def _ground(draft: ProposalDraft, data: dict[str, object], *, experimental: bool = False) -> ProposalDraft:
         """Keep factual scenes exact; only a bounded dev/test experiment preserves copy."""
         baseline = EditorialProposalService._baseline(data)
@@ -1118,6 +1333,7 @@ class EditorialProposalService:
         )
 
     async def run(self, proposal_id: UUID) -> str:
+        prepared_request: dict[str, Any] | None = None
         async with self.database.sessions() as session, session.begin():
             row = (
                 (
@@ -1163,15 +1379,7 @@ class EditorialProposalService:
             if not data["confirmed_facts"]:
                 return await self._reject(session, row, "EDITORIAL_FACTS_REQUIRED")
             if self.settings.editorial_ai_mode == "disabled":
-                baseline_draft = self._baseline(data)
-                await session.execute(
-                    text("""UPDATE editorial_proposals SET state='completed',
-                  document=CAST(:doc AS jsonb),
-                  model='baseline-v1',updated_at=now() WHERE id=:id"""),
-                    {"doc": baseline_draft.model_dump_json(), "id": proposal_id},
-                )
-                await _audit(session, row, "editorial.proposal_completed")
-                return "completed"
+                return await self._reject(session, row, "EDITORIAL_PROVIDER_DISABLED")
             reserved = len(json.dumps(data, ensure_ascii=False).encode()) + 3800
             if reserved > 30000:
                 return await self._reject(session, row, "EDITORIAL_INPUT_TOO_LARGE")
@@ -1185,6 +1393,34 @@ class EditorialProposalService:
             )
             if used + reserved > self.settings.editorial_daily_token_limit:
                 return await self._reject(session, row, "EDITORIAL_BUDGET_EXCEEDED", "budget_exceeded")
+            if "editorial_skill" in data:
+                key = self.settings.meta_encryption_key
+                if key is None or not key.get_secret_value().strip():
+                    return await self._reject(session, row, "EDITORIAL_TRACE_KEY_REQUIRED")
+                try:
+                    prepared_request = OpenAIEditorialProvider(self.settings).build_request(data)
+                    trace: dict[str, object] = {
+                        "endpoint": "https://api.openai.com/v1/responses",
+                        "client_request_id": str(proposal_id),
+                        "body": prepared_request,
+                    }
+                    trace_hash, ciphertext = _encode_request_trace(key.get_secret_value(), trace)
+                except (EditorialProviderError, ValueError, TypeError):
+                    return await self._reject(session, row, "EDITORIAL_TRACE_UNAVAILABLE")
+                await agreement_worker_scope(session, row["tenant_id"])
+                await session.execute(
+                    text("""INSERT INTO editorial_request_traces
+                      (tenant_id,business_id,proposal_id,actor_id,request_hash,ciphertext)
+                      VALUES(:tenant,:business,:proposal,:actor,:hash,:ciphertext)"""),
+                    {
+                        "tenant": row["tenant_id"],
+                        "business": row["business_id"],
+                        "proposal": proposal_id,
+                        "actor": row["actor_id"],
+                        "hash": trace_hash,
+                        "ciphertext": ciphertext,
+                    },
+                )
             await session.execute(
                 text("""INSERT INTO editorial_ai_usage
               (proposal_id,tenant_id,business_id,reserved_tokens,state)
@@ -1199,7 +1435,12 @@ class EditorialProposalService:
             await _audit(session, row, "editorial.proposal_submitted")
         draft: ProposalDraft | None
         try:
-            draft, input_tokens, output_tokens = await self.provider.propose(data, proposal_id)
+            if prepared_request is None:
+                draft, input_tokens, output_tokens = await self.provider.propose(data, proposal_id)
+            else:
+                draft, input_tokens, output_tokens = await self.provider.propose(
+                    data, proposal_id, prepared_request=prepared_request
+                )
         except EditorialProviderError:
             draft, input_tokens, output_tokens = None, None, None
         async with self.database.sessions() as session, session.begin():
@@ -1221,18 +1462,20 @@ class EditorialProposalService:
                 {"tenant": row["tenant_id"], "live": self.settings.environment == "production"},
             )
             fresh_inputs = await self._inputs(session, row) if consent and access else None
-            experimental = creative_experiment_enabled(self.settings)
             safe = bool(
                 draft is not None
                 and fresh_inputs is not None
-                and (
-                    self._safe_experimental(draft, fresh_inputs[0], fresh_inputs[1])
-                    if experimental
-                    else self._safe(draft, fresh_inputs[0], fresh_inputs[1])
-                )
+                and data.get("editorial_skill") == fresh_inputs[0].get("editorial_skill")
+                and self._safe_generated(draft, fresh_inputs[0], fresh_inputs[1], full_piece="editorial_skill" in data)
             )
             if safe and draft is not None and fresh_inputs is not None:
-                draft = self._ground(draft, fresh_inputs[0], experimental=experimental)
+                draft = self._ground_generated(draft, fresh_inputs[0])
+                if "editorial_skill" in data:
+                    skill = fresh_inputs[0]["editorial_skill"]
+                    assert isinstance(skill, dict)
+                    draft = draft.model_copy(
+                        update={"editorial_skill_id": skill["id"], "editorial_skill_sha256": skill["sha256"]}
+                    )
             state = "completed" if safe else "uncertain"
             await session.execute(
                 text("""UPDATE editorial_proposals SET state=:state,

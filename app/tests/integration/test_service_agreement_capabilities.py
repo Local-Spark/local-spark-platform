@@ -12,7 +12,7 @@ from sqlalchemy import text
 
 from app.db.session import Database
 from app.schemas.business_catalog import CatalogUpdate
-from app.schemas.editorial_proposals import ProposalRequest
+from app.schemas.editorial_proposals import ProposalDraft, ProposalRequest
 from app.schemas.media_previews import PreviewRequest
 from app.services.auth import AuthError
 from app.services.business_catalog import BusinessCatalogService
@@ -195,7 +195,22 @@ async def test_new_contract_epoch_cancels_old_queued_jobs_and_only_allows_fresh_
     provider = SimpleNamespace(propose=AsyncMock())
 
     async def propose(data, _proposal):
-        return EditorialProposalService._baseline(data), 10, 10
+        fact = data["confirmed_facts"][0]
+        return (
+            ProposalDraft(
+                title="Pao artesanal",
+                format="story",
+                angle="Conheça Pao artesanal",
+                fact_ids=[UUID(fact["id"])],
+                hypotheses=[],
+                questions=[],
+                art_text="Pao artesanal",
+                caption="Conheça Pao artesanal",
+                cta="Envie mensagem",
+            ),
+            10,
+            10,
+        )
 
     provider.propose.side_effect = propose
     worker = Database(config, correlator=True)

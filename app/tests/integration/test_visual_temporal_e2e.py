@@ -9,7 +9,7 @@ import io
 import json
 import os
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock
 from uuid import UUID, uuid4
 
 import pytest
@@ -20,13 +20,13 @@ from sqlalchemy import text
 from temporalio.client import Client
 from temporalio.worker import Worker
 
-from app.adapters.brand_overlay import render_brand_overlay
 from app.adapters.editorial_ai import OpenAIEditorialProvider
 from app.adapters.visual_ai import OpenAIVisualProvider
 from app.db.session import Database
 from app.schemas.brand_kits import BrandKitConfirmRequest, BrandKitDraftRequest
 from app.schemas.business_catalog import CatalogUpdate
-from app.schemas.content_deliveries import ContentDecision
+from app.schemas.content_deliveries import ContentDecision, VisualReviewConfirmation
+from app.schemas.editorial_proposals import ProposalDraft
 from app.services.brand_kits import BrandKitService
 from app.services.business_catalog import BusinessCatalogService
 from app.services.business_collection import BusinessCollectionService
@@ -67,7 +67,9 @@ async def test_synthetic_content_reaches_private_visual_preview_through_real_tem
             "meta_encryption_key": SecretStr(key),
             "visual_ai_mode": "fake",
             "visual_ai_monthly_budget_usd_micros": 100,
-            "editorial_ai_mode": "disabled",
+            "editorial_ai_mode": "openai",
+            "editorial_daily_token_limit": 100000,
+            "openai_api_key": SecretStr("synthetic-unused-key"),
             "intent_ai_mode": "disabled",
             "temporal_task_queue": queue,
         }
@@ -88,8 +90,6 @@ async def test_synthetic_content_reaches_private_visual_preview_through_real_tem
     paid_editorial = AsyncMock(side_effect=AssertionError("paid editorial provider must not be called"))
     monkeypatch.setattr(OpenAIVisualProvider, "generate", paid_visual)
     monkeypatch.setattr(OpenAIEditorialProvider, "propose", paid_editorial)
-    overlay = Mock(wraps=render_brand_overlay)
-    monkeypatch.setattr("app.services.visual_brand_finish.render_brand_overlay", overlay)
 
     source = await _asset(admin, tenant, business, key, body="Crie uma imagem do croissant")
     event_ciphertext = Fernet(key.encode()).encrypt(json.dumps({"from": "5511999999999"}).encode()).decode()
@@ -122,7 +122,36 @@ async def test_synthetic_content_reaches_private_visual_preview_through_real_tem
     )
     database_worker = Database(cfg, correlator=True)
     candidate = ContentCandidateActivities(cfg, database, database_worker, interpreter=interpreter)
-    editorial = EditorialActivities(EditorialProposalService(cfg, database_worker, owner_database=database))
+
+    async def generated_brief(data, proposal_id, *, prepared_request):
+        assert proposal_id and prepared_request["input"] and data["editorial_skill"]["id"] == "instagram-feed-v1"
+        return (
+            ProposalDraft(
+                title="Croissant para sua pausa",
+                format="photo",
+                angle="Uma pausa com croissant",
+                fact_ids=[UUID(data["confirmed_facts"][0]["id"])],
+                hypotheses=[],
+                questions=[],
+                art_text="Croissant para sua pausa",
+                caption="Uma pausa com croissant",
+                cta="Faça seu pedido",
+                creative_brief={
+                    "objective": "Divulgar o produto",
+                    "concept": "Pausa com croissant",
+                    "visual_direction": "Valorizar o produto",
+                    "hierarchy": "Produto e chamada",
+                    "photo_use": "Usar a fotografia de referência",
+                },
+            ),
+            100,
+            40,
+        )
+
+    simulated_editorial = SimpleNamespace(propose=AsyncMock(side_effect=generated_brief))
+    editorial = EditorialActivities(
+        EditorialProposalService(cfg, database_worker, simulated_editorial, owner_database=database)
+    )
     media = MediaPreviewActivities(MediaPreviewService(cfg, database_worker, store, database))
     client = await Client.connect(os.environ["TEST_TEMPORAL_ADDRESS"])
     activities = [
@@ -168,10 +197,25 @@ async def test_synthetic_content_reaches_private_visual_preview_through_real_tem
         with Image.open(io.BytesIO(store.objects[object_key])) as image:
             assert image.format == "JPEG" and image.size == (1024, 1280)
             assert all(value < 100 for value in image.getpixel((4, 4)))
-        assert overlay.call_count == 1 and overlay.call_args.kwargs["kit"].brand_name == "Café teste"
         assert store.reads > 0  # The authorized synthetic item photo reached the render pipeline.
+        assert previews[0].sha256 is not None
         decision = await review.decide(
-            tenant, business, actor, deliveries[0].id, ContentDecision(operation_id=uuid4(), decision="approve")
+            tenant,
+            business,
+            actor,
+            deliveries[0].id,
+            ContentDecision(
+                operation_id=uuid4(),
+                decision="approve",
+                visual_review=VisualReviewConfirmation(
+                    preview_sha256=previews[0].sha256,
+                    price_and_terms=True,
+                    spelling=True,
+                    identity=True,
+                    fidelity=True,
+                    legibility=True,
+                ),
+            ),
         )
         assert decision.decision_state == "approved"
         async with admin.connect() as connection:
@@ -181,6 +225,7 @@ async def test_synthetic_content_reaches_private_visual_preview_through_real_tem
             assert await other.scalar(text("SELECT count(*) FROM media_previews")) == 0
         paid_visual.assert_not_awaited()
         paid_editorial.assert_not_awaited()
+        simulated_editorial.propose.assert_awaited_once()
     finally:
         if result_task is not None and not result_task.done():
             result_task.cancel()

@@ -171,6 +171,7 @@ async def test_provider_mode_requires_explicit_readiness_and_its_configured_rese
     require = MagicMock()
     monkeypatch.setattr(module, "require_visual_execution", require)
     c.guard.generation_mode = "visual_ai"
+    c.scope = replace(c.scope, visual_recipe="full_piece_v1")
     c.guard.settings = c.guard.settings.model_copy(update={"visual_ai_reservation_usd_micros": configured_reservation})
     if configured_reservation == 70:
         assert await c.guard.admit(c.scope)
@@ -519,6 +520,9 @@ async def test_submission_claim_gets_fresh_owner_proof_and_forwards_its_admissio
 ):
     c = case
     c.guard.generation_mode = c.row["generation_mode"] = generation_mode
+    if generation_mode == "visual_ai":
+        c.scope = replace(c.scope, visual_recipe="full_piece_v1")
+        c.row["visual_recipe"] = "full_piece_v1"
     proof = c.guard._owner_proof = AsyncMock(return_value=c.proof)
     original = AsyncMock(return_value=True)
     monkeypatch.setattr(VisualSubmissionClaims, "claim", original)
@@ -546,6 +550,18 @@ async def test_submission_claim_gets_fresh_owner_proof_and_forwards_its_admissio
         )
     else:
         original.assert_not_awaited()
+
+
+async def test_real_provider_never_starts_a_legacy_overlay(case, monkeypatch):
+    c = case
+    c.guard.generation_mode = "visual_ai"
+    c.row["generation_mode"] = "visual_ai"
+    c.row["visual_recipe"] = "legacy_overlay"
+    c.guard.settings = c.guard.settings.model_copy(update={"visual_ai_reservation_usd_micros": 70})
+    monkeypatch.setattr(module, "require_visual_execution", MagicMock())
+    assert not await c.guard.admit(c.scope)
+    assert not await c.guard.claims.claim(c.identity, uuid4(), "synthetic-model", c.scope.proposal)
+    c.gate.admit.assert_not_awaited()
 
 
 async def test_owner_commit_uncertainty_cannot_become_a_submission_claim(case, monkeypatch):

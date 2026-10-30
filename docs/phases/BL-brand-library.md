@@ -234,8 +234,11 @@ de feed, com Jev real e acabamento do kit/logo, sob autorização de Café do Ce
 fontes CC0/logo e teto total de US$ 1, sem publicação. A estimativa de US$ 0,029701
 inclui duas interpretações Jev e não é fatura; a reserva visual continua incerta.
 Meta de entrada/canal e entrega de candidata permaneceram simuladas. A próxima
-fatia é **BL04.3**, revisão de feed e conjunto post/story com custo por peça aceita,
-depois BL05, WhatsApp como jornada principal, ajuste/aprovação e proatividade.
+fatia prepara skills de feed/story e as avalia com simulação; depois pesquisa
+referências indicadas pelo cliente e descobertas automaticamente e avalia seu uso
+na criação. O gate **BL04.3** mantém revisão de titular e custo por peça aceita;
+depois vem BL05, WhatsApp como jornada principal, ajuste/aprovação e proatividade.
+O [plano por fases](../design/skills-e-referencias-editoriais.md) detalha o escopo.
 Parte 3 validada com 94 unitários e lint/types, leitura/hash com geração desligada;
 sem novos grants ou ativação persistente. CI completo da parte 2 não repetido.
 O ledger agregado OpenAI já existe. A admissão de ambos os modos visuais revalida fontes/aceite/plano sob
@@ -305,8 +308,9 @@ imutáveis de kits por armazenamento de objetos + CDN; o build da web não
 carrega todos os futuros kits. Escolha/recomendação por segmento e
 disponibilidade por plano usam esse catálogo; mídia de cliente continua
 privada e separada. Medir custo de curadoria por versão e tráfego por visita.
-Pesquisa de concorrentes e avatar F05 permanecem trilhas posteriores; fontes,
-direitos e identidade sintética têm os gates próprios dessas capacidades.
+Pesquisa de referências ocorre após a preparação das skills e antes do uso dos
+padrões na criação; fontes e direitos têm gates próprios. Avatar F05 permanece
+posterior, com seus gates de identidade sintética.
 
 ## Evidência e dependências
 

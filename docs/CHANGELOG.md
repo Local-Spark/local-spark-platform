@@ -1,5 +1,195 @@
 # Registro de mudanças
 
+## 2026-10-30 — qualidade da copy e destino comercial
+
+- Contexto editorial e tela web aceitam canal comercial opcional escolhido pelo
+  titular, separado do telefone de identificação. Redação e guarda visual usam
+  o contexto versionado, rejeitam canais não confirmados e não presumem clique.
+- Ajustado o contrato editorial para texto público/briefing separados e
+  verificação de identificadores e direções visuais evidentes. A checagem de
+  fatos distingue notação técnica de valores comerciais; ainda não comprova
+  semântica nem confere automaticamente a imagem produzida.
+- Foram realizados ensaios diretos reais de três peças fictícias; a geração do
+  café e da manicure precisou de ajustes manuais no briefing, e a manicure de
+  uma segunda chamada editorial. Não comprovam a correção atual. O kit
+  fictício independente Ateliê Aurora foi criado para QA isolado; seu uso na
+  geração e as referências externas com jornada web permanecem pendentes.
+- Validação: 1.630 testes unitários backend, três testes de integração do
+  contexto no banco dedicado `_test`, 17 testes da tela web, Ruff, mypy (156
+  módulos) e verificação TypeScript. Os dois novos serviços tiveram 100% de
+  linhas e branches nos testes dirigidos. CI e cobertura global não executados
+  por orientação do titular. Sem novas chamadas pagas.
+
+## 2026-10-30 — geração de peça integral e referências do kit
+
+- Novas propostas de feed/story com briefing selecionam skill versionada, usam
+  redação natural e geram conceito, hierarquia, uso de foto, texto, legenda e
+  CTA. Provedor editorial desativado rejeita novos pedidos em vez de produzir
+  baseline fixo; um fato comercial continua vinculado à autorização.
+- `visual_ai` e o simulador `visual_fake` preparam peça integral com pedido,
+  briefing, kit, fotos pertinentes, logo autorizada e um exemplo visual do kit
+  demo por formato, versão e hash. O modelo devolve a peça completa sem overlay
+  fixo. Novos estáticos locais e jobs de receitas anteriores não iniciam efeitos;
+  prévias concluídas permanecem revisáveis. Vídeo mantém escopo próprio.
+- Migration 0061 fixa a receita e cria traces privados cifrados e protegidos por
+  RLS, ligados a tentativa/identidade. Owner consulta requisições preparadas com
+  endpoint, parâmetros, skill, versões e referências por hash, sem bytes das
+  fotos ou dados privados em logs; o estado preparado não comprova envio incerto.
+  A aprovação de peça integral via API requer confirmação humana dos cinco itens
+  de qualidade e hash; a publicação simulada revalida a prova. Não há OCR ou
+  verificação semântica automática, nem checklist na web/WhatsApp nesta fatia.
+- Decisão C18: perguntar antes de continuar em conflito de preço sem instrução
+  sobre cadastro; interpretação WhatsApp/Jev e pergunta ficam para depois. A ideia
+  de indicações, até três sugestões e opções de fontes para o kit foi registrada
+  para estudo, sem afirmar que pesquisa de concorrentes está implementada.
+- Foram executados **1.577 testes unitários** e quatro testes integrados finais
+  de trace, revisão e geração em banco `_test` exclusivo; também passaram
+  baterias dirigidas do briefing e do worker Temporal com provedores simulados.
+  Ruff/formatação e mypy (154 módulos) passaram. **CI não executado** por
+  orientação do proprietário; cobertura global não verificada.
+  Sem chamadas pagas, migração no banco da aplicação ou nova prova comercial.
+
+## 2026-10-29 — comparação visual isolada após correção editorial
+
+- Três chamadas editoriais e seis imagens reais para negócios fictícios,
+  com e sem skill visual, em ensaio isolado sem banco, Temporal ou publicação.
+  Quatro imagens trazem o preço; as duas de manicure omitem o valor na arte,
+  presente apenas na legenda. Café e delivery usam “apresente” como copy de
+  público; a guarda lexical passou as respostas, sem garantir qualidade.
+- Pares compartilham texto/legenda/CTA; a skill varia apenas a cena visual.
+  Um único fato de preço foi pré-selecionado, sem testar seleção do produto.
+  [Peças, pedidos e limites](evals/editorial-copy-visual-after-2026-10-29.md).
+- Reservas acumuladas US$ 13,065 de teto US$ 15; estimativa desta rodada
+  US$ 0,19736825, não fatura. Três testes mock passaram. CI não executado por
+  instrução do proprietário; o último CI completo continua o da correção.
+
+## 2026-10-29 — copy editorial gerada pelo modelo
+
+- O provedor editorial real solicita texto da arte, legenda e CTA ao modelo;
+  a proposta versionada conserva esses campos e a prévia e a entrega os usam.
+  Resposta ausente ou fora das regras não é substituída por copy fixa no caminho
+  visual real; o baseline determinístico permanece somente na simulação.
+- O catálogo pode fornecer fato próprio para preço regular confirmado e válido,
+  vinculado ao item e sua versão. Validade e fontes são revalidadas; a proteção
+  lexical é restritiva e não comprova significado. Revisão humana continua
+  necessária. Instruir o modelo a incluir preço pedido não garante inclusão;
+  interpretação estruturada do pedido permanece pendente.
+- Aprovação e publicação simulada revalidam a validade factual; agendamento além
+  desse prazo é recusado, preservando o pedido de ajustes. A API da candidata
+  expõe a legenda. Testes integrados específicos passaram em banco `_test` para
+  expiração antes da aprovação e antes da publicação. `make ci` passou: **1.969
+  testes, 100% de linhas e branches**, Ruff/formatação e mypy em 152 módulos.
+- A skill continua apenas na direção visual, sem briefing editorial integrado.
+  Os testes usam provedores simulados; nova avaliação com modelo real, comparação
+  das peças e validação comercial permanecem abertas. Nenhum efeito pago nesta
+  alteração.
+
+## 2026-10-29 — três negócios fictícios, seis prévias reais
+
+- Sob teto acumulado conservador de US$ 10, três pedidos fictícios com fotos CC0,
+  kit/acervo e preço confirmado geraram seis prévias com e sem skill visual por
+  serviços do produto, Temporal, guarda e adapters Jev/OpenAI reais. Não houve
+  publicação, webhook Meta, dados de cliente ou alteração do banco da aplicação.
+- **Nenhuma das seis peças incluiu o preço solicitado.** O baseline prioriza o
+  nome do item e a skill atua apenas no prompt de imagem; CTA também foi genérico.
+  A correção editorial e a avaliação do usuário seguem pendentes. A segunda
+  prévia foi solicitada internamente; acervo e origem usaram cópias dos mesmos
+  bytes. [Peças e evidência](evals/three-business-visual-ab-2026-10-29.md).
+- Estimativa pelas nove chamadas **US$ 0,19161307**, não fatura ou custo por
+  peça aceita. Holds novos US$ 3,15 e anteriores US$ 6,615 foram preservados;
+  total US$ 9,765. Tentativa anterior incerta não foi reenviada.
+- `make ci`: **1.920 testes**, 100% linhas e branches; Ruff/formatação e mypy
+  152 módulos. Prova de ponta a ponta do executor com transportes mock passou
+  em `_test`/Temporal antes dos efeitos. Nenhum commit ou deploy.
+
+## 2026-10-29 — preparação de três cenários e orientação visual
+
+- Integrada orientação visual experimental de skills de feed/story ao percurso
+  `visual_ai`, apenas desenvolvimento/teste, desligada por padrão. Migration 0060
+  registra ID/hash por prévia, preserva legados e recusa downgrade com dados;
+  versão e fontes são revalidadas e vinculadas ao pedido autenticado. Não integra
+  briefing/legenda por skill nem seleção automática pelo WhatsApp.
+- Três negócios fictícios com kit e foto CC0 foram exercitados em banco novo
+  `_test` e Temporal: seis prévias com providers simulados e prova de bytes da
+  foto originada de evento de imagem. Evento entra já processado, segunda prévia
+  é pedida internamente e acervo contém cópia da mesma foto; não prova webhook
+  Meta, escolha automática ou retrieval entre imagens diferentes.
+- `make ci` aprovado: **1.920 testes, 100% linhas e branches** (9.459 statements,
+  2.612 branches), Ruff/formatação e mypy em 152 módulos. Migration aplicada
+  somente a bancos dedicados `_test`; nenhuma geração paga nesta preparação.
+  O ensaio real e a revisão das peças ficam pendentes.
+
+## 2026-10-29 — comparação visual com e sem skill
+
+- Autorizado teto independente de US$ 5; duas direções textuais e duas imagens
+  concluídas para feed fictício, mesma foto CC0, kit/logo e acabamento. Peças e
+  prompts em `.local/evals/visual-skill-ab-20261029/`; sem publicação ou dados
+  de cliente. O adapter e overlay do produto foram usados em ensaio isolado,
+  não no worker. [Evidência](evals/skills-visual-comparison-2026-10-29.md).
+- Estimativa por uso de **US$ 0,04643825** no total; não é fatura ou custo por
+  peça aceita. Quatro holds de US$ 1,25 permanecem sem liquidação automática.
+  A tentativa textual anterior segue incerta em ledger separado, não reenviada.
+- Dry run e 15 testes mock passaram. Ambas as peças mostram prato apesar de
+  restrição comum; a imagem com skill parece conter tecido adicional. Revisão
+  pelo titular, qualidade/custo comercial e testes pelo produto continuam abertos.
+  Sem alteração de código produtivo ou banco da aplicação; `make ci` não repetido.
+
+## 2026-10-29 — ensaio pareado real interrompido
+
+- Autorizado teto total de US$ 5 para oito chamadas de texto com casos fictícios.
+  O dry run e 12 testes offline passaram. A primeira tentativa ficou `uncertain`
+  e interrompeu o lote; nenhum resultado completo foi obtido e não há comparação.
+- Ledger privado conserva reserva de US$ 0,625 e identidade da operação. Custo,
+  uso e causa da falha são desconhecidos; a consulta posterior do modelo retornou
+  HTTP 200, sem esclarecer a tentativa. Não houve reenvio, imagem ou publicação.
+  [Evidência e apuração](evals/skills-paired-attempt-2026-10-29.md).
+- A preparação registrou runner e entradas em `.local/evals`; sem mudanças de
+  código produtivo ou banco de aplicação. `make ci` não foi repetido. Uma versão
+  futura do executor deve preservar diagnóstico seguro antes de outro ensaio.
+
+## 2026-10-29 — avaliação exploratória das skills
+
+- Quatro casos fictícios foram usados em saídas de agentes com e sem skills e
+  numa sonda isolada do baseline para três casos. As entradas e contratos diferem;
+  não é comparação controlada nem prova de melhora criativa. Os resultados e a
+  sonda estão no repositório `meu-braco-direito-skills` em
+  `evals/2026-10-29-comparacao-exploratoria/`.
+- A skill de story não esclareceu uma escolha ambígua entre serviços; foi
+  ajustada e uma repetição independente perguntou qual serviço divulgar. Ambas
+  as skills foram verificadas estruturalmente; a observação cobre um caso apenas.
+- Pesquisa externa, integração das skills, comparação controlada com modelo e
+  revisão comercial permanecem pendentes. Nenhuma chamada paga, imagem, banco ou
+  código de produção alterado; `make ci` não foi repetido nesta avaliação.
+
+## 2026-10-29 — primeiras skills editoriais em repositório separado
+
+- Criadas instruções iniciais `instagram-feed` e `instagram-story` no repositório
+  `meu-braco-direito-skills`, com quatro casos fictícios e protocolo para comparar
+  com o baseline. As skills produzem briefing para revisão, não renderizam ou
+  publicam, e não integram automaticamente a API ou o worker.
+- Ambas passaram na validação estrutural `quick_validate`; dois exercícios
+  independentes com negócio fictício pediram confirmação para serviço ausente e
+  preço vencido. Links locais e espaços foram verificados. Não houve comparação
+  controlada com baseline, chamada paga, teste de banco ou avaliação comercial.
+  A pesquisa de concorrentes e o gate BL04.3 continuam pendentes; `make ci` não
+  foi repetido porque não houve mudança de código da plataforma.
+
+## 2026-10-29 — direção para qualidade editorial e referências
+
+- O proprietário priorizou skills de criação de feed e story, com kit, acervo e
+  contexto do negócio, antes da pesquisa de referências e da evolução da jornada.
+  A pesquisa deverá combinar perfis indicados pelo cliente com descoberta
+  automática de negócios semelhantes em destaque; padrões inspiram peças
+  originais sem cópia. Jev é hipótese de estudo, não fornecedor escolhido.
+- [Plano por fases](design/skills-e-referencias-editoriais.md), decisões, PROJECT,
+  SDD e fases registram escopo, avaliação, fronteiras e questões abertas. A
+  proposta de um repositório de skills não equivale a criar ou instalar um.
+  O gate BL04.3 com titular e custo permanece; chamadas pagas precisam de
+  autorização própria. Pesquisa e skills ainda não estão implementadas.
+- Validação documental: revisão de consistência, links locais e `git diff --check`; nenhuma
+  mudança de produção, chamada paga, migração, teste de banco ou homologação.
+  O último CI completo continua sendo o da parte 2 abaixo.
+
 ## 2026-10-29 — BL04.2 parte 3: primeira imagem real pelo produto
 
 - Sob autorização explícita de Café do Cedro com foto CC0/logo, teto total de

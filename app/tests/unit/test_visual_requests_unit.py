@@ -12,7 +12,7 @@ from pydantic import SecretStr
 
 from app.adapters.visual_ai import VisualReference
 from app.services.auth import AuthError
-from app.services.editorial_proposals import _catalog_fact
+from app.services.editorial_proposals import _catalog_fact, _catalog_price_fact
 from app.services.visual_context import VisualContextSnapshot
 from app.services.visual_copy_authorization import authorize_visual_copy
 from app.services.visual_references import VisualReferenceBundle, VisualReferenceSource
@@ -311,3 +311,84 @@ async def test_a_proposal_that_expires_during_authorization_cannot_return_a_live
     case.row["expires_at"] = datetime.now(UTC) - timedelta(seconds=1)
     with pytest.raises(AuthError, match="VISUAL_COPY_UNVERIFIED"):
         await _authorize_copy(case)
+
+
+async def test_generated_copy_uses_confirmed_catalog_price_and_expires_with_it(case):
+    day = datetime.now(UTC).date() + timedelta(days=1)
+    case.catalog["offering"]["price"] = {
+        "status": "valid",
+        "currency": "BRL",
+        "amount_minor": 1990,
+        "valid_until": day.isoformat(),
+    }
+    case.catalog["promotions"] = []
+    fact = _catalog_price_fact(case.catalog)
+    assert fact is not None
+    draft = case.row["document"]
+    draft.update(
+        title="Conheça Croissant",
+        angle="Conheça o Croissant",
+        fact_ids=[fact["id"]],
+        art_text="Croissant por R$ 19,90",
+        caption="Conheça Croissant por R$ 19,90",
+        cta="Fale com a gente",
+    )
+    draft["script"][0].update(
+        fact_ids=[fact["id"]], on_screen_text=fact["statement"] + ".", voiceover=fact["statement"] + "."
+    )
+    case.session.scalar.side_effect = ["UTC", None]
+    copy = await _authorize_copy(case)
+    assert copy.statement == draft["art_text"] and copy.cta == draft["cta"]
+    assert copy.valid_until.date() == day + timedelta(days=1)
+    case.catalog["offering"]["price"]["amount_minor"] = 2000
+    with pytest.raises(AuthError, match="VISUAL_COPY_UNVERIFIED"):
+        await _authorize_copy(case)
+
+
+@pytest.mark.parametrize("variant", ["missing", "partial", "fact_id", "claim", "avoided", "missing_context"])
+async def test_generated_copy_fails_closed(case, variant):
+    draft = case.row["document"]
+    draft.update(
+        title="Conheça Croissant",
+        angle="Conheça o Croissant",
+        art_text="Conheça Croissant",
+        caption="Conheça Croissant",
+        cta="Fale com a gente",
+    )
+    if variant == "missing":
+        draft.update(art_text=None, caption=None, cta=None)
+    elif variant == "partial":
+        draft["caption"] = None
+    elif variant == "fact_id":
+        draft["fact_ids"] = [str(uuid4())]
+    elif variant == "claim":
+        draft["caption"] = "Croissant por R$ 5,00"
+    else:
+        case.row["context_version"] = 1
+        case.session.scalar.return_value = (
+            None if variant == "missing_context" else {"preferences": {"avoided_topics": ["croissant"]}}
+        )
+    with pytest.raises(AuthError, match="VISUAL_COPY_UNVERIFIED"):
+        await authorize_visual_copy(
+            case.session,
+            case.service.settings,
+            case.service.database,
+            *case.ids[:4],
+            case.context.briefing_id,
+            require_generated=True,
+        )
+
+
+async def test_generated_copy_accepts_current_context_fact_and_preferences(case):
+    _context_fact(case, statement="Croissant", validity=None)
+    draft = case.row["document"]
+    draft.update(
+        title="Conheça Croissant",
+        angle="Conheça o Croissant",
+        fact_ids=draft["script"][0]["fact_ids"],
+        art_text="Conheça Croissant",
+        caption="Conheça nosso Croissant",
+        cta="Fale com a gente",
+    )
+    copy = await _authorize_copy(case)
+    assert copy.statement == "Conheça Croissant" and copy.cta == "Fale com a gente"

@@ -153,6 +153,7 @@ async def test_candidate_preview_guards_and_states(settings, monkeypatch):
     event, proposal, preview = (uuid4() for _ in range(3))
     ids = [str(event), str(proposal)]
     assert await adapter.request_candidate_preview(ids) == "blocked"
+    adapter.settings = adapter.settings.model_copy(update={"visual_ai_mode": "fake"})
     worker.session.row = {"tenant_id": uuid4(), "business_id": uuid4(), "actor_id": uuid4()}
     request = AsyncMock(return_value=SimpleNamespace(id=preview))
     monkeypatch.setattr(content_activities.MediaPreviewService, "request_candidate", request)
@@ -184,16 +185,14 @@ async def test_openai_visual_mode_fails_closed_without_creating_a_local_preview(
 @pytest.mark.parametrize(
     "mode,briefing,expected",
     [
-        ("disabled", True, "local"),
-        ("fake", False, "local"),
+        ("disabled", True, None),
+        ("fake", False, "visual_fake"),
         ("fake", True, "visual_fake"),
         ("openai", True, "visual_ai"),
         ("openai", False, "visual_ai"),
     ],
 )
-async def test_explicit_local_and_fake_modes_keep_their_existing_preview_behavior(
-    settings, monkeypatch, mode, briefing, expected
-):
+async def test_candidate_preview_never_falls_back_to_local_generation(settings, monkeypatch, mode, briefing, expected):
     adapter, worker, _ = activities(settings)
     adapter.settings = adapter.settings.model_copy(
         update={
@@ -210,8 +209,13 @@ async def test_explicit_local_and_fake_modes_keep_their_existing_preview_behavio
     preview = uuid4()
     request = AsyncMock(return_value=SimpleNamespace(id=preview))
     monkeypatch.setattr(content_activities.MediaPreviewService, "request_candidate", request)
-    assert await adapter.request_candidate_preview([str(uuid4()), str(uuid4())]) == str(preview)
-    assert request.await_args.args[3].generation_mode == expected
+    result = await adapter.request_candidate_preview([str(uuid4()), str(uuid4())])
+    if expected is None:
+        assert result == "blocked"
+        request.assert_not_awaited()
+    else:
+        assert result == str(preview)
+        assert request.await_args.args[3].generation_mode == expected
 
 
 async def test_delivery_and_publication_activity_results(settings, monkeypatch):

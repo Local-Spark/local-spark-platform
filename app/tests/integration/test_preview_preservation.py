@@ -8,6 +8,7 @@ from sqlalchemy import text
 
 from app.db.session import Database
 from app.schemas.content_deliveries import ContentDecision
+from app.schemas.editorial_proposals import ProposalDraft
 from app.schemas.media_previews import PreviewRequest
 from app.services.auth import AuthError
 from app.services.content_deliveries import ContentDeliveryService, claim_publications
@@ -55,11 +56,17 @@ async def test_completed_preview_preserves_artifact_and_provenance(admin, seeded
         proposals = await EditorialProposalService(settings, owner).list(tenant, business, actor)
         assert [item.id for item in proposals] == [proposal]
         assert proposals[0].document is not None
-        assert proposals[0].document.model_dump(mode="json") == document
+        assert proposals[0].document.model_dump(mode="json") == ProposalDraft.model_validate(document).model_dump(
+            mode="json"
+        )
         assert proposals[0].source_asset_id == asset
         versions = await EditorialProposalService(settings, owner).script_versions(tenant, business, actor, proposal)
         assert len(versions) == 1 and versions[0].source_asset_id == asset
         async with owner.transaction(tenant, actor) as session:
+            assert (
+                await session.scalar(text("SELECT document FROM editorial_proposals WHERE id=:id"), {"id": proposal})
+                == document
+            )
             retained = (
                 (
                     await session.execute(

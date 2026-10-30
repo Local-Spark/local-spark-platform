@@ -50,6 +50,7 @@ def visual_case(settings, monkeypatch):
     )
     monkeypatch.setattr("app.services.media_previews.WhatsAppMaterialsService._require_owner", AsyncMock())
     monkeypatch.setattr("app.services.media_previews._audit", AsyncMock())
+    monkeypatch.setattr("app.services.visual_request_trace.encrypt_visual_trace", lambda *_: "encrypted-test-trace")
     monkeypatch.setattr("app.services.visual_consent_gate.VisualConsentGate.status", AsyncMock(return_value="active"))
     monkeypatch.setattr("app.services.visual_consent_gate.VisualConsentGate._lock", AsyncMock())
     monkeypatch.setattr("app.services.visual_consent_gate.VisualConsentGate._state", AsyncMock(return_value="active"))
@@ -65,10 +66,11 @@ def visual_case(settings, monkeypatch):
         "actor_id": actor,
         "proposal_id": proposal,
         "operation_id": operation,
-        "render_key": _visual_render_key(context.fingerprint, operation, True),
+        "render_key": _visual_render_key(context.fingerprint, operation, True, visual_recipe="full_piece_v1"),
         "visual_fingerprint": context.fingerprint,
         "candidate": True,
         "generation_mode": "visual_fake",
+        "visual_recipe": "full_piece_v1",
     }
     body = PreviewRequest(operation_id=operation, proposal_id=proposal, generation_mode="visual_fake")
     return SimpleNamespace(
@@ -270,7 +272,9 @@ async def test_visual_request_disabled_and_replay_conflicts(settings, visual_cas
     disabled = MediaPreviewService(settings, db)
     with pytest.raises(AuthError, match="VISUAL_FAKE_DISABLED"):
         await disabled.request(c.tenant, c.business, c.actor, c.body)
-    request_hash = _digest({"proposal": c.proposal, "mode": "visual_fake", "candidate": True})
+    request_hash = _digest(
+        {"proposal": c.proposal, "mode": "visual_fake", "candidate": True, "visual_recipe": "full_piece_v1"}
+    )
     for changes in (
         {"request_hash": "other", "render_key": c.row["render_key"]},
         {"request_hash": request_hash, "render_key": "other"},

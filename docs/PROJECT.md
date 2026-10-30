@@ -1,12 +1,32 @@
 # Meu Braço Direito — contexto vigente
 
-Atualizado em **29/10/2026**, após a primeira imagem real pelo caminho do produto
-na parte 3: Café do Cedro, com fontes autorizadas, teto de US$ 1 e sem publicação.
-A próxima fatia é BL04.3, qualidade e custo por peça aceita. Decisões de produto e pendências ficam em
+Atualizado em **30/10/2026**, após a decisão de gerar a peça integralmente com
+briefing, skill e referências pertinentes, e descontinuar o acabamento antigo.
+O repositório separado de skills agora tem versões iniciais de briefing para feed
+e story e casos fictícios; um ensaio exploratório comparou saídas de agentes com
+uma sonda isolada do baseline, sem controle suficiente para demonstrar ganho.
+A aplicação seleciona a skill versionada em briefings de feed/story e a usa na
+direção da peça integral em desenvolvimento/teste. O efeito visual pago segue
+desligado por padrão; homologação e avaliação real do novo caminho estão
+pendentes. Decisões de produto e pendências ficam em
 [DECISIONS](DECISIONS.md); contratos no [SDD](SDD.md); sequência no
 [índice de fases](phases/README.md) e na [trilha BL](phases/BL-brand-library.md).
 As versões anteriores foram [preservadas integralmente](history/2026-10-28-pre-documentation-reconciliation/index.md).
 Uma entrega local não equivale a uma capacidade comercial homologada.
+
+Em 30/10, após ensaios diretos com três negócios fictícios, a fatia local
+passou a distinguir números de direção de arte de alegações, verificar artefatos
+internos na copy e usar um canal comercial opcional confirmado pelo titular.
+Esse destino é configurado em Sobre meu negócio e versionado com o contexto;
+não se presume que o telefone de identificação seja um canal comercial. A
+validação é limitada e a peça continua sujeita a revisão humana.
+
+Os ensaios usaram personalizações diferentes do mesmo kit demonstrativo. O kit
+[fictício Ateliê Aurora](evals/kit-atelier-aurora-v1/README.md) foi criado como
+fixture independente de QA, com manifesto e exemplos próprios; ainda não integra
+o catálogo ou o executor de geração.
+A indicação de perfis pelo cliente e a descoberta de
+concorrentes com aceitação na web são etapas posteriores, ainda não entregues.
 
 ## Produto
 
@@ -93,6 +113,7 @@ plano não equivale a encerrar conta nem a perder membership.
 | Contratação | Stripe sandbox, webhook/jobs/reconciliação, patrocínio e aceite único versionado por negócio | Contratos comerciais definitivos, franquias e cenários externos restantes. Cadastro e retorno de checkout não ativam plano. |
 | WhatsApp | Inbox assinada/cifrada, vínculo, correlação, processamento, transcrição configurável e preservação de materiais | Meta oficial, envio real de candidata e conversa completa ainda não homologados. |
 | Contexto e texto | Fatos/preferências versionados, propostas/roteiros, adapter editorial, reservas/tokens e projeção administrativa restrita | Qualidade comercial, conversa com memória, pesquisa ampla e skills executáveis. |
+| Skills de geração | Briefing com skill de feed/story selecionada e versionada e direção para peça integral em desenvolvimento/teste. | Descoberta de referências externas, avaliação real, tratamento de múltiplos fatos e homologação permanecem pendentes. |
 | BL01/BL02 | Vitrine fictícia de cafeteria, escolha/edição de kit e logo privado; kit/logo aplicados à primeira imagem real controlada | Kit `public_demo` não tem liberação comercial; fidelidade precisa de revisão. |
 | BL03.1/BL03.2 | Catálogo/fotos privadas e uso seletivo de fontes na primeira imagem real controlada | Importação de cardápio é BL03.3 futura; qualidade/fidelidade do contexto aplicado ainda requer avaliação. |
 | BL04 | Caminho `visual_ai`, Jev, guarda e adapter exercitados com uma imagem real de feed e prévia privada preservada | BL04.3: revisão de post/story, fidelidade e custo por peça aceita. Uma chamada não comprova qualidade, fatura ou margem. |
@@ -127,17 +148,82 @@ histórico `posts_per_week` é preservado, sem campo manual de frequência.
 
 ## Próxima entrega e sequência
 
-1. **BL04.3:** revisar o feed produzido e completar o conjunto post/story pelo
-   produto, com titular e fontes
-   consentidas, medir fidelidade, texto, legibilidade, rejeições e custo por
-   peça aceita, incluindo refações. Novas chamadas exigem autorização própria;
-   a autorização delimitada de US$ 1 não ativa uso recorrente.
-2. **BL05:** fechar WhatsApp como jornada principal de mensagem → prévia → ajuste
+Em 30/10/2026 o proprietário direcionou a geração a construir um briefing com
+pedido, fatos, kit, acervo pertinente, skill do formato e referências externas
+aceitas quando existirem; pedir ao modelo a peça completa, conferir o resultado
+e disponibilizar trace privado. A descoberta/aceitação de referências externas
+ainda não está implementada. O proprietário decidiu descontinuar novas
+gerações pelo acabamento antigo de fundo e layout fixo; registros anteriores
+podem ser preservados sem gerar novas peças por esse caminho. A ideia posterior
+de indicar concorrentes, sugerir
+até três semelhantes e usar padrões/fontes como sugestões editáveis para o kit
+está registrada no [plano de referências](design/skills-e-referencias-editoriais.md).
+O proprietário também decidiu perguntar quando o preço pedido divergir do
+catálogo e não houver instrução sobre atualização; extração estruturada e essa
+pergunta ficam para a evolução posterior do WhatsApp/Jev, não esta fatia.
+
+O novo caminho local de feed/story reúne briefing com skill, pedido, contexto,
+kit, fotos pertinentes e logo; a referência visual demo do kit é enviada
+separadamente. O modelo produz a peça inteira, sem overlay fixo. O trace fica
+cifrado e acessível ao proprietário; aprovação por API requer conferência humana
+dos itens e hash da imagem. O checklist ainda não existe no WhatsApp/web. O uso
+real segue restrito a desenvolvimento/teste, desligado por padrão, sem prova de
+qualidade comercial. Os ensaios diretos pagos de 30/10 ocorreram fora do worker
+e antes das correções atuais. Previews antigas
+concluídas ficam acessíveis; jobs antigos não são reexecutados.
+
+Em 29/10, três negócios fictícios foram exercitados pelo fluxo local com Jev e
+geração de imagem reais, produzindo seis prévias A/B. Todas omitiram o preço
+confirmado solicitado; naquele ensaio a skill atuava só na imagem. A geração
+integral posterior recebe texto natural com verificações de valores e origem,
+sem fallback fixo. Essas verificações não provam verdade semântica. Ainda não há
+interpretação estruturada que garanta que um pedido de preço seja obedecido;
+o prompt solicita seu uso, mas a resposta pode omiti-lo. A validação com
+seleção factual do produto e a avaliação do efeito editorial da skill
+continuam pendentes.
+[Evidência](evals/three-business-visual-ab-2026-10-29.md).
+
+Um ensaio isolado de 29/10 gerou seis imagens com modelo editorial real: quatro
+exibem preço; nas duas de manicure ele aparece só na legenda. Café e delivery
+receberam copy artificial com “apresente”. Cada par compartilhou a copy; a skill
+atuou só na imagem. O teste não percorreu seleção factual ou jornada completa e
+não comprova qualidade comercial. [Resultado](evals/editorial-copy-visual-after-2026-10-29.md).
+
+O primeiro ensaio autorizado de texto foi interrompido com resultado incerto;
+custo desconhecido e hold mantido. Um segundo ensaio, visual e independente,
+concluiu duas peças fictícias com e sem skill para revisão, sem comprovar ganho
+geral ou execução pelo produto. [Evidência visual](evals/skills-visual-comparison-2026-10-29.md)
+e [tentativa anterior](evals/skills-paired-attempt-2026-10-29.md).
+
+No repositório `meu-braco-direito-skills`, as duas skills iniciais orientam
+briefings de feed/story, sem gerar arquivo ou publicar. A validação estrutural e
+dois exercícios independentes com dados fictícios passaram; não houve comparação
+controlada com baseline, geração paga ou avaliação comercial. Um ensaio posterior
+identificou ambiguidade não esclarecida em story; a instrução foi ajustada e uma
+repetição independente fez a pergunta. Não prova qualidade geral. Seus casos e
+protocolo preparam a próxima avaliação.
+
+1. **Skills e geração:** estudar e estruturar skills para feed e story; comparar
+   geração com e sem elas em casos fictícios e provedores simulados, integrando
+   versões aprovadas ao produto. Kit, acervo e fatos do negócio são suas fontes.
+2. **Referências externas:** permitir indicação de perfis pelo cliente e pesquisar
+   automaticamente negócios semelhantes em destaque; avaliar fontes, métricas e
+   uso de padrões sem copiar, antes de integrá-los à criação. Jev é candidato de
+   estudo, não solução escolhida ou fonte garantida de dados.
+3. **BL04.3:** revisar o feed produzido e completar post/story pelo produto com
+   titular e fontes consentidas; medir fidelidade, texto, legibilidade, rejeições
+   e custo por peça aceita, incluindo refações. Novas chamadas exigem autorização
+   própria; a autorização delimitada de US$ 1 não ativa uso recorrente.
+4. **BL05:** fechar WhatsApp como jornada principal de mensagem → prévia → ajuste
    → aprovação → publicação simulada, incluindo iniciativa sem mensagem e pausa.
-3. **Piloto:** homologar Meta/Instagram, aplicar franquias F07 e operar staging,
+5. **Piloto:** homologar Meta/Instagram, aplicar franquias F07 e operar staging,
    observabilidade e recuperação F08. A Meta pendente não impede testes locais.
-4. **Expansão:** BL03.3 importa cardápio como rascunho; BL06 amplia kits/nichos e
-   catálogo/CDN. Pesquisa ampla, avatar/voz e multicanal seguem fases próprias.
+6. **Expansão:** BL03.3 importa cardápio como rascunho; BL06 amplia kits/nichos e
+   catálogo/CDN. Avatar/voz e multicanal seguem fases próprias.
+
+A [proposta por fases](design/skills-e-referencias-editoriais.md) detalha os
+gates, a pesquisa automática e as decisões ainda abertas. Nada disso está
+implementado ou autorizado para gasto apenas por esta atualização documental.
 
 Foto e story são os formatos iniciais; vídeo e suas franquias/preço permanecem
 para definição posterior. R$ 99/mês e teto total de R$ 50/cliente/mês orientam

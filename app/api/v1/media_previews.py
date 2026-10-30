@@ -2,13 +2,14 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Response
 
 from app.adapters.material_media import MaterialStore
 from app.api.deps import Actor
 from app.schemas.media_previews import PreviewRead, PreviewRequest, VisualAIConsent, VisualAIStatus
 from app.services.media_previews import MediaPreviewService
 from app.services.visual_consent import VisualConsentService
+from app.services.visual_request_trace import VisualRequestTraceService
 
 previews_router = APIRouter(
     prefix="/api/v1/organizations/{tenant_id}/businesses/{business_id}/media-previews",
@@ -57,3 +58,13 @@ async def download_link(
     key = await service(request).file_key(tenant_id, business_id, actor, preview_id, review=True)
     mime_type = "video/mp4" if key.endswith(".mp4") else "image/jpeg"
     return {"url": await MaterialStore(request.app.state.settings).signed_url(key, mime_type)}
+
+
+@previews_router.get("/{preview_id}/request-trace")
+async def visual_request_trace(
+    tenant_id: UUID, business_id: UUID, preview_id: UUID, request: Request, response: Response, actor: Actor
+) -> dict[str, object]:
+    response.headers["Cache-Control"] = "no-store"
+    return await VisualRequestTraceService(request.app.state.settings, request.app.state.database).read(
+        tenant_id, business_id, actor, preview_id
+    )

@@ -3,8 +3,12 @@
 import asyncio
 from uuid import uuid4
 
+from pydantic import SecretStr
 from sqlalchemy import text
 
+from app.adapters.editorial_ai import OpenAIEditorialProvider
+from app.schemas.editorial_proposals import ProposalDraft
+from app.services.editorial_proposals import EditorialProposalService
 from app.tests.unit.test_core import access_token
 
 
@@ -27,7 +31,13 @@ async def test_context_owner_history_restore_and_conflicts(admin, api, seeded, s
     other = {"Authorization": f"Bearer {access_token(settings, seeded['a2'])}"}
     assert (await api.get(base, headers=owner)).json() == {
         "facts": [],
-        "preferences": {"goal": None, "tone": None, "avoided_topics": [], "posts_per_week": None},
+        "preferences": {
+            "goal": None,
+            "tone": None,
+            "avoided_topics": [],
+            "posts_per_week": None,
+            "cta_destination": None,
+        },
         "version": 0,
         "updated_at": None,
         "hypotheses": [],
@@ -132,3 +142,78 @@ async def test_context_cas_and_tenant_rls(admin, api, database, seeded, settings
     assert sorted([first.status_code, second.status_code]) == [200, 409]
     async with database.transaction(seeded["t2"], seeded["a2"]) as session:
         assert await session.scalar(text("SELECT count(*) FROM business_context_versions")) == 0
+
+
+async def test_owner_destination_is_versioned_and_drives_editorial_request(admin, api, seeded, settings):
+    tenant, actor, business, fact_id = seeded["t1"], seeded["a1"], uuid4(), uuid4()
+    async with admin.begin() as connection:
+        await connection.execute(
+            text("INSERT INTO businesses(id,tenant_id,name,timezone) VALUES(:id,:tenant,'Test','UTC')"),
+            {"id": business, "tenant": tenant},
+        )
+        await connection.execute(
+            text("""INSERT INTO business_profiles
+              (tenant_id,business_id,category,city,description,phone,brand_color)
+              VALUES(:tenant,:business,'Food','Rio','Test','+5511888888888','#6557ed')"""),
+            {"tenant": tenant, "business": business},
+        )
+    base = f"/api/v1/organizations/{tenant}/businesses/{business}/editorial-context"
+    headers = {"Authorization": f"Bearer {access_token(settings, actor)}"}
+    destination = {"type": "whatsapp", "value": "+55 11 99999-9999"}
+    fact = {
+        "id": str(fact_id),
+        "kind": "price",
+        "statement": "Croissant por R$ 18,00",
+        "source_detail": "Informado pelo dono",
+        "valid_until": "2099-12-31",
+    }
+    saved = await api.put(
+        base,
+        headers=headers,
+        json={
+            "operation_id": str(uuid4()),
+            "expected_version": 0,
+            "facts": [fact],
+            "preferences": {"cta_destination": destination},
+        },
+    )
+    assert saved.status_code == 200, saved.text
+    snapshot = (await api.get(base + "/versions/1", headers=headers)).json()
+    assert snapshot["preferences"]["cta_destination"] == destination
+    assert snapshot["preferences"]["cta_destination"]["value"] != "+5511888888888"
+
+    data = {
+        "confirmed_facts": [fact],
+        "preferences": snapshot["preferences"],
+        "requested_format": "story",
+        "eligible_formats": ["story"],
+        "editorial_skill": {"id": "test", "instructions": "Crie um story"},
+    }
+    provider = OpenAIEditorialProvider(
+        settings.model_copy(update={"editorial_ai_mode": "openai", "openai_api_key": SecretStr("local-test")})
+    )
+    request = provider.build_request(data)
+    assert destination["value"] in request["input"][1]["content"]
+    assert "preferences.cta_destination" in request["input"][0]["content"]
+    draft = ProposalDraft(
+        title="Croissant",
+        format="story",
+        angle="Apresentar o produto",
+        fact_ids=[fact_id],
+        hypotheses=[],
+        questions=[],
+        scene_plan=["fact", "cta"],
+        art_text="Croissant por R$ 18,00",
+        caption="Peça pelo WhatsApp +55 11 99999-9999.",
+        cta="Peça pelo WhatsApp",
+        creative_brief={
+            "objective": "Apresentar o produto",
+            "concept": "Produto em destaque",
+            "visual_direction": "Foto central",
+            "hierarchy": "Produto e preço",
+            "photo_use": "Usar a foto recebida",
+        },
+    )
+    assert EditorialProposalService._safe_generated(draft, data, {fact_id}, full_piece=True)
+    altered = draft.model_copy(update={"caption": "Peça pelo WhatsApp +55 11 98888-8888."})
+    assert not EditorialProposalService._safe_generated(altered, data, {fact_id}, full_piece=True)

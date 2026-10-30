@@ -1,13 +1,19 @@
 import base64
+import hashlib
 import io
 from dataclasses import replace
+from types import SimpleNamespace
 from uuid import uuid4
 
 import httpx
 import pytest
+from cryptography.fernet import Fernet
 from PIL import Image
+from pydantic import SecretStr
 
 from app.adapters.visual_ai import OpenAIVisualProvider, VisualAIError, VisualReference, VisualRequest
+from app.services.visual_references import VisualReferenceSource
+from app.services.visual_request_trace import decrypt_visual_trace, encrypt_visual_trace
 
 
 def image_bytes(width=1024, height=1024, format="PNG"):
@@ -37,7 +43,7 @@ def response_body():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("with_reference", [False, True])
-async def test_real_request_shape_with_mock_transport(with_reference):
+async def test_real_request_shape_with_mock_transport(with_reference, settings):
     sent = []
 
     def handler(req):
@@ -55,6 +61,35 @@ async def test_real_request_shape_with_mock_transport(with_reference):
     assert headers["x-client-request-id"] == str(original.request_id)
     assert headers["authorization"] == "Bearer secret-key"
     assert bool(body.get("images")) == with_reference
+    sources = (
+        (
+            VisualReferenceSource(
+                kind="source_photo",
+                id=uuid4(),
+                version=1,
+                source_sha256=hashlib.sha256(image_bytes()).hexdigest(),
+                normalized_sha256=hashlib.sha256(image_bytes()).hexdigest(),
+            ),
+        )
+        if with_reference
+        else ()
+    )
+    prepared = SimpleNamespace(
+        request=original,
+        sources=sources,
+        skill_id=None,
+        skill_sha256=None,
+        context=SimpleNamespace(
+            proposal_id=uuid4(), briefing_id=uuid4(), context_version=1, script_version=1, brand_kit_version=1
+        ),
+    )
+    cfg = settings.model_copy(update={"meta_encryption_key": SecretStr(Fernet.generate_key().decode())})
+    trace = decrypt_visual_trace(cfg, encrypt_visual_trace(cfg, prepared))
+    assert trace["http"]["path"] == path
+    assert trace["http"]["json_without_images"] == {key: value for key, value in body.items() if key != "images"}
+    if with_reference:
+        image_data = base64.b64decode(body["images"][0]["image_url"].split(",", 1)[1])
+        assert hashlib.sha256(image_data).hexdigest() == trace["references"][0]["normalized_sha256"]
     assert result.content == image_bytes() and result.usage["input_tokens"] == 10
     assert (result.width, result.height, result.mime_type, result.provider_request_id) == (
         1024,
@@ -71,6 +106,21 @@ def test_disabled_key():
 
 
 @pytest.mark.asyncio
+async def test_five_references_are_sent():
+    sent = []
+
+    def handler(req):
+        import json
+
+        sent.append(json.loads(req.content))
+        return httpx.Response(200, json=response_body())
+
+    references = tuple(VisualReference(image_bytes(), "image/png") for _ in range(5))
+    await OpenAIVisualProvider("key", transport=httpx.MockTransport(handler)).generate(request(references=references))
+    assert len(sent[0]["images"]) == 5
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "changes",
     [
@@ -82,7 +132,7 @@ def test_disabled_key():
         {"size": "0x256"},
         {"size": "257x256"},
         {"size": "256x1024"},
-        {"references": tuple(VisualReference(b"bad", "image/png") for _ in range(5))},
+        {"references": tuple(VisualReference(b"bad", "image/png") for _ in range(6))},
         {"references": (VisualReference(b"bad", "image/gif"),)},
         {"references": (VisualReference(b"bad", "image/png"),)},
         {"references": (VisualReference(image_bytes(), "image/jpeg"),)},

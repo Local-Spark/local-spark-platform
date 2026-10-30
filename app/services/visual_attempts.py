@@ -41,6 +41,7 @@ class VisualAttemptService:
         model: str,
         request_hash: str,
         reserved_usd_micros: int,
+        trace_ciphertext: str | None = None,
     ) -> FencedVisualReservation:
         async with self.database.transaction(tenant, actor) as session:
             return await self.reserve_in_transaction(
@@ -55,6 +56,7 @@ class VisualAttemptService:
                 model,
                 request_hash,
                 reserved_usd_micros,
+                trace_ciphertext,
             )
 
     async def reserve_in_transaction(
@@ -70,6 +72,7 @@ class VisualAttemptService:
         model: str,
         request_hash: str,
         reserved_usd_micros: int,
+        trace_ciphertext: str | None = None,
     ) -> FencedVisualReservation:
         """Add a fenced reservation to the existing transaction; never commits it.
 
@@ -133,6 +136,12 @@ class VisualAttemptService:
         if previous is not None:
             if reservation.created or previous["reservation_id"] != reservation.id:
                 raise VisualCostError("VISUAL_ATTEMPT_INCONSISTENT")
+            if trace_ciphertext is not None and not await session.scalar(
+                text("""SELECT 1 FROM visual_request_traces WHERE tenant_id=:tenant AND business_id=:business
+                  AND preview_id=:preview AND operation_id=:operation AND request_hash=:hash"""),
+                {**params, "operation": operation, "hash": request_hash},
+            ):
+                raise VisualCostError("VISUAL_TRACE_UNBOUND")
             return FencedVisualReservation(reservation, False)
         if not reservation.created:
             # A reservation without a matching attempt might already have caused
@@ -144,6 +153,13 @@ class VisualAttemptService:
               VALUES(:tenant,:business,:preview,:operation,:actor,:hash,:fence,:reservation)"""),
             {**params, "operation": operation, "hash": request_hash, "reservation": reservation.id},
         )
+        if trace_ciphertext is not None:
+            await session.execute(
+                text("""INSERT INTO visual_request_traces
+                  (tenant_id,business_id,preview_id,actor_id,operation_id,request_hash,ciphertext)
+                  VALUES(:tenant,:business,:preview,:actor,:operation,:hash,:ciphertext)"""),
+                {**params, "operation": operation, "hash": request_hash, "ciphertext": trace_ciphertext},
+            )
         return FencedVisualReservation(reservation, True)
 
     @staticmethod

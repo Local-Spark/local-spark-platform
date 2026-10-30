@@ -23,6 +23,15 @@ class ConfirmedFact(BaseModel):
         return self
 
 
+class CtaDestination(BaseModel):
+    """Commercial destination deliberately provided by the business owner."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    type: Literal["whatsapp", "phone", "ifood", "order_link", "booking_link", "physical_location", "instagram_direct"]
+    value: str = Field(min_length=1, max_length=240)
+
+
 class EditorialPreferences(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
@@ -30,6 +39,7 @@ class EditorialPreferences(BaseModel):
     tone: Literal["friendly", "direct", "playful", "professional"] | None = None
     avoided_topics: list[str] = Field(default_factory=list, max_length=10)
     posts_per_week: int | None = Field(default=None, ge=0, le=7)
+    cta_destination: CtaDestination | None = None
 
     @model_validator(mode="after")
     def bound_topics(self):  # type: ignore[no-untyped-def]
