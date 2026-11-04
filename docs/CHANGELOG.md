@@ -1,5 +1,22 @@
 # Registro de mudanças
 
+## 2026-11-04 — Origem por endereço vinculada ao cadastro próprio
+
+- Registrada a decisão de preencher a origem por endereço somente com o cadastro
+  salvo de **Endereço do negócio**, em campos somente para leitura, exigindo esse
+  cadastro quando ausente. Referências de outras regiões seguem pelo @ manual;
+  GPS, raios e ciclos permanecem como existentes.
+- Diagnosticado o aviso de busca indisponível: a API retorna a prontidão global
+  de descoberta; flags locais persistentes estão desligadas e a configuração
+  temporária do piloto não foi carregada no runtime normal. As três credenciais
+  estão presentes; não é bloqueio por endereço ou ciclo semestral.
+- Web validada com 513 testes e 100% nas quatro métricas, TypeScript, build,
+  formatação e três jornadas Chromium em celular/desktop. A primeira execução
+  teve um timeout em teste inalterado; a repetição serial passou sem ampliar o
+  limite. Conferidos 154 links locais da documentação e whitespace.
+- Backend alterado apenas em documentação, sem chamadas pagas, migração ou
+  ativação de serviços. O CI anterior do backend permanece em 4.734 testes/100%.
+
 ## 2026-11-04 — Retomada BL04.3 documentada para novo chat
 
 - SDD ativo detalha os quatro passos: conferir aprendizados, comparar com/sem

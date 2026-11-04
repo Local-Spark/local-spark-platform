@@ -34,6 +34,16 @@ não afirmar que documentação, flag ou migration isoladas já a resolveram.
 
 ## Decisões confirmadas
 
+### Origem da pesquisa e endereço próprio — 04/11/2026
+
+Ao selecionar endereço em **Origem da pesquisa**, preencher todos os campos
+com o cadastro salvo de **Endereço do negócio** e deixá-los somente para leitura.
+Se esse cadastro não existir, exigir que o cliente o informe antes de salvar a
+origem por endereço. Não oferecer outro endereço editável nessa configuração.
+Para referências de outras regiões, manter a indicação manual de @ em
+**Perfis que inspiram seu negócio**. A localização atual do dispositivo continua
+como alternativa já existente. Essa decisão não altera raios nem ciclos.
+
 ### Qualidade, canal comercial e referências — 30/10
 
 O titular pode informar o canal preferido de contato, venda ou agendamento

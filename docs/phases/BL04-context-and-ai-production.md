@@ -1,5 +1,27 @@
 # BL04 — contexto seletivo e produção visual com IA
 
+## Ajuste da origem de pesquisa — 04/11/2026
+
+A web usa o endereço próprio salvo como única fonte dos campos da origem por
+endereço, todos somente para leitura. Sem cadastro, apresenta a orientação para
+preencher **Endereço do negócio** e impede salvar essa origem. Mudanças no
+cadastro atualizam a exibição e o próximo envio explícito das preferências, sem
+salvamento ou consulta automáticos. GPS confirmado, raios e ciclos são preservados.
+Indicações de outras regiões seguem pelo @ manual em **Perfis que inspiram seu
+negócio**, conforme decisão do titular; não se acrescenta outro endereço de busca.
+
+Critérios de validação: campos não editáveis; cadastro obrigatório para origem por
+endereço; valores persistidos prevalecem sobre uma origem antiga; atualização do
+cadastro refletida sem salvar automaticamente; GPS e indicação manual preservados.
+Testes e validação da interface são registrados no changelog da web.
+
+A mensagem de busca indisponível é controlada por `discovery_available`, vindo da
+prontidão operacional da API. As flags locais persistentes de descoberta,
+geocodificação e análise seguem desligadas. Credenciais presentes não substituem
+a configuração de execução/custos usada temporariamente no piloto. Esse estado
+é independente do endereço e do prazo semestral. Este ajuste não ativa chamadas
+pagas; o próximo trabalho de qualidade continua sendo BL04.3.
+
 ## Referências — gate de fechamento em 04/11/2026
 
 As fatias de descoberta, seleção, análise e projeção na geração estão integradas

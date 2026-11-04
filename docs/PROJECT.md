@@ -15,6 +15,21 @@ próximo chat, sem depender da conversa. Preservar as alterações Git existente
 
 ## Referências — estado da integração em 04/11/2026
 
+No ajuste de interface confirmado pelo titular, a origem por endereço mostra
+os campos de **Endereço do negócio** somente para leitura. Sem cadastro salvo,
+é necessário preenchê-lo antes de salvar essa origem; alterar o cadastro atualiza
+os campos exibidos, mas não salva preferências de pesquisa automaticamente.
+Referências de outras regiões continuam podendo ser informadas por @ em
+**Perfis que inspiram seu negócio**. A origem pelo dispositivo permanece disponível.
+
+O aviso de busca indisponível reflete `discovery_available=false`, calculado pela
+prontidão operacional da API. Na configuração local consultada, as credenciais
+Google, Apify e Jev estão presentes, mas as flags de execução estão desligadas e
+a configuração complementar do piloto não está carregada. O ensaio anterior usou
+processos temporários configurados para esse fim. Esse aviso não representa
+ausência de endereço nem bloqueio semestral; a alteração de interface não ativa
+serviços pagos. A avaliação BL04.3 continua sendo a próxima etapa de qualidade.
+
 A árvore local reúne descoberta Google com custos, classificação Jev, contatos
 Instagram pelo Apify, seleção compartilhada, interface de pesquisa, análise de
 publicações e uso dos padrões na criação editorial/visual. As revisões 0108–0110

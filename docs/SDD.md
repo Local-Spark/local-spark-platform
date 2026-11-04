@@ -17,6 +17,20 @@ Google/Apify/Jev. O SDD ativo é a fonte do ponto de retomada e das saídas de c
 
 ## Estado corrente de referências — 04/11/2026
 
+A origem por endereço na web deve refletir exclusivamente o endereço próprio
+persistido, em campos `readOnly`. Sem esse cadastro, orientar seu preenchimento
+e impedir salvar a origem por endereço. A atualização do cadastro reflete-se na
+exibição e no próximo envio explícito das preferências; não é uma pesquisa nem
+um salvamento automático. Não há segundo endereço editável para descoberta.
+Perfis manuais continuam independentes da região; GPS confirmado mantém seu fluxo.
+
+`GET /references` calcula `discovery_available` com
+`Settings.reference_discovery_ready()`: flags, credenciais e configuração do
+executor/custos. A mensagem de indisponibilidade na web é consequência desse
+estado operacional, não do ciclo semestral nem da validação do endereço. As
+credenciais locais estão presentes, mas as flags persistentes seguem desligadas;
+a configuração temporária do piloto não foi promovida ao runtime normal.
+
 Descoberta, custos, seleção, análise semestral e projeção para geração estão
 integrados na árvore local até 0111. A seleção gera uma associação canônica e
 janela durável; o Temporal executa a coleta e agenda a próxima janela a partir
