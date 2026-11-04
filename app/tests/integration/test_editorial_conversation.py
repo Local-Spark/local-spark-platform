@@ -3,6 +3,7 @@
 import asyncio
 from uuid import uuid4
 
+import pytest
 from sqlalchemy import text
 
 from app.db.session import Database
@@ -69,30 +70,28 @@ async def test_local_conversation_confirmation_and_replay(admin, api, seeded, se
     )
     assert (await api.post(base + f"/{body['id']}/decide", json={"confirmed": True}, headers=viewer)).status_code == 403
     confirmed = await api.post(base + f"/{body['id']}/decide", json={"confirmed": True}, headers=owner)
-    assert confirmed.status_code == 200, confirmed.text
-    assert confirmed.json()["state"] == "confirmed"
+    assert confirmed.status_code == 409 and confirmed.json()["error_code"] == "CONVERSATION_CONFIRMATION_UNAVAILABLE"
     assert (
         await api.post(base + f"/{body['id']}/decide", json={"confirmed": True}, headers=owner)
     ).json() == confirmed.json()
-    assert (await api.post(base + f"/{body['id']}/decide", json={"confirmed": False}, headers=owner)).json()[
+    discarded = await api.post(base + f"/{body['id']}/decide", json={"confirmed": False}, headers=owner)
+    assert discarded.json()["state"] == "discarded"
+    assert (await api.post(base + f"/{body['id']}/decide", json={"confirmed": True}, headers=owner)).json()[
         "error_code"
     ] == "CONVERSATION_DECISION_CONFLICT"
     facts = (await api.get(context, headers=owner)).json()["facts"]
-    assert len(facts) == 1
-    assert facts[0]["kind"] == "price"
-    assert facts[0]["statement"] == body["summary"]
-    assert facts[0]["source_detail"] == "Confirmado pelo proprietário"
+    assert facts == []
     assert (await api.post(base + f"/{uuid4()}/decide", json={"confirmed": True}, headers=owner)).json()[
         "error_code"
     ] == "CONVERSATION_NOT_FOUND"
     assert (await api.post(base + f"/{body['id']}/decide", json={"confirmed": True}, headers=other)).status_code == 403
     await assert_service_error(settings, "CONVERSATION_NOT_FOUND", "decide", tenant, business, actor, uuid4(), True)
     await assert_service_error(
-        settings, "CONVERSATION_DECISION_CONFLICT", "decide", tenant, business, actor, body["id"], False
+        settings, "CONVERSATION_DECISION_CONFLICT", "decide", tenant, business, actor, body["id"], True
     )
     async with admin.connect() as connection:
         assert await connection.scalar(text("SELECT count(*) FROM editorial_conversation_decisions")) == 1
-        assert await connection.scalar(text("SELECT count(*) FROM business_context_versions")) == 1
+        assert await connection.scalar(text("SELECT count(*) FROM business_context_versions")) == 0
         assert (
             await connection.scalar(
                 text("SELECT count(*) FROM audit_events WHERE action LIKE 'editorial.conversation_%'")
@@ -199,22 +198,24 @@ async def test_concurrent_replay_and_existing_context(admin, api, seeded, settin
             service.simulate(tenant, business, actor, payload),
         )
         assert first == second
-        confirmed = await service.decide(tenant, business, actor, first.id, True)
-        assert confirmed.state == "confirmed"
-        assert (await service.decide(tenant, business, actor, first.id, True)) == confirmed
+        with pytest.raises(AuthError, match="CONVERSATION_CONFIRMATION_UNAVAILABLE"):
+            await service.decide(tenant, business, actor, first.id, True)
+        discarded = await service.decide(tenant, business, actor, first.id, False)
+        assert discarded.state == "discarded"
+        assert (await service.decide(tenant, business, actor, first.id, False)) == discarded
         context = f"/api/v1/organizations/{tenant}/businesses/{business}/editorial-context"
         owner = {"Authorization": f"Bearer {access_token(settings, actor)}"}
         facts = (await api.get(context, headers=owner)).json()["facts"]
-        assert len(facts) == 1 and facts[0]["kind"] == "hours"
-        # A second confirmation appends to an existing context version.
+        assert facts == []
         second_intent = await service.simulate(
             tenant,
             business,
             actor,
             SimulateMessage(operation_id=uuid4(), text="O X-tudo está 20 reais hoje"),
         )
-        await service.decide(tenant, business, actor, second_intent.id, True)
-        assert len((await api.get(context, headers=owner)).json()["facts"]) == 2
+        with pytest.raises(AuthError, match="CONVERSATION_CONFIRMATION_UNAVAILABLE"):
+            await service.decide(tenant, business, actor, second_intent.id, True)
+        assert (await api.get(context, headers=owner)).json()["facts"] == []
         to_discard = await service.simulate(
             tenant,
             business,
@@ -222,10 +223,10 @@ async def test_concurrent_replay_and_existing_context(admin, api, seeded, settin
             SimulateMessage(operation_id=uuid4(), text="Hoje tenho agenda livre às 16h"),
         )
         assert (await service.decide(tenant, business, actor, to_discard.id, False)).state == "discarded"
-        assert len((await api.get(context, headers=owner)).json()["facts"]) == 2
+        assert (await api.get(context, headers=owner)).json()["facts"] == []
         listed = await service.list(tenant, business, actor, 20)
         assert len(listed) == 3
-        assert {item.state for item in listed} == {"confirmed", "discarded"}
+        assert {item.state for item in listed} == {"awaiting_confirmation", "discarded"}
     finally:
         await db.close()
 
@@ -267,6 +268,8 @@ async def test_confirmation_respects_context_fact_limit(admin, api, seeded, sett
         json={"confirmed": True},
         headers=owner,
     )
-    assert result.json()["error_code"] == "CONTEXT_FACT_LIMIT"
-    await assert_service_error(settings, "CONTEXT_FACT_LIMIT", "decide", tenant, business, actor, created["id"], True)
-    assert len((await api.get(base + "/editorial-context", headers=owner)).json()["facts"]) == 20
+    assert result.json()["error_code"] == "CONVERSATION_CONFIRMATION_UNAVAILABLE"
+    await assert_service_error(
+        settings, "CONVERSATION_CONFIRMATION_UNAVAILABLE", "decide", tenant, business, actor, created["id"], True
+    )
+    assert (await api.get(base + "/editorial-context", headers=owner)).json()["facts"] == []

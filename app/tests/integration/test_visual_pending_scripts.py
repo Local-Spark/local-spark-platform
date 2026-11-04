@@ -69,39 +69,45 @@ async def test_script_change_waits_for_visual_run_and_preserves_previous_preview
                 angle="Uma pausa para conhecer o croissant",
                 script=scenes,
             )
-            pending = await scripts.edit_script(tenant, business, actor, admission.proposal, body)
-            replay = await scripts.edit_script(tenant, business, actor, admission.proposal, body)
-            assert pending.version == 1 and pending.document == original.document
-            changed_payload = body.model_copy(update={"title": "Outro título válido"})
-            with pytest.raises(AuthError, match="VISUAL_CHANGE_OPERATION_CONFLICT"):
-                await scripts.edit_script(tenant, business, actor, admission.proposal, changed_payload)
-            history = await scripts.script_versions(tenant, business, actor, admission.proposal)
-            assert history[-1].pending_change.status == "pending"
+            with pytest.raises(AuthError, match="SCRIPT_GENERATED_COPY_EDIT_UNSUPPORTED"):
+                await scripts.edit_script(tenant, business, actor, admission.proposal, body)
+            unchanged = (await scripts.list(tenant, business, actor))[0]
+            assert unchanged.pending_change is None and unchanged.document == original.document
         else:
             body = ScriptReview(operation_id=uuid4(), decision="changes_requested", note="Ajustar o roteiro")
             pending = await scripts.review_script(tenant, business, actor, admission.proposal, body)
             replay = await scripts.review_script(tenant, business, actor, admission.proposal, body)
             assert pending.review_state is None
-        assert pending == replay and pending.pending_change.operation_id == body.operation_id
-        waiting = (await scripts.list(tenant, business, actor))[0]
-        assert waiting.pending_change.status == "pending"
-        assert waiting.document == original.document and waiting.script_version == 1 and waiting.review_state is None
-        with pytest.raises(AuthError, match="VISUAL_CHANGE_PENDING"):
-            await owner.request_candidate(
-                tenant,
-                business,
-                actor,
-                PreviewRequest(operation_id=uuid4(), proposal_id=admission.proposal, generation_mode="visual_fake"),
+        if change == "review":
+            assert pending == replay and pending.pending_change.operation_id == body.operation_id
+            waiting = (await scripts.list(tenant, business, actor))[0]
+            assert waiting.pending_change.status == "pending"
+            assert (
+                waiting.document == original.document and waiting.script_version == 1 and waiting.review_state is None
             )
+            with pytest.raises(AuthError, match="VISUAL_CHANGE_PENDING"):
+                await owner.request_candidate(
+                    tenant,
+                    business,
+                    actor,
+                    PreviewRequest(operation_id=uuid4(), proposal_id=admission.proposal, generation_mode="visual_fake"),
+                )
     finally:
         release.set()
     try:
         assert await asyncio.wait_for(task, 20) == "completed"
         applied = (await scripts.list(tenant, business, actor))[0]
         assert applied.pending_change is None
-        assert applied.script_version == (2 if change == "edit" else 1)
+        assert applied.script_version == 1
         assert applied.review_state == (None if change == "edit" else "changes_requested")
         assert (await owner.file_key(tenant, business, actor, preview.id, review=True)).endswith(".jpg")
+        if change == "edit":
+            assert not next(
+                item for item in await owner.list(tenant, business, actor) if item.id == preview.id
+            ).created_before_change
+            assert await renderer.render(queued.id, claims[queued.id].fence) == "completed"
+            assert store.put.await_count == 2
+            return
         assert next(
             item for item in await owner.list(tenant, business, actor) if item.id == preview.id
         ).created_before_change
@@ -124,7 +130,7 @@ async def test_script_change_waits_for_visual_run_and_preserves_previous_preview
         await worker.close()
 
 
-async def test_script_change_without_active_run_applies_immediately_and_replays(admin, database, seeded, settings):
+async def test_generated_script_edit_is_blocked_but_review_replays(admin, database, seeded, settings):
     tenant, business, actor, _, admission = await _ready(admin, database, seeded, settings)
     service = EditorialProposalService(admission.settings, database)
     original = (await service.list(tenant, business, actor))[0]
@@ -138,9 +144,8 @@ async def test_script_change_without_active_run_applies_immediately_and_replays(
         angle="Uma pausa para conhecer o croissant",
         script=scenes,
     )
-    changed = await service.edit_script(tenant, business, actor, admission.proposal, body)
-    assert changed.version == 2 and changed.pending_change is None
-    assert await service.edit_script(tenant, business, actor, admission.proposal, body) == changed
+    with pytest.raises(AuthError, match="SCRIPT_GENERATED_COPY_EDIT_UNSUPPORTED"):
+        await service.edit_script(tenant, business, actor, admission.proposal, body)
     review = ScriptReview(operation_id=uuid4(), decision="accepted")
     reviewed = await service.review_script(tenant, business, actor, admission.proposal, review)
     assert reviewed.review_state == "accepted" and reviewed.pending_change is None
@@ -152,8 +157,40 @@ async def test_script_change_without_active_run_applies_immediately_and_replays(
                     "SELECT count(*) FROM business_visual_pending_changes WHERE kind IN ('script_edit','script_review')"
                 )
             )
-            == 2
+            == 1
         )
+
+
+async def test_legacy_script_edit_waits_for_gate_and_replays(admin, database, seeded, settings):
+    from app.tests.integration.test_media_previews import _accepted_case
+
+    tenant, business, actor, _, proposal, _ = await _accepted_case(admin, seeded)
+    service = EditorialProposalService(settings, database)
+    original = (await service.list(tenant, business, actor))[0]
+    gate = VisualConsentGate(database)
+    await gate.enable(tenant, business, actor)
+    run = uuid4()
+    assert await gate.admit(tenant, business, actor, uuid4(), run, 1)
+    scenes = deepcopy(original.document.script)
+    cta = next(scene for scene in scenes if scene.role == "cta")
+    cta.on_screen_text = cta.voiceover = "Converse com nossa equipe"
+    body = ScriptEdit(
+        operation_id=uuid4(),
+        expected_version=1,
+        title="Conheça o lanche",
+        angle="Mostre o lanche artesanal",
+        script=scenes,
+    )
+    pending = await service.edit_script(tenant, business, actor, proposal, body)
+    assert pending.pending_change is not None and pending.pending_change.status == "pending"
+    assert await service.edit_script(tenant, business, actor, proposal, body) == pending
+    with pytest.raises(AuthError, match="VISUAL_CHANGE_OPERATION_CONFLICT"):
+        await service.edit_script(tenant, business, actor, proposal, body.model_copy(update={"title": "Outro título"}))
+    await gate.finish(tenant, business, actor, run, 1)
+    changed = (await service.list(tenant, business, actor))[0]
+    assert changed.pending_change is None and changed.script_version == 2
+    replay = await service.edit_script(tenant, business, actor, proposal, body)
+    assert replay.version == 2 and replay.document == changed.document
 
 
 async def test_internal_script_tools_wait_for_another_pending_source_change(admin, database, seeded, settings):
@@ -177,7 +214,7 @@ async def test_internal_script_tools_wait_for_another_pending_source_change(admi
         angle="Uma pausa para conhecer o croissant",
         script=original.document.script,
     )
-    with pytest.raises(AuthError, match="VISUAL_CHANGE_PENDING"):
+    with pytest.raises(AuthError, match="SCRIPT_GENERATED_COPY_EDIT_UNSUPPORTED"):
         await service.edit_script(tenant, business, actor, admission.proposal, edit)
     with pytest.raises(AuthError, match="VISUAL_CHANGE_PENDING"):
         await service.review_script(

@@ -19,6 +19,7 @@ from app.db.session import Database
 from app.schemas.editorial_proposals import ProposalDraft
 from app.services.auth import AuthError
 from app.services.editorial_briefings import EditorialBriefingService
+from app.services.reference_generation_context import generation_context_is_current, read_generation_snapshot
 from app.services.service_agreement_scope import accepted_agreement_at_sql
 from app.services.whatsapp_materials import WhatsAppMaterialsService
 
@@ -238,6 +239,13 @@ class VisualContextService:
         )
         if context_version != proposal["context_version"]:
             raise AuthError("VISUAL_CONTEXT_CHANGED", 409)
+        reference_value = proposal.get("reference_generation_snapshot")
+        if reference_value is not None:
+            reference_snapshot = read_generation_snapshot(reference_value)
+            if completed_preview_id is None and not await generation_context_is_current(
+                session, business, reference_snapshot
+            ):
+                raise AuthError("REFERENCE_GENERATION_CONTEXT_CHANGED", 409)
         # The source is already attributed to this business. A new channel proof
         # changes the delivery destination, not its provenance or authorization
         # to finish admitted work (C05); do not fingerprint the current link.
@@ -264,6 +272,7 @@ class VisualContextService:
                 "whatsapp_consent": whatsapp_consent,
                 "jev_consent": jev_consent,
                 "editorial_consent": editorial_consent,
+                **({"reference_generation_snapshot": reference_value} if reference_value is not None else {}),
             },
         )
         return VisualContextSnapshot(

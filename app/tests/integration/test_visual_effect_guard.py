@@ -55,6 +55,7 @@ async def guarded_case(admin, database, seeded, settings):
         claim.fence,
         True,
         admission.fingerprint,
+        visual_recipe=preview.visual_recipe,
     )
     output = io.BytesIO()
     Image.new("RGB", (1024, 1280), "navy").save(output, format="PNG")
@@ -244,8 +245,8 @@ async def test_lost_reservation_acknowledgement_preserves_admission_and_hold(
     c = guarded_case
     original = VisualAttemptService.reserve
 
-    async def lose(self, *args):
-        await original(self, *args)
+    async def lose(self, *args, **kwargs):
+        await original(self, *args, **kwargs)
         raise RuntimeError("lost reservation commit")
 
     monkeypatch.setattr(VisualAttemptService, "reserve", lose)

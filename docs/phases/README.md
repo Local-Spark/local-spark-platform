@@ -1,5 +1,23 @@
 # Fases de implementação
 
+## Atualização de referências — 04/11/2026
+
+A descoberta Google, classificação Jev, perfis Apify, seleção, ciclo semestral,
+análise e snapshot para criação estão integrados localmente até a revisão 0111.
+O [piloto](../evals/reference-feature-pilot-2026-11-04.md) comprovou lista de dez,
+três destaques e padrões de referência manual no contexto de geração. A decisão
+final inclui apenas autoria direta e usa capa/legenda de vídeos/Reels; o CI
+posterior à extensão passou em 4.734 testes/100%. Os detalhes atuais estão no
+[PROJECT](../PROJECT.md) e na [BL04](BL04-context-and-ai-production.md).
+
+A próxima fatia da ordem já aprovada é BL04.3: avaliar
+post/story com kit, acervo e referências pelo produto, medindo fidelidade e custo
+por peça aceita. O piloto de descoberta/análise não substitui essa avaliação.
+Os [quatro passos e o ponto de retomada](BL04-context-and-ai-production.md#bl043--qualidade-e-economia-pendente)
+estão detalhados no SDD ativo. Começar pelo inventário dos aprendizados e pelo
+plano comparativo, antes de executar a nova rodada paga.
+BL05 continua sendo a etapa posterior de jornada WhatsApp e proatividade.
+
 Atualizado em **29/10/2026**. Este índice distingue **o que existe no ambiente
 local**, **a próxima fase** e os gates para piloto/produção. A v0 completa
 continua distribuída entre F00–F08; a trilha [BL](BL-brand-library.md) define
@@ -30,7 +48,7 @@ peça nova.
   organização e aceite único de IA antes do checkout. Sem check individual
   de transcrição, modelo ou fornecedor no WhatsApp/Sobre meu negócio.
 
-## Próxima fatia e decisões aprovadas pendentes
+## Marco de 29/10 e decisões então pendentes
 
 A fase ativa é [BL04](BL04-context-and-ai-production.md). A parte 1 entrega a
 guarda concreta de fontes, aceite, acesso, reserva/claim e resultado privado,
@@ -77,8 +95,8 @@ fica para essa fase, sem nova exclusão automática agora. Detalhes e lacunas em
 | 1 | [BL01](BL-brand-library.md#bl01--kit-piloto-e-vitrine-local) | Kit piloto de cafeteria, dez posts, stories, reel e vitrine. | Técnica local pronta; revisão comercial/direitos pendente. |
 | 2 | [BL02](BL-brand-library.md#bl02--escolher-e-editar-o-kit-piloto-para-um-negócio) | Dono seleciona o kit e ajusta cores, fontes, logo, textos e composição guiada de feed/story/capa vertical; vê e confirma prévias versionadas. | Implementada localmente; gate comercial do kit segue pendente. |
 | 3 | [BL03](BL-brand-library.md#bl03--acervo-progressivo-em-sobre-meu-negócio) | Dentro de “Sobre meu negócio”, cadastrar opcionalmente produtos/serviços e fotos reais do espaço; dado privado, confirmado e versionado. | **BL03.1/BL03.2 implementadas localmente; BL03.3 posterior.** |
-| 4 | [BL04](BL04-context-and-ai-production.md#próxima-fatia-de-desenvolvimento) | Desenvolver skills de feed/story, comparar com baseline e integrar geração com kit/acervo. | Planejada; biblioteca e integração das skills ainda não existem. |
-| 5 | [F03 — referências externas](../design/skills-e-referencias-editoriais.md) | Cliente indica perfis e plataforma descobre semelhantes em destaque; avaliar fontes, métricas e padrões antes de usá-los na criação. | Planejada após estudo e comparação simulada das skills; Jev é hipótese, sem provedor escolhido. |
+| 4 | [BL04](BL04-context-and-ai-production.md#próxima-fatia-de-desenvolvimento) | Skills de feed/story e geração com kit/acervo. | Versões iniciais integradas; avaliação de ganho e qualidade comercial pendente. |
+| 5 | [F03 — referências externas](../design/skills-e-referencias-editoriais.md) | Cliente indica perfis e plataforma descobre semelhantes; padrões próprios alimentam a criação. | Implementada localmente com Google, Apify e Jev; piloto executado e CI final aprovado, incluindo capas de vídeos. |
 | 6 | [BL04.3](BL04-context-and-ai-production.md#bl043--qualidade-e-economia-pendente) | Avaliar post/story pelo produto, com fontes autorizadas e titular; medir pertinência, fidelidade, aceite e custo completo. | Gate comercial pendente; ensaio sintético isolado não o encerra. |
 | 7 | [BL05](BL-brand-library.md#bl05--jornada-completa-local-ajuste-e-proatividade-mínima) | WhatsApp simulado e proposta sem mensagem percorrem prévia, ajuste, aprovação e publicação falsa com as mesmas regras. | Contratos F02/F04/F06 parciais já existem; integração pendente. |
 | 8 | [BL06](BL-brand-library.md#bl06--ampliar-a-biblioteca-e-servir-o-catálogo-em-escala) | Kits de manicure e personal, catálogo público versionado em objetos/CDN e revisões por nicho. | Planejada após prova de reaplicação. |
@@ -104,7 +122,7 @@ automaticamente como rascunho para conferência. Não bloqueia a primeira peça.
 | [F00](F00-foundation.md) | Fundação, Postgres/RLS, Temporal e observabilidade base | Concluída localmente. |
 | [F01](F01-identity-onboarding.md) | Identidade, onboarding, admin e cobrança mínima | Código local; staging/homologação externa pendentes. |
 | [F02](F02-whatsapp-ingestion.md) | WhatsApp, materiais e confirmação | Local/mock; Meta real pendente. |
-| [F03](F03-editorial-research.md) | Contexto, pauta, roteiro, cadência proativa e pesquisa | Parte local; pesquisa de referências é planejada após estudo e comparação simulada das skills, antes de seu uso na criação. |
+| [F03](F03-editorial-research.md) | Contexto, pauta, roteiro, cadência proativa e pesquisa | Contexto e pesquisa de referências locais integrados; proatividade e homologação comercial permanecem em fases próprias. |
 | [F04](F04-media-recipes.md) | Receita visual, IA de imagem/vídeo, prévia e ajuste | Renderer local é baseline técnico; BL04 fecha primeira receita aprovada. |
 | [F05](F05-avatar-generative-video.md) | Avatar, voz e cenas geradas | Avatar do cliente após o primeiro piloto comercial (P15), com consentimento, qualidade e orçamento próprios. |
 | [F06](F06-instagram-publishing.md) | Aprovação, agenda, publicação e métricas Instagram | Fluxo falso local; Meta/Instagram reais pendentes. |

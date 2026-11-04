@@ -166,3 +166,25 @@ async def native_api(database, auth_database, settings):
         ) as client,
     ):
         yield client
+
+
+@pytest.fixture
+async def historical_filtered_writer(admin):
+    """Test-only grant to seed and exercise a historical, already-released fence.
+
+    Real runtime must not receive this inner writer. Each test revokes the grant.
+    """
+    signature = (
+        "public.reference_filtered_commit_evidence_inner("
+        "uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,bigint,jsonb)"
+    )
+    async with admin.begin() as connection:
+        assert not await connection.scalar(
+            text("SELECT has_function_privilege('meu_braco_direito_correlator',:sig,'EXECUTE')"), {"sig": signature}
+        )
+        await connection.execute(text(f"GRANT EXECUTE ON FUNCTION {signature} TO meu_braco_direito_correlator"))
+    try:
+        yield
+    finally:
+        async with admin.begin() as connection:
+            await connection.execute(text(f"REVOKE EXECUTE ON FUNCTION {signature} FROM meu_braco_direito_correlator"))

@@ -3,6 +3,7 @@
 from functools import lru_cache
 from typing import Literal
 from urllib.parse import urlsplit
+from uuid import UUID
 
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -63,6 +64,34 @@ class Settings(BaseSettings):
     editorial_creative_experimental: bool = False
     editorial_daily_token_limit: int = Field(default=0, ge=0)
     intent_ai_mode: Literal["disabled", "jev"] = "disabled"
+    reference_discovery_mode: Literal["disabled", "fake"] = "disabled"
+    reference_fixture_hmac_key: SecretStr | None = None
+    reference_geocoding_enabled: bool = False
+    reference_google_api_key: SecretStr | None = None
+    reference_provider_hmac_key: SecretStr | None = None
+    reference_provider_key_version: str = ""
+    reference_google_credential_version: str = ""
+    reference_provider_pilot_id: UUID | None = None
+    reference_geocoding_tariff_version: str = ""
+    reference_geocoding_reserved_usd_micros: int = Field(default=0, ge=0, le=5_000_000)
+    reference_discovery_execution_enabled: bool = False
+    reference_google_tariff_version: str = ""
+    reference_google_reserved_usd_micros: int = Field(default=0, ge=0, le=5_000_000)
+    reference_jev_tariff_version: str = ""
+    reference_jev_credential_version: str = ""
+    reference_jev_reserved_usd_micros: int = Field(default=0, ge=0, le=5_000_000)
+    reference_apify_api_token: SecretStr | None = None
+    reference_apify_actor_id: str = ""
+    reference_apify_actor_build: str = ""
+    reference_apify_tariff_version: str = ""
+    reference_apify_credential_version: str = ""
+    reference_apify_reserved_usd_micros: int = Field(default=0, ge=0, le=5_000_000)
+    reference_learning_execution_enabled: bool = False
+    reference_feed_actor_build: str = ""
+    reference_feed_tariff_version: str = ""
+    reference_feed_credential_version: str = ""
+    reference_feed_reserved_usd_micros: int = Field(default=0, ge=0, le=5_000_000)
+    reference_post_reserved_usd_micros: int = Field(default=0, ge=0, le=5_000_000)
     typesafe_api_key: SecretStr | None = Field(default=None, validation_alias="TYPESAFE_API_KEY")
     intent_ai_model: str = "jev-1.14.0"
     intent_ai_daily_budget_usd_micros: int = Field(default=0, ge=0)
@@ -110,6 +139,8 @@ class Settings(BaseSettings):
         if not self.database_url.get_secret_value().startswith("postgresql+asyncpg://"):
             raise ValueError("Use PostgreSQL with the asyncpg driver")
         if self.environment in {"production", "staging"}:
+            if self.reference_discovery_mode != "disabled":
+                raise ValueError("Reference discovery simulation is limited to local development and testing")
             if "development" in self.jwt_secret.get_secret_value().lower():
                 raise ValueError("Development signing secrets are not allowed outside development")
             if not self.temporal_tls:
@@ -238,6 +269,75 @@ class Settings(BaseSettings):
         if not self.editorial_ai_model or len(self.editorial_ai_model) > 80:
             raise ValueError("Invalid editorial model")
         return self
+
+    def reference_geocoding_ready(self) -> bool:
+        """Explicit credentials and ledger configuration gate charged address resolution."""
+        return bool(
+            self.reference_geocoding_enabled
+            and self.environment in {"development", "testing"}
+            and self.correlator_database_url
+            and self.reference_google_api_key
+            and self.reference_google_api_key.get_secret_value().strip()
+            and self.reference_provider_hmac_key
+            and len(self.reference_provider_hmac_key.get_secret_value()) >= 32
+            and self.reference_provider_key_version
+            and self.reference_google_credential_version
+            and self.reference_provider_pilot_id
+            and self.reference_geocoding_tariff_version
+            and self.reference_geocoding_reserved_usd_micros > 0
+        )
+
+    def reference_discovery_ready(self) -> bool:
+        """One default-off gate shared by the owner API, relay and worker."""
+        return bool(
+            self.reference_discovery_execution_enabled
+            and self.environment in {"development", "testing"}
+            and self.correlator_database_url
+            and self.reference_google_api_key
+            and self.reference_google_api_key.get_secret_value().strip()
+            and self.reference_provider_hmac_key
+            and len(self.reference_provider_hmac_key.get_secret_value().encode()) >= 32
+            and self.reference_provider_key_version
+            and self.reference_google_credential_version
+            and self.reference_provider_pilot_id
+            and self.reference_google_tariff_version
+            and self.reference_google_reserved_usd_micros > 0
+            and self.typesafe_api_key
+            and self.typesafe_api_key.get_secret_value().strip()
+            and self.reference_jev_tariff_version
+            and self.reference_jev_credential_version
+            and self.reference_jev_reserved_usd_micros > 0
+            and self.reference_apify_api_token
+            and self.reference_apify_api_token.get_secret_value().strip()
+            and self.reference_apify_actor_id
+            and self.reference_apify_actor_build
+            and self.reference_apify_tariff_version
+            and self.reference_apify_credential_version
+            and self.reference_apify_reserved_usd_micros >= 500_000
+        )
+
+    def reference_learning_ready(self) -> bool:
+        """Feed analysis is independent of Google discovery and remains default-off."""
+        return bool(
+            self.reference_learning_execution_enabled
+            and self.environment in {"development", "testing"}
+            and self.correlator_database_url
+            and self.reference_provider_hmac_key
+            and len(self.reference_provider_hmac_key.get_secret_value().encode()) >= 32
+            and self.reference_provider_key_version
+            and self.reference_provider_pilot_id
+            and self.typesafe_api_key
+            and self.typesafe_api_key.get_secret_value().strip()
+            and self.reference_jev_tariff_version
+            and self.reference_jev_credential_version
+            and self.reference_post_reserved_usd_micros > 0
+            and self.reference_apify_api_token
+            and self.reference_apify_api_token.get_secret_value().strip()
+            and self.reference_feed_actor_build
+            and self.reference_feed_tariff_version
+            and self.reference_feed_credential_version
+            and self.reference_feed_reserved_usd_micros > 0
+        )
 
     def visual_execution_ready(self) -> bool:
         """One technical configuration rule for API, dispatch and worker wiring."""

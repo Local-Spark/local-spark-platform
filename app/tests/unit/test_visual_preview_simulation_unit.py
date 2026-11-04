@@ -481,3 +481,41 @@ async def test_brand_finishing_failure_never_uploads_simulated_preview(visual_ca
     assert await service._render_visual_fake(uuid4(), 1) == "failed"
     assert service._fail.await_args.args[2] == "BRAND_COPY_TOO_LONG"
     store.put.assert_not_awaited()
+
+
+@pytest.mark.parametrize("recipe", [None, "legacy_overlay"])
+async def test_queued_legacy_visual_recipe_never_loads_photos_or_spends(visual_case, recipe):
+    c = visual_case
+    row = dict(c.row)
+    if recipe is None:
+        row.pop("visual_recipe")
+    else:
+        row["visual_recipe"] = recipe
+    database, _ = _database([row])
+    store = AsyncMock()
+    service = MediaPreviewService(c.cfg, database, store)
+    service._fail = AsyncMock(return_value="failed")
+    preview = uuid4()
+    assert await service._render_visual_fake(preview, 2) == "failed"
+    service._fail.assert_awaited_once_with(preview, 2, "VISUAL_RECIPE_LEGACY_DISABLED", False)
+    c.prepare.assert_not_awaited()
+    store.get_image.assert_not_awaited()
+    store.put.assert_not_awaited()
+
+
+def test_legacy_render_identity_is_distinct_from_full_piece_and_pinned_skill():
+    operation = uuid4()
+    legacy = _visual_render_key("f" * 64, operation, True)
+    full_piece = _visual_render_key("f" * 64, operation, True, visual_recipe="full_piece_v1")
+    with_skill = _visual_render_key("f" * 64, operation, True, skill_hash="a" * 64, visual_recipe="full_piece_v1")
+    assert len({legacy, full_piece, with_skill}) == 3
+    assert legacy == _visual_render_key("f" * 64, operation, True, visual_recipe="legacy_overlay")
+
+
+async def test_inactive_plan_blocks_visual_request_before_context_capture(visual_case):
+    c = visual_case
+    database, session = _database([])
+    session.scalar.return_value = False
+    with pytest.raises(AuthError, match="PLAN_REQUIRED"):
+        await MediaPreviewService(c.cfg, database).request_candidate(c.tenant, c.business, c.actor, c.body)
+    c.prepare.assert_not_awaited()

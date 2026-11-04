@@ -1,5 +1,713 @@
 # Registro de mudanças
 
+## 2026-11-04 — Retomada BL04.3 documentada para novo chat
+
+- SDD ativo detalha os quatro passos: conferir aprendizados, comparar com/sem
+  referências, avaliar com o titular e corrigir/repetir com custo por peça aceita.
+- PROJECT, SDD geral, decisões e índice apontam a primeira ação, as entregas,
+  evidências anteriores e escolhas do ensaio ainda abertas. O piloto não é
+  descrito como geração de uma peça final com referências nem orçamento de imagens.
+- Alteração apenas documental; conferidos links locais e whitespace. Não houve
+  chamada paga, mudança de código/banco ou nova execução de testes. O último CI
+  do código permanece em 4.734 testes e 100% de linhas/ramos.
+
+## 2026-11-04 — Autoria direta e capas de vídeos/Reels
+
+- Aplicada a decisão do titular: publicações do autor selecionado; coautoria ou
+  marcação em post de outra conta não habilita a análise.
+- Vídeos/Reels usam somente capa e legenda. Carrosséis mistos incluem as capas
+  explícitas dos itens de vídeo; nenhuma URL de vídeo é enviada ao downloader ou
+  ao Jev. O estado parcial preserva o limite da evidência visual.
+- 164 unitários passaram com 100% do adapter; cinco integrações provaram capas,
+  legendas, exclusão de coautoria, persistência dos padrões, snapshot e replay
+  sem novas chamadas. CI integral aprovado: 4.734 testes, 100% de linhas/ramos,
+  Ruff/format e mypy. Sem nova chamada paga ou migração do banco da aplicação.
+- A interface explica autoria direta e capa/legenda; dez testes dirigidos/100%
+  do componente, TypeScript e Prettier aprovados. Decisões de conteúdo resolvidas.
+
+## 2026-11-04 — Padrões reais no contexto de geração
+
+- No negócio fictício, a referência manual gerou nove padrões editoriais/visuais
+  de onze publicações e quarenta imagens; 41 amostras Jev concluídas. A API mostra
+  análise parcial e atualização semestral. Snapshot validado inclui os mesmos
+  padrões; não houve geração ou publicação de imagem.
+- Piloto comprometeu US$ 0,455502 de US$ 5, somando custos Apify e reservas
+  Google/Jev. Flags persistentes permanecem desligadas e worker dedicado encerrou.
+- Web validada integralmente em 508 testes/100%, TypeScript, build e Chromium.
+  Ajuste posterior das mensagens de endereço passou em 13 testes/100% do
+  componente, TypeScript e Prettier. CI integral final do backend aprovado:
+  4.724 testes, 100% de linhas e ramos, Ruff e mypy. Banco `_test` exclusivo e
+  logins restritos removidos pelo runner ao final; banco de desenvolvimento preservado.
+
+## 2026-11-04 — Contabilização Apify após o término
+
+- A coleta aguarda trinta segundos e contadores compatíveis antes de publicar
+  custo final; repete apenas GET do run existente. 275 testes/100% no recorte.
+- Cinco recibos do piloto foram observados como preliminares. O ajuste de
+  30.700 micros foi aplicado pela revisão auditável 0111, sem alterar o teto de
+  US$ 5. Validada em 38 integrações, 12 unitários/100%, Ruff, mypy e roundtrip
+  vazio; banco local atualizado após backup privado verificado.
+- Descoberta real publicou dez candidatos e três destaques; seleção confirmada.
+  Feed coletado, mas primeira análise indisponível pelo filtro de autoria/formato.
+  Entrevista pendente sobre coautoria e capas/legendas de vídeos.
+
+## 2026-11-04 — Validação real e compatibilidade Google
+
+- Parser ajustado ao ProtoJSON para componentes opcionais de endereço; tipos
+  malformados continuam rejeitados. 160 testes/100% nos módulos verificados.
+- Ensaio real confirmou 20 candidatos aceitos e três recomendações Jev distintas;
+  coleta de perfis e análise ainda em fechamento. Operações anteriores não foram
+  reenviadas e suas reservas permanecem dentro do mesmo piloto de US$ 5.
+- Banco local atualizado de 0105 para 0110 após backup privado verificado. A
+  leitura das referências do negócio informado passou com runtime restrito.
+- CI com 4.659 testes aprovados expôs uma fixture antiga do snapshot editorial;
+  corrigida junto da prova de bloqueio do renderer legado sem parent. 107 testes
+  dirigidos passaram. A rodada seguinte foi interrompida para incorporar o
+  contrato real do Google; nova execução integral está em curso.
+
+## 2026-11-04 — Integração da análise e fechamento de referências
+
+- Incorporadas associação e agenda 0108, ledger por amostra 0109 e snapshot
+  editorial/visual 0110; o fechamento ainda depende do CI combinado e piloto.
+- Guardião Jev: 46 unitários com cobertura integral e 22 integrações com seleção
+  canônica, replay, isolamento, reservas, âncora de legenda e recibo Apify.
+- Política v2 aplicada ao piloto local sem zerar contadores ou ampliar US$ 5;
+  cinco testes financeiros e quatro de endereço aprovados em banco descartável.
+- Corrigido teste de privacidade que confundia os dígitos de um endereço com
+  UUIDs aleatórios na outbox. A lista exata de campos continua verificada.
+- `.env.example` documenta as configurações de referências; flags persistentes
+  seguem desligadas. Nenhuma chamada paga nesta etapa de integração.
+
+## 2026-11-04 — Cadastro versionado de endereço próprio
+
+- API autenticada GET/PUT com origem declarada pelo titular, versionamento
+  otimista, replay histórico por operação e compartilhamento entre titulares.
+- Endereço, histórico, auditoria e outbox permanecem na mesma transação; RLS
+  inclui conta e associação ativas. Salvar não consulta fornecedores.
+- Validação: cinco testes PostgreSQL com logins restritos, banco exclusivo
+  removido ao final e 100% de linhas/ramos nos módulos novos; cinco unitários de
+  schema, Ruff e mypy aprovados.
+- A fatia ainda não inclui interface conectada, geocodificação ou vínculo à
+  admissão/publicação de referências.
+
+
+## 2026-11-03 — Proteções preparatórias para referências reais
+
+- As revisões 0098 e 0099 foram incorporadas e aplicadas ao banco de
+  desenvolvimento após backup privado verificado por leitura. A prontidão com
+  role restrita foi confirmada; a API pode precisar ser reiniciada.
+
+- O titular definiu que a decisão de manter uma referência anterior fora dos
+  dez será solicitada apenas no início de uma nova rodada após seis meses;
+  outra pesquisa por raio na mesma rodada não repete essa pergunta. O contrato
+  transacional e a interface dessa decisão ainda estão pendentes.
+
+- A cadeia privada simulada vincula requisições Google e Jev às intenções,
+  credenciais e reservas, filtra semelhança antes da pontuação e grava apenas
+  lote intermediário sanitizado; falhas e repetição são testadas sem rede real.
+  A intenção Google é idempotente e exige busca parental e contexto compatíveis.
+- O desempate pela semelhança tem adapter somente simulado e HMAC de pedido
+  testados; ainda faltam guarda durável e integração à lista. O titular decidiu
+  usar a ordem Google se o Jev não conseguir decidir e autorizou guardar a
+  conclusão estruturada de semelhança para recuperação.
+- Um adapter e sanitizador simulados pedem ao Jev o grau de semelhança de forma
+  explícita e excluem `unknown` antes de calcular a nota, sem interpretar a
+  confiança como grau. Foram ligados ao pipeline simulado e à persistência
+  privada de evidência; os novos writers seguem sem permissão runtime. A cadeia
+  e o snapshot passaram em 15 testes com Nearby/MAC v3 em banco isolado. Dos
+  36 testes legados, um falhou de forma intermitente na preparação de custo e
+  passou isolado e em sequência de quatro; a causa continua desconhecida.
+- O titular determinou que o próprio negócio não apareça nas sugestões e
+  autorizou identificá-lo por nome/endereço quando a correspondência for clara,
+  pedindo confirmação apenas na dúvida. Um comparador puro e conservador foi
+  preparado e passou em 36 testes com cobertura integral; ainda faltam vínculo
+  transacional da identidade, confirmação e integração ao fluxo real.
+- Uma leitura interna compartilha listas publicadas e escolhas entre titulares
+  ativos, preservando seleções antigas. Testes de unidade e PostgreSQL cobriram
+  raios ocupados sem publicação, listas vazias, histórico, dados privados,
+  outros tenants, viewer e conta ou associação inativa;
+  não há rota nem publicação real ativada.
+- A base privada também prepara até dez posições finais sem publicá-las. Um
+  contrato isolado projeta somente aprendizados de seleções e versões informadas;
+  não coleta, verifica procedência, persiste análises ou integra geração.
+- Foi preparado em memória o contrato de análise do feed e um downloader de
+  imagem limitado a HTTP simulado. A extração multimodal, a autenticação da
+  origem, o download real e a proteção de rede ainda não existem. O titular
+  decidiu analisar todas as imagens acessíveis dos carrosséis; os contratos e
+  adapters simulados não limitam mais imagens por publicação. Os testes dos
+  três módulos passaram com cobertura integral de linhas e ramos.
+- Ainda faltam conexão da admissão à pesquisa real, recomendação dos três destaques,
+  custo Apify, publicação, seleção real, integração à geração e ensaio
+  real autorizado. O titular definiu empate pela semelhança e destaques pela
+  combinação de semelhança e nota; nenhuma fase completa foi concluída nesta fatia.
+- A admissão privada por dispositivo agora possui ciclo próprio separado do
+  fake, identidade, auditoria e outbox. Testes isolados cobriram concorrência,
+  reapresentação, raios e troca de ciclo; a seleção que inicia o prazo é interna
+  e ainda não está disponível. A intenção Google e o pipeline simulado passaram
+  junto à nova migration
+  em 19 testes, incluindo retenção de raio em estados inconclusivos, com cobertura
+  integral de linhas e ramos do serviço; nenhuma chamada real foi feita. A versão
+  da chave HMAC é guardada para permitir futura verificação e rotação controlada.
+- O cancelamento interno idempotente libera o raio quando não existe nenhuma
+  intenção de fornecedor; sua concorrência com a criação da intenção foi testada.
+  Ele ainda não tem permissão runtime nem recuperação conectada. Outros estados
+  conservam o raio até existir prova de falha conclusiva.
+- Foram adaptados mais 13 testes de preservação de prévias históricas. Uma
+  execução completa do `make ci` passou por lint, formato e tipos; foi
+  interrompida após 324 testes aprovados e 45 falhas de integração, antes de
+  completar a suíte. As falhas incluem testes dos fluxos visuais aposentados e
+  propostas editoriais; não foi alterado código de produção para contorná-las.
+  A cobertura global dessa execução não é válida porque outro teste a utilizou
+  simultaneamente; a próxima execução usará arquivo de cobertura exclusivo.
+- A suíte de propostas editoriais foi atualizada para usar fatos de catálogo e
+  briefings atuais, preservando os testes de revisão, limite e falha incerta;
+  seus 14 testes passaram em banco exclusivo. Os testes históricos de prévias
+  foram separados do bloqueio de novas renderizações legadas, e mais nove
+  variantes de integridade e limpeza passaram no fluxo visual simulado.
+- Os arquivos completos de entrega e preservação passaram juntos em 31 testes,
+  preservando revisão pelo SHA, bloqueio sem checklist, acesso histórico e
+  expiração; nenhuma regra de produção foi alterada nessa adaptação.
+- Os módulos de guarda e continuidade visual passaram com 19 testes, incluindo
+  relink entre titulares e reserva após reconhecimento de commit perdido. As
+  fixtures foram alinhadas à receita integral sem aumentar os timeouts.
+- A suíte unitária completa passou com 2.931 testes após atualizar fixtures
+  históricas de contexto e manter os testes de privacidade de localização.
+- Na web, o comando padrão `npm run test:coverage` passou no repositório
+  original com 432 testes e cobertura de 100% em linhas, instruções, funções e
+  ramos; o typecheck também passou. A integração real de sugestões segue pendente.
+- A contabilidade de feed do Apify e a guarda do efeito Jev para recomendações
+  foram exercitadas somente em teste e permanecem sem permissão runtime; faltam
+  a associação versionada de perfil, janelas comprovadas e proveniência da
+  shortlist. A seleção real interna tem testes
+  de ciclo e concorrência, mas não possui publicação confiável nem endpoint.
+- O arquivo completo de prévias passou com 40 testes em banco isolado, sem
+  skips. As garantias ainda vigentes foram adaptadas ao `visual_fake` e a
+  artefatos históricos; o bloqueio de novos vídeos/ajustes locais foi mantido.
+- A geocodificação manual tem adapter e reserva preparados para testes simulados,
+  sem armazenar resposta ou coordenadas e sem permissão runtime. Ainda faltam
+  admissão, confirmação do ponto e integração ao fluxo completo. O titular
+  corrigiu a decisão anterior: endereço e coordenadas do próprio negócio devem
+  permanecer no cadastro, sem apagamento após a pesquisa. Um sucesso ainda não
+  conclui o efeito nem recupera candidatos; a reserva permanece em aberto.
+- Foram preparados fences para impedir novos efeitos quando a versão do
+  contexto já mudou. A identidade dos recursos da execução Apify tem registro
+  privado testado sem acesso runtime para apoiar reconciliação.
+- O titular esclareceu que o fluxo esperado do Apify é chamada e resposta,
+  sem etapa obrigatória de exclusão no fornecedor. A regra de não guardar as
+  publicações vale para nossa base; o adapter experimental de DELETE foi
+  removido e nenhuma exclusão no fornecedor será executada pelo fluxo.
+- Um carregador privado valida o evento, o contexto vigente e o HMAC antes de
+  entregar localização fornecida pelo titular e contexto versionado à activity.
+  A cadeia integrada de admissão/carregamento/pipeline passou em 21 testes,
+  com 100% de linhas e ramos nos serviços de admissão e carregamento. Ainda não
+  está conectada a uma activity ou chamada real.
+- Uma regressão conjunta mais ampla das migrations até 0094 passou em 98 testes
+  em banco dedicado, incluindo guards, seleção, shortlist, limpeza simulada e
+  lote Google de até 20. Não houve chamada HTTP real.
+- A revisão 0095 passou em round-trip e 113 testes conjuntos em banco exclusivo.
+  Foi aplicada ao banco local após backup privado verificado por leitura integral;
+  o backup não foi restaurado. A API anterior pode precisar de reinício.
+- As revisões 0096 e 0097 preparam tentativa após prova de não envio e leitura
+  compartilhada apenas de resultados publicados. A sequência passou em 43
+  testes adicionais no banco exclusivo; foi aplicada ao banco local após novo
+  backup cuja leitura integral foi verificada. Os efeitos continuam sem acesso
+  runtime, e a nova tentativa por outro titular e após falha remota conclusiva
+  ainda dependem de implementação e prova.
+- O teto de uma pesquisa também precisará somar reservas de todos os titulares;
+  a agregação restrita está em preparação e a claim compartilhada continua
+  desativada até que essa garantia seja testada e integrada.
+- A [documentação oficial do Google](https://developers.google.com/maps/documentation/places/web-service/place-id)
+  informa que Place IDs não possuem tamanho máximo. Os limites atuais nos contratos e índices são técnicos e precisam ser
+  revistos antes da ativação para não perder identificadores válidos.
+
+## 2026-11-03 — Parte da suíte de entrega atualizada
+
+- Vinte testes dirigidos de entrega e guardas foram adaptados ao contrato visual vigente:
+  esclarecimentos sem geração de prévia, validações de consentimento/canal e
+  uma aprovação com `visual_fake` e conferência vinculada ao arquivo. Sem alterar
+  código de produção nem afrouxar os gates de revisão.
+- Os 20 testes passaram juntos em banco exclusivo `_test`, com logins restritos; Ruff e
+  formatação também passaram. O banco temporário foi removido. Outros testes de
+  entrega e prévia ainda dependem do fluxo descontinuado; `make ci` completo não
+  foi executado nesta fatia.
+- Outros oito testes dirigidos de prévias passaram em recortes separados,
+  cobrindo privacidade, despacho e retenção com `visual_fake` ou registros
+  históricos sintéticos. A suíte completa permanece pendente.
+
+## 2026-11-03 — Origem do perfil e atualização automática
+
+- O titular corrigiu a orientação anterior: perfil retornado pelo Apify deve
+  ser usado e analisado automaticamente, sem exigir confirmação do cliente.
+  Havendo várias opções, usar a principal indicada ou, se ausente, a primeira
+  retornada. A origem permanece Apify, sem alegar verificação independente;
+  segue disponível a indicação de outro @ pelo cliente.
+- A análise de padrões de até 20 posts do feed deverá ser atualizada
+  automaticamente a cada seis meses. As publicações não serão mantidas; somente
+  padrões extraídos, com indicação de análise parcial quando aplicável.
+- Autorizado guardar temporariamente até 20 Place IDs/notas para recuperação,
+  preservando a ordem: Jev filtra semelhança antes de calcular notas. Nenhum
+  desses comportamentos foi conectado a provedores reais nesta atualização.
+
+## 2026-11-03 — Preparação simulada de feed Instagram
+
+- Adapter isolado aceita até 20 posts públicos de imagem/carrossel e legendas
+  por perfil, mantém conteúdo somente em memória e informa retorno parcial.
+  Exige transporte HTTP simulado, build fixo, intenção e guarda; não baixa
+  imagens, chama Apify ou integra Temporal. A limpeza dos recursos externos e a
+  análise criativa permanecem para as fases seguintes.
+- A regra de escolha de perfil permite informar outro @ quando as sugestões não
+  servem, mantendo origem do titular e acesso não verificado. Passaram 99 testes
+  unitários do adapter e 41 dos contratos/regras, com cobertura isolada de linhas
+  e ramos de 100%; Ruff/mypy passaram. Nenhum provedor real foi acionado.
+
+## 2026-11-03 — Semelhança e uso de perfis
+
+- O titular reiterou que não há nota mínima: a lista apresentará os melhores
+  negócios pontuáveis disponíveis. Candidatos de semelhança incerta ficam fora.
+  Os destaques mostrarão critérios e nota, sem explicação em texto livre.
+- Com múltiplos perfis Instagram possíveis, o cliente confirma um antes de
+  escolher o negócio, podendo informar outro @ se estiverem incorretos; um único
+  perfil não comprovado pode ser sugestão não verificada. O titular deseja
+  analisar via Apify até 20 publicações recentes do feed por perfil, incluindo
+  imagens e legendas públicas acessíveis. Apenas padrões e aprendizados serão
+  guardados; retorno parcial será usado e identificado como parcial.
+- Decisões registradas; a análise de publicações e a confirmação de perfis ainda
+  não foram implementadas. O titular informou que configurará as credenciais no
+  ambiente local; nenhuma credencial foi solicitada na conversa.
+
+## 2026-11-03 — Preparação da descoberta real
+
+- A chamada Places fornece à guarda o método, endpoint, field mask e corpo exato,
+  sem credencial; um HMAC vincula requisição, identidade, versão da chave e da
+  tarifa, versão de configuração da credencial, valor reservado e ensaio.
+- Migrations 0074–0075 preparam busca real e resultados sanitizados, com FK
+  composta e RLS: até dez candidatas, até três destaques e opções de Instagram
+  não verificadas. Papéis runtime têm apenas leitura, sem writer ou rota.
+- Um adapter isolado de semelhança Jev aceita apenas HTTP simulado e devolve
+  abstenção quando faltam dados. Não gera explicações nem faz chamadas reais.
+- A migration 0076 e a guarda preparam claim durável compartilhando o ledger
+  existente, teto cumulativo do ensaio, reserva antes do HTTP e fence do executor.
+  Replays não interrompem a tentativa viva, e resultado incerto conserva reserva.
+  A 0077 registra resposta vazia de Places com fence, auditoria e outbox e
+  reconhece replay sem reenvio; a reserva segue incerta até evidência financeira.
+  Só Google está representado nessa guarda; ainda faltam commit sanitizado com
+  candidatos, reconciliação, efeitos Apify/Jev e ativação controlada.
+- Validação dirigida: 104 testes de Places, vínculo e guarda com HTTP simulado,
+  27 unitários de contratos, 63 unitários Jev e quatro integrações de RLS em banco `_test`;
+  cobertura isolada de linhas/ramos em 100% nos módulos novos exercitados. As
+  migrations desta preparação ainda não foram aplicadas ao banco do projeto;
+  CI global segue pendente pela suíte visual legada. A fase de guarda financeira
+  real e o armazenamento com prova de efeitos seguem em andamento.
+
+## 2026-11-03 — Notas fictícias por pesquisa
+
+- Cada candidata fake grava a nota integral e as versões da fórmula e fixture na
+  conclusão da pesquisa. A leitura usa esse registro e ordena sem arredondar;
+  mudanças posteriores na fórmula ou fixture não alteram a nota anterior. Não
+  são gravadas estrelas, contagem ou dados reais de provedores. A migração 0073
+  recusa candidatas anteriores sem nota comprovada e downgrade que a perderia.
+- Passaram 89 testes dirigidos, com cobertura isolada de linhas e ramos de 100%
+  nos serviços de descoberta, ciclos, reputação e candidatas e na activity;
+  Ruff e mypy passaram.
+  A migração foi revertida e reaplicada no `_test` e aplicada ao banco de
+  desenvolvimento após backup privado com leitura integral verificada. A API
+  iniciada antes da migração precisa de reinício para reconhecer o novo head.
+- A migração bloqueia a tabela antes de verificar a presença de resultados, no
+  upgrade e no downgrade; testes concorrentes confirmam que não apaga um snapshot
+  gravado enquanto aguardava. O cálculo e o arredondamento de apresentação são
+  estáveis mesmo se o contexto decimal do chamador mudar.
+- A simulação continua desligada por padrão. Lista real, confirmação de
+  referência fora dos dez, associação dos perfis e efeito real ainda faltam.
+  O CI completo permanece pendente devido aos testes legados descritos abaixo.
+
+## 2026-11-03 — Nova rodada e teto de ensaio
+
+- O titular esclareceu que toda nova pesquisa forma a lista de até dez pela mesma
+  regra, usando o retorno daquela rodada do Google; um negócio reencontrado usa
+  a nota nova, preservando notas anteriores no histórico. Se uma referência já
+  escolhida ficar fora dos dez, o cliente decidirá se deseja mantê-la. A jornada
+  real de nova rodada e confirmação ainda não está implementada.
+- Autorizado teto total de até US$ 5 para um primeiro teste real controlado,
+  somando fornecedores. Limites mensais serão definidos posteriormente. Sem
+  chamadas externas ou gastos nesta atualização documental.
+
+## 2026-11-03 — Histórico e confirmação de perfis
+
+- O titular definiu Instagram como única rede inicial; múltiplos perfis sem
+  associação confirmada serão apresentados para confirmação pelo cliente. Jev
+  considerará semelhança e nota para destacar até três negócios, com explicação.
+- Notas anteriores permanecem no histórico de cada pesquisa. Após nova pesquisa,
+  candidatos antigos não selecionados poderão voltar à lista se tiverem notas
+  altas e estiverem entre os até dez; a composição exata está em esclarecimento
+  e ainda não está implementada no fake.
+- O titular autorizou testes reais controlados com valores baixos; o teto do
+  primeiro teste está em esclarecimento e limites mensais por fornecedor serão
+  definidos depois. Nenhuma chamada externa ou alteração de código foi feita
+  nesta entrada documental.
+
+## 2026-11-03 — Ciclo simulado de referências entre raios
+
+- A busca fake admite outro raio ainda não usado após a primeira confirmação,
+  mantendo o prazo comum de seis meses. A confirmação pode combinar candidatas
+  do ciclo atual com referências ainda selecionadas de ciclos anteriores, sem
+  duplicar a mesma identidade; outros resultados antigos não são reativados.
+  Ao esperar locks, admissão e confirmação usam o relógio atual do banco.
+- O titular confirmou guardar somente o Place ID dos dados Google, usar estrelas
+  e contagem como entrada transitória e armazenar a nota própria e a associação
+  de perfis do Apify. O nome exibido virá do Apify quando disponível; caso
+  contrário, será usado o perfil ou outro identificador disponível.
+- Os 12 testes dirigidos de ciclo passaram no banco `_test` com logins restritos,
+  incluindo concorrência, expiração, busca e seleção em múltiplos raios e
+  combinação entre ciclos; o serviço de ciclos teve cobertura isolada de linhas
+  e ramos de 100%. Ruff e mypy passaram. O `make ci` completo não passou: testes
+  antigos de entrega esperam gerar prévias pelo caminho visual descontinuado;
+  a execução foi interrompida após essas falhas. O modo segue fictício e desligado;
+  não chama Google, Apify ou Jev, nem implementa persistência dos dados reais.
+  Para permitir a coleta de testes com nomes iguais, pytest usa `importlib`; um
+  ajuste de formatação preexistente foi corrigido sem alterar a fórmula.
+
+## 2026-11-03 — Ciclo de pesquisa por raio e dados desejados
+
+- O titular esclareceu que a primeira confirmação inicia prazo comum de seis
+  meses, com uma pesquisa por raio no ciclo, inclusive outros raios depois da
+  confirmação. Mudar endereço ou segmento não libera raio já usado; todos são
+  liberados no fim do prazo original. A seleção pode combinar raios, sem renovar
+  o prazo, e permanece até nova confirmação.
+- Apify pode consultar negócios novos de outro raio durante o ciclo e repetir
+  tentativa que falhou sem retornar perfil, mas não repetir consulta bem-sucedida
+  aos já encontrados. O titular deseja guardar até dez resultados
+  por pesquisa, com Place ID, pontuação e perfis disponíveis, sujeito à validação
+  de uso e retenção. A nota continua em calibração.
+- Decisões documentadas; o fake ainda bloqueia os demais raios após confirmação
+  e precisará ser alterado. Persistência de dados reais e fornecedores reais não
+  foram implementados nesta atualização.
+
+## 2026-11-03 — Banco local de desenvolvimento atualizado
+
+- A API de referências retornava erro porque o banco de desenvolvimento estava
+  na revisão 0059 e ainda não possuía a tabela criada na 0062. Criado backup
+  privado e verificada a leitura integral do arquivo; não foi feito teste de
+  restauração. As migrations 0060–0072 foram aplicadas ao banco local para
+  sincronizar o esquema com o código em execução.
+- A API passou de `not_ready` a `ready`; a tabela de referências existe e o
+  banco está na 0072. Um teste de integração da rota passou em banco dedicado
+  `_test`, com logins restritos. A sessão real no navegador não foi reproduzida;
+  é necessário recarregar a página para confirmar o fluxo do usuário.
+
+## 2026-11-03 — Apresentação das referências e calibração
+
+- O titular esclareceu a jornada futura: exibir até dez candidatos elegíveis e
+  destacar até três recomendações explicadas pelo Jev, quando houver candidatos
+  suficientes. O cliente escolhe de uma a três entre os exibidos. As indicações
+  manuais continuam adicionais. A busca e as recomendações reais seguem pendentes.
+- A fórmula de reputação seguirá em teste e calibração; o peso e a escolha final
+  continuam abertos. Uso e retenção de dados derivados da fonte exigem validação.
+- Atualização documental; sem alteração de código, chamadas externas ou CI.
+
+## 2026-10-31 — Ordenação das sugestões fictícias
+
+- O titular esclareceu que não quer sugestões sem avaliação. A simulação
+  descarta candidatos sem média ou contagem positiva e ordena os elegíveis pela
+  pontuação experimental completa, antes do arredondamento; poucas avaliações
+  não impedem a inclusão. Empates usam o número da fixture como critério técnico.
+  Negócios sem Instagram continuam previstos, desde que possam ser pontuados.
+- Leituras omitem identidades fake persistidas sem nota na fixture atual, sem
+  apagar registros ou seleções. A resposta é recomposta, não um snapshot;
+  versionamento segue necessário. Não existe integração ou ranking real aqui.
+- Passaram 61 testes unitários e um teste de integração no banco dedicado
+  `_test`, com roles restritas; cobertura isolada de linhas e ramos de 100% no
+  serviço de fixtures, Ruff e mypy. Sem CI ou chamadas a fornecedores.
+
+## 2026-10-31 — Pontuação com poucas avaliações
+
+- O titular revisou a decisão anterior: negócios com menos de dez avaliações
+  podem receber pontuação. Não foi estabelecido corte mínimo de nota 8, e uma
+  estrela representa qualidade muito baixa sem exigir valor exatamente zero.
+- As duas fórmulas experimentais aceitam de uma avaliação em diante; zero ou
+  média ausente não gera nota. Na segunda fórmula o zero para uma estrela é
+  consequência da escala atual, não um requisito final. A fixture fake com nove
+  avaliações agora recebe nota; o status para dados ausentes é `unavailable`.
+  Sua resposta é recomposta em leitura e, portanto, esta mudança altera as
+  respostas fictícias anteriores; versionamento histórico continua pendente.
+- Foram executados 50 testes unitários dirigidos, um teste de integração no
+  banco dedicado `_test` com logins restritos, cobertura isolada de linhas e
+  ramos de 100% nos dois serviços, Ruff e mypy. CI e provedores reais
+  não foram executados. A ordenação da simulação e a busca real seguem pendentes.
+
+## 2026-10-31 — Pontuação na descoberta fictícia
+
+- O titular escolheu continuar os testes com a segunda fórmula de reputação,
+  com peso ainda provisório. A descoberta fake descarta um candidato com
+  semelhança predefinida inadequada antes de pontuar e identifica falta de
+  informação em candidatos com menos de dez avaliações. A lista permanece na
+  ordem da fixture; não é ranking nem análise real pelo Jev.
+- O endpoint privado fake recompõe nota apenas das fixtures e a apresenta com
+  duas casas; não persiste as notas. Falta versionar cálculo e fixtures para
+  garantir histórico imutável. A precisão do cálculo foi estabilizada e 4.010
+  combinações fictícias foram verificadas. Fonte real, uso de derivados,
+  ordenação e coordenação com os efeitos orçados continuam pendentes.
+- Validação dirigida: 64 testes unitários e seis integrações no banco dedicado
+  `_test` com papéis restritos; cobertura isolada de linhas e ramos de 100% no
+  serviço de candidatos fictícios, Ruff e mypy. Também passaram 48 testes de
+  reputação e fixtures após a correção de precisão. Não foram feitas chamadas
+  externas nem executado CI.
+
+## 2026-10-31 — Experimentos de reputação e limites de pesquisa
+
+- O titular escolheu testar uma pontuação de reputação de 0 a 10; negócios com
+  menos de dez avaliações não recebem nota. A primeira fórmula suavizada pode
+  elevar notas baixas. Uma segunda alternativa, ainda provisória, penaliza pouca
+  evidência sem aumentar a nota observada. Ambas são funções isoladas com dados
+  fictícios, sem ranking real ou integração de fonte. Resultados e limitações em
+  [avaliação](evals/reference-reputation-eval-2026-10-31.md).
+- O titular escolheu limites por pesquisa, por fornecedor e mensal total, com
+  janela em UTC. Uma etapa já admitida pode concluir após revogação; novas
+  etapas não devem começar. Valores e ativação requerem configuração explícita.
+- Política compartilhada versionada sem versão ativa por padrão, reservas e
+  eventos com consumidores Temporal foram exercitados somente com fixtures
+  fictícias. Um resultado incerto mantém a reserva; liquidação sem evidência
+  verificável é recusada. Hash e operações reais, conciliação com fatura/mês,
+  rotação da chave HMAC, provisionamento restrito e integração permanecem
+  pendentes. A migration 0071 recusa atualizar ledger 0070 com histórico sem
+  migração e reconciliação explícitas. Providers reais continuam desligados.
+  A chave fictícia não tem versão: se trocada com operação pendente, o fluxo
+  aguarda restaurar a chave anterior e preserva eventual reserva já criada.
+- Validação dirigida da fundação fictícia: 35 testes no `_test`, incluindo
+  Temporal local, oito testes de workflows e 38 testes de relay/worker;
+  cobertura isolada de linhas e ramos de 100% em três módulos novos, Ruff e
+  mypy. Migrations de teste não foram aplicadas ao banco do projeto.
+- Validação da pontuação: 45 testes direcionados, cobertura isolada de linhas e
+  ramos de 100%, Ruff e mypy. O CI não foi executado; sem chamadas externas.
+
+## 2026-10-30 — Contexto e adapters isolados para referências
+
+- Palavras e características gerais do negócio entram no contexto versionado.
+  A interface removeu os formulários de fatos livres e promoções; fatos antigos
+  do contexto não alimentam novas peças e novos snapshots editoriais ignoram
+  promoções legadas do catálogo. Snapshots antigos mantêm sua política; dados
+  físicos históricos não foram purgados. O fluxo de ofertas e horários pelo
+  WhatsApp e pelas revisões permanece pendente.
+- Além da simulação `fake` dos raios e seleção com bloqueio de seis meses,
+  há adapters isolados e desativados para Places com tipos principais múltiplos,
+  Geocoding, perfis e enriquecimento por Place ID via Apify e mapeamento de tipos
+  fornecidos com Jev. Eles não integram a busca real. Guardiões concretos de
+  custo, taxonomia e direitos de fonte, associação de perfis e fórmula de
+  pontuação permanecem pendentes; não há promessa de ranking ou acesso a posts.
+- Validação dirigida: características e palavras, 164 testes unitários e 20
+  integrações em banco `_test`; isolamento de promoções legadas, 125 unitários e
+  duas integrações `_test`. Interface: 52 testes dirigidos, TypeScript e duas
+  jornadas Chromium com serviços simulados. Nos adapters, 66 testes Places,
+  39 Geocoding, 73 perfil Apify, 70 Place ID Apify e 58 Jev, com cobertura
+  isolada de linhas e ramos em 100%; Ruff e mypy dirigidos. Esses conjuntos
+  podem repetir testes. Não foram executados CI ou cobertura global.
+
+## 2026-10-30 — Decisão sobre ofertas no pedido
+
+- Decisão de produto documentada: promoções, ofertas e horários da peça vêm do
+  WhatsApp e de revisões, sem cadastro desses fatos na interface. Preço
+  explicitamente promocional no pedido vale para a criação, sem confirmação
+  de divergência ou atualização automática do catálogo; desconto percentual
+  depende de preço de catálogo válido. Fica um campo simples para características
+  gerais. O titular autorizou remover informações antigas dessa área sem
+  preservar histórico. A implementação dessa jornada está pendente e o uso de
+  promoções cadastradas está suspenso como direção de produto; código legado
+  ainda existe. Nenhum dado foi removido nesta atualização de documentação.
+- Apenas documentação; CI não executado a pedido do titular.
+
+## 2026-10-30 — Prova pontual Nearby por tipos principais
+
+- Uma segunda chamada autorizada repetiu o ponto genérico de Curitiba, raio de
+  5 km e ordem `POPULARITY`, buscando até 20 resultados pelos tipos principais
+  `cafe`, `coffee_shop`, `bakery` e `pastry_shop`. Vieram 20: 14 com tipo
+  principal `bakery`, quatro `coffee_shop` e dois `pastry_shop`; nenhum tinha
+  `supermarket` entre os tipos. Na primeira amostra, sete de 20 tinham esse tipo.
+  As diferenças de filtro, categorias e momento impedem atribuir causalidade ou
+  concluir cobertura. O [registro](evals/google-nearby-order-probe-2026-10-30.md)
+  contém apenas dados agregados, sem nomes, endereços, IDs, valores individuais
+  ou resposta bruta.
+- A nova reserva foi de US$ 0,035 e o total cumulativo passou a US$ 0,280;
+  reserva não é fatura. A sonda teve 15 testes HTTP simulados; o CI não foi
+  executado, conforme pedido do titular.
+
+## 2026-10-30 — Restrição e compatibilidade do alcance de referências
+
+- O serviço aceita novas escolhas apenas locais de 5, 20 ou 50 km. Preferência
+  nacional ou raio legado é preservado quando igual ou omitido; `null` explícito
+  remove a preferência. Replays e alterações pendentes admitidas antes da regra
+  mantêm compatibilidade. A validação não ativa a descoberta real.
+- Validação dirigida: 50 testes, cobertura isolada de linhas e ramos em 100% para
+  `editorial_context.py`, Ruff e mypy; banco dedicado `_test`. CI e cobertura
+  global não foram executados a pedido do titular.
+
+## 2026-10-30 — Adapter isolado de consulta de perfil
+
+- Preparado adapter Apify desativado para consulta individual de perfil, sem
+  integração de produto ou guardião de custos real. Um resultado de perfil não
+  encontrado de fonte não comprovada é tratado como inconclusivo; acesso ao
+  perfil não comprova vínculo ao negócio nem análise de publicações. A política
+  de retenção do dataset remoto permanece pendente.
+- Validação dirigida: 73 testes com HTTP simulado, cobertura isolada de linhas
+  e ramos em 100%, Ruff e mypy direcionados. Nenhuma chamada externa foi feita
+  pelo adapter e o CI não foi executado.
+
+## 2026-10-30 — Ciclo simulado de referências
+
+- Infraestrutura `fake`, desativada por padrão e sem fornecedores externos,
+  exercita raios de 5, 20 e 50 km, uma pesquisa por raio/ciclo, confirmação de
+  uma a três fixtures, bloqueio por seis meses, troca sem renovar prazo e
+  preservação da seleção após vencimento. Contempla compensação de falha
+  comprovada e reconciliação de autor revogado. Fixtures são anônimas e não
+  comprovam busca, correspondência, deduplicação ou aprovação de perfis reais.
+- Adapters Google Places e Geocoding permanecem isolados e desativados, sem
+  integração de produto ou guardião de custos real. A pontuação 0–10 não está
+  implementada: o titular decidiu que Jev deve primeiro avaliar semelhança e
+  eliminar candidatos inadequados, e só então pontuar os restantes. A fórmula e
+  os direitos de uso/retenção de dados derivados do Google permanecem abertos.
+- A [prova Nearby](evals/google-nearby-order-probe-2026-10-30.md) observou a
+  ordem `POPULARITY` em 20 resultados, sem salvar nomes ou respostas brutas.
+  Reservas cumulativas Places de US$ 0,245 não representam fatura.
+- Validação dirigida: 48 testes funcionais da simulação, com cobertura combinada
+  isolada de linhas e ramos de 100% em nove módulos novos; 51 testes simulados do
+  adapter Places e 39 do Geocoding. Migrations 0065–0069 aplicadas somente ao
+  banco `_test`. CI e cobertura global não foram executados a pedido do titular.
+
+## 2026-10-30 — prova pontual da ordem do Google Nearby
+
+- Uma chamada autorizada buscou até 20 cafés em raio de 5 km de um ponto público
+  genérico de Curitiba, usando a ordem `POPULARITY`. Os 20 resultados retornaram;
+  sete incluíam `supermarket` nos tipos. A ordem observada não correspondia
+  simplesmente à nota ou à quantidade de avaliações. A observação não explica
+  o critério do Google nem comprova relevância ou
+  cobertura. O [registro da prova](evals/google-nearby-order-probe-2026-10-30.md)
+  preserva apenas observações agregadas, sem resultados individuais, nomes,
+  endereços, IDs ou resposta bruta.
+- Reserva de US$ 0,035 para a chamada; US$ 0,245 cumulativos com as reservas
+  anteriores do Places. Não representa a fatura. Sem integração produtiva,
+  classificação própria, envio ao Jev ou outras chamadas nessa prova.
+
+## 2026-10-30 — Raios e preparação da descoberta de referências
+
+- A web oferece 5, 20 ou 50 km em opções acessíveis, preservando raios antigos;
+  localização do dispositivo é confirmada sem mostrar coordenadas. A opção de
+  busca nacional foi retirada; configurações nacionais antigas só são substituídas
+  ao salvar um alcance local. O titular definiu uma busca por raio solicitado,
+  até dez candidatos por raio e nenhuma tentativa consumida em falha comprovada.
+  Confirmar entre uma e três sugestões bloqueia buscas por seis meses, inclusive
+  após mudar endereço ou segmento; trocar sugestões não renova o prazo e elas
+  permanecem após seu término. @ manuais são adicionais e não contam no limite;
+  revalidar perfis e trocar entre candidatos não são novas buscas. Regras de busca,
+  sugestões e bloqueio ainda não estão habilitadas na interface.
+- O titular propôs pontuação própria de 0 a 10 com nota e número de avaliações,
+  sem armazenar esses campos; a fórmula e a permissão de uso ou retenção quando
+  derivada do Google continuam pendentes. A pontuação não foi implementada.
+- A operação `fake` usa identidade durável, auditoria/outbox e Temporal, com
+  fixtures anônimas e sem candidatos reais ou efeito externo. Há adapter Google Geocoding isolado e desativado,
+  sem guardião real de custos nem integração; pesquisa e geocodificação reais,
+  verificação de perfis e autorização contratual das fontes permanecem pendentes.
+- Validação dirigida: 36 testes web, TypeScript e uma jornada Chromium com API
+  e GPS simulados; no backend, oito unitários novos e quatro integrações da
+  simulação, incluindo Temporal local, 29 unitários de worker/relay, 14 integrações
+  legadas e 39 testes simulados do adapter de geocodificação. Cobertura isolada
+  de linhas e ramos em 100% nos cinco módulos novos da simulação e no adapter;
+  Ruff e mypy dirigidos passaram. Apenas o banco `_test` foi migrado. CI e
+  cobertura global não foram executados a pedido do titular.
+
+## 2026-10-30 — decisão sobre avaliação das sugestões
+
+- O titular escolheu que Jev avalie semelhança, nota e quantidade de avaliações
+  disponíveis e explique cada uma das até três sugestões, com fonte e uso
+  permitidos. Nota de estabelecimento não mede engajamento em rede social.
+  Decisão documentada; avaliação automática ainda não foi implementada.
+
+## 2026-10-30 — prova isolada Apify para links sociais
+
+- Uma execução autorizada do actor `capi2/my-actor-1` consultou três sites
+  públicos e retornou três respostas HTTP 200. Dois sites retornaram links de
+  Instagram; um deles também retornou Facebook, e o terceiro nenhuma rede no
+  resultado. Pesquisa separada em guia indicou um perfil para o terceiro negócio,
+  cuja associação não está garantida. [Método e resultados](evals/apify-sites-technical-probe-2026-10-30.md).
+- A execução informou US$ 0,00005 em eventos, sem leitura/armazenamento adicionais;
+  reserva de US$ 0,50 não é fatura. Não foram consultados Places ou Maps nesta
+  prova, nem ranking ou perfis sociais. Integração Google/Apify, termos de uso,
+  validação de correspondência e consumidor da outbox continuam pendentes.
+
+## 2026-10-30 — referências indicadas e jornada de pesquisa
+
+- Implementados localmente cadastro e remoção de @ indicado pelo titular, com
+  observação opcional, isolamento por negócio e snapshot na proposta para
+  briefing/trace. A indicação representa escolha explícita, não verifica perfil,
+  analisa publicações ou autoriza copiar. A seção de alcance na web usa
+  cartões responsivos alinhados ao padrão visual, mantendo as regras existentes.
+- Registradas decisões: busca automática inicial, ao mudar segmento ou localização
+  e por botão; exibição de negócios sem @ com preenchimento pelo cliente; informar
+  falha ou limitação de acesso a perfil público e permitir tentativa posterior.
+  Google Places é a fonte a estudar para busca inicial e Apify candidato ao
+  enriquecimento; contratos, custos, cobertura e vínculo dos perfis precisam ser
+  confirmados. A origem manual ainda exige geocodificação e confirmação.
+- Os eventos `reference.created` e `reference.removed` ficam pendentes na outbox,
+  sem consumidor; o relay não os entrega. Eles se acumulam e sua destinação deve
+  ser resolvida antes da operação continuada da funcionalidade.
+- Validação dirigida: 63 testes unitários e 11 de integração backend no banco
+  dedicado `_test`, 41 testes web, TypeScript, Prettier e Chromium com API
+  simulada. O CI não foi executado a pedido do titular. A prova Apify posterior
+  foi isolada e autorizada, conforme o registro acima.
+
+## 2026-10-30 — preferência de alcance para referências
+
+- Contexto versionado e tela de Sobre meu negócio permitem ao proprietário
+  configurar pesquisa nacional ou local (raio de 1–50 km), por endereço manual
+  ou posição do dispositivo confirmada. Endereço manual exige CEP ou UF e
+  cidade, sem fingir que já foi geocodificado. A localização é excluída dos
+  prompts de geração. A tela informa que a busca continua indisponível.
+- Mantida a compatibilidade de idempotência de contextos antigos e proteção de
+  edições não salvas ao abrir Referências. Fontes sociais, Apify, SerpAPI,
+  ordenação, limites e pontos a estudar foram registrados sem escolher provedor.
+- Validação: 1.657 unitários backend e testes dirigidos adicionais para validação
+  de UF, quatro integrações no PostgreSQL `_test`, 35 testes web dirigidos e uma
+  jornada Chromium com API simulada. Cobertura isolada do schema e do componente
+  novo em 100% de linhas/ramos; CI e cobertura global não executados por
+  orientação do titular. Nenhuma consulta paga foi feita nesta fatia.
+
+## 2026-10-30 — prova individual Google Places
+
+- Três buscas repetidas retornaram cinco resultados cada. Links de Instagram
+  apareceram no campo de site em três resultados; uma consulta ambígua trouxe
+  negócio de outra localidade. Reserva cumulativa US$ 0,210 sob teto US$ 0,50,
+  sem fatura confirmada. Resultados brutos não foram salvos em arquivos nem
+  enviados ao Jev. Raio, busca nacional e uso em produto continuam não provados.
+
+## 2026-10-30 — prova técnica Google Places
+
+- Três buscas genéricas reais retornaram HTTP 200 e cinco resultados cada, com
+  nota e contagem presentes em todos; site presente em 14 de 15. Reserva
+  conservadora US$ 0,105 sob teto autorizado de US$ 0,50, sem fatura confirmada.
+  Respostas brutas não foram persistidas nem enviadas ao Jev. Sem prova de
+  pertinência, cobertura, perfil social ou autorização de uso para produto.
+  [Evidência](evals/google-places-technical-probe-2026-10-30.md).
+
+## 2026-10-30 — registro da arquitetura da jornada
+
+- Documentados os processos e repositórios atuais, a coordenação por Temporal,
+  os limites da analogia com saga e as partes ainda simuladas da jornada.
+  Organização por responsabilidade e visão correlacionada ficam como
+  recomendações para discussão, sem decisão de separação ou mudança de código.
+- Validação documental: leitura do código e documentos existentes; sem testes,
+  CI, chamadas externas ou alterações na execução.
+
+## 2026-10-30 — estudo multissetorial de fontes
+
+- Comparadas capacidades documentadas de Google Places, Foursquare,
+  Tripadvisor e dados abertos, com custos consultados e limitações de uso;
+  registrada prova proposta em múltiplos nichos. Nenhuma consulta paga,
+  credencial, provedor ou capacidade produtiva foi criada.
+
+## 2026-10-30 — estudo de descoberta de referências
+
+- Registradas fontes candidatas para localizar perfis e consultar dados, limites
+  documentados da Meta e necessidade de provar campos/permissões com conta de
+  teste. Jev pode classificar candidatos recebidos; não é a fonte de descoberta.
+  Estudo sem integração, credenciais, chamadas pagas ou seleção de fornecedor.
+
 ## 2026-10-30 — qualidade da copy e destino comercial
 
 - Contexto editorial e tela web aceitam canal comercial opcional escolhido pelo
@@ -329,7 +1037,7 @@
   chamada real controlada com fontes, credenciais e teto de gasto explícitos.
   C10, varredura fora do redispatch e limpeza de PUT incerto seguem operacionais,
   mantendo exceções bloqueadas. Nenhum provedor real foi ligado nesta parte 1.
-- Validação final: `make ci` aprovado com **1.829 testes**, **100% de linhas e
+- Validação final: `make ci` aprovado com **1.836 testes**, **100% de linhas e
   branches** (9.284 statements/2.550 branches), Ruff/formatação e mypy (149 módulos),
   PostgreSQL `_test` com logins restritos e Temporal locais. Web: **365 testes**
   com **100% nas quatro métricas** (1.609 statements/2.142 branches/653 funções/
@@ -1706,7 +2414,7 @@
 - Testes de navegador ajustados aos seletores e títulos atuais e ao HTML UTF-8
   no retorno externo simulado. Documentação operacional em
   [renomeação do produto](product-rename.md).
-- Validação: 126 testes web com 100% de linhas/statements/funções/branches;
+- Validação: 136 testes web com 100% de linhas/statements/funções/branches;
   289 testes backend em modo CI com 100% de linhas/branches; tipos, formatação,
   lint, build web e imagens Docker aprovados. Nove jornadas Chromium passaram
   com API/SMTP reais em banco exclusivo `_test`; checkout externo simulado,
@@ -2086,3 +2794,160 @@
   Builds web/API/SMTP aprovados. Smoke na imagem Docker confirmou readiness dos
   dois logins DB, login nativo, vínculo antigo preservado, revogação imediata por
   logout e entrega SMTP real no Mailpit. Nenhum provedor de identidade externo usado.
+
+## 2026-11-04 — geocodificação do cadastro e vínculo da identidade
+
+- API GET/POST de geocodificação e confirmação, outbox/Temporal e guard financeiro
+  reutilizando origem, piloto, tarifa e limites existentes; nenhum fornecedor pago.
+- Coordenadas próprias persistidas, identificação precisa automática, opções
+  ambíguas confirmadas pelo titular e retry sem novo HTTP após resposta incerta.
+- Admissão exige endereço próprio; nome/versões ficam vinculados por HMAC e são
+  revalidados antes da publicação. Pesquisa manual usa a origem salva e inclui
+  seu custo no agregado0102; origem de dispositivo segue distinta do cadastro.
+- Validação:21 testes aprovados com PostgreSQL `_test`, runtime restrito,
+  Temporal local e HTTP simulado; módulos novos com100% de linhas e branches
+  (182 statements/26 branches). Downgrade0103→0102 e upgrade vazio aprovados;
+  Ruff e mypy10 módulos aprovados. Ensaio externo e descoberta completa continuam
+  fora desta fatia. Contrato em `docs/design/business-geocoding.md`.
+
+## 2026-11-04 — integração de referências até 0105
+
+- Publicação privada de resultados e API de leitura/seleção; revisão de ausentes
+  restrita ao primeiro resultado do ciclo novo. Publicação: 21 testes, 100% dos
+  módulos novos. Dois cenários adicionais de cache/rollback aguardam nova execução.
+- Orçamento por pesquisa compartilhado entre titulares: cinco casos SQL aprovados.
+- Override manual de Instagram com versão/operação/audit/outbox: 12 testes, 100%.
+- Contrato Compass corrigido, run persistido, recuperação por GET e custo terminal
+  idempotente: 164 unitários (100% adapter/MAC) e 14 integrações SQL aprovados.
+  Nenhuma chamada paga. Metadados oficiais e limites em
+  [contratos](evals/reference-provider-contracts-2026-11-04.md).
+- Primeira execução integral da retomada: lint/mypy aprovados, 3.993 testes
+  aprovados, duas falhas e 99,38% de cobertura. Falhas baseline de identidade do
+  login de teste/Temporal e lacunas de cobertura em correção; não registrar como
+  `make ci` aprovado. Migrações integradas no código, ainda sem aplicar ao banco local.
+- Restam executor real, análise/atualização de perfis, contexto criativo completo,
+  validação final e ensaio fictício dentro do teto autorizado.
+
+## 2026-11-04 — transporte de feed e nova regra de vazio
+
+- Feed Instagram possui rede explícita, preço/build/Actor conferidos e custo
+  terminal separado; imagens limitadas aos CDNs conhecidos, sem redirects/proxy
+  ou retries e sem persistência de conteúdo. Entrada oficial sem skipPinnedPosts,
+  MACv2; helper de metadados/custo compartilhado com contatos.
+- 357 unitários, 100% linhas/branches em cinco módulos, Ruff/mypy aprovados.
+  Nenhum POST pago. A cadeia integrada0105 passou em19 testes SQL adicionais.
+- Entrevista definiu Google vazio: ampliar5 → 20 → 50; todos vazios permitem tentar
+  novamente sem iniciar seis meses. Regra sendo conectada no executor.
+
+### Configuração do piloto de referências, 04/11
+
+O script `scripts/configure_reference_pilot.py` prepara a política local e o
+piloto acumulado de US$ 5, sem zerar consumo ou habilitar fornecedores. Plano
+por padrão; aplicação exige banco local/admin separado e preserva configurações
+divergentes. 14 unitários e três testes SQL aprovados; execução real ainda pendente. Ver
+[operação](design/reference-pilot-operations.md).
+
+## 04/11/2026 — Retomada do baseline de validação
+
+- Corrigida a prova de role para o login runtime do banco isolado, exigindo
+  ausência de superuser/bypassRLS. E2E Temporal mantém timeout de 45s.
+- Retirados caminhos inacessíveis após C17/C18 em pedidos/render local e
+  execução editorial; preservados bloqueios, replay e histórico.
+- Acrescentados guards de trace, skill, symlink, vínculo de tentativa, SHA,
+  comandos ambíguos e aprovação histórica. 14 integrações dirigidas e 3.555
+  testes relacionados aprovados; cobertura parcial de 98,31%, com verificações
+  adicionais posteriores. CI integral final ainda pendente.
+- [Funções afetadas e limites da evidência](evals/ci-resume-2026-11-04.md).
+
+### Banco local e leitura de referências, 04/11
+
+Banco de desenvolvimento atualizado de 0099 para 0105 após backup privado
+`.local/backups/pre-reference-20261104-111303-372421.dump`, com índice do arquivo
+validado pelo pg_restore da mesma versão. A leitura de referências do negócio
+informado passou usando runtime restrito e autorização de titular ativo. Isso
+valida o serviço/banco; a sessão autenticada do navegador ainda não foi repetida.
+O banco da aplicação não foi usado como banco de testes.
+
+### Análise estruturada de publicações, 04/11
+
+O adapter Jev aceita legenda e/ou imagem em memória e devolve apenas códigos
+de um vocabulário próprio. A agregação gera até nove padrões gerais de tom, temas,
+formatos e elementos visuais, sem conteúdo das publicações. 65 testes passaram
+com 100% de linhas e branches nos dois módulos novos; Ruff e mypy aprovados.
+Persistência, agenda de seis meses e uso no gerador permanecem em integração.
+O teto local acumulado de US$ 5 foi configurado; flags persistentes continuam
+desligadas e não houve chamadas pagas nesta retomada.
+
+## 2026-11-04 — Revisão da própria loja e expansão de resposta vazia
+
+- Persistência atômica da conclusão própria do matcher com notas e semelhança; confirmação compartilhada auditada e retomada da mesma execução.
+- Loja própria excluída do ranking e publicação; Google names/endereço/tipos permanecem transitórios.
+- Resposta vazia amplia pelos raios 5/20/50 sem mudar preferências; cache/custos/ciclo revalidados e limite financeiro compartilhado.
+- Rodada completamente vazia preserva seleções e permite nova tentativa quando ainda não confirmada; resultado e replay sobrevivem à liberação do ciclo.
+- Banco dedicado e restrito validou upgrade/downgrade, revisão compartilhada, exclusão, fallback, orçamento e replay. Feed/agenda e consumo editorial seguem na próxima fatia.
+
+Validação concluída da fatia: oito integrações e 45 unitários aprovados; 100% de cobertura em 149 linhas/30 ramos dos cinco módulos, mypy e Ruff. Roundtrip vazio 0107 → 0106 → 0107 aprovado. Cache compartilhado mantém dados históricos sem expor tokens.
+
+### Execução integrada da descoberta, 04/11
+
+0106+0107 conectam admissão, Temporal, Google, Jev, Apify e publicação sob o
+ledger existente. A API recebe operação e carrega contexto/raio do servidor;
+retomada comprovada do Apify não repete Google/Jev. A tela usa o estado canônico
+da família de raios. Flags persistentes continuam desligadas. A validação dirigida
+passou em 57 testes, incluindo 17 integrações, com cobertura integral dos módulos
+novos de execução; adapters e wiring passaram nos recortes próprios. CI integral
+e ensaio pago permanecem pendentes. Veja docs/design/reference-discovery-execution.md.
+
+
+### Referências escolhidas na geração — fatia 0110
+
+Novas propostas capturam a seleção canônica e os aprendizados da versão exata
+do perfil em `reference_generation_snapshot`, separado do histórico manual.
+Briefing editorial e peça visual usam a mesma cópia imutável. Ausência de análise
+e cobertura parcial permanecem explícitas; notas internas e semelhança orientam
+a seleção e não autorizam afirmações comerciais. Posts, legendas e imagens de
+terceiros não são armazenados nem enviados como referências visuais.
+
+Retirada ou troca de perfil bloqueia novo efeito que utilizaria a associação
+antiga; uma alteração durante o efeito impede aceitar o resultado editorial.
+A revalidação não substitui a cópia histórica. Prévias concluídas e traces
+continuam acessíveis pelas regras existentes. Propostas legadas com coluna
+nula conservam o fingerprint e o significado de suas indicações manuais.
+Não há truncamento silencioso a32 referências; o limite de tamanho do pedido
+editorial continua sendo conferido antes da reserva.
+
+Contrato e validação em [integração de referências na geração](design/reference-generation-context.md).
+177 testes unitários e 13 casos PostgreSQL passaram nos recortes desta fatia,
+incluindo leitura 0108 e geração visual com HTTP simulado. A agenda completa e
+o CI integral continuam pendentes; essas provas não demonstram qualidade comercial.
+
+### 2026-11-04 — persistência e agenda de aprendizados (0108)
+
+- Associações canônicas de perfis manuais/sugeridos e sincronização atômica nos
+  escritores; janela imediata no aceite/troca e aniversários de seis meses.
+- Run de coleta persistido, retomada com o mesmo identificador, bloqueio por
+  orçamento/configuração sem encerrar a janela e cancelamento após remoção/troca.
+- Padrões próprios comprovados, nome oportunista Apify e estado explícito de
+  análise; leitura compartilhada pelos titulares e revalidação para geração.
+- Validação: 36 integrações dirigidas, 11 unitários (store 100%, 84 linhas/6 ramos),
+  Ruff/mypy e roundtrip vazio 0109→0107→0109. As fatias de execução, snapshot/UI e
+  o ensaio real são validados separadamente; CI final ainda deve ser concluído.
+
+### Aprendizados das referências na API e na jornada, 04/11
+
+O GET autenticado `reference-learnings` entrega somente os estados, datas e
+padrões persistidos para as referências escolhidas e sua associação vigente.
+Titulares ativos compartilham essa leitura; viewer, outro tenant e sessão ausente
+são rejeitados. A consulta não inicia efeitos nem altera a agenda. Quando o feed
+já obtido forneceu um nome válido, a tela o apresenta junto ao @; na ausência,
+continua usando o perfil. Não há nova chamada para obter nome.
+
+O painel distingue espera, execução, indisponibilidade, análise concluída/parcial
+e atualização programada. Seleção, correção do @ e referências próprias
+invalidam a leitura. Não afirma sucesso enquanto os padrões não estão salvos.
+16 testes unitários passaram com 100% de linhas/branches dos três módulos de
+leitura; dois testes HTTP/PostgreSQL passaram com runtime restrito e provaram
+isolamento e ausência de novas reservas, resultados, eventos ou auditorias no
+GET. Mypy e Ruff passaram. A web passou em 100 testes focados/100% das quatro
+métricas e em Chromium 390/1440px com fixtures locais. CI integral combinado e
+ensaio externo controlado continuam como gates da entrega completa.

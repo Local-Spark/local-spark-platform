@@ -70,7 +70,7 @@ async def test_full_piece_without_original_logo_has_no_fabricated_reference(bran
     assert "ausência de logomarca" in prepared.request.request.prompt
 
 
-async def test_full_piece_includes_non_expiring_business_context_with_source(brand_case, monkeypatch):
+async def test_full_piece_uses_current_business_characteristics_not_legacy_facts(brand_case, monkeypatch):
     case = brand_case
     scope, _, _ = _configure(case)
     context = replace(case.context, context_version=1)
@@ -89,7 +89,7 @@ async def test_full_piece_includes_non_expiring_business_context_with_source(bra
                 {
                     "id": str(uuid4()),
                     "kind": "differentiator",
-                    "statement": "Receitas da família",
+                    "statement": "Fato antigo não autorizado",
                     "source_detail": "Informado pelo titular",
                     "valid_until": None,
                 },
@@ -108,14 +108,21 @@ async def test_full_piece_includes_non_expiring_business_context_with_source(bra
                     "valid_until": "2000-01-01",
                 },
             ],
-            "preferences": {"tone": "friendly", "goal": "sales", "avoided_topics": []},
+            "preferences": {
+                "tone": "friendly",
+                "goal": "sales",
+                "avoided_topics": [],
+                "business_characteristics": "Receitas da família",
+            },
         },
     )
     with admitted_visual_run(scope):
         prepared = await case.service.prepare(*case.ids)
     prompt = prepared.request.request.prompt
     assert "Café Horizonte" in prompt and "Café de bairro" in prompt
-    assert "Receitas da família" in prompt and "Informado pelo titular" in prompt
+    assert "Receitas da família" in prompt
+    assert "Fato antigo não autorizado" not in prompt
+    assert "Informado pelo titular" not in prompt
     assert "Oferta expirada" not in prompt
     assert "Oferta temporária" not in prompt
     assert "não ampliam a autorização comercial" in prompt

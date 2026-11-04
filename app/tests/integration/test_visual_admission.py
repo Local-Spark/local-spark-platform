@@ -15,12 +15,14 @@ from sqlalchemy import text
 from app.db.session import Database
 from app.schemas.business_catalog import CatalogUpdate
 from app.schemas.editorial_proposals import ProposalDraft
+from app.schemas.owner_references import ReferenceCreate
 from app.services.auth import AuthError
 from app.services.billing import lock_commercial_change, revoke_sponsorship
 from app.services.business_catalog import BusinessCatalogService
 from app.services.creative_catalog_resolution import CatalogIntent
 from app.services.editorial_dispatch import claim_proposals, finish_proposal_dispatch
 from app.services.editorial_proposals import EditorialProposalService
+from app.services.owner_references import OwnerReferencesService
 from app.services.visual_admission import VisualAdmissionChecks
 from app.services.visual_consent import VisualConsentService
 from app.services.visual_consent_gate import VisualConsentGate
@@ -34,10 +36,24 @@ from app.workflows.content_activities import ContentCandidateActivities
 pytestmark = pytest.mark.integration
 
 
-async def _ready(admin, database, seeded, settings, requested_format="photo"):
+async def _ready(
+    admin,
+    database,
+    seeded,
+    settings,
+    requested_format="photo",
+    *,
+    price_valid_until=None,
+    owner_reference=None,
+    before_proposal=None,
+):
     tenant, actor = seeded["t1"], seeded["a1"]
     business = await _business(admin, seeded)
     await _enable(admin, tenant, business, actor)
+    if owner_reference is not None:
+        await OwnerReferencesService(database).create(
+            tenant, business, actor, ReferenceCreate(operation_id=uuid4(), **owner_reference)
+        )
     key = Fernet.generate_key().decode()
     cfg = settings.model_copy(
         update={
@@ -51,6 +67,8 @@ async def _ready(admin, database, seeded, settings, requested_format="photo"):
     message = "Crie uma imagem do croissant" if requested_format == "photo" else "Crie um story do croissant"
     source = await _asset(admin, tenant, business, key, body=message)
     catalog = _payload()
+    if price_valid_until is not None:
+        catalog["offerings"][0]["price_valid_until"] = price_valid_until.isoformat()
     await BusinessCatalogService(database).update(tenant, business, actor, CatalogUpdate.model_validate(catalog))
     async with admin.begin() as conn:
         params = {"tenant": tenant, "business": business, "actor": actor, "operation": uuid4()}
@@ -69,6 +87,8 @@ async def _ready(admin, database, seeded, settings, requested_format="photo"):
                 "document": json.dumps({"kit_id": "cafe-pausas", "kit_version": 1, "overrides": _overrides()}),
             },
         )
+    if before_proposal is not None:
+        await before_proposal(tenant, business, actor)
     interpreter = SimpleNamespace(
         interpret=AsyncMock(
             return_value=CatalogIntent(

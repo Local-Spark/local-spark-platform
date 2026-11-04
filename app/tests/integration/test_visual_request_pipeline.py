@@ -18,14 +18,18 @@ from app.schemas.business_catalog import CatalogUpdate
 from app.services.auth import AuthError
 from app.services.business_catalog import BusinessCatalogService
 from app.services.creative_catalog_resolution import CatalogIntent
+from app.services.editorial_consent_scope import VisualRunScope, admitted_visual_run
 from app.services.editorial_dispatch import claim_proposals, finish_proposal_dispatch
 from app.services.editorial_proposals import EditorialProposalService
 from app.services.visual_consent import VisualConsentService
+from app.services.visual_context import VisualContextService
 from app.services.visual_requests import VisualRequestService
 from app.tests.integration.test_brand_kits import _overrides
 from app.tests.integration.test_business_catalog import _payload
 from app.tests.integration.test_editorial_briefings import _enable
 from app.tests.integration.test_editorial_proposals import _asset, _business
+from app.tests.integration.test_visual_attempts import preview
+from app.tests.integration.test_visual_brand_finish import _editorial_provider
 from app.workflows.content_activities import ContentCandidateActivities
 
 pytestmark = pytest.mark.integration
@@ -36,7 +40,15 @@ async def test_request_preparation_uses_whatsapp_photo_and_rejects_revocation(ad
     business = await _business(admin, seeded)
     await _enable(admin, tenant, business, actor)
     key = Fernet.generate_key().decode()
-    cfg = settings.model_copy(update={"meta_encryption_key": SecretStr(key), "visual_ai_mode": "openai"})
+    cfg = settings.model_copy(
+        update={
+            "meta_encryption_key": SecretStr(key),
+            "visual_ai_mode": "openai",
+            "editorial_ai_mode": "openai",
+            "openai_api_key": SecretStr("synthetic-key"),
+            "editorial_daily_token_limit": 100000,
+        }
+    )
     source = await _asset(admin, tenant, business, key, kind="image", body="Crie uma imagem do croissant")
     image = io.BytesIO()
     exif = Image.Exif()
@@ -79,13 +91,28 @@ async def test_request_preparation_uses_whatsapp_photo_and_rejects_revocation(ad
         proposal = UUID(await activity.request_candidate_proposal(str(source)))
         claims = await claim_proposals(worker, uuid4())
         await finish_proposal_dispatch(worker, claims[0], True)
-        assert await EditorialProposalService(cfg, worker, owner_database=database).run(proposal) == "completed"
+        provider = _editorial_provider()
+        assert (
+            await EditorialProposalService(cfg, worker, provider, owner_database=database).run(proposal) == "completed"
+        )
+        provider.propose.assert_awaited_once()
         consent = VisualConsentService(cfg, database)
         await consent.set(tenant, business, actor, True)
         service = VisualRequestService(cfg, database, store)
-        result = await service.prepare(tenant, business, actor, proposal, uuid4(), candidate=True)
+        item, operation = await preview(admin, tenant, business, actor), uuid4()
+        snapshot = await VisualContextService(cfg, database).capture(tenant, business, actor, proposal, candidate=True)
+        async with admin.begin() as conn:
+            await conn.execute(
+                text("""UPDATE media_previews SET proposal_id=:proposal,operation_id=:operation,
+                  generation_mode='visual_ai',visual_recipe='full_piece_v1',visual_fingerprint=:fingerprint
+                  WHERE id=:id"""),
+                {"proposal": proposal, "operation": operation, "id": item, "fingerprint": snapshot.fingerprint},
+            )
+        scope = VisualRunScope(tenant, business, actor, operation, 1, item, visual_recipe="full_piece_v1")
+        with admitted_visual_run(scope):
+            result = await service.prepare(tenant, business, actor, proposal, operation, candidate=True)
         assert result.sources[0].kind == "source_photo" and result.sources[0].id == source
-        assert "Croissant." in result.request.prompt and "Fale com o negócio" in result.request.prompt
+        assert "Croissant" in result.request.prompt and "Faça seu pedido" in result.request.prompt
         with Image.open(io.BytesIO(result.request.references[0].content)) as normalized:
             assert not normalized.getexif()
         await consent.set(tenant, business, actor, False)

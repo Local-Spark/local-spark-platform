@@ -18,6 +18,7 @@ from app.services.content_deliveries import ContentDeliveryService, claim_public
 from app.services.media_dispatch import claim_previews
 from app.services.media_previews import MediaPreviewService
 from app.services.whatsapp_ingest import sender_hash
+from app.tests.integration.test_content_delivery import _review
 from app.tests.integration.test_visual_admission import _ready
 
 pytestmark = pytest.mark.integration
@@ -27,60 +28,13 @@ pytestmark = pytest.mark.integration
 async def test_visual_copy_deadline_is_enforced_before_approval_and_publication(
     admin, database, seeded, settings, monkeypatch, scenario
 ):
-    tenant, business, actor, _, admission = await _ready(admin, database, seeded, settings)
-    cfg = admission.settings.model_copy(update={"visual_ai_monthly_budget_usd_micros": 100})
-    fact_id = uuid4()
     today = datetime.now(UTC).date()
+    tenant, business, actor, _, admission = await _ready(admin, database, seeded, settings, price_valid_until=today)
+    cfg = admission.settings.model_copy(update={"visual_ai_monthly_budget_usd_micros": 100})
     async with admin.begin() as connection:
         p = {"tenant": tenant, "business": business, "actor": actor, "id": admission.proposal}
         proposal = (
             (await connection.execute(text("SELECT * FROM editorial_proposals WHERE id=:id"), p)).mappings().one()
-        )
-        draft = proposal["document"]
-        draft.update(
-            title="Croissant especial",
-            angle="Conheça o croissant especial",
-            fact_ids=[str(fact_id)],
-            art_text="Croissant especial",
-            caption="Conheça o croissant especial",
-            cta="Envie mensagem",
-        )
-        for scene in draft["script"]:
-            if scene["role"] == "fact":
-                scene.update(
-                    fact_ids=[str(fact_id)], on_screen_text="Croissant especial.", voiceover="Croissant especial."
-                )
-            if scene["role"] == "cta":
-                scene.update(on_screen_text="Envie mensagem", voiceover="Envie mensagem")
-        await connection.execute(
-            text("INSERT INTO business_context_heads(tenant_id,business_id,version) VALUES(:tenant,:business,1)"), p
-        )
-        await connection.execute(
-            text("""INSERT INTO business_context_versions
-              (tenant_id,business_id,version,operation_id,actor_id,request_hash,document)
-              VALUES(:tenant,:business,1,:operation,:actor,:hash,CAST(:document AS jsonb))"""),
-            {
-                **p,
-                "operation": uuid4(),
-                "hash": "a" * 64,
-                "document": json.dumps(
-                    {
-                        "facts": [
-                            {
-                                "id": str(fact_id),
-                                "kind": "offer",
-                                "statement": "Croissant especial",
-                                "source_detail": "Proprietário",
-                                "valid_until": today.isoformat(),
-                            }
-                        ]
-                    }
-                ),
-            },
-        )
-        await connection.execute(
-            text("UPDATE editorial_proposals SET context_version=1, document=CAST(:document AS jsonb) WHERE id=:id"),
-            {**p, "document": json.dumps(draft)},
         )
         await connection.execute(text("UPDATE businesses SET timezone='UTC' WHERE id=:business"), p)
         await connection.execute(
@@ -122,9 +76,12 @@ async def test_visual_copy_deadline_is_enforced_before_approval_and_publication(
                 )
             pytest.fail(f"visual preview failed: {code}")
         deliveries = ContentDeliveryService(cfg, database, worker)
+        async with admin.connect() as connection:
+            sha = await connection.scalar(text("SELECT sha256 FROM media_previews WHERE id=:id"), {"id": preview.id})
+        review = _review(sha)
         delivery = await deliveries.record(source, preview.id)
         assert delivery is not None
-        assert "Conheça o croissant especial" in (await deliveries.list(tenant, business, actor))[0].message_body
+        assert "Uma pausa com croissant" in (await deliveries.list(tenant, business, actor))[0].message_body
         future = datetime.combine(today + timedelta(days=1), datetime.min.time(), UTC) + timedelta(minutes=1)
         with pytest.raises(AuthError, match="CANDIDATE_SCHEDULE_INVALID"):
             await deliveries.decide(
@@ -132,7 +89,7 @@ async def test_visual_copy_deadline_is_enforced_before_approval_and_publication(
                 business,
                 actor,
                 delivery,
-                ContentDecision(operation_id=uuid4(), decision="approve", scheduled_at=future),
+                ContentDecision(operation_id=uuid4(), decision="approve", scheduled_at=future, visual_review=review),
             )
 
         class ExpiredClock(datetime):
@@ -158,10 +115,18 @@ async def test_visual_copy_deadline_is_enforced_before_approval_and_publication(
                     return
                 with pytest.raises(AuthError, match="VISUAL_COPY_UNVERIFIED"):
                     await deliveries.decide(
-                        tenant, business, actor, delivery, ContentDecision(operation_id=uuid4(), decision="approve")
+                        tenant,
+                        business,
+                        actor,
+                        delivery,
+                        ContentDecision(operation_id=uuid4(), decision="approve", visual_review=review),
                     )
         accepted = await deliveries.decide(
-            tenant, business, actor, delivery, ContentDecision(operation_id=uuid4(), decision="approve")
+            tenant,
+            business,
+            actor,
+            delivery,
+            ContentDecision(operation_id=uuid4(), decision="approve", visual_review=review),
         )
         assert accepted.decision_state == "approved"
         publication = (await claim_publications(worker, uuid4()))[0]

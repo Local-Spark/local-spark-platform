@@ -23,6 +23,7 @@ from app.tests.integration.test_brand_kits import _overrides
 from app.tests.integration.test_business_catalog import _payload
 from app.tests.integration.test_editorial_briefings import _enable
 from app.tests.integration.test_editorial_proposals import _asset, _business
+from app.tests.integration.test_visual_brand_finish import _editorial_provider
 from app.workflows.content_activities import ContentCandidateActivities
 
 pytestmark = pytest.mark.integration
@@ -33,7 +34,15 @@ async def test_real_capture_revalidates_owner_consent_and_kit(admin, database, s
     business = await _business(admin, seeded)
     await _enable(admin, tenant, business, actor)
     key = Fernet.generate_key().decode()
-    cfg = settings.model_copy(update={"meta_encryption_key": SecretStr(key), "visual_ai_mode": "openai"})
+    cfg = settings.model_copy(
+        update={
+            "meta_encryption_key": SecretStr(key),
+            "visual_ai_mode": "openai",
+            "editorial_ai_mode": "openai",
+            "openai_api_key": SecretStr("synthetic-key"),
+            "editorial_daily_token_limit": 100000,
+        }
+    )
     source = await _asset(admin, tenant, business, key, body="Crie uma imagem do croissant")
     catalog = _payload()
     await BusinessCatalogService(database).update(tenant, business, actor, CatalogUpdate.model_validate(catalog))
@@ -65,7 +74,12 @@ async def test_real_capture_revalidates_owner_consent_and_kit(admin, database, s
         proposal_id = UUID(await activity.request_candidate_proposal(str(source)))
         claims = await claim_proposals(worker, uuid4())
         await finish_proposal_dispatch(worker, claims[0], True)
-        assert await EditorialProposalService(cfg, worker, owner_database=database).run(proposal_id) == "completed"
+        provider = _editorial_provider()
+        assert (
+            await EditorialProposalService(cfg, worker, provider, owner_database=database).run(proposal_id)
+            == "completed"
+        )
+        provider.propose.assert_awaited_once()
         consent = VisualConsentService(cfg, database)
         capture = VisualContextService(cfg, database)
         with pytest.raises(AuthError, match="VISUAL_AI_CONSENT_REQUIRED"):

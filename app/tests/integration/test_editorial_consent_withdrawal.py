@@ -95,7 +95,7 @@ async def test_legacy_queued_proposal_without_consent_epoch_is_not_sent(admin, d
         await worker.close()
 
 
-async def test_withdrawal_does_not_cancel_local_baseline_work(admin, database, seeded, settings):
+async def test_withdrawal_does_not_cancel_request_when_provider_is_disabled(admin, database, seeded, settings):
     tenant, actor = seeded["t1"], seeded["a1"]
     business = await _business(admin, seeded)
     await _enable(admin, tenant, business, actor)
@@ -106,10 +106,27 @@ async def test_withdrawal_does_not_cancel_local_baseline_work(admin, database, s
     await owner.set_consent(tenant, business, actor, False)
     await owner.set_consent(tenant, business, actor, True)
     assert (await owner.request(tenant, business, actor, payload)).id == proposal.id
+    async with admin.connect() as connection:
+        state = (
+            await connection.execute(
+                text("SELECT state,error_code FROM editorial_proposals WHERE id=:id"), {"id": proposal.id}
+            )
+        ).one()
+        assert state.state == "pending" and state.error_code is None
     worker = Database(settings, correlator=True)
+    provider = AsyncMock()
     try:
         claim = (await claim_proposals(worker, uuid4()))[0]
         await finish_proposal_dispatch(worker, claim, True)
-        assert await EditorialProposalService(settings, worker, owner_database=database).run(proposal.id) == "completed"
+        assert (
+            await EditorialProposalService(settings, worker, provider, owner_database=database).run(proposal.id)
+            == "rejected"
+        )
+        provider.propose.assert_not_awaited()
+        async with admin.connect() as connection:
+            code = await connection.scalar(
+                text("SELECT error_code FROM editorial_proposals WHERE id=:id"), {"id": proposal.id}
+            )
+        assert code == "EDITORIAL_SOURCE_UNAVAILABLE"
     finally:
         await worker.close()

@@ -7,14 +7,14 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import text
+from sqlalchemy import make_url, text
 from sqlalchemy.exc import DBAPIError
 
 from app.services.content_deliveries import ContentDeliveryService
 from app.services.phone_verification import PhoneVerificationService
 from app.services.whatsapp_ingest import sender_hash
 from app.services.whatsapp_link import WhatsAppLinkService
-from app.tests.integration.test_content_delivery import _candidate_case
+from app.tests.integration.test_content_delivery import _visual_candidate_case
 
 pytestmark = pytest.mark.integration
 
@@ -39,8 +39,10 @@ def pause_final_worker_session(database):
     return reached, release
 
 
-async def test_restricted_role_row_locks_and_tenant_isolation(admin, seeded, settings):
-    cfg, app_db, worker_db, tenant, business, actor, _, event, preview = await _candidate_case(admin, seeded, settings)
+async def test_restricted_role_row_locks_and_tenant_isolation(admin, database, seeded, settings):
+    cfg, app_db, worker_db, tenant, business, actor, _, event, preview, _ = await _visual_candidate_case(
+        admin, seeded, settings, database
+    )
     other = uuid4()
     try:
         async with admin.begin() as conn:
@@ -54,7 +56,11 @@ async def test_restricted_role_row_locks_and_tenant_isolation(admin, seeded, set
                 {"id": other, "t": seeded["t2"]},
             )
         async with app_db.transaction(tenant, actor) as session:
-            assert await session.scalar(text("SELECT current_user")) == "meu_braco_direito_runtime"
+            runtime_url = make_url(cfg.database_url.get_secret_value())
+            assert await session.scalar(text("SELECT current_user")) == runtime_url.username
+            assert not await session.scalar(
+                text("SELECT rolsuper OR rolbypassrls FROM pg_roles WHERE rolname=current_user")
+            )
             assert await session.scalar(
                 text("SELECT phone FROM business_profiles WHERE tenant_id=:t AND business_id=:b FOR UPDATE"),
                 {"t": tenant, "b": business},
@@ -71,7 +77,11 @@ async def test_restricted_role_row_locks_and_tenant_isolation(admin, seeded, set
                 is None
             )
         async with worker_db.sessions() as session:
-            assert await session.scalar(text("SELECT current_user")) == "meu_braco_direito_router"
+            worker_url = make_url(cfg.correlator_database_url.get_secret_value())
+            assert await session.scalar(text("SELECT current_user")) == worker_url.username
+            assert not await session.scalar(
+                text("SELECT rolsuper OR rolbypassrls FROM pg_roles WHERE rolname=current_user")
+            )
             assert not await session.scalar(
                 text("SELECT has_column_privilege(current_user,'business_profiles','phone','SELECT')")
             )
@@ -80,8 +90,10 @@ async def test_restricted_role_row_locks_and_tenant_isolation(admin, seeded, set
         await app_db.close()
 
 
-async def test_phone_change_waits_for_simulated_delivery(admin, seeded, settings):
-    cfg, app_db, worker_db, tenant, business, actor, _, event, preview = await _candidate_case(admin, seeded, settings)
+async def test_phone_change_waits_for_simulated_delivery(admin, database, seeded, settings):
+    cfg, app_db, worker_db, tenant, business, actor, _, event, preview, _ = await _visual_candidate_case(
+        admin, seeded, settings, database
+    )
     reached, release = pause_final_worker_session(worker_db)
     delivered = changed = None
     try:
@@ -118,8 +130,10 @@ async def test_phone_change_waits_for_simulated_delivery(admin, seeded, settings
         await app_db.close()
 
 
-async def test_link_confirmation_waits_for_simulated_delivery(admin, seeded, settings, monkeypatch):
-    cfg, app_db, worker_db, tenant, business, actor, _, event, preview = await _candidate_case(admin, seeded, settings)
+async def test_link_confirmation_waits_for_simulated_delivery(admin, database, seeded, settings, monkeypatch):
+    cfg, app_db, worker_db, tenant, business, actor, _, event, preview, _ = await _visual_candidate_case(
+        admin, seeded, settings, database
+    )
     cfg = cfg.model_copy(update={"meta_webhook_mode": "cloud"})
     token, request, proof = "synthetic-token", uuid4(), uuid4()
     async with admin.begin() as conn:
@@ -158,8 +172,10 @@ async def test_link_confirmation_waits_for_simulated_delivery(admin, seeded, set
         await app_db.close()
 
 
-async def test_destination_lock_timeout_does_not_record_delivery(admin, seeded, settings):
-    cfg, app_db, worker_db, tenant, business, actor, _, event, preview = await _candidate_case(admin, seeded, settings)
+async def test_destination_lock_timeout_does_not_record_delivery(admin, database, seeded, settings):
+    cfg, app_db, worker_db, tenant, business, actor, _, event, preview, _ = await _visual_candidate_case(
+        admin, seeded, settings, database
+    )
     try:
         async with app_db.transaction(tenant, actor) as blocker:
             await blocker.execute(

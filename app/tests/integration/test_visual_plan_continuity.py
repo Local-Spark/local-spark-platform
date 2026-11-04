@@ -28,8 +28,10 @@ from app.services.visual_consent import VisualConsentService
 from app.services.whatsapp_ingest import sender_hash
 from app.tests.integration.test_brand_kits import _overrides
 from app.tests.integration.test_business_catalog import _payload
+from app.tests.integration.test_content_delivery import _review
 from app.tests.integration.test_editorial_briefings import _enable
 from app.tests.integration.test_editorial_proposals import _asset, _business
+from app.tests.integration.test_visual_brand_finish import _editorial_provider
 from app.tests.integration.test_visual_source_invalidation import PausingStore
 from app.workflows.content_activities import ContentCandidateActivities
 
@@ -46,6 +48,9 @@ async def test_plan_expiring_during_upload_preserves_completion_and_private_deli
             "meta_encryption_key": SecretStr(key),
             "visual_ai_mode": "fake",
             "visual_ai_monthly_budget_usd_micros": 100,
+            "editorial_ai_mode": "openai",
+            "openai_api_key": SecretStr("synthetic-key"),
+            "editorial_daily_token_limit": 100000,
         }
     )
     source = await _asset(admin, tenant, business, key, body="Crie uma imagem do croissant")
@@ -92,7 +97,11 @@ async def test_plan_expiring_during_upload_preserves_completion_and_private_deli
         activities = ContentCandidateActivities(cfg, database, worker, interpreter=interpreter)
         proposal = UUID(await activities.request_candidate_proposal(str(source)))
         await claim_proposals(worker, uuid4())
-        assert await EditorialProposalService(cfg, worker, owner_database=database).run(proposal) == "completed"
+        provider = _editorial_provider()
+        assert (
+            await EditorialProposalService(cfg, worker, provider, owner_database=database).run(proposal) == "completed"
+        )
+        provider.propose.assert_awaited_once()
         await VisualConsentService(cfg, database).set(tenant, business, actor, True)
         owner = MediaPreviewService(cfg, database, store)
         preview = await owner.request_candidate(
@@ -137,9 +146,15 @@ async def test_plan_expiring_during_upload_preserves_completion_and_private_deli
         deliveries = ContentDeliveryService(cfg, database, worker)
         delivery = await deliveries.record(source, preview.id)
         assert delivery is not None
+        async with admin.connect() as connection:
+            sha = await connection.scalar(text("SELECT sha256 FROM media_previews WHERE id=:id"), {"id": preview.id})
         with pytest.raises(AuthError, match="VISUAL_BRIEFING_CHANGED"):
             await deliveries.decide(
-                tenant, business, actor, delivery, ContentDecision(operation_id=uuid4(), decision="approve")
+                tenant,
+                business,
+                actor,
+                delivery,
+                ContentDecision(operation_id=uuid4(), decision="approve", visual_review=_review(sha)),
             )
         assert await claim_publications(worker, uuid4()) == []
         assert await purge_expired_previews(worker, store, uuid4()) == 0

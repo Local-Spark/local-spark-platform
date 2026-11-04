@@ -49,9 +49,11 @@ async def test_material_worker_registers_activities_and_closes_both_pools(settin
     constructor = MagicMock(return_value=execution)
     monkeypatch.setattr(worker, "Worker", constructor)
     await worker.run_worker()
-    assert len(constructor.call_args.kwargs["workflows"]) == 7
+    assert len(constructor.call_args.kwargs["workflows"]) == 9
     assert worker.BrandKitChangedWorkflow in constructor.call_args.kwargs["workflows"]
-    assert len(constructor.call_args.kwargs["activities"]) == 15
+    assert worker.ReferenceDiscoveryWorkflow in constructor.call_args.kwargs["workflows"]
+    assert len(constructor.call_args.kwargs["activities"]) == 18
+    assert any(activity.__name__ == "simulate_discovery" for activity in constructor.call_args.kwargs["activities"])
     assert any(
         activity.__name__ == "deliver_briefing_clarification" for activity in constructor.call_args.kwargs["activities"]
     )
@@ -78,7 +80,7 @@ async def test_explicit_visual_worker_registers_new_workflow_alongside_legacy(se
     constructor.assert_called_once()
     workflows = temporal_worker.call_args.kwargs["workflows"]
     assert worker.VisualGenerationWorkflow in workflows and worker.StaticPreviewWorkflow in workflows
-    assert len(workflows) == 8
+    assert len(workflows) == 10
     assert any(
         activity.__name__ == "run_visual_generation" for activity in temporal_worker.call_args.kwargs["activities"]
     )
@@ -113,9 +115,9 @@ async def test_worker_does_not_register_material_activity_without_cipher_key(set
     constructor = MagicMock(return_value=execution)
     monkeypatch.setattr(worker, "Worker", constructor)
     await worker.run_worker()
-    assert len(constructor.call_args.kwargs["workflows"]) == 4
+    assert len(constructor.call_args.kwargs["workflows"]) == 6
     assert worker.BrandKitChangedWorkflow in constructor.call_args.kwargs["workflows"]
-    assert len(constructor.call_args.kwargs["activities"]) == 4
+    assert len(constructor.call_args.kwargs["activities"]) == 7
     assert any(
         activity.__name__ == "record_brand_kit_changed" for activity in constructor.call_args.kwargs["activities"]
     )

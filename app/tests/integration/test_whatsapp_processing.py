@@ -211,7 +211,7 @@ async def test_text_material_consent_library_and_revocation(admin, database, aut
                         {
                             "from": number,
                             "type": "text",
-                            "text": {"body": "Confirmar"},
+                            "text": {"body": "Descartar"},
                             "context": {"id": "wamid.test-prompt"},
                         },
                     )
@@ -224,11 +224,11 @@ async def test_text_material_consent_library_and_revocation(admin, database, aut
                 )
             assert await processor.process(command_event) == "processed"
             assert await processor.process(command_event) == "already_finished"
-            assert (await client.get(conversation_base, headers=owner)).json()[0]["state"] == "confirmed"
+            assert (await client.get(conversation_base, headers=owner)).json()[0]["state"] == "discarded"
             context = await client.get(
                 f"/api/v1/organizations/{tenant}/businesses/{business}/editorial-context", headers=owner
             )
-            assert context.json()["facts"][0]["statement"] == "X-tudo: R$ 20,00 hoje"
+            assert context.json()["facts"] == []
             async with admin.connect() as connection:
                 assert (
                     await connection.scalar(

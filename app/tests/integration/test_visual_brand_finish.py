@@ -19,9 +19,12 @@ from app.adapters.material_media import FetchedMedia
 from app.adapters.visual_ai import OpenAIVisualProvider
 from app.db.session import Database
 from app.schemas.business_catalog import CatalogUpdate
+from app.schemas.editorial_proposals import ProposalDraft
 from app.services.auth import AuthError
 from app.services.business_catalog import BusinessCatalogService
 from app.services.creative_catalog_resolution import CatalogIntent
+from app.services.editorial_consent_scope import VisualRunScope as AdmittedVisualRunScope
+from app.services.editorial_consent_scope import admitted_visual_run
 from app.services.editorial_dispatch import claim_proposals, finish_proposal_dispatch
 from app.services.editorial_proposals import EditorialProposalService
 from app.services.visual_attempts import VisualAttemptService
@@ -47,12 +50,50 @@ def _png(size, color):
     return buf.getvalue()
 
 
+def _editorial_provider():
+    async def propose(data, operation, *, prepared_request):
+        fact = data["confirmed_facts"][0]
+        return (
+            ProposalDraft(
+                title="Croissant para sua pausa",
+                format="photo",
+                angle="Uma pausa com croissant",
+                fact_ids=[UUID(fact["id"])],
+                hypotheses=[],
+                questions=[],
+                scene_plan=["fact", "cta"],
+                art_text="Croissant para sua pausa",
+                caption="Uma pausa com croissant",
+                cta="Faça seu pedido",
+                creative_brief={
+                    "objective": "Divulgar o produto",
+                    "concept": "Pausa com croissant",
+                    "visual_direction": "Valorizar o produto",
+                    "hierarchy": "Nome e chamada",
+                    "photo_use": "Valorizar a fotografia disponível",
+                },
+            ),
+            100,
+            40,
+        )
+
+    return SimpleNamespace(propose=AsyncMock(side_effect=propose))
+
+
 async def test_finishing_requires_valid_logo_and_discards_after_kit_change(admin, database, seeded, settings):
     tenant, actor = seeded["t1"], seeded["a1"]
     business = await _business(admin, seeded)
     await _enable(admin, tenant, business, actor)
     key = Fernet.generate_key().decode()
-    cfg = settings.model_copy(update={"meta_encryption_key": SecretStr(key), "visual_ai_mode": "openai"})
+    cfg = settings.model_copy(
+        update={
+            "meta_encryption_key": SecretStr(key),
+            "visual_ai_mode": "openai",
+            "editorial_ai_mode": "openai",
+            "openai_api_key": SecretStr("synthetic-key"),
+            "editorial_daily_token_limit": 100000,
+        }
+    )
     source = await _asset(admin, tenant, business, key, kind="image", body="Crie uma imagem do croissant")
     raw, logo = _png((80, 80), "red"), _png((60, 60), "green")
     catalog = _payload()
@@ -110,24 +151,39 @@ async def test_finishing_requires_valid_logo_and_discards_after_kit_change(admin
         proposal = UUID(await activity.request_candidate_proposal(str(source)))
         claims = await claim_proposals(worker, uuid4())
         await finish_proposal_dispatch(worker, claims[0], True)
-        assert await EditorialProposalService(cfg, worker, owner_database=database).run(proposal) == "completed"
+        provider = _editorial_provider()
+        assert (
+            await EditorialProposalService(cfg, worker, provider, owner_database=database).run(proposal) == "completed"
+        )
+        provider.propose.assert_awaited_once()
         await VisualConsentService(cfg, database).set(tenant, business, actor, True)
         service = VisualBrandFinishService(cfg, database, store)
-        prepared = await service.prepare(tenant, business, actor, proposal, uuid4(), candidate=True)
-        assert prepared.logo is not None and prepared.logo.data == logo
-        assert "Não acrescente palavras" in prepared.request.request.prompt
-        generated = _png((1024, 1280), "blue")
-        scene = FetchedMedia(generated, "image/png", hashlib.sha256(generated).hexdigest())
-        output = await service.finish(actor, prepared, scene, candidate=True)
-        assert output.sha256 == hashlib.sha256(output.data).hexdigest()
+        item, operation = await preview(admin, tenant, business, actor), uuid4()
+        snapshot = await VisualContextService(cfg, database).capture(tenant, business, actor, proposal, candidate=True)
         async with admin.begin() as conn:
             await conn.execute(
-                text("""UPDATE business_brand_kit_heads SET confirmed_version=NULL
-              WHERE tenant_id=:tenant AND business_id=:business"""),
-                {"tenant": tenant, "business": business},
+                text("""UPDATE media_previews SET proposal_id=:proposal,operation_id=:operation,
+                  generation_mode='visual_ai',visual_recipe='full_piece_v1',visual_fingerprint=:fingerprint
+                  WHERE id=:id"""),
+                {"proposal": proposal, "operation": operation, "id": item, "fingerprint": snapshot.fingerprint},
             )
-        with pytest.raises(AuthError, match="VISUAL_KIT_CHANGED"):
-            await service.finish(actor, prepared, scene, candidate=True)
+        scope = AdmittedVisualRunScope(tenant, business, actor, operation, 1, item, visual_recipe="full_piece_v1")
+        with admitted_visual_run(scope):
+            prepared = await service.prepare(tenant, business, actor, proposal, operation, candidate=True)
+            assert prepared.logo is not None and prepared.logo.data == logo
+            assert "logomarca original autorizada" in prepared.request.request.prompt
+            generated = _png((1024, 1280), "blue")
+            scene = FetchedMedia(generated, "image/png", hashlib.sha256(generated).hexdigest())
+            output = await service.finish(actor, prepared, scene, candidate=True)
+            assert output.sha256 == hashlib.sha256(output.data).hexdigest()
+            async with admin.begin() as conn:
+                await conn.execute(
+                    text("""UPDATE business_brand_kit_heads SET confirmed_version=NULL
+                  WHERE tenant_id=:tenant AND business_id=:business"""),
+                    {"tenant": tenant, "business": business},
+                )
+            with pytest.raises(AuthError, match="VISUAL_KIT_CHANGED"):
+                await service.finish(actor, prepared, scene, candidate=True)
     finally:
         await worker.close()
 
@@ -144,6 +200,9 @@ async def test_real_request_and_brand_finish_fit_orchestrator_without_external_c
         update={
             "meta_encryption_key": SecretStr(key),
             "visual_ai_mode": "openai",
+            "editorial_ai_mode": "openai",
+            "openai_api_key": SecretStr("synthetic-key"),
+            "editorial_daily_token_limit": 100000,
             "visual_ai_monthly_budget_usd_micros": 100,
             "visual_ai_global_monthly_budget_usd_micros": 100,
         }
@@ -186,15 +245,35 @@ async def test_real_request_and_brand_finish_fit_orchestrator_without_external_c
         proposal = UUID(await activity.request_candidate_proposal(str(source)))
         claims = await claim_proposals(worker, uuid4())
         await finish_proposal_dispatch(worker, claims[0], True)
-        assert await EditorialProposalService(cfg, worker, owner_database=database).run(proposal) == "completed"
+        editorial_provider = _editorial_provider()
+        assert (
+            await EditorialProposalService(cfg, worker, editorial_provider, owner_database=database).run(proposal)
+            == "completed"
+        )
+        editorial_provider.propose.assert_awaited_once()
         await VisualConsentService(cfg, database).set(tenant, business, actor, True)
         item = await preview(admin, tenant, business, actor)
+        operation = uuid4()
+        snapshot = await VisualContextService(cfg, database).capture(tenant, business, actor, proposal, candidate=True)
         async with admin.begin() as conn:
             await conn.execute(
-                text("UPDATE media_previews SET proposal_id=:proposal WHERE id=:id"), {"proposal": proposal, "id": item}
+                text("""UPDATE media_previews SET proposal_id=:proposal,operation_id=:operation,
+                  generation_mode='visual_ai',visual_recipe='full_piece_v1',visual_fingerprint=:fingerprint
+                  WHERE id=:id"""),
+                {"proposal": proposal, "operation": operation, "id": item, "fingerprint": snapshot.fingerprint},
             )
-        snapshot = await VisualContextService(cfg, database).capture(tenant, business, actor, proposal, candidate=True)
-        scope = VisualRunScope(tenant, business, actor, item, proposal, uuid4(), 1, True, snapshot.fingerprint)
+        scope = VisualRunScope(
+            tenant,
+            business,
+            actor,
+            item,
+            proposal,
+            operation,
+            1,
+            True,
+            snapshot.fingerprint,
+            visual_recipe="full_piece_v1",
+        )
         generated = _png((1024, 1280), "blue")
         sent = []
 
@@ -250,8 +329,8 @@ async def test_real_request_and_brand_finish_fit_orchestrator_without_external_c
         assert await service.run(scope) == "not_started"
         assert len(sent) == 1 and str(sent[0].url) == "https://api.openai.com/v1/images/edits"
         submitted = json.loads(sent[0].content)
-        assert "Croissant" in submitted["prompt"] and "Não acrescente palavras" in submitted["prompt"]
-        assert len(submitted["images"]) == 1
+        assert "croissant" in submitted["prompt"].lower() and "peça final" in submitted["prompt"]
+        assert len(submitted["images"]) >= 1
         encoded_reference = submitted["images"][0]["image_url"].split(",", 1)[1]
         with Image.open(io.BytesIO(base64.b64decode(encoded_reference))) as normalized:
             assert not normalized.getexif()

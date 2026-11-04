@@ -117,7 +117,15 @@ async def resolve_catalog_context(
     try:
         async with database.transaction(tenant, actor) as session:
             snapshot = await selected_catalog_snapshot(
-                session, tenant, business, actor, bounded_message, intent.offering_id, version, datetime.now(UTC)
+                session,
+                tenant,
+                business,
+                actor,
+                bounded_message,
+                intent.offering_id,
+                version,
+                datetime.now(UTC),
+                promotion_policy="request_only",
             )
     except AuthError as exc:
         if exc.code == "COLLECTION_CONTEXT_CHANGED":

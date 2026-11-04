@@ -37,6 +37,9 @@ async def test_context_owner_history_restore_and_conflicts(admin, api, seeded, s
             "avoided_topics": [],
             "posts_per_week": None,
             "cta_destination": None,
+            "reference_search": None,
+            "business_terms": [],
+            "business_characteristics": None,
         },
         "version": 0,
         "updated_at": None,
@@ -68,7 +71,7 @@ async def test_context_owner_history_restore_and_conflicts(admin, api, seeded, s
     created = await api.put(base, headers=owner, json=payload)
     assert created.status_code == 200, created.text
     assert created.json()["version"] == 1
-    assert created.json()["facts"][0]["statement"] == "Combo de sexta"
+    assert created.json()["facts"] == []
     assert (await api.put(base, headers=owner, json=payload)).json() == created.json()
     assert (await api.put(base, headers=owner, json={**payload, "facts": []})).json()[
         "error_code"

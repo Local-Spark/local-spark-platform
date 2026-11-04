@@ -1,5 +1,38 @@
 # BL04 — contexto seletivo e produção visual com IA
 
+## Referências — gate de fechamento em 04/11/2026
+
+As fatias de descoberta, seleção, análise e projeção na geração estão integradas
+localmente. A 0109 foi validada contra a seleção real da 0108 em 22 integrações
+PostgreSQL, além de 46 unitários com cobertura integral do guardião. A política
+v2 do piloto redistribui os limites por fornecedor dentro dos mesmos US$ 5,
+preservando o consumo. A interface passou em 508 testes/100%, TypeScript, build
+e navegação em Chromium. O banco local está em 0111 após backups verificados.
+O CI conjunto passou: 4.734 testes, 100% de linhas/ramos, Ruff e mypy.
+A análise de referência manual do ensaio gerou nove
+padrões a partir de onze publicações e quarenta imagens, com estado parcial e
+snapshot de geração conferidos. A fórmula de reputação
+continua experimental, conforme decisão do titular.
+
+No piloto real, o Google expôs campos opcionais que o parser rejeitava. A
+[correção](../design/google-places-address-components.md) foi validada em 160
+testes e na nova resposta real de 20 candidatos, com três destaques Jev salvos.
+As tentativas anteriores conservaram suas reservas. O banco local foi atualizado
+até 0111 após backups verificados; análise e CI concluídos no escopo atual.
+
+A descoberta real publicou dez candidatos com três destaques; o aceite iniciou
+o ciclo. O primeiro feed foi coletado com sucesso, mas não gerou padrões pelo
+filtro inicial de autoria/formato. O titular resolveu a entrevista: somente
+autoria direta, incluindo capa/legenda de vídeos e Reels. O adapter foi atualizado
+e passou em 164 unitários/100% e cinco integrações, incluindo ausência de acesso
+ao arquivo de vídeo e padrões no snapshot. O CI integral também passou.
+O piloto expôs contabilização preliminar do Apify: espera de trinta segundos
+validada em 275 testes/100%; revisão auditável de recibos 0111 validada em 38
+integrações e 12 unitários/100%. Os onze recibos foram reconciliados no mesmo
+piloto de US$ 5, preservando reservas e histórico. O total comprometido após a
+análise manual é US$ 0,455502, incluindo holds ainda não liquidados de Google/Jev.
+Decisões de conteúdo resolvidas; [evidências](../evals/reference-feature-pilot-2026-11-04.md).
+
 Atualizado em **29/10/2026**, com a primeira imagem real pelo produto concluída
 na parte 3 e a priorização de skills de geração antes da avaliação BL04.3.
 Estado: **em implementação local**, sem aprovação
@@ -9,6 +42,11 @@ e ao [registro de decisões](../DECISIONS.md). A versão anterior foi preservada
 [integralmente no histórico](../history/2026-10-28-pre-documentation-reconciliation/phases/BL04-context-and-ai-production.md);
 pendências datadas de permissões por fornecedor nesse histórico não são novas
 etapas da jornada contratada.
+
+A [análise da jornada WhatsApp e orquestração](../design/arquitetura-jornada-whatsapp.md)
+registra o encadeamento atual, as fronteiras entre estados de domínio e Temporal,
+as partes simuladas e pontos para discussão futura sobre organização; não altera
+o escopo desta fase nem decide uma extração de serviços ou repositórios.
 
 ## Qualidade de copy e ação — 30/10/2026
 
@@ -22,9 +60,29 @@ os ensaios anteriores exigiram ajustes manuais e não provam essa correção.
 
 Foi criado um segundo [kit fictício Ateliê Aurora](../evals/kit-atelier-aurora-v1/README.md), como fixture isolada de QA,
 sem inclusão no catálogo nem execução pelo produto. Próximos trabalhos: usá-lo
-em ensaio e implementar com a web indicação de perfis e recomendações para
-aceite do cliente. Fonte, disponibilidade de métricas e custos da descoberta
+em ensaio e implementar recomendações para aceite do cliente. Fonte,
+disponibilidade de métricas e custos da descoberta
 automática ainda precisam ser demonstrados; não inferir acesso do Jev ao Instagram.
+
+Foi entregue a configuração inicial do alcance de referências: a web oferece
+raios locais de 5, 20 e 50 km, endereço manual ou ponto confirmado do dispositivo;
+raios anteriores de 1–50 km são preservados. Preferências nacionais anteriores
+ficam visíveis até substituição explícita, sem nova opção nacional. A origem
+manual ainda aguarda geocodificação/confirmação; não há busca automática real
+de concorrentes nesta fatia. A preferência permanece no contexto versionado e é
+omitida dos prompts editorial e visual. A indicação manual, o snapshot para
+briefing/trace e a revisão visual da tela foram implementados localmente; o perfil
+indicado não é verificado nem analisado automaticamente.
+No serviço, novas alterações só aceitam os três raios locais. Valores legados
+iguais ou omitidos são preservados, `null` explícito os remove, e replay e
+alterações pendentes já admitidas mantêm compatibilidade.
+
+Palavras do negócio e características gerais foram adicionadas ao contexto
+versionado. A interface removeu os formulários de fatos livres e promoções;
+fatos legados do contexto não alimentam novas peças e novos snapshots editoriais
+ignoram promoções antigas do catálogo. Snapshots antigos mantêm sua política e
+registros físicos históricos não foram purgados. O fluxo WhatsApp/Jev de ofertas,
+horários, revisões e cálculo de descontos ainda não foi entregue.
 
 ## Resultado esperado
 
@@ -343,25 +401,167 @@ evidência das suas demais condições; esta única imagem não as demonstra nov
 
 ## Próxima fatia de desenvolvimento
 
+O banco de desenvolvimento foi atualizado da revisão 0059 à 0099 em 03/11,
+após backups privados com leitura integral verificada. A API iniciada antes da
+0099 precisa de reinício para reconhecer a nova revisão e confirmar prontidão.
+
 **Direção de 30/10/2026:** usar pedido, fatos, kit, acervo, skill adequada e
 referências externas aceitas quando disponíveis para construir briefing e pedir
 ao modelo a peça final completa. Conferir a peça produzida e oferecer trace
 privado; não tratar texto no prompt como prova de que preço ou marca aparecem
-corretamente. Pesquisa e seleção de concorrentes ainda não estão entregues. A
-ideia posterior de sugerir até três referências e orientar seleção de fontes e
+corretamente. A indicação manual foi implementada localmente; pesquisa e aceite de
+sugestões de concorrentes ainda não estão entregues. A
+ideia posterior de orientar seleção de fontes e
 formatos do kit está registrada para estudo no
 [plano de skills e referências](../design/skills-e-referencias-editoriais.md).
-O proprietário adiou a evolução WhatsApp/Jev: quando a mensagem trouxer preço
-diferente do catálogo sem dizer se quer alterá-lo, a decisão C18 é perguntar
-antes de continuar. Extração do valor e pergunta específica ainda não existem;
-priorizar agora a geração da peça, sem alegar que o conflito já é detectado.
+Conforme C18, uma oferta explicitamente promocional informada no WhatsApp é
+fato para aquela criação e suas revisões. Exemplo: R$ 19,90 no pedido com preço
+de catálogo R$ 25 não exige confirmar a diferença nem altera o catálogo. Para
+um desconto percentual é necessário preço válido de catálogo; informação
+ausente ou ambígua exige esclarecimento. Promoções, ofertas e horários não terão
+cadastro na interface; o campo simples de características gerais permanece.
+O titular autorizou remover informações antigas dessa área sem preservar
+histórico. Essa jornada ainda não está implementada: o WhatsApp/Jev não extrai
+e vincula integralmente os fatos, e o código de promoções do catálogo permanece
+legado; novos snapshots editoriais ignoram essas promoções. Não presumir que a
+peça atual já aplica a regra.
 
 A implementação local descontinua novas gerações de fundo/overlay e snapshota
 `full_piece_v1` por prévia. Skill editorial, logo autorizada, fotos e um exemplo
 do kit demo entram no pedido completo; o provedor devolve a peça inteira. O
 trace é cifrado e owner-scoped; a API exige checklist humano por hash antes da
 aprovação. Checagem automática da imagem, checklist no WhatsApp/web, múltiplos
-fatos temporários, concorrentes e avaliação de qualidade real permanecem abertos.
+fatos temporários, análise dos concorrentes e avaliação de qualidade real permanecem abertos.
+
+A busca começa no raio solicitado, uma vez por raio por ciclo, com até dez
+candidatos por raio, sem prometer 30 negócios únicos; falha comprovada não
+consome tentativa. Pela decisão de 04/11, Google vazio amplia automaticamente
+de 5 para 20 e depois 50 km. Se todos vierem vazios, permitir nova tentativa
+sem iniciar seis meses; os limites financeiros continuam valendo para a sequência. O cliente verá até dez candidatos elegíveis, com até três
+recomendações do Jev destacadas com critérios e nota quando houver candidatos suficientes,
+e escolherá de uma a três entre os exibidos, podendo combinar raios. A primeira
+confirmação inicia um prazo comum de seis meses; cada raio pode ser pesquisado
+uma vez no ciclo, mesmo após confirmação em outro raio. Todos ficam disponíveis
+ao fim do prazo original; mudar endereço ou segmento não libera raio já pesquisado.
+Trocas não renovam o prazo e a seleção permanece até outra confirmação; as
+referências ainda selecionadas de ciclos anteriores podem ser combinadas com as novas. @ manuais
+são adicionais. O Apify não deve repetir consultas bem-sucedidas a negócios já
+encontrados durante o ciclo, mas pode consultar negócios novos de outro raio e
+repetir tentativa que falhou sem retornar o perfil. O titular quer
+guardar até dez negócios apresentados por pesquisa, com Place ID, nota própria
+e perfis disponíveis. Confirmou que apenas Place ID será persistido dos dados
+Google, usando estrelas e contagem somente como entrada para a nota; confirmou
+também que a nota própria e a associação dos perfis do Apify podem ser guardadas.
+Até vinte Place IDs/notas podem ser guardados temporariamente para recuperação,
+com filtro de semelhança antes do cálculo; a lista exibida continua até dez.
+O nome exibido virá do Apify quando houver; na ausência, mostrar o perfil ou
+outro identificador disponível, sem persistir o nome fornecido pelo Google.
+O titular esclareceu que cada rodada forma até dez candidatos pela mesma regra a
+partir da nova resposta Google. Negócio reencontrado usa a nota mais recente na
+nova lista, com notas de pesquisas anteriores preservadas no histórico. Se uma
+referência escolhida ficar fora dos dez, o cliente decidirá se a mantém; essa
+jornada ainda não existe no fake. Nesta primeira versão só serão considerados perfis do Instagram;
+um único perfil retornado pelo Apify será usado automaticamente, sem exigir
+confirmação. Com várias opções, usar o principal indicado ou, se não houver, o
+primeiro retornado; o cliente pode informar outro @ se estiverem incorretas. O titular deseja
+analisar via Apify até 20 publicações recentes do feed por perfil, incluindo imagens
+e legendas públicas acessíveis quando disponíveis. Somente padrões extraídos serão
+guardados, sem cópias de posts; acesso parcial será utilizado e identificado como
+tal, e os padrões serão atualizados automaticamente a cada seis meses. Jev destacará até três negócios considerando
+semelhança e nota; a interface mostrará critérios e nota, sem frase livre. Candidatos
+com semelhança incerta ficam fora; não há nota mínima de corte.
+A pesquisa nacional não será oferecida. Negócios sem @ devem ser
+exibidos e o cliente poderá informar o perfil. O @ informado já é uma referência
+escolhida, mas não se deve afirmar que foi verificado. Falha ou limite de acesso
+a perfil público deve ser informado e permitir nova tentativa posteriormente.
+Essas capacidades automáticas ainda não existem no produto real. Os eventos transacionais de
+criação e remoção de referências ficam pendentes na outbox, sem consumidor;
+seu acúmulo deve ser resolvido antes da operação continuada. Places é a fonte da
+busca inicial e Apify é previsto para enriquecimento; custos, acesso,
+correspondência e cobertura ainda precisam de integração. A infraestrutura fake, desligada
+por padrão, exercita via Temporal os raios 5/20/50, a confirmação de uma a três
+fixtures anônimas, pesquisa de raios ainda não usados durante os seis meses,
+troca sem renovação, preservação da
+seleção, compensação de falhas e reconciliação de autor revogado. Isso não cria
+nem valida candidatos reais. Os adapters Google Places multitype e Geocoding estão
+isolados/desativados e ainda não integrados ao produto;
+geocodificação real e confirmação do ponto manual continuam necessárias para
+raio; avaliações não medem engajamento. Um adapter de consulta de perfil via
+Apify também foi preparado isoladamente e permanece desativado, sem integração
+ou guardião real. A indicação de perfil não encontrado, com fonte não comprovada,
+é inconclusiva; o adapter não comprova associação ou análise dos posts. A
+plataforma conserva apenas padrões derivados; não há etapa obrigatória de
+exclusão dos armazenamentos internos do Apify, conforme decisão do titular. Adapters isolados e
+desativados para enriquecimento via Place ID no Apify e para mapeamento de tipos
+fornecidos com Jev não comprovam titularidade, oficialidade da taxonomia ou
+qualidade semântica; precisam de guardiões concretos e integração. Ver
+[simulação](../design/reference-discovery-simulation.md).
+Durante a implementação das fases seguintes, foram preparados o vínculo exato
+do pedido Places e da credencial à intenção e à reserva, o teto compartilhado
+do ensaio, e uma cadeia Google → Jev → filtro e gravação privada exercitada
+somente com HTTP simulado. A reserva do Jev e o lote filtrado têm identidade
+durável, RLS e proteção contra reenvio; até dez posições finais têm armazenamento
+privado sem publicação. Há também contrato puro para projetar aprendizados, sem
+coleta nem conexão à geração. A admissão da pesquisa real, a recomendação de três,
+o Apify, publicação e conciliação permanecem
+pendentes; estas preparações não habilitam provedores nem concluem uma fase real.
+A leitura interna das listas publicadas e seleções foi testada com dois titulares,
+RLS e histórico; ainda não está disponível no produto.
+A admissão privada por localização de dispositivo e os ciclos reais separados
+do fake foram preparados e testados sem despacho. Uma função interna ainda sem
+grant libera o raio se nenhuma intenção de fornecedor existir; outros estados
+conservam o raio até comprovação adequada. A seleção real que inicia os seis
+meses continua sem acesso ao produto.
+O titular confirmou raios 5/20/50 e início manual da próxima busca quando o
+prazo terminar. Referências anteriores fora dos dez exigem decisão apenas no
+início de nova rodada, sem repetir a pergunta para outro raio do mesmo ciclo.
+O próprio negócio será excluído das sugestões, identificado por
+nome e endereço quando houver correspondência clara e com confirmação apenas na
+dúvida. Um comparador conservador foi testado isoladamente; vínculo e integração
+ainda faltam. Empates na décima posição serão resolvidos pelo Jev por
+semelhança; os três destaques combinarão semelhança e nota. Os titulares ativos
+compartilharão as referências. Endereço e coordenadas do próprio negócio devem
+permanecer no cadastro. O aprendizado abrangerá
+tom, temas, formatos e elementos visuais, considerando todas as imagens
+acessíveis dos carrosséis; perfil novo é analisado após confirmação e atualizado
+a cada seis meses.
+Essas regras ainda não estão integralmente implementadas.
+O desempate possui adapter simulado, ainda sem orçamento, prova das candidatas
+e publicação. Na abstenção, usar a ordem da resposta Google; a conclusão de
+semelhança do Jev poderá ser guardada para recuperação sem nova pesquisa.
+Um carregador restrito de contexto confere identidade, evento e versão vigente
+e retorna somente dados necessários em memória; falta conectá-lo à activity.
+Um adapter separado prepara coleta de até 20 publicações de imagem/carrossel do
+feed por perfil usando HTTP simulado. Imagens e legendas retornam apenas em memória;
+análise e conexão com efeitos pagos permanecem pendentes. O titular optou pelo
+fluxo de chamada/resposta sem etapa obrigatória de exclusão no fornecedor; a
+plataforma não persistirá as publicações coletadas.
+O titular escolheu testar pontuação de 0 a 10 baseada em nota e quantidade,
+sem armazenar os campos originais. A restrição anterior de não pontuar menos de
+dez avaliações foi revista: pode-se calcular a partir de uma avaliação; sem
+média ou avaliações disponíveis, o código atual não pontua nem inclui o
+candidato, conforme confirmação do titular.
+O titular confirmou em 03/11 que continuará testando e calibrando a
+segunda fórmula; ela penaliza pouca evidência sem elevar a média e tem peso
+provisório. A descoberta fake
+aplica semelhança predefinida na fixture e grava a nota integral e as versões
+da fórmula e fixture por pesquisa antes da leitura ordenada. Isso não implementa
+avaliação real pelo Jev nem ordenação de candidatos reais.
+Ver [avaliação](../evals/reference-reputation-eval-2026-10-31.md).
+A fórmula final ainda não foi definida e a nota própria ainda não foi integrada
+à descoberta real. Jev deverá eliminar candidatos inadequados antes de
+pontuar os restantes. O titular escolheu limite financeiro por pesquisa, por
+fornecedor e mensal total em UTC; valores e ativação continuam explícitos.
+Política compartilhada, reservas e consumidores de efeitos fictícios foram
+testados isoladamente, com retenção de resultado incerto e sem política ativa
+por padrão. Isso não integra providers reais nem comprova conciliação de fatura;
+parâmetros e identidade reais, chave HMAC versionada e provisionamento restrito
+continuam pendentes. Trocar a chave fictícia com operação pendente interrompe o
+processamento até restaurar a chave anterior, sem liberar uma reserva existente.
+Na [prova pontual Nearby](../evals/google-nearby-order-probe-2026-10-30.md),
+`POPULARITY` não correspondeu simplesmente a ordenar pela contagem quando a nota
+era igual. As reservas Places somam US$ 0,280, sem comprovar fatura; o registro
+da prova não salvou nomes ou respostas brutas.
 Suporte real continua limitado a desenvolvimento/teste e desligado por padrão.
 
 **Preparação de três cenários em 29/10:** foi ligada ao percurso visual uma orientação
@@ -410,10 +610,13 @@ seleção factual ou jornada completa. CI não repetido por orientação do titu
    de feed para caso fictício com e sem skill, mesma foto/kit/acabamento; duas
    chamadas textuais orientaram as cenas. Não usa o worker nem comprova ganho,
    aprovação comercial ou custo por peça aceita. [Evidência](../evals/skills-visual-comparison-2026-10-29.md).
-2. **Pesquisa e referências externas:** estudar e implementar indicação do
-   cliente e descoberta automática de negócios semelhantes em destaque; avaliar
+2. **Pesquisa e referências externas:** completar a descoberta automática de
+   negócios semelhantes em destaque além da indicação manual já implementada; avaliar
    fontes, permissões, métricas e relevância antes de aplicar padrões à geração.
-   Jev é hipótese a avaliar, não provedor escolhido. Referência não autoriza cópia;
+   Jev deve avaliar semelhança e eliminar candidatos inadequados antes de aplicar
+   a pontuação aos restantes e explicar até três recomendações destacadas entre
+   os até dez candidatos exibidos, com fonte e uso permitidos;
+   isso ainda não está implementado e não mede engajamento social. Referência não autoriza cópia;
    seu estudo pode começar após a comparação simulada das skills, sem esperar
    o fechamento integral do gate comercial BL04.3.
 3. **BL04.3:** integrar padrões externos aprovados como referência e avaliar
@@ -428,7 +631,7 @@ seleção factual ou jornada completa. CI não repetido por orientação do titu
 
 As fases, hipóteses e gates de skills e referências estão no
 [plano editorial](../design/skills-e-referencias-editoriais.md). A escolha de
-provedor para pesquisa e a viabilidade das fontes automáticas permanecem abertas;
+viabilidade e os termos das fontes automáticas permanecem abertos;
 o cliente indicar um perfil não substitui a descoberta automática pretendida.
 
 C10, recuperação automática fora do redispatch, limpeza física de PUT incerto e
@@ -445,9 +648,94 @@ encerrar o recorte simulado validado; os demais gates da BL04/provedor real cont
 
 ## BL04.3 — qualidade e economia: pendente
 
-As skills de feed/story devem ser estudadas, comparadas e integradas antes deste
-gate, respeitando as verificações de fonte, acesso e orçamento existentes. O
-trabalho com dados fictícios prepara a avaliação e não comprova aceite comercial.
+### Ponto de retomada — 04/11/2026
+
+**Próximo trabalho: preparar a avaliação BL04.3 em quatro passos abaixo.** A
+implementação local das referências está concluída até 0111, com 4.734 testes e
+100% de linhas/ramos. As skills iniciais de feed/story já estão integradas. O
+piloto de referências comprovou descoberta, escolha, análise e padrões no
+snapshot, mas não gerou nem avaliou uma peça final usando esses aprendizados.
+A nova rodada comparativa de qualidade ainda não foi executada.
+
+O contexto a avaliar reúne pedido, informações do negócio, acervo, kit, skill e
+aprendizados das referências. Referências orientam a criação; fatos, produto,
+local, preço, logo e identidade continuam vindo das fontes do próprio negócio.
+Testes de software aprovados não demonstram ganho criativo ou aceite comercial.
+
+### Quatro passos da avaliação
+
+1. **Conferir os aprendizados extraídos.** Inventariar as referências escolhidas,
+   versões de associação, padrões, datas e cobertura da análise. Conferir se os
+   padrões de tom, temas, formatos e elementos visuais descrevem as evidências
+   acessíveis. Registrar concordâncias, erros e pontos não verificáveis. Não
+   inventar conteúdo para um perfil indisponível nem arquivar suas publicações.
+   Saída: quadro de revisão dos aprendizados aptos a entrar no ensaio.
+2. **Gerar uma comparação controlada com e sem aprendizados.** Preparar casos
+   de feed e story com o mesmo pedido, contexto, acervo, kit, versão da skill,
+   modelos e configurações nos dois braços. A variável do par é a inclusão dos
+   aprendizados, tanto no editorial quanto no visual. Usar fixtures autorizadas
+   e as guardas do produto, sem enfraquecer snapshots ou revalidação de fontes.
+   Registrar inputs versionados, operações, peças e custos de cada tentativa.
+   Uma única amostra por braço é exploratória e não comprova ganho geral.
+   Saída: pares comparáveis de arte e texto, com limites do ensaio explícitos.
+3. **Avaliar as peças lado a lado com o titular.** Revisar no celular identidade,
+   fidelidade ao produto/local, clareza e literalidade do texto, preços, CTA,
+   logo, legibilidade, composição, originalidade e utilidade para o pedido.
+   Registrar preferência, aprovação, rejeição ou necessidade de ajuste, com
+   motivos. Avaliação automática pode auxiliar, mas não substituir esse aceite.
+   Saída: revisão humana por peça e comparação documentada dos dois braços.
+4. **Corrigir os problemas medidos e repetir.** Ajustar briefing, seleção de
+   contexto ou instruções conforme os erros observados, em fatias revisáveis.
+   Reexecutar os casos afetados com versões rastreáveis, preservando tentativas
+   anteriores e registrando rejeições, refações, latência e custo completo por
+   peça aceita. Distinguir reserva, estimativa e custo informado; nunca reenviar
+   uma operação incerta como se fosse uma tentativa nova. Saída: correções
+   validadas e relatório que explicite ganho, regressões e limites encontrados.
+
+### Primeiro trabalho do próximo chat
+
+Ler as instruções dos dois repositórios e inspecionar Git/código, preservando as
+alterações existentes, inclusive as já staged. Começar pelo inventário dos casos,
+aprendizados e executores de avaliação disponíveis; preparar o quadro do passo 1
+e um plano revisável do passo 2 antes de qualquer chamada paga. Não reimplementar
+a feature de referências nem retomar pendências de seus marcos históricos.
+
+O plano deve informar casos, fontes/kit, formatos, quantidade de pares/tentativas,
+modelos/configurações, critérios de aceite e estimativa de gasto. Apresentar as
+escolhas de produto ainda abertas em entrevista, como solicitado pelo titular.
+Conferir autorização e orçamento aplicáveis antes de executar: os US$ 5 do piloto
+Google/Apify/Jev não autorizam esta nova rodada de geração de imagens. Tetos dos
+ensaios antigos não devem ser renovados ou reaproveitados automaticamente.
+Preparação local e documentação podem avançar enquanto essas escolhas são resolvidas.
+
+Reutilizar aprendizados persistidos quando adequados, sem reiniciar ciclos,
+reescrever resultados históricos ou refazer Google/Apify apenas para QA. No piloto,
+a referência sugerida ficou indisponível e a manual tem nove padrões com análise
+parcial; essa distinção deve continuar explícita. Flags persistentes permanecem
+desligadas. O banco local está em 0111; testes de banco continuam exclusivamente
+em bases novas `_test` com roles restritas, sem limpar o banco da aplicação.
+
+Consultar antes de preparar o ensaio:
+
+- [Piloto de referências e seus limites](../evals/reference-feature-pilot-2026-11-04.md).
+- [Comparação editorial/visual anterior](../evals/editorial-copy-visual-after-2026-10-29.md):
+  texto artificial, CTA e preços exigiram atenção; os pares compartilhavam a
+  proposta editorial e variavam apenas o visual, limitando a conclusão.
+- [Tentativa pareada interrompida](../evals/skills-paired-attempt-2026-10-29.md):
+  conservar a operação incerta e sua reserva; não reenviar para iniciar a nova rodada.
+- [Kit de QA Ateliê Aurora](../evals/kit-atelier-aurora-v1/README.md): existe como
+  fixture independente, mas ainda não está no catálogo/executor; não presumir
+  essa integração nem usá-lo como se já estivesse disponível no produto.
+
+Registrar o plano e os resultados em um relatório datado em `docs/evals/`, com
+links aos artefatos privados autorizados, sem credenciais ou publicações das
+referências. Avançar automaticamente entre os quatro passos dentro do escopo e
+orçamento autorizados, avisando ao concluir cada passo. Dúvidas de produto devem
+ser feitas em entrevista. BL05 continua posterior à avaliação BL04.3.
+
+### Critérios de fechamento preservados
+
+O trabalho com dados fictícios prepara a avaliação e não comprova aceite comercial.
 Gerar ao menos um post e um story novos para um caso com fontes autorizadas;
 revisar no celular com titular. Medir identidade, legibilidade, texto literal,
 fidelidade de produto/local, rejeições, retrabalho, todas as tentativas e custo
@@ -513,3 +801,171 @@ cenários, sem substituir os gates de qualidade e aceite.
   WhatsApp e controles individuais de IA foram substituídas. As evidências originais,
   datas, contagens e propostas rejeitadas permanecem no snapshot desta fase e nos
   evals/changelogs; não são pendências de produto a reintroduzir.
+
+## Cadastro de endereço próprio — 04/11
+
+A API autenticada de endereço próprio conserva versões e exige controle de
+concorrência e identidade de operação. Ela estabelece a origem declarada pelo
+titular, sem copiar GPS ou origem de pesquisa. Geocodificação, persistência do ponto
+comprovado e vínculo à identidade da busca permanecem pendentes; nenhuma chamada
+externa foi habilitada. Ver [contrato](../design/business-address.md).
+
+## 04/11/2026 — Classificação prévia de atividade
+
+Taxonomia Google Table A versionada e adapter Jev pré-Google implementados
+com uma requisição, código de tipo fechado e retorno de uso. O vocabulário
+contém 478 códigos e foi conferido em fonte oficial; não usa `restaurant`
+como padrão. Incerteza de categorias não escolhidas não impede um match válido.
+Validação local: 66 testes unitários, 100% linhas/ramos dos dois módulos, Ruff
+e tipagem estrita; sem efeitos pagos. Integração do guard e execução 0106 e
+ensaio semântico real permanecem gates da descoberta completa.
+
+### Fatia0103 — endereço, geocodificação e identidade própria
+
+A API de endereço passou a ter início, consulta e confirmação de geocodificação,
+com relay/Temporal e orçamento persistido. O ponto preciso é aceito automaticamente;
+resultados ambíguos aguardam o titular. O endereço próprio e suas coordenadas
+continuam no cadastro, e a origem manual de busca pode reutilizá-los com o custo
+incluído na mesma pesquisa. O cadastro próprio é obrigatório na admissão real;
+nome/endereço têm vínculo HMAC e são revalidados no carregamento, nos claims da
+busca e na publicação. A validação usa serviços locais e transportes HTTP falsos,
+sem gastar o teto autorizado. Ver [contrato](../design/business-geocoding.md).
+A descoberta completa ainda precisa chamar o loader de identidade e tratar o
+comparador, a ambiguidade, perfis e aprendizado; não declarar a feature concluída
+por causa desta integração de endereço.
+
+## Retomada 04/11 — integração até 0105
+
+Resultados reais e seleção têm rotas autenticadas; publicação privada preserva
+IDs/notas e exige revisão de escolhas ausentes só no início da nova rodada.
+Correção manual de perfil possui versão, replay e auditoria. Endereço/geocodificação
+e identidade própria foram conectados pela 0103. A execução completa Google →
+Jev → Apify → publicação ainda está em integração, não concluída.
+
+O custo por pesquisa agrega titulares; run Apify persistido permite consultar a
+mesma coleta e reconciliar seu custo terminal sem novo POST. Adapter Compass
+usa contrato oficial, build explícita e limite por execução. Os testes dirigidos
+passaram; a suíte integral inicial terminou com 3.993 aprovados, duas falhas e
+99,38% de cobertura, em correção. Falta validar a árvore final, conectar análise
+de publicações/atualização semestral e aprendizados à criação, e executar o ensaio
+fictício autorizado de até US$ 5 quando as credenciais locais estiverem disponíveis.
+
+### Transporte real de feed, 04/11
+
+Adapter Instagram e downloader de imagens preparados para o executor, com
+network opt-in e controles de custo/identidade/limites. 357 unitários passaram
+com 100% dos cinco módulos, Ruff e mypy aprovados. Publicações continuam apenas
+em memória. Persistência de aprendizados, agenda Temporal semestral e uso na
+criação ainda estão em implementação. Google vazio terá ampliação automática
+5 → 20 → 50; ausência nos três permite nova tentativa sem iniciar seis meses, conforme
+entrevista. A integração completa dessa ampliação permanece pendente.
+
+### Configuração do piloto de referências, 04/11
+
+O script `scripts/configure_reference_pilot.py` prepara a política local e o
+piloto acumulado de US$ 5, sem zerar consumo ou habilitar fornecedores. Plano
+por padrão; aplicação exige banco local/admin separado e preserva configurações
+divergentes. 14 unitários e três testes SQL aprovados; execução real ainda pendente. Ver
+[operação](../design/reference-pilot-operations.md).
+
+## Revisão do baseline — 04/11/2026
+
+A [retomada do CI](../evals/ci-resume-2026-11-04.md) identificou código morto
+após C17/C18. Criação local permanece recusada, com auditoria/fence do job
+legado e leitura privada histórica preservados. Geração editorial mantém o
+percurso obrigatório de catálogo/skill e trace, sem alternativa sem skill
+inacessível. Prova de role aceita o login restrito efetivamente configurado;
+Temporal conserva timeout de 45s e diagnóstico apenas de estados/códigos.
+3.555 testes relacionados passaram; o gate integral de 100% segue pendente.
+
+### Banco local e leitura de referências, 04/11
+
+Banco de desenvolvimento atualizado de 0099 para 0105 após backup privado
+`.local/backups/pre-reference-20261104-111303-372421.dump`, com índice do arquivo
+validado pelo pg_restore da mesma versão. A leitura de referências do negócio
+informado passou usando runtime restrito e autorização de titular ativo. Isso
+valida o serviço/banco; a sessão autenticada do navegador ainda não foi repetida.
+O banco da aplicação não foi usado como banco de testes.
+
+### Análise estruturada de publicações, 04/11
+
+O adapter Jev aceita legenda e/ou imagem em memória e devolve apenas códigos
+de um vocabulário próprio. A agregação gera até nove padrões gerais de tom, temas,
+formatos e elementos visuais, sem conteúdo das publicações. 65 testes passaram
+com 100% de linhas e branches nos dois módulos novos; Ruff e mypy aprovados.
+Persistência, agenda de seis meses e uso no gerador permanecem em integração.
+O teto local acumulado de US$ 5 foi configurado; flags persistentes continuam
+desligadas e não houve chamadas pagas nesta retomada.
+
+### Fatia 0107 — identidade própria e busca vazia
+
+Implementados: conclusão de identidade atômica com a evidência sanitizada; revisão compartilhada por titulares; exclusão antes do ranking/publicação; ampliação automática de respostas Google vazias; orçamento agregado por família; cache entre raios; resultado vazio terminal e retry sem iniciar ciclo não confirmado; histórico preservado. Estado canônico de família inclui a busca atual, sem inferência da UI.
+
+Validação local usa PostgreSQL exclusivo `_test`, logins restritos e fornecedores simulados. Upgrade/downgrade vazio foi exercitado. Testes cobrem confirmação por segundo titular, rejeição de viewer/revogado, rollback atômico, exclusão antes do ranking, cadeia 5/20/50, limite financeiro da cadeia e replay depois de liberar o head. A entrega final continua condicionada à integração Temporal completa, análise de publicações/agenda e CI integral; esta fatia não demonstra chamada paga real.
+
+Validação concluída da fatia: oito integrações e 45 unitários aprovados; 100% de cobertura em 149 linhas/30 ramos dos cinco módulos, mypy e Ruff. Roundtrip vazio 0107 → 0106 → 0107 aprovado. Cache compartilhado mantém dados históricos sem expor tokens.
+
+### Execução integrada da descoberta, 04/11
+
+0106+0107 conectam admissão, Temporal, Google, Jev, Apify e publicação sob o
+ledger existente. A API recebe operação e carrega contexto/raio do servidor;
+retomada comprovada do Apify não repete Google/Jev. A tela usa o estado canônico
+da família de raios. Flags persistentes continuam desligadas. A validação dirigida
+passou em 57 testes, incluindo 17 integrações, com cobertura integral dos módulos
+novos de execução; adapters e wiring passaram nos recortes próprios. CI integral
+e ensaio pago permanecem pendentes. Veja docs/design/reference-discovery-execution.md.
+
+
+### Referências escolhidas na geração — fatia 0110
+
+Novas propostas capturam a seleção canônica e os aprendizados da versão exata
+do perfil em `reference_generation_snapshot`, separado do histórico manual.
+Briefing editorial e peça visual usam a mesma cópia imutável. Ausência de análise
+e cobertura parcial permanecem explícitas; notas internas e semelhança orientam
+a seleção e não autorizam afirmações comerciais. Posts, legendas e imagens de
+terceiros não são armazenados nem enviados como referências visuais.
+
+Retirada ou troca de perfil bloqueia novo efeito que utilizaria a associação
+antiga; uma alteração durante o efeito impede aceitar o resultado editorial.
+A revalidação não substitui a cópia histórica. Prévias concluídas e traces
+continuam acessíveis pelas regras existentes. Propostas legadas com coluna
+nula conservam o fingerprint e o significado de suas indicações manuais.
+Não há truncamento silencioso a32 referências; o limite de tamanho do pedido
+editorial continua sendo conferido antes da reserva.
+
+Contrato e validação em [integração de referências na geração](../design/reference-generation-context.md).
+177 testes unitários e 13 casos PostgreSQL passaram nos recortes desta fatia,
+incluindo leitura 0108 e geração visual com HTTP simulado. A agenda completa e
+o CI integral continuam pendentes; essas provas não demonstram qualidade comercial.
+
+### 0108 — seleção, persistência e atualização dos aprendizados
+
+A análise passa a ter associação de perfil, janela e evento duráveis derivados
+da seleção real. Perfis manuais e sugeridos escolhidos usam a mesma autoridade;
+correções de candidatos não selecionados não coletam publicações. Remover ou
+trocar o perfil invalida a janela anterior antes de outro efeito. A agenda
+semestral deriva do aceite, e resultados mantêm somente padrões próprios
+comprovados, nome oportunista Apify e metadados. Captura/revalidação para geração
+e leitura de status não confundem perfil escolhido com análise concluída.
+As provas locais usam PostgreSQL isolado, roles restritas e fornecedores simulados.
+Integração do executor, snapshot editorial/visual e tela vem nas fatias adjacentes;
+ensaio real controlado e qualidade comercial continuam gates próprios.
+
+### Aprendizados das referências na API e na jornada, 04/11
+
+O GET autenticado `reference-learnings` entrega somente os estados, datas e
+padrões persistidos para as referências escolhidas e sua associação vigente.
+Titulares ativos compartilham essa leitura; viewer, outro tenant e sessão ausente
+são rejeitados. A consulta não inicia efeitos nem altera a agenda. Quando o feed
+já obtido forneceu um nome válido, a tela o apresenta junto ao @; na ausência,
+continua usando o perfil. Não há nova chamada para obter nome.
+
+O painel distingue espera, execução, indisponibilidade, análise concluída/parcial
+e atualização programada. Seleção, correção do @ e referências próprias
+invalidam a leitura. Não afirma sucesso enquanto os padrões não estão salvos.
+16 testes unitários passaram com 100% de linhas/branches dos três módulos de
+leitura; dois testes HTTP/PostgreSQL passaram com runtime restrito e provaram
+isolamento e ausência de novas reservas, resultados, eventos ou auditorias no
+GET. Mypy e Ruff passaram. A web passou em 100 testes focados/100% das quatro
+métricas e em Chromium 390/1440px com fixtures locais. CI integral combinado e
+ensaio externo controlado continuam como gates da entrega completa.

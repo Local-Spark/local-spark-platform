@@ -2,6 +2,7 @@
 
 import json
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -11,7 +12,7 @@ from pydantic import SecretStr
 from sqlalchemy import text
 
 from app.db.session import Database
-from app.schemas.content_deliveries import ContentDecision
+from app.schemas.content_deliveries import ContentDecision, VisualReviewConfirmation
 from app.schemas.media_previews import PreviewRequest
 from app.services.auth import AuthError
 from app.services.content_deliveries import (
@@ -28,14 +29,16 @@ from app.services.media_dispatch import claim_previews
 from app.services.media_previews import MediaPreviewService
 from app.services.whatsapp_ingest import sender_hash
 from app.services.whatsapp_materials import WhatsAppMaterialsService
+from app.tests.integration.test_business_collection import Store
 from app.tests.integration.test_media_previews import _accepted_case
+from app.tests.integration.test_visual_admission import _ready
 from app.tests.unit.test_core import access_token
 from app.workflows.content_activities import ContentCandidateActivities
 
 pytestmark = pytest.mark.integration
 
 
-async def _candidate_case(admin, seeded, settings):
+async def _candidate_case(admin, seeded, settings, *, need_preview=True):
     tenant, business, actor, _, proposal, _ = await _accepted_case(admin, seeded)
     key = Fernet.generate_key()
     cfg = settings.model_copy(update={"meta_encryption_key": SecretStr(key.decode())})
@@ -81,6 +84,8 @@ async def _candidate_case(admin, seeded, settings):
             },
         )
     app_db, worker_db = Database(cfg), Database(cfg, correlator=True)
+    if not need_preview:
+        return cfg, app_db, worker_db, tenant, business, actor, proposal, event, None
     preview = await MediaPreviewService(cfg, app_db).request_candidate(
         tenant, business, actor, PreviewRequest(operation_id=uuid4(), proposal_id=proposal)
     )
@@ -89,12 +94,82 @@ async def _candidate_case(admin, seeded, settings):
     return cfg, app_db, worker_db, tenant, business, actor, proposal, event, preview.id
 
 
-async def test_candidate_approval_replay_fake_publish_and_rls(admin, seeded, settings, api):
-    cfg, app_db, worker_db, tenant, business, actor, proposal, event, preview = await _candidate_case(
-        admin, seeded, settings
+async def _visual_candidate_case(admin, seeded, settings, database, *, render_preview=True):
+    """Prepare an admitted candidate and optionally render it without external providers."""
+    tenant, business, actor, _, admission = await _ready(admin, database, seeded, settings)
+    cfg = admission.settings.model_copy(
+        update={
+            "visual_ai_reservation_usd_micros": 70,
+            "visual_ai_monthly_budget_usd_micros": 100,
+            "visual_ai_global_monthly_budget_usd_micros": 100,
+        }
+    )
+    app_db, worker_db = Database(cfg), Database(cfg, correlator=True)
+    store = Store()
+    try:
+        async with admin.begin() as conn:
+            event = await conn.scalar(
+                text("SELECT source_asset_id FROM editorial_proposals WHERE id=:id"), {"id": admission.proposal}
+            )
+            sender = sender_hash(cfg, "+5511999999999")
+            await conn.execute(
+                text("UPDATE business_profiles SET phone_verified=true WHERE tenant_id=:t AND business_id=:b"),
+                {"t": tenant, "b": business},
+            )
+            await conn.execute(
+                text("UPDATE whatsapp_channel_links SET sender_hash=:sender WHERE tenant_id=:t AND business_id=:b"),
+                {"sender": sender, "t": tenant, "b": business},
+            )
+            await conn.execute(
+                text("UPDATE whatsapp_material_events SET sender_hash=:sender,ciphertext=:cipher WHERE id=:id"),
+                {
+                    "sender": sender,
+                    "id": event,
+                    "cipher": Fernet(cfg.meta_encryption_key.get_secret_value().encode())
+                    .encrypt(
+                        json.dumps(
+                            {"from": "5511999999999", "type": "text", "text": {"body": "Crie uma imagem do croissant"}}
+                        ).encode()
+                    )
+                    .decode(),
+                },
+            )
+            await conn.execute(
+                text("""INSERT INTO business_context_heads(tenant_id,business_id,version)
+                  VALUES(:t,:b,0) ON CONFLICT(tenant_id,business_id) DO NOTHING"""),
+                {"t": tenant, "b": business},
+            )
+        if not render_preview:
+            return cfg, app_db, worker_db, tenant, business, actor, admission.proposal, event, None, None
+        request = PreviewRequest(operation_id=uuid4(), proposal_id=admission.proposal, generation_mode="visual_fake")
+        preview = await MediaPreviewService(cfg, app_db, store).request_candidate(tenant, business, actor, request)
+        claim = (await claim_previews(worker_db, uuid4(), visual_enabled=True))[0]
+        assert await MediaPreviewService(cfg, worker_db, store, app_db).render(claim.id, claim.fence) == "completed"
+        assert preview.generation_mode == "visual_fake"
+        async with admin.connect() as conn:
+            sha = await conn.scalar(text("SELECT sha256 FROM media_previews WHERE id=:id"), {"id": preview.id})
+        return cfg, app_db, worker_db, tenant, business, actor, admission.proposal, event, preview.id, sha
+    except BaseException:
+        await worker_db.close()
+        await app_db.close()
+        raise
+
+
+def _review(sha):
+    return VisualReviewConfirmation(
+        preview_sha256=sha, price_and_terms=True, spelling=True, identity=True, fidelity=True, legibility=True
+    )
+
+
+async def test_candidate_approval_replay_fake_publish_and_rls(admin, seeded, settings, api, database, monkeypatch):
+    from app.api.v1 import content_deliveries as routes
+
+    cfg, app_db, worker_db, tenant, business, actor, _, event, preview, sha = await _visual_candidate_case(
+        admin, seeded, settings, database
     )
     try:
         service = ContentDeliveryService(cfg, app_db, worker_db)
+        monkeypatch.setattr(routes, "service", lambda _request: service)
         delivery = await service.record(event, preview)
         assert delivery == await service.record(event, preview)
         assert delivery is not None
@@ -104,7 +179,11 @@ async def test_candidate_approval_replay_fake_publish_and_rls(admin, seeded, set
         assert (await api.get(path, headers=viewer)).status_code == 403
         assert (await api.get(path, headers=owner)).json()[0]["id"] == str(delivery)
         assert await claim_publications(worker_db, uuid4()) == []
-        decision = ContentDecision(operation_id=uuid4(), decision="approve")
+        decision = ContentDecision(
+            operation_id=uuid4(),
+            decision="approve",
+            visual_review=_review(sha),
+        )
         async with admin.begin() as conn:
             await conn.execute(
                 text("UPDATE memberships SET role='owner' WHERE tenant_id=:t AND actor_id=:a"),
@@ -113,6 +192,14 @@ async def test_candidate_approval_replay_fake_publish_and_rls(admin, seeded, set
         denied = await api.post(f"{path}/{delivery}/decision", headers=viewer, json=decision.model_dump(mode="json"))
         assert denied.status_code == 403
         assert denied.json()["error_code"] == "CANDIDATE_OWNER_MISMATCH"
+        missing_review = await api.post(
+            f"{path}/{delivery}/decision",
+            headers=owner,
+            json=ContentDecision(operation_id=uuid4(), decision="approve").model_dump(mode="json"),
+        )
+        assert missing_review.status_code == 409
+        assert missing_review.json()["error_code"] == "VISUAL_REVIEW_REQUIRED"
+        assert await claim_publications(worker_db, uuid4()) == []
         accepted = await api.post(f"{path}/{delivery}/decision", headers=owner, json=decision.model_dump(mode="json"))
         assert accepted.status_code == 200, accepted.text
         first = accepted.json()
@@ -140,9 +227,9 @@ async def test_candidate_approval_replay_fake_publish_and_rls(admin, seeded, set
         await app_db.close()
 
 
-async def test_changed_context_blocks_approval_and_unapproved_never_publishes(admin, seeded, settings):
-    cfg, app_db, worker_db, tenant, business, actor, proposal, event, preview = await _candidate_case(
-        admin, seeded, settings
+async def test_changed_context_blocks_approval_and_unapproved_never_publishes(admin, seeded, settings, database):
+    cfg, app_db, worker_db, tenant, business, actor, _, event, preview, sha = await _visual_candidate_case(
+        admin, seeded, settings, database
     )
     try:
         service = ContentDeliveryService(cfg, app_db, worker_db)
@@ -156,7 +243,11 @@ async def test_changed_context_blocks_approval_and_unapproved_never_publishes(ad
             )
         with pytest.raises(AuthError):
             await service.decide(
-                tenant, business, actor, delivery, ContentDecision(operation_id=uuid4(), decision="approve")
+                tenant,
+                business,
+                actor,
+                delivery,
+                ContentDecision(operation_id=uuid4(), decision="approve", visual_review=_review(sha)),
             )
         assert await claim_publications(worker_db, uuid4()) == []
         assert await reconcile_publications(worker_db) == 0
@@ -165,20 +256,25 @@ async def test_changed_context_blocks_approval_and_unapproved_never_publishes(ad
         await app_db.close()
 
 
-async def test_processed_text_creates_candidate_without_manual_script_acceptance(admin, seeded, settings):
-    cfg, app_db, worker_db, tenant, business, actor, _, event, _ = await _candidate_case(admin, seeded, settings)
+async def test_processed_text_creates_candidate_without_manual_script_acceptance(admin, seeded, settings, database):
+    cfg, app_db, worker_db, tenant, business, actor, prepared, event, _, _ = await _visual_candidate_case(
+        admin, seeded, settings, database, render_preview=False
+    )
     try:
-        activities = ContentCandidateActivities(cfg, app_db, worker_db)
+        interpreter = SimpleNamespace(interpret=AsyncMock())
+        activities = ContentCandidateActivities(cfg, app_db, worker_db, interpreter=interpreter)
         proposal_id = await activities.request_candidate_proposal(str(event))
+        assert proposal_id == str(prepared)
         assert proposal_id == await activities.request_candidate_proposal(str(event))
-        claim = (await claim_proposals(worker_db, uuid4()))[0]
-        assert await EditorialProposalService(cfg, worker_db).run(claim.id) == "completed"
+        interpreter.interpret.assert_not_awaited()
         assert await activities.candidate_proposal_state(proposal_id) == "completed"
         preview_id = await activities.request_candidate_preview([str(event), proposal_id])
         assert preview_id == await activities.request_candidate_preview([str(event), proposal_id])
         assert await activities.candidate_preview_state(preview_id) == "pending"
-        render_claim = (await claim_previews(worker_db, uuid4()))[0]
-        rendered = await MediaPreviewService(cfg, worker_db, AsyncMock()).render(render_claim.id, render_claim.fence)
+        render_claim = (await claim_previews(worker_db, uuid4(), visual_enabled=True))[0]
+        rendered = await MediaPreviewService(cfg, worker_db, Store(), app_db).render(
+            render_claim.id, render_claim.fence
+        )
         assert rendered == "completed"
         assert await activities.deliver_candidate_preview([str(event), preview_id]) == "candidate_delivered"
         assert await activities.deliver_candidate_preview([str(event), preview_id]) == "candidate_delivered"
@@ -196,7 +292,9 @@ async def test_processed_text_creates_candidate_without_manual_script_acceptance
 
 
 async def test_without_confirmed_fact_asks_for_clarification(admin, seeded, settings):
-    cfg, app_db, worker_db, tenant, business, actor, _, event, _ = await _candidate_case(admin, seeded, settings)
+    cfg, app_db, worker_db, tenant, business, actor, _, event, _ = await _candidate_case(
+        admin, seeded, settings, need_preview=False
+    )
     try:
         async with admin.begin() as conn:
             await conn.execute(
@@ -220,7 +318,9 @@ async def test_without_confirmed_fact_asks_for_clarification(admin, seeded, sett
 
 
 async def test_ambiguous_briefing_records_one_simulated_clarification(admin, seeded, settings):
-    cfg, app_db, worker_db, tenant, business, actor, _, event, _ = await _candidate_case(admin, seeded, settings)
+    cfg, app_db, worker_db, tenant, business, actor, _, event, _ = await _candidate_case(
+        admin, seeded, settings, need_preview=False
+    )
     try:
         activities = ContentCandidateActivities(cfg, app_db, worker_db)
         assert await activities.deliver_briefing_clarification(str(event)) == "clarification_delivered"
@@ -234,13 +334,18 @@ async def test_ambiguous_briefing_records_one_simulated_clarification(admin, see
         assert provider_id.startswith("fake-whatsapp/")
         assert "quer divulgar" in deliveries[0].message_body
         assert deliveries[0].preview_id is None
+        assert await claim_publications(worker_db, uuid4()) == []
+        async with admin.connect() as conn:
+            assert await conn.scalar(text("SELECT count(*) FROM media_previews")) == 0
     finally:
         await worker_db.close()
         await app_db.close()
 
 
-async def test_command_requires_one_live_candidate_and_changes_are_not_published(admin, seeded, settings):
-    cfg, app_db, worker_db, tenant, business, actor, _, event, preview = await _candidate_case(admin, seeded, settings)
+async def test_command_requires_one_live_candidate_and_changes_are_not_published(admin, seeded, settings, database):
+    cfg, app_db, worker_db, tenant, business, actor, _, event, preview, _ = await _visual_candidate_case(
+        admin, seeded, settings, database
+    )
     try:
         service = ContentDeliveryService(cfg, app_db, worker_db)
         delivery = await service.record(event, preview)
@@ -266,14 +371,16 @@ async def test_command_requires_one_live_candidate_and_changes_are_not_published
         await app_db.close()
 
 
-async def test_decision_rejects_missing_expired_changed_preview_and_late_schedule(admin, seeded, settings):
-    cfg, app_db, worker_db, tenant, business, actor, _, event, preview = await _candidate_case(admin, seeded, settings)
+async def test_decision_rejects_missing_expired_changed_preview_and_late_schedule(admin, seeded, settings, database):
+    cfg, app_db, worker_db, tenant, business, actor, _, event, preview, sha = await _visual_candidate_case(
+        admin, seeded, settings, database
+    )
     try:
         service = ContentDeliveryService(cfg, app_db, worker_db)
         assert await service.record(uuid4(), preview) is None
         delivery = await service.record(event, preview)
         assert delivery is not None
-        approve = ContentDecision(operation_id=uuid4(), decision="approve")
+        approve = ContentDecision(operation_id=uuid4(), decision="approve", visual_review=_review(sha))
         with pytest.raises(AuthError) as missing:
             await service.decide(tenant, business, actor, uuid4(), approve)
         assert missing.value.code == "CANDIDATE_NOT_FOUND"
@@ -313,7 +420,10 @@ async def test_decision_rejects_missing_expired_changed_preview_and_late_schedul
                 actor,
                 delivery,
                 ContentDecision(
-                    operation_id=uuid4(), decision="approve", scheduled_at=datetime.now(UTC) + timedelta(days=8)
+                    operation_id=uuid4(),
+                    decision="approve",
+                    scheduled_at=datetime.now(UTC) + timedelta(days=8),
+                    visual_review=_review(sha),
                 ),
             )
         assert schedule.value.code == "CANDIDATE_SCHEDULE_INVALID"
@@ -322,14 +432,20 @@ async def test_decision_rejects_missing_expired_changed_preview_and_late_schedul
         await app_db.close()
 
 
-async def test_dispatch_failure_is_retryable_and_stale_handoff_becomes_unknown(admin, seeded, settings):
-    cfg, app_db, worker_db, tenant, business, actor, _, event, preview = await _candidate_case(admin, seeded, settings)
+async def test_dispatch_failure_is_retryable_and_stale_handoff_becomes_unknown(admin, seeded, settings, database):
+    cfg, app_db, worker_db, tenant, business, actor, _, event, preview, sha = await _visual_candidate_case(
+        admin, seeded, settings, database
+    )
     try:
         service = ContentDeliveryService(cfg, app_db, worker_db)
         delivery = await service.record(event, preview)
         assert delivery is not None
         await service.decide(
-            tenant, business, actor, delivery, ContentDecision(operation_id=uuid4(), decision="approve")
+            tenant,
+            business,
+            actor,
+            delivery,
+            ContentDecision(operation_id=uuid4(), decision="approve", visual_review=_review(sha)),
         )
         claim = (await claim_publications(worker_db, uuid4()))[0]
         await finish_publication_dispatch(worker_db, *claim, accepted=False)
@@ -349,14 +465,20 @@ async def test_dispatch_failure_is_retryable_and_stale_handoff_becomes_unknown(a
         await app_db.close()
 
 
-async def test_publication_blocks_invalidated_candidate(admin, seeded, settings):
-    cfg, app_db, worker_db, tenant, business, actor, _, event, preview = await _candidate_case(admin, seeded, settings)
+async def test_publication_blocks_invalidated_candidate(admin, seeded, settings, database):
+    cfg, app_db, worker_db, tenant, business, actor, _, event, preview, sha = await _visual_candidate_case(
+        admin, seeded, settings, database
+    )
     try:
         service = ContentDeliveryService(cfg, app_db, worker_db)
         delivery = await service.record(event, preview)
         assert delivery is not None
         await service.decide(
-            tenant, business, actor, delivery, ContentDecision(operation_id=uuid4(), decision="approve")
+            tenant,
+            business,
+            actor,
+            delivery,
+            ContentDecision(operation_id=uuid4(), decision="approve", visual_review=_review(sha)),
         )
         claim = (await claim_publications(worker_db, uuid4()))[0]
         async with admin.begin() as conn:
@@ -374,12 +496,15 @@ async def test_publication_blocks_invalidated_candidate(admin, seeded, settings)
         await app_db.close()
 
 
-async def test_candidate_guards_and_quoted_whatsapp_commands(admin, seeded, settings, monkeypatch):
-    cfg, app_db, worker_db, tenant, business, actor, _, event, preview = await _candidate_case(admin, seeded, settings)
+async def test_candidate_guards_and_quoted_whatsapp_commands(admin, seeded, settings, database, monkeypatch):
+    cfg, app_db, worker_db, tenant, business, actor, _, event, preview, original_sha = await _visual_candidate_case(
+        admin, seeded, settings, database
+    )
     try:
         service = ContentDeliveryService(cfg, app_db, worker_db)
         async with admin.begin() as conn:
             sha = await conn.scalar(text("SELECT sha256 FROM media_previews WHERE id=:id"), {"id": preview})
+            assert sha == original_sha
             await conn.execute(text("UPDATE media_previews SET sha256=NULL WHERE id=:id"), {"id": preview})
         assert await service.record(event, preview) is None
         async with admin.begin() as conn:
@@ -399,12 +524,12 @@ async def test_candidate_guards_and_quoted_whatsapp_commands(admin, seeded, sett
             command_event,
             {"text": {"body": "Aprovar"}, "context": {"id": f"fake-whatsapp/{delivery}"}},
         )
-        assert (await service.list(tenant, business, actor))[0].decision_state == "approved"
+        assert (await service.list(tenant, business, actor))[0].decision_state == "pending"
+        assert await claim_publications(worker_db, uuid4()) == []
         assert await apply_candidate_command(cfg, app_db, worker_db, command_event, {"text": {"body": "Aprovar"}})
+        assert (await service.list(tenant, business, actor))[0].decision_state == "pending"
+        assert await claim_publications(worker_db, uuid4()) == []
         async with admin.begin() as conn:
-            await conn.execute(
-                text("UPDATE content_deliveries SET decision_state='pending' WHERE id=:id"), {"id": delivery}
-            )
             await conn.execute(
                 text("UPDATE business_context_heads SET version=version+1 WHERE tenant_id=:t AND business_id=:b"),
                 {"t": tenant, "b": business},
@@ -412,6 +537,8 @@ async def test_candidate_guards_and_quoted_whatsapp_commands(admin, seeded, sett
         assert await apply_candidate_command(
             cfg, app_db, worker_db, {**command_event, "id": uuid4()}, {"text": {"body": "Aprovar"}}
         )
+        assert (await service.list(tenant, business, actor))[0].decision_state == "pending"
+        assert await claim_publications(worker_db, uuid4()) == []
         async with admin.begin() as conn:
             await conn.execute(
                 text("UPDATE memberships SET role='owner' WHERE tenant_id=:t AND actor_id=:a"),
@@ -436,17 +563,18 @@ async def test_candidate_guards_and_quoted_whatsapp_commands(admin, seeded, sett
         await app_db.close()
 
 
-async def test_edited_render_and_expired_handoff_never_publish(admin, seeded, settings):
-    cfg, app_db, worker_db, tenant, business, actor, _, event, preview = await _candidate_case(admin, seeded, settings)
+async def test_edited_render_and_expired_handoff_never_publish(admin, seeded, settings, database):
+    cfg, app_db, worker_db, tenant, business, actor, _, event, preview, sha = await _visual_candidate_case(
+        admin, seeded, settings, database
+    )
     try:
         service = ContentDeliveryService(cfg, app_db, worker_db)
         delivery = await service.record(event, preview)
         assert delivery is not None
         async with admin.begin() as conn:
-            render_key = await conn.scalar(text("SELECT render_key FROM media_previews WHERE id=:id"), {"id": preview})
             await conn.execute(
-                text("UPDATE media_previews SET render_key=:key WHERE id=:id"),
-                {"id": preview, "key": "0" * 64},
+                text("UPDATE media_previews SET sha256=:sha WHERE id=:id"),
+                {"id": preview, "sha": "0" * 64},
             )
         with pytest.raises(AuthError) as invalid:
             await service.decide(
@@ -454,16 +582,21 @@ async def test_edited_render_and_expired_handoff_never_publish(admin, seeded, se
                 business,
                 actor,
                 delivery,
-                ContentDecision(operation_id=uuid4(), decision="approve"),
+                ContentDecision(operation_id=uuid4(), decision="approve", visual_review=_review(sha)),
             )
-        assert invalid.value.code == "CANDIDATE_INVALID"
+        assert invalid.value.code == "VISUAL_REVIEW_MISMATCH"
+        assert await claim_publications(worker_db, uuid4()) == []
         async with admin.begin() as conn:
             await conn.execute(
-                text("UPDATE media_previews SET render_key=:key WHERE id=:id"),
-                {"id": preview, "key": render_key},
+                text("UPDATE media_previews SET sha256=:sha WHERE id=:id"),
+                {"id": preview, "sha": sha},
             )
         await service.decide(
-            tenant, business, actor, delivery, ContentDecision(operation_id=uuid4(), decision="approve")
+            tenant,
+            business,
+            actor,
+            delivery,
+            ContentDecision(operation_id=uuid4(), decision="approve", visual_review=_review(sha)),
         )
         claim = (await claim_publications(worker_db, uuid4()))[0]
         async with admin.begin() as conn:
@@ -477,8 +610,38 @@ async def test_edited_render_and_expired_handoff_never_publish(admin, seeded, se
         await app_db.close()
 
 
-async def test_queued_event_uses_new_active_number_as_recipient(admin, seeded, settings):
-    cfg, app_db, worker_db, tenant, business, actor, _, event, preview = await _candidate_case(admin, seeded, settings)
+async def test_changed_reviewed_image_never_publishes(admin, seeded, settings, database):
+    cfg, app_db, worker_db, tenant, business, actor, _, event, preview, sha = await _visual_candidate_case(
+        admin, seeded, settings, database
+    )
+    try:
+        service = ContentDeliveryService(cfg, app_db, worker_db)
+        delivery = await service.record(event, preview)
+        assert delivery is not None
+        await service.decide(
+            tenant,
+            business,
+            actor,
+            delivery,
+            ContentDecision(operation_id=uuid4(), decision="approve", visual_review=_review(sha)),
+        )
+        claim = (await claim_publications(worker_db, uuid4()))[0]
+        async with admin.begin() as conn:
+            await conn.execute(
+                text("UPDATE media_previews SET sha256=:sha WHERE id=:id"),
+                {"id": preview, "sha": "0" * 64},
+            )
+        assert await publish_fake(cfg, app_db, worker_db, *claim) == "failed"
+        assert (await service.list(tenant, business, actor))[0].publish_state == "failed"
+    finally:
+        await worker_db.close()
+        await app_db.close()
+
+
+async def test_queued_event_uses_new_active_number_as_recipient(admin, seeded, settings, database):
+    cfg, app_db, worker_db, tenant, business, actor, _, event, preview, _ = await _visual_candidate_case(
+        admin, seeded, settings, database
+    )
     new_number = "+5511888888888"
     try:
         async with admin.begin() as conn:
@@ -517,16 +680,33 @@ async def test_queued_event_uses_new_active_number_as_recipient(admin, seeded, s
         await app_db.close()
 
 
-async def test_associated_material_processes_while_number_is_being_changed(admin, seeded, settings):
+async def test_associated_material_processes_while_number_is_being_changed(admin, seeded, settings, database):
     from app.services.whatsapp_processing import MaterialProcessor
 
-    cfg, app_db, worker_db, tenant, business, actor, _, event, preview = await _candidate_case(admin, seeded, settings)
+    cfg, app_db, worker_db, tenant, business, actor, _, _, preview, _ = await _visual_candidate_case(
+        admin, seeded, settings, database
+    )
     new_number = "+5511888888888"
+    event = uuid4()
     try:
         async with admin.begin() as conn:
-            await conn.execute(text("DELETE FROM whatsapp_material_assets WHERE id=:id"), {"id": event})
             await conn.execute(
-                text("UPDATE whatsapp_material_events SET state='pending',expires_at=NULL WHERE id=:id"), {"id": event}
+                text("""INSERT INTO whatsapp_material_events
+                  (id,tenant_id,business_id,kind,ciphertext,sender_hash,state,expires_at)
+                  VALUES(:id,:t,:b,'text',:cipher,:sender,'pending',NULL)"""),
+                {
+                    "id": event,
+                    "t": tenant,
+                    "b": business,
+                    "sender": sender_hash(cfg, "+5511999999999"),
+                    "cipher": Fernet(cfg.meta_encryption_key.get_secret_value().encode())
+                    .encrypt(
+                        json.dumps(
+                            {"from": "5511999999999", "type": "text", "text": {"body": "Crie uma imagem do croissant"}}
+                        ).encode()
+                    )
+                    .decode(),
+                },
             )
             await conn.execute(
                 text("UPDATE whatsapp_channel_links SET active=false WHERE tenant_id=:t AND business_id=:b"),
@@ -574,13 +754,15 @@ async def test_associated_material_processes_while_number_is_being_changed(admin
         await app_db.close()
 
 
-async def test_photo_finishes_when_number_changes_during_fetch(admin, seeded, settings):
+async def test_photo_finishes_when_number_changes_during_fetch(admin, seeded, settings, database):
     import hashlib
 
     from app.adapters.material_media import FetchedMedia
     from app.services.whatsapp_processing import MaterialProcessor
 
-    cfg, app_db, worker_db, tenant, business, actor, _, event, _ = await _candidate_case(admin, seeded, settings)
+    cfg, app_db, worker_db, tenant, business, actor, _, event, _, _ = await _visual_candidate_case(
+        admin, seeded, settings, database
+    )
     try:
         encrypted = (
             Fernet(cfg.meta_encryption_key.get_secret_value().encode())
@@ -622,8 +804,10 @@ async def test_photo_finishes_when_number_changes_during_fetch(admin, seeded, se
         await app_db.close()
 
 
-async def test_offline_delivery_wait_stops_when_existing_preview_expires(admin, seeded, settings):
-    cfg, app_db, worker_db, tenant, business, _, _, event, preview = await _candidate_case(admin, seeded, settings)
+async def test_offline_delivery_wait_stops_when_existing_preview_expires(admin, seeded, settings, database):
+    cfg, app_db, worker_db, tenant, business, _, _, event, preview, _ = await _visual_candidate_case(
+        admin, seeded, settings, database
+    )
     try:
         async with admin.begin() as conn:
             await conn.execute(text("UPDATE whatsapp_material_events SET expires_at=NULL WHERE id=:id"), {"id": event})

@@ -10,11 +10,16 @@ from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging
 from app.db.session import Database
 from app.services.audio_transcription import AudioTranscriptionService
+from app.services.business_geocoding import BusinessGeocodingRunner
 from app.services.editorial_proposals import EditorialProposalService
 from app.services.media_previews import MediaPreviewService
+from app.services.reference_learning_execution import ReferenceLearningExecution
+from app.services.reference_provider_execution import ReferenceProviderExecution
 from app.services.visual_generation_runner import DatabaseVisualGenerationRunner
 from app.services.whatsapp_processing import MaterialProcessor
 from app.workflows.activities import FoundationActivities
+from app.workflows.business_geocoding import BusinessGeocodingWorkflow
+from app.workflows.business_geocoding_activities import BusinessGeocodingActivities
 from app.workflows.content_activities import ContentCandidateActivities
 from app.workflows.content_candidate import ContentCandidateWorkflow
 from app.workflows.content_publication import FakeContentPublicationWorkflow
@@ -23,6 +28,20 @@ from app.workflows.editorial_proposal import EditorialProposalWorkflow
 from app.workflows.foundation import BrandKitChangedWorkflow, BusinessCreatedWorkflow
 from app.workflows.media_activities import MediaPreviewActivities
 from app.workflows.media_preview import StaticPreviewWorkflow
+from app.workflows.reference_discovery import ReferenceDiscoveryWorkflow
+from app.workflows.reference_discovery_activities import ReferenceDiscoveryActivities
+from app.workflows.reference_effect import (
+    ReferenceCostProjectionWorkflow,
+    ReferenceEffectProjectionWorkflow,
+    ReferenceEffectWorkflow,
+)
+from app.workflows.reference_effect_activities import ReferenceEffectActivities
+from app.workflows.reference_learning import ReferenceLearningWorkflow
+from app.workflows.reference_learning_activities import ReferenceLearningActivities
+from app.workflows.reference_provider_activities import ReferenceProviderActivities
+from app.workflows.reference_provider_discovery import ReferenceProviderDiscoveryWorkflow
+from app.workflows.reference_selection import ReferenceSelectionWorkflow
+from app.workflows.reference_selection_activities import ReferenceSelectionActivities
 from app.workflows.visual_generation import VisualGenerationWorkflow
 from app.workflows.visual_generation_activities import VisualGenerationActivities
 from app.workflows.whatsapp_activities import WhatsAppMaterialActivities
@@ -46,6 +65,8 @@ async def run_worker() -> None:
     try:
         if settings.visual_ai_execution_enabled and material_database is None:
             raise RuntimeError("VISUAL_WORKER_DATABASE_REQUIRED")
+        if settings.reference_discovery_mode == "fake" and material_database is None:
+            raise RuntimeError("REFERENCE_RECOVERY_DATABASE_REQUIRED")
         client = await connect_temporal(settings)
         material_activities = (
             WhatsAppMaterialActivities(
@@ -81,18 +102,54 @@ async def run_worker() -> None:
             if material_database and settings.visual_ai_execution_enabled
             else None
         )
+        reference_effect_activities = (
+            ReferenceEffectActivities(database, settings, material_database)
+            if settings.reference_discovery_mode == "fake" and material_database
+            else None
+        )
+        geocoding_activities = (
+            BusinessGeocodingActivities(BusinessGeocodingRunner(material_database, settings))
+            if settings.reference_geocoding_ready() and material_database
+            else None
+        )
+        provider_activities = (
+            ReferenceProviderActivities(ReferenceProviderExecution(material_database, settings))
+            if settings.reference_discovery_ready() and material_database
+            else None
+        )
+        learning_activities = (
+            ReferenceLearningActivities(ReferenceLearningExecution(material_database, settings))
+            if settings.reference_learning_ready() and material_database
+            else None
+        )
         worker = Worker(
             client,
             task_queue=settings.temporal_task_queue,
-            workflows=[BusinessCreatedWorkflow, BrandKitChangedWorkflow]
+            workflows=[
+                BusinessCreatedWorkflow,
+                BrandKitChangedWorkflow,
+                ReferenceDiscoveryWorkflow,
+                ReferenceSelectionWorkflow,
+            ]
+            + ([BusinessGeocodingWorkflow] if geocoding_activities else [])
+            + ([ReferenceProviderDiscoveryWorkflow] if provider_activities else [])
+            + ([ReferenceLearningWorkflow] if learning_activities else [])
             + ([WhatsAppMaterialWorkflow] if material_activities else [])
             + ([EditorialProposalWorkflow] if editorial_activities else [])
             + ([StaticPreviewWorkflow] if media_activities else [])
             + ([VisualGenerationWorkflow] if visual_activities else [])
+            + (
+                [ReferenceEffectWorkflow, ReferenceCostProjectionWorkflow, ReferenceEffectProjectionWorkflow]
+                if reference_effect_activities
+                else []
+            )
             + ([ContentCandidateWorkflow, FakeContentPublicationWorkflow] if content_activities else []),
             activities=[
                 FoundationActivities(database).record_business_created,
                 FoundationActivities(database).record_brand_kit_changed,
+                ReferenceDiscoveryActivities(database, settings, material_database).simulate_discovery,
+                ReferenceDiscoveryActivities(database, settings, material_database).fail_discovery,
+                ReferenceSelectionActivities(database, material_database).record_selection,
             ]
             + (
                 [
@@ -103,9 +160,25 @@ async def run_worker() -> None:
                 if material_activities
                 else []
             )
+            + ([geocoding_activities.resolve] if geocoding_activities else [])
+            + ([provider_activities.execute_reference_provider_discovery] if provider_activities else [])
+            + (
+                [learning_activities.reference_learning_schedule, learning_activities.execute_reference_learning]
+                if learning_activities
+                else []
+            )
             + ([editorial_activities.generate_editorial_proposal] if editorial_activities else [])
             + ([media_activities.render_static_preview] if media_activities else [])
             + ([visual_activities.run_visual_generation] if visual_activities else [])
+            + (
+                [
+                    reference_effect_activities.simulate_effect,
+                    reference_effect_activities.project_cost,
+                    reference_effect_activities.project_effect,
+                ]
+                if reference_effect_activities
+                else []
+            )
             + (
                 [
                     content_activities.request_candidate_proposal,

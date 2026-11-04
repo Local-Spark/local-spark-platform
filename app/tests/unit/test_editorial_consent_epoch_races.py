@@ -1,6 +1,7 @@
 """Offline checks for conflicts and authorization at editorial admission."""
 
 import hashlib
+import json
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
@@ -46,6 +47,8 @@ async def test_request_replays_winner_after_insert_conflict_with_original_epoch(
             return 3
         if "SELECT version FROM business_context_heads" in sql:
             return 0
+        if "reference_capture_generation_context" in sql:
+            return {"version": 1, "selected": [], "learnings": []}
         return True
 
     session = SimpleNamespace(execute=AsyncMock(side_effect=execute), scalar=AsyncMock(side_effect=scalar))
@@ -58,6 +61,7 @@ async def test_request_replays_winner_after_insert_conflict_with_original_epoch(
     monkeypatch.setattr("app.services.editorial_proposals._present", lambda row: result)
     assert await service.request(tenant, business, actor, ProposalRequest(operation_id=operation)) is result
     assert selected == 2 and len(inserted) == 1 and inserted[0]["generation"] == 3
+    assert json.loads(inserted[0]["reference_context"]) == {"version": 1, "selected": [], "learnings": []}
 
 
 async def test_worker_rejects_matching_epoch_when_editorial_consent_is_absent(settings, monkeypatch):

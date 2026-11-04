@@ -134,6 +134,14 @@ async def test_second_owner_relink_during_guarded_provider_call_preserves_origin
     links = WhatsAppLinkService(config, database, object())
     monkeypatch.setattr(links, "_find_proof", AsyncMock(return_value=uuid4()))
     entered, release = asyncio.Event(), asyncio.Event()
+    prepared_requests = []
+    authorize = c.guard.authorize
+
+    async def capture_authorization(scope, prepared, identity):
+        prepared_requests.append(prepared)
+        return await authorize(scope, prepared, identity)
+
+    monkeypatch.setattr(c.guard, "authorize", capture_authorization)
 
     async def pause_provider(_):
         entered.set()
@@ -151,14 +159,8 @@ async def test_second_owner_relink_during_guarded_provider_call_preserves_origin
         assert await links.confirm(c.tenant, c.business, other) == {"status": "linked"}
         # Source reads remain authorized by the original actor's membership
         # and durable business attribution, independent from the new link owner.
-        assert await c.guard.current(
-            c.scope,
-            (
-                await c.service.brand.prepare(
-                    c.tenant, c.business, c.actor, c.scope.proposal, c.scope.operation, candidate=True
-                )
-            ).request,
-        )
+        assert len(prepared_requests) == 1
+        assert await c.guard.current(c.scope, prepared_requests[0])
     finally:
         release.set()
     assert await asyncio.wait_for(task, 20) == "completed"

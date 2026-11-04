@@ -13,7 +13,9 @@ pytestmark = pytest.mark.integration
 
 @pytest.mark.parametrize("condition", ["no_authority", "unverified_phone", "invalid_phone", "mismatched_destination"])
 async def test_delivery_requires_processing_authority_and_a_verified_valid_phone(admin, seeded, settings, condition):
-    cfg, app_db, worker_db, tenant, business, _, _, event, _ = await _candidate_case(admin, seeded, settings)
+    cfg, app_db, worker_db, tenant, business, _, _, event, _ = await _candidate_case(
+        admin, seeded, settings, need_preview=False
+    )
     try:
         async with admin.begin() as connection:
             if condition == "no_authority":
@@ -52,7 +54,9 @@ async def test_delivery_requires_processing_authority_and_a_verified_valid_phone
 async def test_delivery_rechecks_profile_and_channel_after_reading_the_source(
     admin, seeded, settings, monkeypatch, condition
 ):
-    cfg, app_db, worker_db, tenant, business, actor, _, event, _ = await _candidate_case(admin, seeded, settings)
+    cfg, app_db, worker_db, tenant, business, actor, _, event, _ = await _candidate_case(
+        admin, seeded, settings, need_preview=False
+    )
     original_transaction = app_db.transaction
     changed = False
 

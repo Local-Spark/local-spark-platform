@@ -31,6 +31,7 @@ from app.tests.integration.test_business_catalog import _payload
 from app.tests.integration.test_business_collection import Store
 from app.tests.integration.test_editorial_briefings import _enable
 from app.tests.integration.test_editorial_proposals import _asset, _business
+from app.tests.integration.test_visual_brand_finish import _editorial_provider
 from app.tests.unit.test_business_collection_contract import upload
 from app.workflows.content_activities import ContentCandidateActivities
 
@@ -63,6 +64,9 @@ async def test_kit_or_photo_change_waits_and_preview_remains_reviewable(change, 
             "meta_encryption_key": SecretStr(key),
             "visual_ai_mode": "fake",
             "visual_ai_monthly_budget_usd_micros": 100,
+            "editorial_ai_mode": "openai",
+            "openai_api_key": SecretStr("synthetic-key"),
+            "editorial_daily_token_limit": 100000,
         }
     )
     source = await _asset(admin, tenant, business, key, body="Crie uma imagem do croissant")
@@ -107,7 +111,11 @@ async def test_kit_or_photo_change_waits_and_preview_remains_reviewable(change, 
         proposal = UUID(await activity.request_candidate_proposal(str(source)))
         claim = (await claim_proposals(worker, uuid4()))[0]
         await finish_proposal_dispatch(worker, claim, True)
-        assert await EditorialProposalService(cfg, worker, owner_database=database).run(proposal) == "completed"
+        provider = _editorial_provider()
+        assert (
+            await EditorialProposalService(cfg, worker, provider, owner_database=database).run(proposal) == "completed"
+        )
+        provider.propose.assert_awaited_once()
         await VisualConsentService(cfg, database).set(tenant, business, actor, True)
         owner = MediaPreviewService(cfg, database, store)
         preview = await owner.request_candidate(

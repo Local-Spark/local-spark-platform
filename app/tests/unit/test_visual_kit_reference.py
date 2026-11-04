@@ -67,3 +67,23 @@ def test_changed_asset_is_rejected(settings, monkeypatch, tmp_path):
     monkeypatch.setattr("app.services.visual_kit_reference._manifest", lambda: manifest)
     with pytest.raises(AuthError, match="VISUAL_KIT_REFERENCE_CHANGED"):
         load_kit_example(settings, {"kit_id": "cafe-pausas", "kit_version": 1}, "photo")
+
+
+@pytest.mark.parametrize("directory_link", [False, True])
+def test_kit_reference_rejects_symlink_escape_before_reading_asset(settings, monkeypatch, tmp_path, directory_link):
+    """An unchanged manifest must not authorize a replaced path outside its kit."""
+    kit = tmp_path / "kit"
+    outside = tmp_path / "outside"
+    kit.mkdir()
+    outside.mkdir()
+    target = outside / "post-editorial-croissant.jpg"
+    target.write_bytes(b"not-authorized")
+    if directory_link:
+        (kit / "assets").symlink_to(outside, target_is_directory=True)
+    else:
+        (kit / "assets").mkdir()
+        (kit / "assets" / target.name).symlink_to(target)
+    monkeypatch.setattr("app.services.visual_kit_reference.MANIFEST", kit / "manifest.json")
+    monkeypatch.setattr("app.services.visual_kit_reference._manifest", _manifest)
+    with pytest.raises(AuthError, match="VISUAL_KIT_REFERENCE_CHANGED"):
+        load_kit_example(settings, {"kit_id": "cafe-pausas", "kit_version": 1}, "photo")

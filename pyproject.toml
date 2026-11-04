@@ -36,7 +36,7 @@ dev = [
 testpaths = ["app/tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-addopts = "--strict-markers --strict-config"
+addopts = "--strict-markers --strict-config --import-mode=importlib"
 markers = [
   "integration: requires a migrated PostgreSQL database",
   "temporal: requires the Temporal test server",

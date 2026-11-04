@@ -44,6 +44,9 @@ def test_old_context_request_digest_stays_stable_when_destination_is_unset() -> 
     payload = ContextUpdate(expected_version=1, operation_id=uuid4())
     original = payload.model_dump(mode="json")
     original["preferences"].pop("cta_destination")
+    original["preferences"].pop("reference_search")
+    original["preferences"].pop("business_terms")
+    original["preferences"].pop("business_characteristics")
     encoded = json.dumps(original, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
     assert _digest(payload) == hashlib.sha256(encoded.encode()).hexdigest()
     with_destination = payload.model_copy(

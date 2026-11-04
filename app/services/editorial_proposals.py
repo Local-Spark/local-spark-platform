@@ -37,6 +37,11 @@ from app.services.brand_kits import kit_commercially_available
 from app.services.editorial_copy_quality import public_copy_has_no_internal_artifacts
 from app.services.editorial_cta import public_action_matches_destination
 from app.services.plan_capabilities import INITIAL_PLAN_INTENT_FORMATS
+from app.services.reference_generation_context import (
+    capture_generation_context,
+    generation_context_is_current,
+    read_generation_snapshot,
+)
 from app.services.service_agreement import service_agreement_allowed
 from app.services.service_agreement_scope import (
     accepted_agreement_sql,
@@ -456,15 +461,25 @@ class EditorialProposalService:
             )
             if kit is not None and self.settings.environment == "production" and not kit_commercially_available():
                 raise AuthError("BRAND_KIT_NOT_APPROVED", 409)
+            references = await session.scalar(
+                text("""SELECT coalesce(jsonb_agg(jsonb_build_object(
+                  'id',id,'instagram_handle',instagram_handle,'note',note,
+                  'source','owner','access_status','not_checked') ORDER BY created_at,id), '[]'::jsonb)
+                  FROM owner_references WHERE tenant_id=:tenant AND business_id=:business AND removed_at IS NULL"""),
+                {"tenant": tenant, "business": business},
+            )
+            reference_context = await capture_generation_context(session, business)
             proposal = uuid4()
             row = (
                 (
                     await session.execute(
                         text("""INSERT INTO editorial_proposals
               (id,tenant_id,business_id,actor_id,operation_id,request_hash,context_version,source_asset_id,
-               brand_kit_version,brand_kit_document,briefing_id,briefing_required,consent_generation)
+               brand_kit_version,brand_kit_document,briefing_id,briefing_required,consent_generation,
+               owner_reference_snapshot,reference_generation_snapshot)
               VALUES(:id,:tenant,:business,:actor,:operation,:digest,:version,:source,:kit_version,
-                     CAST(:kit_document AS jsonb),:briefing_id,:briefing_required,:generation)
+                     CAST(:kit_document AS jsonb),:briefing_id,:briefing_required,:generation,
+                     CAST(:references AS jsonb),CAST(:reference_context AS jsonb))
               ON CONFLICT(tenant_id,business_id,operation_id) DO NOTHING RETURNING *"""),
                         {
                             "id": proposal,
@@ -477,6 +492,8 @@ class EditorialProposalService:
                             "source": payload.source_asset_id,
                             "briefing_id": briefing_id,
                             "briefing_required": briefing_id is not None,
+                            "references": json.dumps(references or [], ensure_ascii=False),
+                            "reference_context": reference_context.model_dump_json(),
                             "generation": (
                                 generation
                                 if self.settings.editorial_ai_mode == "openai"
@@ -1024,28 +1041,19 @@ class EditorialProposalService:
             context = ContextContent.model_validate(context_row)
         else:
             context = ContextContent()
-        facts = [
-            fact for fact in context.facts if fact.valid_until is None or fact.valid_until >= datetime.now(UTC).date()
-        ]
-        if not source and not facts:
-            return None
         data: dict[str, object] = {
-            "confirmed_facts": [
-                {
-                    "id": str(fact.id),
-                    "kind": fact.kind,
-                    "statement": fact.statement,
-                    "valid_until": str(fact.valid_until) if fact.valid_until else None,
-                }
-                for fact in facts
-            ],
-            "preferences": context.preferences.model_dump(mode="json"),
+            "confirmed_facts": [],
+            "preferences": context.preferences.model_dump(mode="json", exclude={"reference_search"}),
             "material": source,
             "material_kind": kind,
             "source_asset_id": str(row["source_asset_id"]) if row["source_asset_id"] else None,
             "context_version": row["context_version"],
         }
-        valid_ids = {fact.id for fact in facts}
+        if row.get("reference_generation_snapshot") is not None:
+            data["reference_context"] = read_generation_snapshot(row["reference_generation_snapshot"]).model_input()
+        elif row.get("owner_reference_snapshot"):
+            data["owner_reference_indications"] = row["owner_reference_snapshot"]
+        valid_ids: set[UUID] = set()
         briefing_id = row.get("briefing_id")
         if row.get("briefing_required") and briefing_id is None:
             return None
@@ -1088,8 +1096,6 @@ class EditorialProposalService:
                 if item is None:
                     continue
                 catalog_id = UUID(str(item["id"]))
-                if catalog_id in valid_ids:
-                    return None
                 valid_ids.add(catalog_id)
                 confirmed = data["confirmed_facts"]
                 assert isinstance(confirmed, list)
@@ -1097,6 +1103,8 @@ class EditorialProposalService:
                     confirmed.insert(0, item)
                 else:
                     confirmed.append(item)
+        if not source and not valid_ids:
+            return None
         kit_document = row.get("brand_kit_document")
         if kit_document is not None:
             if self.settings.environment == "production" and not kit_commercially_available():
@@ -1118,19 +1126,18 @@ class EditorialProposalService:
         if briefing_id is not None:
             requested = data.get("requested_format")
             if requested is None:
-                inferred = self._baseline(data).format
-                if inferred in {"photo", "story"}:
-                    requested = inferred
-                    data["requested_format"] = inferred
-                    data["format_inferred"] = True
-            if requested in {"photo", "story"}:
-                from app.services.visual_skills import resolve_editorial_skill
+                # The baseline is bounded by eligible_formats above, so every
+                # admitted catalog briefing resolves to a feed or story skill.
+                requested = self._baseline(data).format
+                data["requested_format"] = requested
+                data["format_inferred"] = True
+            from app.services.visual_skills import resolve_editorial_skill
 
-                try:
-                    skill_id, skill_hash, instructions = resolve_editorial_skill(str(requested))
-                except AuthError:
-                    return None
-                data["editorial_skill"] = {"id": skill_id, "sha256": skill_hash, "instructions": instructions}
+            try:
+                skill_id, skill_hash, instructions = resolve_editorial_skill(str(requested))
+            except AuthError:
+                return None
+            data["editorial_skill"] = {"id": skill_id, "sha256": skill_hash, "instructions": instructions}
         return data, valid_ids
 
     @staticmethod
@@ -1332,8 +1339,25 @@ class EditorialProposalService:
             script=EditorialProposalService._script(draft, data, experimental=experimental),
         )
 
+    async def _references_current(self, session: Any, row: Any) -> bool:
+        value = row.get("reference_generation_snapshot")
+        if value is None:
+            # Historical proposals retain their original indication-only contract.
+            return True
+        try:
+            snapshot = read_generation_snapshot(value)
+        except AuthError:
+            return False
+        # The row was locked and its durable execution state was checked by run.
+        # Keep the reference lock through the same submission/result commit;
+        # the provider is invoked only after that transaction ends.
+        await session.execute(
+            text("SELECT set_config('app.tenant_id', :tenant, true), set_config('app.actor_id', :actor, true)"),
+            {"tenant": str(row["tenant_id"]), "actor": str(row["actor_id"])},
+        )
+        return await generation_context_is_current(session, row["business_id"], snapshot)
+
     async def run(self, proposal_id: UUID) -> str:
-        prepared_request: dict[str, Any] | None = None
         async with self.database.sessions() as session, session.begin():
             row = (
                 (
@@ -1372,6 +1396,8 @@ class EditorialProposalService:
                 session, row["tenant_id"], row["business_id"]
             ):
                 return await self._reject(session, row, "EDITORIAL_AI_CONSENT_REQUIRED")
+            if not await self._references_current(session, row):
+                return await self._reject(session, row, "REFERENCE_GENERATION_CONTEXT_CHANGED")
             inputs = await self._inputs(session, row)
             if inputs is None:
                 return await self._reject(session, row, "EDITORIAL_SOURCE_UNAVAILABLE")
@@ -1393,34 +1419,33 @@ class EditorialProposalService:
             )
             if used + reserved > self.settings.editorial_daily_token_limit:
                 return await self._reject(session, row, "EDITORIAL_BUDGET_EXCEEDED", "budget_exceeded")
-            if "editorial_skill" in data:
-                key = self.settings.meta_encryption_key
-                if key is None or not key.get_secret_value().strip():
-                    return await self._reject(session, row, "EDITORIAL_TRACE_KEY_REQUIRED")
-                try:
-                    prepared_request = OpenAIEditorialProvider(self.settings).build_request(data)
-                    trace: dict[str, object] = {
-                        "endpoint": "https://api.openai.com/v1/responses",
-                        "client_request_id": str(proposal_id),
-                        "body": prepared_request,
-                    }
-                    trace_hash, ciphertext = _encode_request_trace(key.get_secret_value(), trace)
-                except (EditorialProviderError, ValueError, TypeError):
-                    return await self._reject(session, row, "EDITORIAL_TRACE_UNAVAILABLE")
-                await agreement_worker_scope(session, row["tenant_id"])
-                await session.execute(
-                    text("""INSERT INTO editorial_request_traces
-                      (tenant_id,business_id,proposal_id,actor_id,request_hash,ciphertext)
-                      VALUES(:tenant,:business,:proposal,:actor,:hash,:ciphertext)"""),
-                    {
-                        "tenant": row["tenant_id"],
-                        "business": row["business_id"],
-                        "proposal": proposal_id,
-                        "actor": row["actor_id"],
-                        "hash": trace_hash,
-                        "ciphertext": ciphertext,
-                    },
-                )
+            key = self.settings.meta_encryption_key
+            if key is None or not key.get_secret_value().strip():
+                return await self._reject(session, row, "EDITORIAL_TRACE_KEY_REQUIRED")
+            try:
+                prepared_request = OpenAIEditorialProvider(self.settings).build_request(data)
+                trace: dict[str, object] = {
+                    "endpoint": "https://api.openai.com/v1/responses",
+                    "client_request_id": str(proposal_id),
+                    "body": prepared_request,
+                }
+                trace_hash, ciphertext = _encode_request_trace(key.get_secret_value(), trace)
+            except (EditorialProviderError, ValueError, TypeError):
+                return await self._reject(session, row, "EDITORIAL_TRACE_UNAVAILABLE")
+            await agreement_worker_scope(session, row["tenant_id"])
+            await session.execute(
+                text("""INSERT INTO editorial_request_traces
+                  (tenant_id,business_id,proposal_id,actor_id,request_hash,ciphertext)
+                  VALUES(:tenant,:business,:proposal,:actor,:hash,:ciphertext)"""),
+                {
+                    "tenant": row["tenant_id"],
+                    "business": row["business_id"],
+                    "proposal": proposal_id,
+                    "actor": row["actor_id"],
+                    "hash": trace_hash,
+                    "ciphertext": ciphertext,
+                },
+            )
             await session.execute(
                 text("""INSERT INTO editorial_ai_usage
               (proposal_id,tenant_id,business_id,reserved_tokens,state)
@@ -1435,12 +1460,9 @@ class EditorialProposalService:
             await _audit(session, row, "editorial.proposal_submitted")
         draft: ProposalDraft | None
         try:
-            if prepared_request is None:
-                draft, input_tokens, output_tokens = await self.provider.propose(data, proposal_id)
-            else:
-                draft, input_tokens, output_tokens = await self.provider.propose(
-                    data, proposal_id, prepared_request=prepared_request
-                )
+            draft, input_tokens, output_tokens = await self.provider.propose(
+                data, proposal_id, prepared_request=prepared_request
+            )
         except EditorialProviderError:
             draft, input_tokens, output_tokens = None, None, None
         async with self.database.sessions() as session, session.begin():
@@ -1461,21 +1483,21 @@ class EditorialProposalService:
                 text(_access_sql()),
                 {"tenant": row["tenant_id"], "live": self.settings.environment == "production"},
             )
-            fresh_inputs = await self._inputs(session, row) if consent and access else None
+            references_current = await self._references_current(session, row) if consent and access else False
+            fresh_inputs = await self._inputs(session, row) if references_current else None
             safe = bool(
                 draft is not None
                 and fresh_inputs is not None
                 and data.get("editorial_skill") == fresh_inputs[0].get("editorial_skill")
-                and self._safe_generated(draft, fresh_inputs[0], fresh_inputs[1], full_piece="editorial_skill" in data)
+                and self._safe_generated(draft, fresh_inputs[0], fresh_inputs[1], full_piece=True)
             )
             if safe and draft is not None and fresh_inputs is not None:
                 draft = self._ground_generated(draft, fresh_inputs[0])
-                if "editorial_skill" in data:
-                    skill = fresh_inputs[0]["editorial_skill"]
-                    assert isinstance(skill, dict)
-                    draft = draft.model_copy(
-                        update={"editorial_skill_id": skill["id"], "editorial_skill_sha256": skill["sha256"]}
-                    )
+                skill = fresh_inputs[0]["editorial_skill"]
+                assert isinstance(skill, dict)
+                draft = draft.model_copy(
+                    update={"editorial_skill_id": skill["id"], "editorial_skill_sha256": skill["sha256"]}
+                )
             state = "completed" if safe else "uncertain"
             await session.execute(
                 text("""UPDATE editorial_proposals SET state=:state,

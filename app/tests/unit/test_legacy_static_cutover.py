@@ -33,3 +33,25 @@ async def test_already_claimed_legacy_image_never_renders(settings):
     service._fail = AsyncMock(return_value="failed")
     assert await service._render_local(preview_id, 1) == "failed"
     service._fail.assert_awaited_once_with(preview_id, 1, "PREVIEW_LEGACY_CREATION_DISABLED", False)
+
+
+async def test_claimed_legacy_preview_with_superseded_fence_is_ignored(settings):
+    database, _ = _database([None])
+    store = AsyncMock()
+    service = MediaPreviewService(settings, database, store)
+    service._fail = AsyncMock()
+    assert await service._render_local(uuid4(), 1) == "skipped"
+    service._fail.assert_not_awaited()
+    store.put.assert_not_awaited()
+
+
+async def test_claimed_legacy_video_with_missing_proposal_fails_durably(settings):
+    preview_id = uuid4()
+    database, _ = _database([{"proposal_id": uuid4(), "mime_type": "video/mp4"}, None])
+    store = AsyncMock()
+    service = MediaPreviewService(settings, database, store)
+    service._fail = AsyncMock(return_value="failed")
+    assert await service._render_local(preview_id, 7) == "failed"
+    service._fail.assert_awaited_once_with(preview_id, 7, "PROPOSAL_NOT_FOUND", False)
+    store.get_video.assert_not_awaited()
+    store.put.assert_not_awaited()

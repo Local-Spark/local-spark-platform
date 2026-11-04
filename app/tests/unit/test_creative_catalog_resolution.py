@@ -69,6 +69,7 @@ async def test_resolves_only_after_explicit_decision_and_without_a_lock(setup):
     assert result.status == "resolved" and result.snapshot == {"catalog_version": 4}
     assert len(s.database.calls) == 2
     assert s.snapshot.await_args.args[5:7] == (s.item, 4)
+    assert s.snapshot.await_args.kwargs == {"promotion_policy": "request_only"}
     assert s.choices[0]["name"] == "Croissant"
 
 

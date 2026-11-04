@@ -7,9 +7,10 @@ referências, incluindo **tanto perfis indicados pelo cliente quanto descoberta
 automática de negócios semelhantes em destaque**. A descoberta automática é um
 objetivo do produto, não uma extensão opcional da indicação do cliente.
 
-**Direção de 30/10:** na jornada web, permitir ao cliente indicar perfis por
-@ e, em outra etapa, apresentar até três candidatos semelhantes encontrados
-pelo sistema, com justificativas e aceite ou rejeição pelo cliente. A descoberta
+**Direção atualizada em 03/11:** na jornada web, permitir ao cliente indicar perfis
+por @ e apresentar até dez candidatos elegíveis encontrados pelo sistema, com
+até três recomendações do Jev destacadas com critérios e nota. O cliente escolhe de uma
+a três entre os exibidos. A descoberta
 deve partir de fontes disponíveis e autorizadas; avaliar relevância e dados de
 engajamento realmente observáveis, sem prometer métricas inacessíveis. Jev é
 candidato a classificar/ordenar dados recebidos, não uma pesquisa do Instagram
@@ -145,6 +146,52 @@ mas não substitui, a descoberta automática prevista em R2.
 
 ## Fase R2 — descobrir e avaliar referências automaticamente
 
+### Estudo de fontes — 30/10/2026
+
+Detalhes de cobertura, condições, custos e prova candidata estão no
+[estudo multissetorial](estudo-descoberta-negocios-2026-10-30.md).
+
+- A [coleção oficial da Meta](https://www.postman.com/meta/instagram/documentation/6yqw8pt/instagram-api?entity=request-23987686-00dab679-d4c0-4957-bed0-0bcda896be09)
+  descreve o fluxo com Facebook Login, Página vinculada e conta Instagram
+  profissional, capaz de consultar metadados/métricas básicas de outras contas
+  profissionais e buscar mídia por hashtag. Isso não comprova pesquisa de
+  perfis por ramo e cidade. Business Discovery é candidato para consultar um
+  @ já identificado; a referência específica da Meta retornou 429 no estudo,
+  então requisitos, campos, versão e tipos de conta devem ser comprovados em
+  teste real antes da implementação. Busca por hashtag encontra mídia, e não
+  está comprovado que retorne os autores necessários para localizar perfis.
+- Uma [busca web](https://api-dashboard.search.brave.com/app/documentation/web-search)
+  por segmento, cidade e Instagram pode sugerir URLs/@ indexados mesmo antes
+  da conexão Meta; não garante cobertura, identidade, atualidade ou métricas.
+  O [Google Places](https://developers.google.com/maps/documentation/places/web-service/text-search)
+  pode identificar estabelecimentos e sites, sem garantir o @; seus termos,
+  retenção e uso para essa finalidade precisam ser avaliados antes de adotá-lo.
+- Avaliações do Google são um sinal adicional de reputação do estabelecimento,
+  não de desempenho no Instagram; média, quantidade e data devem ser consideradas
+  separadamente. A [busca textual Places](https://developers.google.com/maps/documentation/places/web-service/reference/rest/v1/places/searchText)
+  aceita nota mínima e ordena por relevância ou distância, não por nota como
+  opção declarada. Os [termos Maps](https://cloud.google.com/maps-platform/terms)
+  restringem exportação, armazenamento, modificação de resultados e uso para
+  criar ou aumentar produto de publicidade; não assumir que reordenar e passar
+  os dados ao Jev é permitido sem análise e confirmação do uso específico.
+- Correção do estudo: o [Gemini Grounding com Google Search](https://ai.google.dev/gemini-api/terms)
+  tem restrições de análise, armazenamento e extração automática dos resultados;
+  sua disponibilidade técnica não confirma autorização para usá-lo como entrada
+  do Jev ou alimentar cadastro de referências. A alternativa permanece sem escolha.
+- Sequência candidata: reunir @ indicados pelo cliente e resultados da fonte de
+  busca → conferir identidade e obter dados permitidos → classificar semelhança
+  e, separadamente, sinais de desempenho disponíveis → mostrar até dez e destacar
+  até três recomendações com critérios e nota → cliente escolhe
+  de uma a três → usar padrões selecionados no
+  briefing. Sem métricas, não afirmar que há alto engajamento. Jev pode decidir
+  ou pontuar entre candidatos recebidos; uma explicação em texto requer uma
+  camada adicional baseada nas evidências, não saída textual presumida do Jev.
+- O backend atual tem integração Meta para WhatsApp e publicação Instagram
+  simulada; não tem OAuth Instagram, leitura de referências ou perfis. A prova
+  seguinte deve comparar modalidades de login, permissões mínimas e dados reais
+  disponíveis com conta de teste autorizada, sem antecipar publicação real.
+  Nenhuma fonte, credencial, orçamento ou fornecedor é selecionado por este estudo.
+
 Projetar um fluxo que, com informações disponíveis e confirmadas sobre o negócio,
 procure perfis públicos ou outras fontes **permitidas** de negócios semelhantes
 e identifique candidatos potencialmente relevantes e em destaque. Critérios de
@@ -166,7 +213,7 @@ curadoria disponíveis, sem fingir que houve descoberta automática.
 Antes de adotar um conector, verificar uso comercial, termos, permissões reais,
 campos, cobertura, quotas, custo, retenção e direitos dos resultados. Não assumir
 acesso a métricas privadas de terceiros, nem contornar restrições da plataforma.
-Jev é **candidato a avaliar**, por exemplo para comparar atributos e explicar
+Jev é **candidato a avaliar**, por exemplo para comparar atributos e classificar
 similaridade a partir de dados obtidos por meios permitidos; sua capacidade de
 descoberta, acesso a fontes, qualidade, custo e adequação ainda não foram
 demonstrados. A escolha depende de comparação com alternativas e baseline.
@@ -212,12 +259,13 @@ somente de engajamento público.
 ### Ideia para evolução da jornada de referências e kits — 30/10/2026
 
 O proprietário propôs investigar uma jornada em que o cliente indica primeiro
-concorrentes ou publicações que admira e depois recebe até três sugestões de
-negócios semelhantes, selecionadas pela plataforma. O cliente decidiria quais
+concorrentes ou publicações que admira e depois recebe sugestões de negócios
+semelhantes. Em 03/11 esclareceu que serão exibidos até dez candidatos e
+destacadas até três recomendações do Jev. O cliente decidirá quais
 referências deseja usar. As indicações e recomendações coexistem; não inferir
 aceite de uma recomendação ou afirmar que os candidatos são os três melhores
-sem evidências e métricas suficientes. Esta sequência e a quantidade são uma
-**ideia para estudo**, não regra de produto fechada ou implementação entregue.
+sem evidências e métricas suficientes. A descoberta e o destaque das recomendações
+continuam pendentes de implementação; a aplicação de padrões ao kit é ideia para estudo.
 
 A análise das referências aceitas poderia sugerir opções para o kit, incluindo
 fontes, combinações tipográficas, formatos e outros padrões visuais. Uma fonte

@@ -132,7 +132,7 @@ async def test_unverified_or_changed_context_fails_closed(case, reason):
         await case.service.prepare(*case.ids)
 
 
-async def test_current_owner_fact_must_be_valid_in_business_timezone(case):
+async def test_legacy_owner_fact_cannot_authorize_a_new_visual(case):
     fact_id = uuid4()
     today = datetime.now(UTC).date()
     scene = case.row["document"]["script"][0]
@@ -150,7 +150,8 @@ async def test_current_owner_fact_must_be_valid_in_business_timezone(case):
         ]
     }
     case.session.scalar.side_effect = [document, "UTC"]
-    assert "Promoção válida." in (await case.service.prepare(*case.ids)).request.prompt
+    with pytest.raises(AuthError, match="VISUAL_COPY_UNVERIFIED"):
+        await case.service.prepare(*case.ids)
     document["facts"][0]["valid_until"] = (today - timedelta(days=1)).isoformat()
     case.session.scalar.side_effect = [document, "UTC"]
     with pytest.raises(AuthError, match="VISUAL_COPY_UNVERIFIED"):
@@ -237,18 +238,15 @@ async def test_copy_shape_and_literal_voiceover_are_checked_by_the_shared_rule(c
 
 
 @pytest.mark.parametrize("variant", ["missing_timezone", "missing_fact", "unbounded_fact"])
-async def test_context_fact_requires_a_known_business_clock_and_matching_fact(case, variant):
+async def test_legacy_context_fact_cannot_authorize_copy(case, variant):
     document = _context_fact(case, timezone=None if variant == "missing_timezone" else "UTC")
     if variant == "missing_fact":
         document["facts"] = []
-    if variant == "unbounded_fact":
-        assert (await _authorize_copy(case)).valid_until == case.row["expires_at"]
-    else:
-        with pytest.raises(AuthError, match="VISUAL_COPY_UNVERIFIED"):
-            await _authorize_copy(case)
+    with pytest.raises(AuthError, match="VISUAL_COPY_UNVERIFIED"):
+        await _authorize_copy(case)
 
 
-async def test_context_validity_uses_end_of_business_day_even_after_utc_midnight(case, monkeypatch):
+async def test_legacy_context_fact_is_rejected_even_if_still_valid_locally(case, monkeypatch):
     from app.services import visual_copy_authorization as module
 
     class Clock(datetime):
@@ -259,7 +257,8 @@ async def test_context_validity_uses_end_of_business_day_even_after_utc_midnight
     monkeypatch.setattr(module, "datetime", Clock)
     case.row["expires_at"] = datetime(2026, 11, 3, tzinfo=UTC)
     _context_fact(case, validity="2026-10-29", timezone="America/Sao_Paulo")
-    assert (await _authorize_copy(case)).valid_until == datetime(2026, 10, 30, 3, tzinfo=UTC)
+    with pytest.raises(AuthError, match="VISUAL_COPY_UNVERIFIED"):
+        await _authorize_copy(case)
 
 
 @pytest.mark.parametrize("variant", ["valid", "missing_timezone", "expired", "not_set", "missing_validity"])
@@ -281,13 +280,12 @@ async def test_prepared_snapshot_price_also_limits_the_authorization_window(case
             assert deadline == case.row["expires_at"]
 
 
-async def test_context_fact_and_snapshot_price_share_the_same_timezone_and_take_the_earliest_deadline(case):
+async def test_legacy_context_fact_is_not_authorized_by_current_catalog_price(case):
     day = datetime.now(UTC).date()
     _context_fact(case, validity=(day + timedelta(days=1)).isoformat(), timezone="UTC")
     case.catalog["offering"]["price"] = {"status": "valid", "valid_until": (day + timedelta(days=2)).isoformat()}
-    copy = await _authorize_copy(case)
-    assert copy.valid_until.date() == day + timedelta(days=2)
-    assert case.session.scalar.await_count == 2
+    with pytest.raises(AuthError, match="VISUAL_COPY_UNVERIFIED"):
+        await _authorize_copy(case)
 
 
 @pytest.mark.parametrize("variant", ["empty", "ends", "starts", "expired"])
@@ -311,6 +309,13 @@ async def test_a_proposal_that_expires_during_authorization_cannot_return_a_live
     case.row["expires_at"] = datetime.now(UTC) - timedelta(seconds=1)
     with pytest.raises(AuthError, match="VISUAL_COPY_UNVERIFIED"):
         await _authorize_copy(case)
+
+
+async def test_request_only_snapshot_does_not_query_future_legacy_promotion_start(case):
+    case.catalog.update(promotion_policy="request_only", promotions=[])
+    result = await _authorize_copy(case)
+    assert result.valid_until == case.row["expires_at"]
+    case.session.scalar.assert_not_awaited()
 
 
 async def test_generated_copy_uses_confirmed_catalog_price_and_expires_with_it(case):
@@ -379,7 +384,7 @@ async def test_generated_copy_fails_closed(case, variant):
         )
 
 
-async def test_generated_copy_accepts_current_context_fact_and_preferences(case):
+async def test_generated_copy_rejects_legacy_context_fact_even_with_preferences(case):
     _context_fact(case, statement="Croissant", validity=None)
     draft = case.row["document"]
     draft.update(
@@ -390,5 +395,24 @@ async def test_generated_copy_accepts_current_context_fact_and_preferences(case)
         caption="Conheça nosso Croissant",
         cta="Fale com a gente",
     )
-    copy = await _authorize_copy(case)
-    assert copy.statement == "Conheça Croissant" and copy.cta == "Fale com a gente"
+    with pytest.raises(AuthError, match="VISUAL_COPY_UNVERIFIED"):
+        await _authorize_copy(case)
+
+
+@pytest.mark.parametrize("missing", ["id", "hash", "both"])
+async def test_full_piece_requires_the_pinned_editorial_skill(case, missing):
+    document = case.row["document"]
+    document.update(art_text="Croissant", caption="Conheça nosso croissant", cta="Envie uma mensagem")
+    if missing == "id":
+        document["editorial_skill_sha256"] = "a" * 64
+    elif missing == "hash":
+        document["editorial_skill_id"] = "instagram-feed-v1"
+    with pytest.raises(AuthError, match="VISUAL_COPY_UNVERIFIED"):
+        await authorize_visual_copy(
+            case.session,
+            case.service.settings,
+            case.service.database,
+            *case.ids[:4],
+            case.context.briefing_id,
+            full_piece=True,
+        )

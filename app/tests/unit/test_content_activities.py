@@ -246,3 +246,13 @@ def test_experimental_interpreter_cannot_be_enabled_outside_development(settings
         content_activities.ContentCandidateActivities(cfg, database, database, interpreter=interpreter)
     # The existing activity remains constructible when the experimental path is off.
     assert content_activities.ContentCandidateActivities(cfg, database, database).interpreter is None
+
+
+async def test_deleted_proposal_cannot_start_candidate_preview(settings, monkeypatch):
+    adapter, worker, _ = activities(settings)
+    adapter.settings = adapter.settings.model_copy(update={"visual_ai_mode": "fake"})
+    request = AsyncMock()
+    monkeypatch.setattr(content_activities.MediaPreviewService, "request_candidate", request)
+    assert worker.session.row is None
+    assert await adapter.request_candidate_preview([str(uuid4()), str(uuid4())]) == "blocked"
+    request.assert_not_awaited()

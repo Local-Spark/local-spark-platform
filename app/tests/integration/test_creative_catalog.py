@@ -11,6 +11,7 @@ from app.schemas.business_catalog import CatalogUpdate
 from app.services.auth import AuthError
 from app.services.business_catalog import BusinessCatalogService
 from app.services.creative_catalog import catalog_candidates, selected_catalog_snapshot, validate_catalog_snapshot
+from app.services.editorial_proposals import _catalog_price_fact
 from app.tests.integration.test_business_catalog import _business, _payload
 
 pytestmark = pytest.mark.integration
@@ -40,6 +41,44 @@ async def _photo(admin, tenant, business, actor, *, item=None, kind=None, archiv
             },
         )
     return photo
+
+
+async def test_request_only_snapshot_ignores_legacy_promotions_and_rechecks_offering(admin, database, seeded):
+    tenant, actor = seeded["t1"], seeded["a1"]
+    business = await _business(admin, tenant)
+    data = _payload()
+    item = UUID(data["offerings"][0]["id"])
+    service = BusinessCatalogService(database)
+    await service.update(tenant, business, actor, CatalogUpdate.model_validate(data))
+    instant = datetime(2026, 10, 28, 12, tzinfo=UTC)
+    async with database.transaction(tenant, actor) as session:
+        old = await selected_catalog_snapshot(session, tenant, business, actor, "croissant", item, 1, instant)
+        new = await selected_catalog_snapshot(
+            session, tenant, business, actor, "croissant", item, 1, instant, promotion_policy="request_only"
+        )
+        assert len(old["promotions"]) == 1
+        assert new["promotion_policy"] == "request_only" and new["promotions"] == []
+        assert _catalog_price_fact(new)["statement"] == "Croissant por R$ 18,00"
+        assert await validate_catalog_snapshot(session, tenant, business, actor, old, instant) == "valid"
+        assert await validate_catalog_snapshot(session, tenant, business, actor, new, instant) == "valid"
+    changed = deepcopy(data)
+    changed.update(operation_id=str(uuid4()), expected_version=1)
+    changed["promotions"][0]["price_minor"] = 1200
+    await service.update(tenant, business, actor, CatalogUpdate.model_validate(changed))
+    async with database.transaction(tenant, actor) as session:
+        assert await validate_catalog_snapshot(session, tenant, business, actor, old, instant) == "catalog_changed"
+        assert await validate_catalog_snapshot(session, tenant, business, actor, new, instant) == "valid"
+    async with database.transaction(seeded["t2"], seeded["a2"]) as session:
+        with pytest.raises(AuthError, match="BUSINESS_OWNER_REQUIRED"):
+            await validate_catalog_snapshot(session, seeded["t2"], business, seeded["a2"], new, instant)
+    changed.update(operation_id=str(uuid4()), expected_version=2)
+    changed["offerings"][0]["price_minor"] = 2500
+    await service.update(tenant, business, actor, CatalogUpdate.model_validate(changed))
+    async with database.transaction(tenant, actor) as session:
+        assert (
+            await validate_catalog_snapshot(session, tenant, business, actor, new, instant)
+            == "price_changed_or_expired"
+        )
 
 
 async def test_retrieval_and_snapshot_exclude_other_tenants_drafts_expired_prices_and_archived_photos(

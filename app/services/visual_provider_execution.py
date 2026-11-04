@@ -17,7 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.adapters.visual_ai import VisualRequest, VisualResult
 from app.db.session import Database
+from app.services.auth import AuthError
 from app.services.billing import lock_commercial_change
+from app.services.reference_generation_context import generation_context_is_current, read_generation_snapshot
 from app.services.visual_attempts import FencedVisualReservation
 from app.services.visual_cost_ledger import VisualReservation, _event
 from app.services.visual_requests import PreparedVisualRequest, visual_request_digest
@@ -140,6 +142,20 @@ class VisualSubmissionClaims:
                 return False
             if admitted_at is not None and not await visual_continuation_allowed(session, identity.tenant, admitted_at):
                 return False
+            reference_value = await session.scalar(
+                text("""SELECT reference_generation_snapshot FROM editorial_proposals
+                  WHERE tenant_id=:tenant AND business_id=:business AND id=:proposal"""),
+                params,
+            )
+            if reference_value is not None:
+                try:
+                    snapshot = read_generation_snapshot(reference_value)
+                except AuthError:
+                    return False
+                # Selection and the one-shot financial claim share this commit.
+                # No source lock is held while the provider performs network IO.
+                if not await generation_context_is_current(session, identity.business, snapshot):
+                    return False
             claimed = await session.scalar(
                 text("""UPDATE visual_cost_reservations SET state='uncertain',updated_at=now()
                   WHERE tenant_id=:tenant AND id=:reservation AND state='submitted' RETURNING 1"""),

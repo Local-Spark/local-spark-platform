@@ -179,12 +179,23 @@ async def test_synthetic_content_reaches_private_visual_preview_through_real_tem
             )
             result_task = asyncio.create_task(handle.result())
             dispatcher = uuid4()
-            async with asyncio.timeout(45):
-                while not result_task.done():
-                    await dispatch_proposals(database_worker, client, cfg, dispatcher)
-                    await dispatch_previews(database_worker, client, cfg, dispatcher)
-                    await asyncio.sleep(0.1)
-                assert await result_task == "candidate_delivered"
+            try:
+                async with asyncio.timeout(45):
+                    while not result_task.done():
+                        await dispatch_proposals(database_worker, client, cfg, dispatcher)
+                        await dispatch_previews(database_worker, client, cfg, dispatcher)
+                        await asyncio.sleep(0.1)
+                    assert await result_task == "candidate_delivered"
+            except TimeoutError:
+                # Stable state/error codes diagnose a broken fixture without
+                # printing sources, prompts, generated copy or credentials.
+                async with admin.connect() as connection:
+                    proposals = (
+                        await connection.execute(text("SELECT state,error_code FROM editorial_proposals"))
+                    ).all()
+                    previews = (await connection.execute(text("SELECT state,error_code FROM media_previews"))).all()
+                    briefings = (await connection.execute(text("SELECT state FROM editorial_briefings"))).all()
+                pytest.fail(f"Workflow stalled: briefings={briefings}; proposals={proposals}; previews={previews}")
 
         review = ContentDeliveryService(cfg, database, database_worker)
         deliveries = await review.list(tenant, business, actor)

@@ -3,7 +3,7 @@
 import asyncio
 import json
 from unittest.mock import AsyncMock
-from uuid import UUID, uuid4
+from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 
 import pytest
 from cryptography.fernet import Fernet
@@ -270,6 +270,28 @@ async def test_script_edit_versions_replay_review_and_preview_fence(admin, api, 
         },
     )
     assert context.status_code == 200, context.text
+    # The editable proposal below is historical: new context writes deliberately
+    # discard legacy facts, so seed the fact in its existing version explicitly.
+    async with admin.begin() as connection:
+        await connection.execute(
+            text("""UPDATE business_context_versions SET document=jsonb_set(document,'{facts}',CAST(:facts AS jsonb))
+              WHERE tenant_id=:tenant AND business_id=:business AND version=1"""),
+            {
+                "tenant": tenant,
+                "business": business,
+                "facts": json.dumps(
+                    [
+                        {
+                            "id": str(fact_id),
+                            "kind": "product",
+                            "statement": "Cachorro-quente artesanal",
+                            "source_detail": "Informado pelo dono",
+                            "valid_until": None,
+                        }
+                    ]
+                ),
+            },
+        )
     proposals_url = base + "/editorial-proposals"
     requested = await api.post(proposals_url, headers=owner, json={"operation_id": str(uuid4())})
     assert requested.status_code == 202, requested.text
@@ -595,19 +617,34 @@ async def test_script_edit_versions_replay_review_and_preview_fence(admin, api, 
 
 
 async def test_paid_reservation_budget_invalid_fact_and_uncertain(admin, seeded, settings):
+    from types import SimpleNamespace
+
+    from app.schemas.business_catalog import CatalogUpdate
+    from app.services.business_catalog import BusinessCatalogService
+    from app.services.creative_catalog_resolution import CatalogIntent
+    from app.services.editorial_briefings import EditorialBriefingService
+    from app.tests.integration.test_business_catalog import _payload
+
     business = await _business(admin, seeded)
     tenant, actor = seeded["t1"], seeded["a1"]
+    key = Fernet.generate_key().decode()
     config = settings.model_copy(
         update={
             "editorial_ai_mode": "openai",
             "openai_api_key": SecretStr("fake"),
             "editorial_daily_token_limit": 30000,
+            "meta_encryption_key": SecretStr(key),
         }
     )
     api_db = Database(config)
     worker_db = Database(config, correlator=True)
     provider = AsyncMock()
-    fact_id = uuid4()
+    catalog = _payload()
+    catalog["offerings"][0].update(name="Pao artesanal", aliases=[], price_minor=None, price_valid_until=None)
+    catalog["promotions"] = []
+    item_id = UUID(catalog["offerings"][0]["id"])
+    fact_id = uuid5(NAMESPACE_URL, f"catalog-fact:{item_id}:1")
+    legacy_fact_id = uuid4()
     provider.propose.return_value = (
         ProposalDraft(
             title="Conheça Pao artesanal",
@@ -619,12 +656,19 @@ async def test_paid_reservation_budget_invalid_fact_and_uncertain(admin, seeded,
             art_text="Pao artesanal",
             caption="Sua pausa com Pao artesanal.",
             cta="Envie mensagem",
+            creative_brief={
+                "objective": "Apresentar o produto",
+                "concept": "Uma pausa com pão",
+                "visual_direction": "Valorizar o produto",
+                "hierarchy": "Produto e chamada",
+                "photo_use": "Usar material disponível",
+            },
         ),
         100,
         50,
     )
     api_service = EditorialProposalService(config, api_db)
-    worker = EditorialProposalService(config, worker_db, provider)
+    worker = EditorialProposalService(config, worker_db, provider, owner_database=api_db)
     try:
         with pytest.raises(Exception) as denied:
             await api_service.request(tenant, business, actor, ProposalRequest(operation_id=uuid4()))
@@ -633,7 +677,29 @@ async def test_paid_reservation_budget_invalid_fact_and_uncertain(admin, seeded,
             "accepted": True,
             "provider_enabled": True,
         }
-        # Owner-confirmed context is required when there is no material.
+        async with admin.begin() as connection:
+            await connection.execute(
+                text("""INSERT INTO whatsapp_processing_consents(tenant_id,business_id,actor_id,accepted_at)
+                  VALUES(:tenant,:business,:actor,now()-interval '1 minute')"""),
+                {"tenant": tenant, "business": business, "actor": actor},
+            )
+            await connection.execute(
+                text("""INSERT INTO whatsapp_channel_links
+                  (tenant_id,business_id,actor_id,sender_hash,proof_event_id,linked_at)
+                  VALUES(:tenant,:business,:actor,:sender,:proof,now()-interval '1 minute')"""),
+                {"tenant": tenant, "business": business, "actor": actor, "sender": "b" * 64, "proof": uuid4()},
+            )
+        source = await _asset(admin, tenant, business, key, body="Crie um story do Pao artesanal")
+        await BusinessCatalogService(api_db).update(tenant, business, actor, CatalogUpdate.model_validate(catalog))
+        interpreter = SimpleNamespace(
+            interpret=AsyncMock(return_value=CatalogIntent("selected", item_id, "content_request", "story"))
+        )
+        briefing = await EditorialBriefingService(config, api_db, interpreter).prepare(
+            tenant, business, actor, source, uuid4()
+        )
+        assert briefing.state == "prepared"
+        # Preserve an older context fact to verify that new generation uses the
+        # revalidated catalog rather than silently restoring legacy facts.
         async with admin.begin() as connection:
             await connection.execute(
                 text("""INSERT INTO business_context_heads(tenant_id,business_id,version)
@@ -654,7 +720,7 @@ async def test_paid_reservation_budget_invalid_fact_and_uncertain(admin, seeded,
                         {
                             "facts": [
                                 {
-                                    "id": str(fact_id),
+                                    "id": str(legacy_fact_id),
                                     "kind": "product",
                                     "statement": "Pao artesanal",
                                     "source_detail": "Dono",
@@ -671,11 +737,19 @@ async def test_paid_reservation_budget_invalid_fact_and_uncertain(admin, seeded,
                     ),
                 },
             )
-        request = await api_service.request(tenant, business, actor, ProposalRequest(operation_id=uuid4()))
+        request = await api_service.request(
+            tenant,
+            business,
+            actor,
+            ProposalRequest(operation_id=uuid4(), source_asset_id=source),
+            briefing_id=briefing.id,
+        )
         claim = (await claim_proposals(worker_db, uuid4()))[0]
         await finish_proposal_dispatch(worker_db, claim, True)
         assert await worker.run(request.id) == "completed"
         provider.propose.assert_awaited_once()
+        assert provider.propose.await_args.args[0]["confirmed_facts"][0]["id"] == str(fact_id)
+        assert str(legacy_fact_id) not in str(provider.propose.await_args.args[0]["confirmed_facts"])
         async with admin.connect() as connection:
             assert await connection.scalar(text("SELECT reserved_tokens FROM editorial_ai_usage")) > 0
             assert await connection.scalar(text("SELECT input_tokens FROM editorial_ai_usage")) == 100
@@ -687,7 +761,13 @@ async def test_paid_reservation_budget_invalid_fact_and_uncertain(admin, seeded,
             assert delivered["caption"] == "Sua pausa com Pao artesanal."
             assert delivered["cta"] == "Envie mensagem"
         config.editorial_daily_token_limit = 1
-        request2 = await api_service.request(tenant, business, actor, ProposalRequest(operation_id=uuid4()))
+        request2 = await api_service.request(
+            tenant,
+            business,
+            actor,
+            ProposalRequest(operation_id=uuid4(), source_asset_id=source),
+            briefing_id=briefing.id,
+        )
         claim2 = (await claim_proposals(worker_db, uuid4()))[0]
         await finish_proposal_dispatch(worker_db, claim2, True)
         assert await worker.run(request2.id) == "budget_exceeded"
@@ -850,10 +930,20 @@ async def test_queued_proposals_fail_closed_on_access_consent_expiry_and_missing
 
 
 async def test_paid_failed_or_unverified_output_is_uncertain_and_never_retried(admin, seeded, settings):
+    from types import SimpleNamespace
+
+    from app.schemas.business_catalog import CatalogUpdate
+    from app.services.business_catalog import BusinessCatalogService
+    from app.services.creative_catalog_resolution import CatalogIntent
+    from app.services.editorial_briefings import EditorialBriefingService
+    from app.tests.integration.test_business_catalog import _payload
+    from app.tests.integration.test_editorial_briefings import _enable
+
     business = await _business(admin, seeded)
     tenant, actor = seeded["t1"], seeded["a1"]
+    await _enable(admin, tenant, business, actor)
     key = Fernet.generate_key().decode()
-    source = await _asset(admin, tenant, business, key)
+    source = await _asset(admin, tenant, business, key, body="Crie uma imagem do croissant")
     await _fact(admin, tenant, business, actor)
     config = settings.model_copy(
         update={
@@ -866,11 +956,27 @@ async def test_paid_failed_or_unverified_output_is_uncertain_and_never_retried(a
     api_db, worker_db = Database(config), Database(config, correlator=True)
     owner = EditorialProposalService(config, api_db)
     provider = AsyncMock()
-    worker = EditorialProposalService(config, worker_db, provider)
+    worker = EditorialProposalService(config, worker_db, provider, owner_database=api_db)
+    catalog = _payload()
+    catalog["promotions"] = []
+    await BusinessCatalogService(api_db).update(tenant, business, actor, CatalogUpdate.model_validate(catalog))
+    interpreter = SimpleNamespace(
+        interpret=AsyncMock(
+            return_value=CatalogIntent("selected", UUID(catalog["offerings"][0]["id"]), "content_request", "photo")
+        )
+    )
+    briefing = await EditorialBriefingService(config, api_db, interpreter).prepare(
+        tenant, business, actor, source, uuid4()
+    )
+    assert briefing.state == "prepared"
 
     async def queued():
         result = await owner.request(
-            tenant, business, actor, ProposalRequest(operation_id=uuid4(), source_asset_id=source)
+            tenant,
+            business,
+            actor,
+            ProposalRequest(operation_id=uuid4(), source_asset_id=source),
+            briefing_id=briefing.id,
         )
         claim = (await claim_proposals(worker_db, uuid4()))[0]
         await finish_proposal_dispatch(worker_db, claim, True)
@@ -899,7 +1005,7 @@ async def test_paid_failed_or_unverified_output_is_uncertain_and_never_retried(a
         assert await worker.run(unsupported) == "uncertain"
         missing_source = await queued()
 
-        async def delete_during_call(*_):
+        async def delete_during_call(*_, **_kwargs):
             async with admin.begin() as connection:
                 await connection.execute(text("DELETE FROM editorial_proposals WHERE id=:id"), {"id": missing_source})
             return (
@@ -1402,22 +1508,49 @@ async def test_staff_daily_usage_keeps_tenants_private_and_separates_reserved_fr
 
 
 async def test_experimental_copy_preserves_provenance_and_abstains_on_unsupported_amount(admin, seeded, settings):
+    from types import SimpleNamespace
+
+    from app.schemas.business_catalog import CatalogUpdate
+    from app.services.business_catalog import BusinessCatalogService
+    from app.services.creative_catalog_resolution import CatalogIntent
+    from app.services.editorial_briefings import EditorialBriefingService
+    from app.tests.integration.test_business_catalog import _payload
+    from app.tests.integration.test_editorial_briefings import _enable
+
     business = await _business(admin, seeded)
     tenant, actor = seeded["t1"], seeded["a1"]
-    first, selected = uuid4(), uuid4()
+    await _enable(admin, tenant, business, actor)
+    key = Fernet.generate_key().decode()
+    catalog = _payload()
+    catalog["offerings"][0].update(price_minor=2000, price_valid_until="2099-12-31")
+    catalog["promotions"] = []
+    item_id = UUID(catalog["offerings"][0]["id"])
+    first = uuid4()
+    selected = uuid5(NAMESPACE_URL, f"catalog-price:{item_id}:1:2000:2099-12-31")
     config = settings.model_copy(
         update={
             "editorial_ai_mode": "openai",
             "openai_api_key": SecretStr("fake"),
             "editorial_daily_token_limit": 30000,
             "editorial_creative_experimental": True,
+            "meta_encryption_key": SecretStr(key),
         }
     )
     api_db, worker_db = Database(config), Database(config, correlator=True)
     provider = AsyncMock()
-    service, worker = EditorialProposalService(config, api_db), EditorialProposalService(config, worker_db, provider)
+    service = EditorialProposalService(config, api_db)
+    worker = EditorialProposalService(config, worker_db, provider, owner_database=api_db)
     try:
         await service.set_consent(tenant, business, actor, True)
+        source = await _asset(admin, tenant, business, key, body="Crie uma imagem do croissant por R$ 20,00")
+        await BusinessCatalogService(api_db).update(tenant, business, actor, CatalogUpdate.model_validate(catalog))
+        interpreter = SimpleNamespace(
+            interpret=AsyncMock(return_value=CatalogIntent("selected", item_id, "content_request", "photo"))
+        )
+        briefing = await EditorialBriefingService(config, api_db, interpreter).prepare(
+            tenant, business, actor, source, uuid4()
+        )
+        assert briefing.state == "prepared"
         async with admin.begin() as connection:
             await connection.execute(
                 text("INSERT INTO business_context_heads(tenant_id,business_id,version) VALUES(:tenant,:business,1)"),
@@ -1451,17 +1584,40 @@ async def test_experimental_copy_preserves_provenance_and_abstains_on_unsupporte
         draft = ProposalDraft(
             title="Sua pausa com croissant",
             format="photo",
-            angle="Conheça croissant por R$ 20",
+            angle="Conheça croissant por R$ 20,00",
             fact_ids=[selected],
             hypotheses=[],
             questions=[],
             scene_plan=["fact", "cta"],
-            art_text="Croissant por R$ 20",
-            caption="Sua pausa com croissant por R$ 20",
+            art_text="Croissant por R$ 20,00",
+            caption="Sua pausa com croissant por R$ 20,00",
             cta="Envie mensagem",
+            creative_brief={
+                "objective": "Apresentar o croissant",
+                "concept": "Uma pausa saborosa",
+                "visual_direction": "Valorizar o produto",
+                "hierarchy": "Produto, preço e chamada",
+                "photo_use": "Usar material disponível",
+            },
         )
         provider.propose.return_value = draft, 100, 50
-        request = await service.request(tenant, business, actor, ProposalRequest(operation_id=uuid4()))
+        request = await service.request(
+            tenant,
+            business,
+            actor,
+            ProposalRequest(operation_id=uuid4(), source_asset_id=source),
+            briefing_id=briefing.id,
+        )
+        async with worker_db.sessions() as session, session.begin():
+            proposal_row = (
+                (await session.execute(text("SELECT * FROM editorial_proposals WHERE id=:id"), {"id": request.id}))
+                .mappings()
+                .one()
+            )
+            input_data, eligible_ids = await worker._inputs(session, proposal_row)
+        assert selected in eligible_ids
+        assert first not in eligible_ids
+        assert worker._safe_generated(draft, input_data, eligible_ids, full_piece=True)
         claim = (await claim_proposals(worker_db, uuid4()))[0]
         await finish_proposal_dispatch(worker_db, claim, True)
         assert await worker.run(request.id) == "completed"
@@ -1474,7 +1630,7 @@ async def test_experimental_copy_preserves_provenance_and_abstains_on_unsupporte
         assert result["art_text"] == draft.art_text
         assert result["caption"] == draft.caption
         assert result["cta"] == draft.cta
-        assert result["script"][0]["on_screen_text"] == "Croissant por R$ 20."
+        assert result["script"][0]["on_screen_text"] == "Croissant por R$ 20,00."
         assert result["script"][0]["fact_ids"] == [str(selected)]
         edit = ScriptEdit(
             operation_id=uuid4(),
@@ -1486,7 +1642,13 @@ async def test_experimental_copy_preserves_provenance_and_abstains_on_unsupporte
         with pytest.raises(AuthError, match="SCRIPT_GENERATED_COPY_EDIT_UNSUPPORTED"):
             await service.edit_script(tenant, business, actor, request.id, edit)
         provider.propose.return_value = draft.model_copy(update={"angle": "Conheça croissant por R$ 30"}), 100, 50
-        request = await service.request(tenant, business, actor, ProposalRequest(operation_id=uuid4()))
+        request = await service.request(
+            tenant,
+            business,
+            actor,
+            ProposalRequest(operation_id=uuid4(), source_asset_id=source),
+            briefing_id=briefing.id,
+        )
         claim = (await claim_proposals(worker_db, uuid4()))[0]
         await finish_proposal_dispatch(worker_db, claim, True)
         assert await worker.run(request.id) == "uncertain"

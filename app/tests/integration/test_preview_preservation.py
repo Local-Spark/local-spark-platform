@@ -1,5 +1,6 @@
 """Retain completed preview artifacts and their source document after deadlines."""
 
+import json
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -15,10 +16,52 @@ from app.services.content_deliveries import ContentDeliveryService, claim_public
 from app.services.editorial_proposals import EditorialProposalService, reconcile_stale_proposals
 from app.services.media_previews import MediaPreviewService
 from app.services.media_retention import claim_expired_previews, purge_expired_previews
-from app.tests.integration.test_content_delivery import _candidate_case
+from app.services.visual_context import VisualContextService
+from app.tests.integration.test_content_delivery import _visual_candidate_case
 from app.tests.integration.test_media_previews import _accepted_case, _attach_source
 
 pytestmark = pytest.mark.integration
+
+
+async def _historical_preview(admin, tenant, business, actor, proposal):
+    """Seed an existing record without starting the retired renderer."""
+    preview = uuid4()
+    async with admin.begin() as connection:
+        source = (
+            (
+                await connection.execute(
+                    text(
+                        "SELECT context_version,script_version,source_asset_id,document "
+                        "FROM editorial_proposals WHERE id=:id"
+                    ),
+                    {"id": proposal},
+                )
+            )
+            .mappings()
+            .one()
+        )
+        await connection.execute(
+            text("""INSERT INTO media_previews
+              (id,tenant_id,business_id,proposal_id,actor_id,operation_id,request_hash,render_key,
+               context_version,script_version,source_asset_id,fact_ids,expires_at)
+              VALUES(:id,:tenant,:business,:proposal,:actor,:operation,:request_hash,:render_key,
+                :context_version,:script_version,:source_asset_id,CAST(:facts AS jsonb),now()+interval '1 day')"""),
+            {
+                "id": preview,
+                "tenant": tenant,
+                "business": business,
+                "proposal": proposal,
+                "actor": actor,
+                "operation": uuid4(),
+                "request_hash": "a" * 64,
+                "render_key": "b" * 64,
+                "context_version": source["context_version"],
+                "script_version": source["script_version"],
+                "source_asset_id": source["source_asset_id"],
+                "facts": json.dumps(source["document"]["fact_ids"]),
+            },
+        )
+    return preview
 
 
 @pytest.mark.parametrize("mode", ["local", "visual_fake", "visual_ai"])
@@ -29,17 +72,15 @@ async def test_completed_preview_preserves_artifact_and_provenance(admin, seeded
     owner, worker = Database(settings), Database(settings, correlator=True)
     store = AsyncMock()
     try:
-        preview = await MediaPreviewService(settings, owner).request(
-            tenant, business, actor, PreviewRequest(operation_id=uuid4(), proposal_id=proposal)
-        )
-        key = f"previews/{tenant}/{business}/{preview.id}/attempt-1/artifact.jpg"
+        preview = await _historical_preview(admin, tenant, business, actor, proposal)
+        key = f"previews/{tenant}/{business}/{preview}/attempt-1/artifact.jpg"
         async with admin.begin() as connection:
             await connection.execute(
                 text("""UPDATE media_previews SET state='completed',object_key=:key,sha256=:sha,
                   generation_mode=:mode,
                   visual_fingerprint=CASE WHEN :mode<>'local' THEN CAST(:sha AS char(64)) ELSE NULL END,
                   expires_at=now()-interval '2 days' WHERE id=:id"""),
-                {"key": key, "sha": "b" * 64, "mode": mode, "id": preview.id},
+                {"key": key, "sha": "b" * 64, "mode": mode, "id": preview},
             )
             await connection.execute(
                 text("UPDATE editorial_proposals SET expires_at=now()-interval '1 day' WHERE id=:id"),
@@ -71,7 +112,7 @@ async def test_completed_preview_preserves_artifact_and_provenance(admin, seeded
                 (
                     await session.execute(
                         text("SELECT object_key,sha256,expires_at<now() AS expired FROM media_previews WHERE id=:id"),
-                        {"id": preview.id},
+                        {"id": preview},
                     )
                 )
                 .mappings()
@@ -90,15 +131,13 @@ async def test_unresolved_visual_admission_is_not_purged_when_lease_expires(admi
     tenant, business, actor, _, proposal, _ = await _accepted_case(admin, seeded)
     owner, worker = Database(settings), Database(settings, correlator=True)
     try:
-        preview = await MediaPreviewService(settings, owner).request(
-            tenant, business, actor, PreviewRequest(operation_id=uuid4(), proposal_id=proposal)
-        )
+        preview = await _historical_preview(admin, tenant, business, actor, proposal)
         async with admin.begin() as connection:
             await connection.execute(
                 text("""UPDATE media_previews SET state='rendering',expires_at=now()-interval '2 days',
                   generation_mode=:mode,visual_fingerprint=:sha,attempts=1,
                   dispatch_lease_until=now()-interval '1 second' WHERE id=:id"""),
-                {"id": preview.id, "sha": "d" * 64, "mode": mode},
+                {"id": preview, "sha": "d" * 64, "mode": mode},
             )
         assert await claim_expired_previews(worker, uuid4()) == []
     finally:
@@ -112,10 +151,8 @@ async def test_legacy_purge_claim_with_known_artifact_requires_reconciliation(ad
     owner, worker = Database(settings), Database(settings, correlator=True)
     store = AsyncMock()
     try:
-        preview = await MediaPreviewService(settings, owner).request(
-            tenant, business, actor, PreviewRequest(operation_id=uuid4(), proposal_id=proposal)
-        )
-        key = f"previews/{tenant}/{business}/{preview.id}/attempt-1/artifact.jpg"
+        preview = await _historical_preview(admin, tenant, business, actor, proposal)
+        key = f"previews/{tenant}/{business}/{preview}/attempt-1/artifact.jpg"
         async with admin.begin() as connection:
             await connection.execute(
                 text("""UPDATE media_previews SET state='purging',object_key=:key,sha256=:sha,
@@ -123,14 +160,14 @@ async def test_legacy_purge_claim_with_known_artifact_requires_reconciliation(ad
                   visual_fingerprint=CASE WHEN :mode<>'local' THEN CAST(:sha AS char(64)) ELSE NULL END,
                   dispatch_owner=:owner,dispatch_lease_until=now()-interval '1 minute',
                   expires_at=now()-interval '2 days' WHERE id=:id"""),
-                {"key": key, "sha": "e" * 64, "mode": mode, "owner": uuid4(), "id": preview.id},
+                {"key": key, "sha": "e" * 64, "mode": mode, "owner": uuid4(), "id": preview},
             )
         assert await claim_expired_previews(worker, uuid4()) == []
         assert await purge_expired_previews(worker, store, uuid4()) == 0
         store.delete.assert_not_awaited()
         async with owner.transaction(tenant, actor) as session:
             retained = (
-                (await session.execute(text("SELECT * FROM media_previews WHERE id=:id"), {"id": preview.id}))
+                (await session.execute(text("SELECT * FROM media_previews WHERE id=:id"), {"id": preview}))
                 .mappings()
                 .one()
             )
@@ -143,10 +180,10 @@ async def test_legacy_purge_claim_with_known_artifact_requires_reconciliation(ad
 
 @pytest.mark.parametrize("deadline_elapsed", [False, True])
 async def test_retained_candidate_review_does_not_extend_creation_or_publication_access(
-    admin, seeded, settings, deadline_elapsed
+    admin, seeded, settings, database, deadline_elapsed
 ):
-    cfg, owner, worker, tenant, business, actor, proposal, event, preview = await _candidate_case(
-        admin, seeded, settings
+    cfg, owner, worker, tenant, business, actor, proposal, event, preview, _ = await _visual_candidate_case(
+        admin, seeded, settings, database
     )
     try:
         deliveries = ContentDeliveryService(cfg, owner, worker)
@@ -174,11 +211,17 @@ async def test_retained_candidate_review_does_not_extend_creation_or_publication
         assert [item.id for item in await previews.list(tenant, business, actor)] == [preview]
         assert await previews.file_key(tenant, business, actor, preview, review=True)
         assert (await deliveries.list(tenant, business, actor))[0].id == delivery
-        with pytest.raises(AuthError, match="PREVIEW_SCRIPT_EXPIRED" if deadline_elapsed else "PLAN_REQUIRED"):
+        if deadline_elapsed:
+            with pytest.raises(AuthError, match="PREVIEW_SCRIPT_EXPIRED"):
+                await VisualContextService(cfg, owner).capture(tenant, business, actor, proposal, candidate=True)
+        with pytest.raises(AuthError, match="PLAN_REQUIRED"):
             await previews.request_candidate(
-                tenant, business, actor, PreviewRequest(operation_id=uuid4(), proposal_id=proposal)
+                tenant,
+                business,
+                actor,
+                PreviewRequest(operation_id=uuid4(), proposal_id=proposal, generation_mode="visual_fake"),
             )
-        with pytest.raises(AuthError, match="CANDIDATE_EXPIRED" if deadline_elapsed else "PLAN_REQUIRED"):
+        with pytest.raises(AuthError, match="CANDIDATE_EXPIRED" if deadline_elapsed else "VISUAL_BRIEFING_CHANGED"):
             await deliveries.decide(
                 tenant, business, actor, delivery, ContentDecision(operation_id=uuid4(), decision="approve")
             )
@@ -196,9 +239,9 @@ async def test_retained_candidate_review_does_not_extend_creation_or_publication
 
 
 @pytest.mark.parametrize("change", ["script_version", "script_rejected"])
-async def test_historical_preview_cannot_create_delivery_for_changed_script(admin, seeded, settings, change):
-    cfg, owner, worker, tenant, business, actor, proposal, event, preview = await _candidate_case(
-        admin, seeded, settings
+async def test_historical_preview_cannot_create_delivery_for_changed_script(admin, seeded, settings, database, change):
+    cfg, owner, worker, tenant, business, actor, proposal, event, preview, _ = await _visual_candidate_case(
+        admin, seeded, settings, database
     )
     try:
         async with admin.begin() as connection:

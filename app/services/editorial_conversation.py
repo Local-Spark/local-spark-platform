@@ -16,10 +16,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
 from app.db.session import Database
-from app.schemas.editorial_context import ConfirmedFact, ContextContent
 from app.schemas.editorial_conversation import ConversationDecision, SimulateMessage
 from app.services.auth import AuthError
-from app.services.editorial_context import EditorialContextService, _digest
 from app.services.whatsapp_materials import WhatsAppMaterialsService
 
 PRICE = re.compile(
@@ -262,29 +260,7 @@ class EditorialConversationService:
             if row["state"] != "awaiting_confirmation":
                 raise AuthError("CONVERSATION_NOT_CONFIRMABLE", 409)
             if confirmed:
-                context = EditorialContextService(self.database)
-                current = await context._version(session, tenant, business)
-                content = ContextContent.model_validate(current["document"] if current else {})
-                if len(content.facts) >= 20:
-                    raise AuthError("CONTEXT_FACT_LIMIT", 409)
-                fact = ConfirmedFact(
-                    id=uuid5(decision, "confirmed-fact"),
-                    kind="price" if row["intent"] == "price" else "hours",
-                    statement=row["proposal"]["summary"],
-                    source_detail="Confirmado pelo proprietário",
-                    valid_until=row["proposal"]["valid_until"],
-                )
-                content.facts.append(fact)
-                await context._save(
-                    session,
-                    tenant,
-                    business,
-                    actor,
-                    current["version"] if current else 0,
-                    decision,
-                    _digest(content),
-                    content,
-                )
+                raise AuthError("CONVERSATION_CONFIRMATION_UNAVAILABLE", 409)
             state = "confirmed" if confirmed else "discarded"
             reply = (
                 "Informação confirmada e salva para suas próximas ideias."

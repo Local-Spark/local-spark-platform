@@ -5,7 +5,7 @@ import io
 import json
 from dataclasses import replace
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock
 from uuid import UUID, uuid4
 
 import pytest
@@ -14,7 +14,6 @@ from PIL import Image
 from pydantic import SecretStr
 from sqlalchemy import text
 
-from app.adapters.brand_overlay import render_brand_overlay
 from app.db.session import Database
 from app.schemas.business_catalog import CatalogUpdate
 from app.schemas.content_deliveries import ContentDecision
@@ -27,13 +26,16 @@ from app.services.editorial_dispatch import claim_proposals
 from app.services.editorial_proposals import EditorialProposalService
 from app.services.media_dispatch import claim_previews
 from app.services.media_previews import MediaPreviewService
+from app.services.visual_brand_finish import VisualBrandFinishService
 from app.services.visual_consent import VisualConsentService
 from app.services.visual_context import VisualContextService
 from app.services.whatsapp_ingest import sender_hash
 from app.tests.integration.test_brand_kits import _overrides
 from app.tests.integration.test_business_catalog import _payload
+from app.tests.integration.test_content_delivery import _review
 from app.tests.integration.test_editorial_briefings import _enable
 from app.tests.integration.test_editorial_proposals import _asset, _business
+from app.tests.integration.test_visual_brand_finish import _editorial_provider
 from app.workflows.content_activities import ContentCandidateActivities
 
 pytestmark = pytest.mark.integration
@@ -51,6 +53,9 @@ async def test_visual_fake_preview_uses_fenced_attempt_and_blocks_revoked_access
             "meta_encryption_key": SecretStr(key),
             "visual_ai_mode": "fake",
             "visual_ai_monthly_budget_usd_micros": 100,
+            "editorial_ai_mode": "openai",
+            "openai_api_key": SecretStr("synthetic-key"),
+            "editorial_daily_token_limit": 100000,
         }
     )
     async with admin.begin() as conn:
@@ -98,13 +103,24 @@ async def test_visual_fake_preview_uses_fenced_attempt_and_blocks_revoked_access
     )
     worker = Database(cfg, correlator=True)
     store = SimpleNamespace(put=AsyncMock(), delete=AsyncMock())
-    overlay = Mock(wraps=render_brand_overlay)
-    monkeypatch.setattr("app.services.visual_brand_finish.render_brand_overlay", overlay)
+    prepared = []
+    prepare = VisualBrandFinishService.prepare
+
+    async def observe_prepare(self, *args, **kwargs):
+        result = await prepare(self, *args, **kwargs)
+        prepared.append(result)
+        return result
+
+    monkeypatch.setattr(VisualBrandFinishService, "prepare", observe_prepare)
     try:
         activity = ContentCandidateActivities(cfg, database, worker, interpreter=interpreter)
         proposal = UUID(await activity.request_candidate_proposal(str(source)))
         await claim_proposals(worker, uuid4())
-        assert await EditorialProposalService(cfg, worker, owner_database=database).run(proposal) == "completed"
+        provider = _editorial_provider()
+        assert (
+            await EditorialProposalService(cfg, worker, provider, owner_database=database).run(proposal) == "completed"
+        )
+        provider.propose.assert_awaited_once()
         consent = VisualConsentService(cfg, database)
         await consent.set(tenant, business, actor, True)
         owner_service = MediaPreviewService(cfg, database, store)
@@ -120,8 +136,7 @@ async def test_visual_fake_preview_uses_fenced_attempt_and_blocks_revoked_access
         service = MediaPreviewService(cfg, worker, store, database)
         assert await service.render(preview.id, claim.fence) == "completed"
         assert store.put.await_count == 1
-        assert overlay.call_count == 1
-        assert overlay.call_args.kwargs["kit"].brand_name == _overrides()["brand_name"]
+        assert prepared and all(item.kit.brand_name == _overrides()["brand_name"] for item in prepared)
         simulated_media = store.put.await_args.args[1]
         assert simulated_media.mime_type == "image/jpeg"
         with Image.open(io.BytesIO(simulated_media.data)) as picture:
@@ -132,8 +147,14 @@ async def test_visual_fake_preview_uses_fenced_attempt_and_blocks_revoked_access
         deliveries = ContentDeliveryService(cfg, database, worker)
         delivery = await deliveries.record(source, preview.id)
         assert delivery is not None
+        async with admin.connect() as conn:
+            sha = await conn.scalar(text("SELECT sha256 FROM media_previews WHERE id=:id"), {"id": preview.id})
         approved = await deliveries.decide(
-            tenant, business, actor, delivery, ContentDecision(operation_id=uuid4(), decision="approve")
+            tenant,
+            business,
+            actor,
+            delivery,
+            ContentDecision(operation_id=uuid4(), decision="approve", visual_review=_review(sha)),
         )
         assert approved.decision_state == "approved"
         # A stale fingerprint is rejected under the gate even if the two

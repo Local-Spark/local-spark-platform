@@ -133,3 +133,28 @@ async def test_existing_unbound_reservation_is_uncertain_and_not_resent(settings
     with pytest.raises(VisualCostError, match="VISUAL_RESERVATION_UNBOUND"):
         await service.reserve(**params)
     assert session.execute.await_count == 2
+
+
+@pytest.mark.parametrize("bound", [False, True])
+async def test_replay_with_trace_requires_the_original_bound_trace(settings, bound):
+    service, session, params = setup(settings)
+    reservation = VisualReservation(uuid4(), "submitted", 100, None, False)
+    previous = {
+        "operation_id": params["operation"],
+        "actor_id": params["actor"],
+        "request_hash": params["request_hash"],
+        "reservation_id": reservation.id,
+    }
+    session.execute.side_effect = [mapped({"id": params["preview"]}), mapped(previous)]
+    session.scalar.side_effect = [True, True, True, bound]
+    service.ledger.reserve_in_transaction.return_value = reservation
+    if bound:
+        replay = await service.reserve(**params, trace_ciphertext="encrypted-trace")
+        assert not replay.created and replay.reservation.id == reservation.id
+    else:
+        with pytest.raises(VisualCostError, match="VISUAL_TRACE_UNBOUND"):
+            await service.reserve(**params, trace_ciphertext="encrypted-trace")
+    assert session.execute.await_count == 2
+    query, fields = session.scalar.await_args.args
+    assert "visual_request_traces" in str(query)
+    assert fields["operation"] == params["operation"] and fields["hash"] == params["request_hash"]

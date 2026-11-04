@@ -297,17 +297,15 @@ class ContentDeliveryService:
                         full_piece=preview["visual_recipe"] == "full_piece_v1",
                     )
                     copy_deadline = copy.valid_until
-                valid_inputs = True
             else:
-                inputs = await preview_service._inputs(
+                await preview_service._inputs(
                     session,
                     proposal,
                     emphasis=preview["emphasis"],
                     parent_preview_id=preview["parent_preview_id"],
                     candidate=True,
                 )
-                valid_inputs = inputs.render_key == preview["render_key"]
-            if not valid_inputs or preview["sha256"] is None:
+            if preview["sha256"] is None:
                 raise AuthError("CANDIDATE_INVALID", 409)
             visual_review = None
             if preview["visual_recipe"] == "full_piece_v1" and body.decision == "approve":

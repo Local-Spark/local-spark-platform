@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from datetime import UTC, datetime
-from typing import Any, cast
+from typing import Any, Literal, cast
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -114,6 +114,8 @@ async def selected_catalog_snapshot(
     offering_id: UUID,
     expected_catalog_version: int,
     now: datetime,
+    *,
+    promotion_policy: Literal["legacy", "request_only"] = "legacy",
 ) -> dict[str, object]:
     """Capture only an explicitly resolved candidate; caller still checks intent.
 
@@ -149,16 +151,20 @@ async def selected_catalog_snapshot(
         raise AuthError("COLLECTION_CONTEXT_CHANGED", 409)
     promotions = (
         (
-            await session.execute(
-                text("""SELECT id,version,title,description,price_minor,starts_at,ends_at
+            (
+                await session.execute(
+                    text("""SELECT id,version,title,description,price_minor,starts_at,ends_at
                   FROM business_offering_promotions WHERE tenant_id=:tenant AND business_id=:business
                     AND offering_id=:item AND state='active' AND starts_at<=:now AND ends_at>:now
                   ORDER BY starts_at DESC,id LIMIT :limit"""),
-                {**params, "now": now, "limit": MAX_PROMOTIONS + 1},
+                    {**params, "now": now, "limit": MAX_PROMOTIONS + 1},
+                )
             )
+            .mappings()
+            .all()
         )
-        .mappings()
-        .all()
+        if promotion_policy == "legacy"
+        else []
     )
     # An incomplete list of competing offers must not be passed off as complete.
     if len(promotions) > MAX_PROMOTIONS:
@@ -195,7 +201,7 @@ async def selected_catalog_snapshot(
             "space_kind": photo["space_kind"],
         }
 
-    return {
+    snapshot: dict[str, object] = {
         "catalog_version": expected_catalog_version,
         "offering": {
             "id": str(row["id"]),
@@ -226,6 +232,9 @@ async def selected_catalog_snapshot(
         "space_photo": reference(space_photo),
         "resolved_at": now.isoformat(),
     }
+    if promotion_policy == "request_only":
+        snapshot["promotion_policy"] = "request_only"
+    return snapshot
 
 
 async def validate_catalog_snapshot(
@@ -264,6 +273,11 @@ async def validate_catalog_snapshot(
         multiple = snapshot["multiple_promotions"]
         if not isinstance(multiple, bool) or multiple != (len(promotions) > 1):
             return "invalid"
+        policy = snapshot.get("promotion_policy", "legacy")
+        if policy not in {"legacy", "request_only"} or (policy == "request_only" and promotions):
+            return "invalid"
+        if policy == "request_only" and not 1 <= offering_version <= version:
+            return "invalid"
         references = []
         for kind in ("item_photo", "space_photo"):
             reference = snapshot[kind]
@@ -282,7 +296,10 @@ async def validate_catalog_snapshot(
                 references.append((kind, identifier, number, digest, space_kind))
     except (KeyError, TypeError, ValueError, AttributeError):
         return "invalid"
-    if await _head(session, tenant, business) != version:
+    current_version = await _head(session, tenant, business)
+    if policy == "request_only" and current_version < version:
+        return "catalog_changed"
+    if policy == "legacy" and current_version != version:
         return "catalog_changed"
     params = {"tenant": tenant, "business": business, "item": offering_id}
     row = (
@@ -298,7 +315,7 @@ async def validate_catalog_snapshot(
         .mappings()
         .one_or_none()
     )
-    if row is None or row["version"] != offering_version:
+    if row is None or (policy == "legacy" and row["version"] != offering_version):
         return "catalog_changed"
     if any(offering[field] != row[field] for field in OFFERING_FIELDS):
         return "catalog_changed"
@@ -307,16 +324,20 @@ async def validate_catalog_snapshot(
         return "price_changed_or_expired"
     current_promotions = (
         (
-            await session.execute(
-                text("""SELECT id,version,title,description,price_minor,starts_at,ends_at
+            (
+                await session.execute(
+                    text("""SELECT id,version,title,description,price_minor,starts_at,ends_at
                   FROM business_offering_promotions WHERE tenant_id=:tenant AND business_id=:business
                     AND offering_id=:item AND state='active' AND starts_at<=:now AND ends_at>:now
                   ORDER BY starts_at DESC,id LIMIT :limit"""),
-                {**params, "now": now, "limit": MAX_PROMOTIONS + 1},
+                    {**params, "now": now, "limit": MAX_PROMOTIONS + 1},
+                )
             )
+            .mappings()
+            .all()
         )
-        .mappings()
-        .all()
+        if policy == "legacy"
+        else []
     )
     present = [
         {

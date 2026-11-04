@@ -4,7 +4,7 @@ import base64
 import hashlib
 import io
 import json
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import httpx
 import pytest
@@ -14,12 +14,16 @@ from sqlalchemy import text
 
 from app.db.session import Database
 from app.schemas.media_previews import PreviewRequest
+from app.services.editorial_briefings import EditorialBriefingService
+from app.services.editorial_proposals import EditorialProposalService, _catalog_price_fact
 from app.services.media_dispatch import claim_previews
 from app.services.media_previews import MediaPreviewService
 from app.services.service_agreement import SERVICE_AGREEMENT_HASH, SERVICE_AGREEMENT_VERSION, ServiceAgreementService
 from app.services.visual_generation_runner import DatabaseVisualGenerationRunner
+from app.services.visual_request_trace import VisualRequestTraceService
 from app.services.visual_skills import select_visual_skill
 from app.tests.integration.test_business_collection import Store
+from app.tests.integration.test_reference_generation_pipeline import persist_synthetic_learning
 from app.tests.integration.test_visual_admission import _ready
 
 pytestmark = pytest.mark.integration
@@ -32,7 +36,22 @@ def _png(color, size=(64, 64)):
 
 
 async def test_integral_piece_uses_snapshot_full_context_and_no_overlay(admin, database, seeded, settings):
-    tenant, business, actor, _, admission = await _ready(admin, database, seeded, settings)
+    async def analysis_fixture(tenant, business, actor):
+        await persist_synthetic_learning(admin, database, tenant, business, actor)
+
+    tenant, business, actor, _, admission = await _ready(
+        admin,
+        database,
+        seeded,
+        settings,
+        owner_reference={"instagram": "@cafe.referencia", "note": "Gosto das fotos"},
+        before_proposal=analysis_fixture,
+    )
+    editorial_trace = await EditorialProposalService(admission.settings, database).get_request_trace(
+        tenant, business, actor, admission.proposal
+    )
+    editorial_references = json.loads(editorial_trace["request"]["body"]["input"][1]["content"])["reference_context"]
+    assert editorial_references[0]["estado_analise"] == "partial"
     cfg = admission.settings.model_copy(
         update={
             "visual_ai_mode": "openai",
@@ -48,7 +67,19 @@ async def test_integral_piece_uses_snapshot_full_context_and_no_overlay(admin, d
     skill_hash = select_visual_skill(cfg, "instagram-feed-v1", "photo")
     photo, logo = _png("orange"), _png("purple")
     photo_hash, logo_hash = hashlib.sha256(photo).hexdigest(), hashlib.sha256(logo).hexdigest()
-    photo_key, logo_key, logo_id, fact_id = "private/source.png", "private/logo.png", uuid4(), uuid4()
+    photo_key, logo_key, logo_id = "private/source.png", "private/logo.png", uuid4()
+    async with admin.connect() as connection:
+        briefing_id = await connection.scalar(
+            text("SELECT briefing_id FROM editorial_proposals WHERE id=:id"), {"id": admission.proposal}
+        )
+    async with database.transaction(tenant, actor) as session:
+        status, catalog = await EditorialBriefingService(cfg, database).read_valid(
+            session, tenant, business, actor, briefing_id
+        )
+    assert status == "prepared" and catalog is not None
+    price_fact = _catalog_price_fact(catalog)
+    assert price_fact is not None
+    fact_id = UUID(str(price_fact["id"]))
     store = Store()
     store.objects.update({photo_key: photo, logo_key: logo})
 
@@ -130,7 +161,11 @@ async def test_integral_piece_uses_snapshot_full_context_and_no_overlay(admin, d
         await connection.execute(
             text("""UPDATE editorial_proposals SET document=CAST(:document AS jsonb),
               context_version=1,brand_kit_document=CAST(:kit AS jsonb) WHERE id=:id"""),
-            {**params, "document": json.dumps(document), "kit": json.dumps(kit)},
+            {
+                **params,
+                "document": json.dumps(document),
+                "kit": json.dumps(kit),
+            },
         )
         await connection.execute(
             text("""UPDATE whatsapp_material_assets SET kind='image',object_key=:key,
@@ -170,6 +205,13 @@ async def test_integral_piece_uses_snapshot_full_context_and_no_overlay(admin, d
         assert "logomarca original autorizada" in prompt
         assert len(sent[0]["images"]) == 3
         assert "imagem de exemplo do kit é fictícia" in prompt
+        assert "cafe.referencia" in prompt and "Gosto das fotos" in prompt
+        assert "Composição com espaço vazio" in prompt and "Tom acolhedor" in prompt
+        assert '"estado_analise": "partial"' in prompt
+        assert json.dumps(editorial_references, sort_keys=True, ensure_ascii=False) in prompt
+        assert "não presuma acesso a perfis sem análise" in prompt
+        trace = await VisualRequestTraceService(cfg, database).read(tenant, business, actor, preview.id)
+        assert trace["request"]["prompt"] == prompt
         assert "Não acrescente palavras" not in prompt
         async with admin.connect() as connection:
             row = (

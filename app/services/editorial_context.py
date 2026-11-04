@@ -8,7 +8,14 @@ from uuid import UUID
 from sqlalchemy import text
 
 from app.db.session import Database
-from app.schemas.editorial_context import ContextContent, ContextHistoryItem, ContextRead, ContextRestore, ContextUpdate
+from app.schemas.editorial_context import (
+    ContextContent,
+    ContextHistoryItem,
+    ContextRead,
+    ContextRestore,
+    ContextUpdate,
+    ReferenceSearchPreference,
+)
 from app.services.auth import AuthError
 from app.services.whatsapp_materials import WhatsAppMaterialsService
 
@@ -20,8 +27,89 @@ def _digest(content: ContextContent | ContextRestore) -> str:
     preferences = document.get("preferences")
     if isinstance(preferences, dict) and preferences.get("cta_destination") is None:
         preferences.pop("cta_destination", None)
+    if isinstance(preferences, dict) and preferences.get("reference_search") is None:
+        preferences.pop("reference_search", None)
+    if (
+        isinstance(preferences, dict)
+        and isinstance(content, ContextContent)
+        and "business_terms" not in content.preferences.model_fields_set
+    ):
+        preferences.pop("business_terms", None)
+    if (
+        isinstance(preferences, dict)
+        and isinstance(content, ContextContent)
+        and "business_characteristics" not in content.preferences.model_fields_set
+    ):
+        preferences.pop("business_characteristics", None)
     encoded = json.dumps(document, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
     return hashlib.sha256(encoded.encode()).hexdigest()
+
+
+def _current_reference_choice(preference: ReferenceSearchPreference) -> bool:
+    return preference.scope == "local" and preference.radius_km in {5, 20, 50}
+
+
+def _preserve_omitted_legacy(
+    payload: ContextUpdate | ContextRestore, content: ContextContent, current: ContextRead
+) -> tuple[ContextContent, bool]:
+    existing = current.preferences.reference_search
+    if (
+        isinstance(payload, ContextUpdate)
+        and "reference_search" not in payload.preferences.model_fields_set
+        and existing is not None
+        and not _current_reference_choice(existing)
+    ):
+        preferences = content.preferences.model_copy(update={"reference_search": existing})
+        return content.model_copy(update={"preferences": preferences}), True
+    return content, False
+
+
+def _validate_reference_change(current: ContextRead, content: ContextContent) -> None:
+    proposed = content.preferences.reference_search
+    if proposed is None or proposed == current.preferences.reference_search:
+        return
+    if not _current_reference_choice(proposed):
+        raise AuthError("REFERENCE_SEARCH_NOT_SUPPORTED", 422)
+
+
+def _preserve_omitted_business_terms(
+    payload: ContextUpdate | ContextRestore, content: ContextContent, current: ContextRead
+) -> ContextContent:
+    source = payload.preferences if isinstance(payload, ContextUpdate) else content.preferences
+    if "business_terms" in source.model_fields_set:
+        return content
+    preferences = content.preferences.model_copy(update={"business_terms": current.preferences.business_terms})
+    return content.model_copy(update={"preferences": preferences})
+
+
+def _preserve_omitted_characteristics(
+    payload: ContextUpdate | ContextRestore, content: ContextContent, current: ContextRead
+) -> ContextContent:
+    source = payload.preferences if isinstance(payload, ContextUpdate) else content.preferences
+    if "business_characteristics" in source.model_fields_set:
+        return content
+    preferences = content.preferences.model_copy(
+        update={"business_characteristics": current.preferences.business_characteristics}
+    )
+    return content.model_copy(update={"preferences": preferences})
+
+
+async def _guard_business_terms_change(
+    session: Any, tenant: UUID, business: UUID, current: ContextRead, content: ContextContent
+) -> None:
+    if current.preferences.business_terms == content.preferences.business_terms:
+        return
+    from app.services.reference_cycles import lock_reference_head
+
+    # Shared lock order with discovery admission: reference head before context head.
+    await lock_reference_head(session, tenant, business)
+    pending = await session.scalar(
+        text("""SELECT 1 FROM reference_discoveries
+          WHERE tenant_id=:tenant AND business_id=:business AND state='pending' LIMIT 1"""),
+        {"tenant": tenant, "business": business},
+    )
+    if pending is not None:
+        raise AuthError("REFERENCE_SEARCH_IN_PROGRESS", 409)
 
 
 class EditorialContextService:
@@ -135,7 +223,7 @@ class EditorialContextService:
             if replay is not None:
                 return replay
             raise AuthError("CONTEXT_VERSION_CONFLICT", 409)
-        document = content.model_dump(mode="json")
+        document = content.model_copy(update={"facts": []}).model_dump(mode="json")
         row = (
             (
                 await session.execute(
@@ -178,6 +266,11 @@ class EditorialContextService:
             content = ContextContent.model_validate(source["document"])
         if payload.operation_id != row["operation_id"] or _digest(payload) != row["request_hash"]:
             raise AuthError("VISUAL_CHANGE_OPERATION_CONFLICT", 409)
+        current = EditorialContextService._present(await EditorialContextService._version(session, tenant, business))
+        content, _ = _preserve_omitted_legacy(payload, content, current)
+        content = _preserve_omitted_business_terms(payload, content, current)
+        content = _preserve_omitted_characteristics(payload, content, current)
+        await _guard_business_terms_change(session, tenant, business, current, content)
         await EditorialContextService._save(
             session,
             tenant,
@@ -215,6 +308,11 @@ class EditorialContextService:
         current = self._present(await self._version(session, tenant, business))
         if current.version != payload.expected_version:
             raise AuthError("CONTEXT_VERSION_CONFLICT", 409)
+        content, _ = _preserve_omitted_legacy(payload, content, current)
+        content = _preserve_omitted_business_terms(payload, content, current)
+        content = _preserve_omitted_characteristics(payload, content, current)
+        _validate_reference_change(current, content)
+        await _guard_business_terms_change(session, tenant, business, current, content)
         deferred = await VisualPendingChanges.enqueue_in_session(
             session,
             tenant,
@@ -224,7 +322,7 @@ class EditorialContextService:
             kind,
             "context",
             digest,
-            payload.model_dump(mode="json"),
+            payload.model_dump(mode="json", exclude_unset=isinstance(payload, ContextUpdate)),
         )
         if deferred:
             return ContextRead.model_validate(

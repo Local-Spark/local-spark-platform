@@ -17,6 +17,7 @@ from app.api.v1.api import api_router
 from app.api.v1.auth import auth_router
 from app.api.v1.billing import billing_router
 from app.api.v1.brand_kits import brand_kits_router
+from app.api.v1.business_address import business_address_router
 from app.api.v1.business_catalog import catalog_router
 from app.api.v1.business_collection import collection_router
 from app.api.v1.content_deliveries import deliveries_router
@@ -25,8 +26,13 @@ from app.api.v1.editorial_conversation import conversation_router
 from app.api.v1.editorial_proposals import proposals_router
 from app.api.v1.media_previews import previews_router
 from app.api.v1.onboarding import onboarding_router
+from app.api.v1.owner_references import owner_references_router
 from app.api.v1.phone_verification import phone_router
 from app.api.v1.reference import reference_router
+from app.api.v1.reference_discovery import reference_discovery_router
+from app.api.v1.reference_learnings import reference_learnings_router
+from app.api.v1.reference_own_review import reference_own_review_router
+from app.api.v1.reference_results import reference_results_router
 from app.api.v1.service_agreement import agreement_router
 from app.api.v1.staff import staff_router
 from app.api.v1.whatsapp import whatsapp_router
@@ -91,8 +97,14 @@ def create_app(
     application.include_router(auth_router)
     application.include_router(brand_kits_router)
     application.include_router(catalog_router)
+    application.include_router(business_address_router)
     application.include_router(collection_router)
     application.include_router(reference_router)
+    application.include_router(reference_discovery_router)
+    application.include_router(reference_results_router)
+    application.include_router(reference_learnings_router)
+    application.include_router(reference_own_review_router)
+    application.include_router(owner_references_router)
     application.include_router(agreement_router)
     application.include_router(billing_router)
     application.include_router(staff_router)

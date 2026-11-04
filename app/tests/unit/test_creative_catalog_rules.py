@@ -260,6 +260,21 @@ async def test_revalidate_rejects_inconsistent_promotion_flag_and_missing_field(
     assert await _validate(monkeypatch, snapshot) == "invalid"
 
 
+async def test_request_only_snapshot_rejects_unknown_policy_and_embedded_legacy_promotion(monkeypatch):
+    snapshot = _saved_snapshot()
+    snapshot["promotion_policy"] = "unexpected"
+    assert await _validate(monkeypatch, snapshot) == "invalid"
+    snapshot["promotion_policy"] = "request_only"
+    snapshot["promotions"] = [{"title": "Promoção antiga"}]
+    assert await _validate(monkeypatch, snapshot) == "invalid"
+    snapshot = _saved_snapshot()
+    snapshot["promotion_policy"] = "request_only"
+    snapshot["offering"]["version"] = 4
+    assert await _validate(monkeypatch, snapshot) == "invalid"
+    snapshot["offering"]["version"] = 3
+    assert await _validate(monkeypatch, snapshot, version=2) == "catalog_changed"
+
+
 async def test_revalidate_conflict_expiration_and_promotion_change(monkeypatch):
     item = uuid4()
     snapshot = _saved_snapshot(item=item)

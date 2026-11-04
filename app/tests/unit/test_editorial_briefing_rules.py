@@ -253,6 +253,26 @@ def confirmed_context():
     }
 
 
+@pytest.mark.parametrize("references", [[], [{"instagram_handle": "cafe", "access_status": "not_checked"}]])
+async def test_proposal_inputs_use_only_frozen_owner_indications(settings, ids, references, monkeypatch):
+    row = {
+        **context_row(ids),
+        "source_asset_id": uuid4(),
+        "briefing_id": None,
+        "briefing_required": False,
+        "owner_reference_snapshot": references,
+    }
+    session = SimpleNamespace(
+        scalar=AsyncMock(return_value=confirmed_context()), execute=AsyncMock(return_value=mapped({"kind": "text"}))
+    )
+    service = EditorialProposalService(settings, MagicMock())
+    monkeypatch.setattr(service, "_source", lambda asset: "Faça um post")
+    result = await service._inputs(session, row)
+    assert result is not None
+    assert result[0].get("owner_reference_indications") == (references or None)
+    assert result[0]["confirmed_facts"] == []
+
+
 @pytest.mark.parametrize("owner_available,environment", [(False, "testing"), (True, "production")])
 async def test_proposal_inputs_block_briefing_without_owner_database_or_in_production(
     settings, ids, owner_available, environment
@@ -356,17 +376,48 @@ async def test_briefing_inputs_fail_closed_on_unusable_sources(settings, ids, mo
         snapshot["offering"]["name"] = "Promoção hoje"
     elif case == "colliding_fact":
         context["facts"][0]["id"] = _catalog_fact(snapshot)["id"]
-    session = SimpleNamespace(scalar=AsyncMock(return_value=context))
+    session = SimpleNamespace(
+        scalar=AsyncMock(return_value=context), execute=AsyncMock(return_value=mapped({"kind": "text"}))
+    )
     owner_session = SimpleNamespace(
         scalar=AsyncMock(return_value="short_video" if case == "unsupported_format" else "photo")
     )
     owner = MemoryDatabase(owner_session)
     monkeypatch.setattr(EditorialBriefingService, "read_valid", AsyncMock(return_value=("prepared", snapshot)))
     service = EditorialProposalService(settings, MagicMock(), owner_database=owner)
-    result = await service._inputs(session, context_row(ids))
+    monkeypatch.setattr(service, "_source", lambda asset: "Faça um post")
+    result = await service._inputs(session, {**context_row(ids), "source_asset_id": uuid4()})
     if case == "unsafe_name":
-        assert result is not None
-        assert len(result[0]["confirmed_facts"]) == 1
-        assert result[0]["confirmed_facts"][0]["statement"] == "Croissant"
+        assert result is not None and result[0]["confirmed_facts"] == []
+    elif case == "colliding_fact":
+        assert result is not None and len(result[0]["confirmed_facts"]) == 1
     else:
         assert result is None
+
+
+@pytest.mark.parametrize("with_source", [False, True])
+async def test_catalog_fact_survives_retired_facts_with_or_without_material(settings, ids, monkeypatch, with_source):
+    snapshot = {
+        "offering": {
+            "id": str(uuid4()),
+            "version": 1,
+            "name": "Croissant",
+            "kind": "product",
+            "price": {"status": "not_set"},
+        },
+        "promotions": [],
+    }
+    context = {"facts": [], "preferences": {"business_characteristics": "Atendimento acolhedor"}}
+    session = SimpleNamespace(
+        scalar=AsyncMock(return_value=context), execute=AsyncMock(return_value=mapped({"kind": "text"}))
+    )
+    owner = MemoryDatabase(SimpleNamespace(scalar=AsyncMock(return_value="photo")))
+    monkeypatch.setattr(EditorialBriefingService, "read_valid", AsyncMock(return_value=("prepared", snapshot)))
+    service = EditorialProposalService(settings, MagicMock(), owner_database=owner)
+    monkeypatch.setattr(service, "_source", lambda asset: "Divulgue croissant")
+    row = {**context_row(ids), "source_asset_id": uuid4() if with_source else None}
+    data, ids_used = await service._inputs(session, row)
+    assert data["material"] == ("Divulgue croissant" if with_source else None)
+    assert data["preferences"]["business_characteristics"] == "Atendimento acolhedor"
+    assert len(data["confirmed_facts"]) == len(ids_used) == 1
+    assert data["confirmed_facts"][0]["statement"] == "Croissant"
