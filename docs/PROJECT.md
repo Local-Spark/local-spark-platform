@@ -1,5 +1,62 @@
 # Meu Braço Direito — contexto vigente
 
+O titular solicitou preservar cópias próprias versionadas das fontes externas e empacotar as dependências do produto, com backups, para não depender da continuidade dos repositórios originais. A [estratégia de preservação](design/plano-v0-imagens-video-motion-2026-11-05.md#cópias-próprias-e-independência-dos-repositórios-externos) é planejamento; espelhos e backups ainda não foram criados.
+
+A intenção de integração inclui reutilizar e adaptar código, fichas e scripts de terceiros quando permitido; detalhes no [plano](design/plano-v0-imagens-video-motion-2026-11-05.md#integração-concreta-da-claude-video). Isso ainda não está implementado.
+
+## Plano da v0 de imagens, vídeo e motion — 05/11/2026
+
+O titular pediu um plano completo para concluir a v0 com imagens de feed/story,
+edição de vídeo enviado para Reel/story e carrossel com motion. O [plano de
+integração](design/plano-v0-imagens-video-motion-2026-11-05.md) separa pesquisa,
+ensaios rápidos e implementação em fatias; é proposta de desenvolvimento, não
+capacidade já entregue. O estilo é escolhido pelo sistema e adaptado ao negócio.
+
+## Ensaio de motion com modelos reais — 05/11/2026
+
+O titular autorizou chamadas pagas. O [ensaio direto](evals/ensaio-motion-referencia-2026-11-05.md) gerou um carrossel e duas direções de Reel, com trace completo; Jev pediu esclarecimento, transcrição errou um trecho e a segunda direção precisou de correção técnica antes do render. Reservas US$ 0,78; uso estimado ajustado US$ 0,147533, sujeito à fatura. Revisão do titular permanece pendente.
+
+## Proposta de biblioteca de estilos de motion — 05/11/2026
+
+O titular propôs estilos próprios internos, escolhidos automaticamente pelo sistema conforme o negócio e o pedido, sem exigir que o cliente escolha. A [proposta](design/biblioteca-estilos-motion-2026-11-05.md) ainda precisa de protótipo e avaliação; não existe integração implementada.
+
+A skill `claude-video` foi instalada no Codex e sua galeria de 21 estilos foi aberta localmente como fonte de estudo; condições e limites constam no [estudo](design/estudo-claude-video-2026-11-05.md). Não integra automaticamente o produto.
+
+## Próxima pesquisa: vídeo e motion, 04/11/2026
+
+Em 05/11/2026 o titular esclareceu o fluxo: o cliente não seleciona imagens do acervo; pode enviar uma imagem própria e, para editar vídeo, envia o vídeo. O acervo não é obrigatório na edição de vídeo. Dois ensaios locais de HyperFrames foram solicitados; detalhes no [estudo](design/estudo-hyperframes-motion-design-2026-11-04.md).
+
+A skill adicional indicada foi analisada em [claude-video](design/estudo-claude-video-2026-11-05.md); os [ensaios diretos](evals/plano-hyperframes-2026-11-05.md) usam vídeo e imagem simulados como anexos.
+
+As [prévias HyperFrames](evals/ensaio-hyperframes-2026-11-05.md) foram montadas com direção da IA desta sessão e Jev simulado, sem APIs pagas; aguardam revisão. A execução opcional com modelos externos e transcrição real requer orçamento próprio.
+
+O [estudo HyperFrames e motion design](design/estudo-hyperframes-motion-design-2026-11-04.md) recomenda testar uma composição criada por agente e renderizada com HyperFrames, orientada por técnicas de motion da Howseen. É análise, sem integração ou teste novo; referência anterior de orçamento não autoriza nova rodada.
+
+O titular rejeitou as prévias de motion por falta de áudio, cortes, transições, efeitos e legendas dinâmicas. O [novo ensaio direto](evals/ensaio-motion-valido-2026-11-04.md) produziu vídeo e carrossel para revisão, com reservas de US$ 0,32 e custo estimado de US$ 0,019071; o Jev real pediu esclarecimento e a direção de motion é experimental, não integrada.
+
+Uma prévia de vídeo e um carrossel de três páginas foram montados localmente, sem chamadas pagas e com Jev simulado. A avaliação visual pelo titular e a integração estão pendentes; as prévias não exercitam referências externas nem fala. Ver [relatório](evals/ensaio-video-motion-2026-11-04.md).
+
+O titular quer edição criativa por IA para vídeo de feed/Reel e story, além de carrossel com motion e um MP4 em loop por página. A IA decide cortes, ritmo, tipografia, áudio e movimento conforme caso, kit, acervo e referências; FFmpeg pode executar a montagem técnica. O titular escolheu até 60 segundos por vídeo final e testes separados de vídeo gravado e carrossel; duração de entrada e planos aguardam definição. Foram criadas três skills iniciais para avaliação; não estão integradas à plataforma. Ver [estudo](design/estudo-video-motion-2026-11-04.md).
+
+## Procedimento vigente para ensaios rápidos de qualidade
+
+O titular pediu que próximas avaliações criativas usem o mesmo ensaio direto e
+rápido: mensagem WhatsApp simulada, interpretação Jev identificada como real ou
+simulada, inputs/outputs editoriais e visuais e apresentação das peças. Não
+criar banco separado nem montar o sistema completo apenas para esse objetivo.
+Ver [procedimento](design/ensaios-rapidos-qualidade.md), inclusive orçamento,
+operações incertas e limites de evidência. Testes de banco/integração/CI continuam
+exigindo banco próprio `_test` e roles restritas. As seções datadas abaixo são
+históricas quando descrevem preparativos anteriores.
+
+Dois pares foram gerados no ensaio direto da BL04.3, com Jev e modelos reais. [Compare as peças](evals/bl043-reference-quality-2026-11-04.md#resultado-do-ensaio-direto--04112026); revisão do titular e correções continuam pendentes. Reservas US$ 1,52; estimativa US$ 0,216691, não fatura.
+
+O titular pediu um ensaio direto e rápido, sem percorrer o sistema completo: mensagem fictícia, resposta Jev, inputs editoriais/visuais e peças com/sem padrões. O [plano atualizado](evals/bl043-reference-quality-2026-11-04.md) substitui a preparação anterior para esta avaliação exploratória; reservas de até US$ 2 continuam autorizadas.
+
+## BL04.3 — preparação do ensaio, 04/11/2026
+
+Inventário inicial e plano pareado preliminar em [avaliação de referências](evals/bl043-reference-quality-2026-11-04.md). A referência manual tem análise parcial e a sugerida permanece indisponível; a conferência individual contra evidências está pendente. O controle exige mecanismo de avaliação que preserve snapshot e revalidação, ainda não preparado. O titular escolheu dois pares do negócio fictício do piloto, reservas de até US$ 2 incluindo refações, aceitando risco de cobrança maior, e informará sua revisão visual da referência pública; nenhuma geração paga ou aceite ocorreu. Os tetos anteriores não autorizam a rodada.
+
 ## Próxima retomada — BL04.3, 04/11/2026
 
 Continuar a avaliação de qualidade das peças com kit, acervo, skills e referências.

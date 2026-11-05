@@ -1,5 +1,61 @@
 # BL04 — contexto seletivo e produção visual com IA
 
+A futura integração deve preservar fontes externas e dependências sob controle próprio e provar o runtime sem acesso ao GitHub original; detalhes e estado no [plano](../design/plano-v0-imagens-video-motion-2026-11-05.md#cópias-próprias-e-independência-dos-repositórios-externos).
+
+O plano inclui reaproveitar instruções, fichas, projetos e scripts externos permitidos na integração, em vez de restringi-los a estudo; ver [etapas concretas](../design/plano-v0-imagens-video-motion-2026-11-05.md#integração-concreta-da-claude-video). Nada disso está integrado ainda.
+
+## Plano para concluir a v0 com motion — 05/11/2026
+
+O [plano de integração](../design/plano-v0-imagens-video-motion-2026-11-05.md)
+organiza conclusão de imagem, ensaios rápidos, contratos, análise de mídia,
+seleção automática de estilo, render seguro, Reel, story, carrossel e jornada
+integrada. Não altera o estado das entregas existentes: as novas capacidades e
+seus critérios de qualidade e publicação permanecem pendentes.
+
+## Ensaio de motion com modelos reais — 05/11/2026
+
+O [ensaio direto](../evals/ensaio-motion-referencia-2026-11-05.md) produziu carrossel e duas direções de Reel, com inputs, prompts, respostas e custos disponíveis; não comprova integração. O Jev não reconheceu os formatos, houve erro de transcrição e o HTML da refação necessitou ajustes. Avaliação do titular pendente.
+
+## Proposta de estilos de motion — 05/11/2026
+
+O titular sugeriu uma biblioteca própria de estilos de motion com escolha automática pelo sistema, sem exigir escolha do cliente. Ver [proposta](../design/biblioteca-estilos-motion-2026-11-05.md); integração e avaliação estão pendentes.
+
+A skill externa `claude-video` foi instalada no Codex e sua galeria aberta localmente para estudo, conforme [registro](../design/estudo-claude-video-2026-11-05.md); não é integração do produto.
+
+## Pesquisa adicional de vídeo e motion, 04/11/2026
+
+Em 05/11/2026 o titular esclareceu que o cliente não escolhe imagens do acervo; pode enviar uma imagem e envia o vídeo para edição. Não exigir acervo na edição de vídeo. Áudio pode ser extraído para transcrição, com integração e sincronização ainda pendentes.
+
+Ver [estudo da skill claude-video](../design/estudo-claude-video-2026-11-05.md) e [plano dos ensaios](../evals/plano-hyperframes-2026-11-05.md).
+
+As [prévias locais HyperFrames](../evals/ensaio-hyperframes-2026-11-05.md) foram geradas sem chamadas pagas, com direção do agente e Jev simulado; ainda não comprovam integração, transcrição real ou publicação.
+
+Pesquisa documental dos repositórios indicados resultou em [proposta de ensaio e integração](../design/estudo-hyperframes-motion-design-2026-11-04.md): testar direção audiovisual criada por agente e HyperFrames local; separar a experiência de qualidade da futura integração ao produto. Nenhuma nova chamada paga ou render foi realizado nesta pesquisa.
+
+As primeiras prévias foram rejeitadas por falta de motion, áudio e edição. O [novo ensaio](../evals/ensaio-motion-valido-2026-11-04.md) produziu as peças com rastreabilidade e orçamento próprio; a direção audiovisual é experimental e não demonstra integração do produto. Revisão do titular pendente.
+
+Um vídeo e três páginas animadas foram montados como ensaio local gratuito de direção criativa, sem Jev real ou referências; ainda aguardam avaliação do titular. O [relatório](../evals/ensaio-video-motion-2026-11-04.md) registra fontes, limitações e verificações. Não houve integração de produto ou teste de publicação.
+
+O titular quer estudar skills de terceiros e preparar skills próprias para vídeo gravado no feed/Reel, story em vídeo e carrossel com um MP4 em loop por página. A IA decide a edição criativa e FFmpeg pode executar a montagem. O titular escolheu até 60 segundos por vídeo final e testar vídeo e carrossel separadamente; orçamento e integração seguem em avaliação; as três skills iniciais foram criadas, mas ainda não estão integradas ou avaliadas com peças reais. Detalhes em [estudo](../design/estudo-video-motion-2026-11-04.md).
+
+## Ensaios de qualidade — procedimento vigente
+
+Avaliações criativas futuras usam o [procedimento direto e rápido](../design/ensaios-rapidos-qualidade.md)
+solicitado pelo titular: inputs/outputs de mensagem, Jev, editorial e visual;
+comparação e revisão das peças, sem criar banco nem montar o produto completo para
+esse objetivo. Identidade, orçamento, retenção de resultados incertos e fontes
+autorizadas permanecem obrigatórios. O ensaio não comprova integração; testes
+de banco, integração e CI seguem exigindo base `_test` exclusiva e roles restritas.
+Os preparativos mais antigos abaixo são histórico, não pré-requisito do ensaio.
+
+Os dois pares de feed/story foram gerados no ensaio direto com/sem referências; [relatório e artefatos](../evals/bl043-reference-quality-2026-11-04.md#resultado-do-ensaio-direto--04112026). Uma resposta editorial foi rejeitada e reconciliada; uma nova tentativa com orientação adicional limita a comparação do feed. Revisão humana e correções permanecem pendentes.
+
+O titular esclareceu que a avaliação comparativa deve seguir um ensaio direto e rápido, semelhante aos anteriores, sem executar o sistema completo. A variável continua sendo a inclusão dos padrões nas etapas editorial e visual, com identidades e orçamento duráveis; conferir [plano atualizado](../evals/bl043-reference-quality-2026-11-04.md). Essa evidência não comprova integração de produto.
+
+## BL04.3 — preparação iniciada em 04/11/2026
+
+O [relatório preliminar](../evals/bl043-reference-quality-2026-11-04.md) inventaria os estados disponíveis, propõe dois pares e explicita fontes, critérios, custos ilustrativos e limites. As duas associações v1 e os nove padrões foram lidos pelo serviço restrito; a verificação individual contra evidências permanece pendente. O produto ainda não oferece controle seguro para retirar apenas padrões: preparar e testar a intervenção sem enfraquecer snapshot ou revalidação antes de qualquer efeito. O titular escolheu dois pares do negócio do piloto, limite de US$ 2 em reservas incluindo refações, aceitando risco de cobrança maior; fará a revisão visual pontual; nenhuma geração, revisão de peças ou refação ocorreu.
+
 ## Ajuste da origem de pesquisa — 04/11/2026
 
 A web usa o endereço próprio salvo como única fonte dos campos da origem por

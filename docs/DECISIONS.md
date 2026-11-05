@@ -1,5 +1,64 @@
 # Decisões vigentes e pendências
 
+O titular quer evitar dependência da permanência de repositórios de terceiros. O plano prevê cópias e backups próprios das fontes e dependências permitidas, além do empacotamento do runtime; não afirma que esses backups já existem.
+
+O titular esclareceu que quer **reutilização concreta** dos projetos abertos, além de pesquisa. O plano passa a prever incorporar e adaptar materiais permitidos, com origem, versão e licença; a integração continua pendente.
+
+## 05/11/2026 — plano para a v0 de conteúdo com motion
+
+O titular quer concluir a v0 com imagem de feed/story, vídeo gravado pelo cliente
+editado para Reel/story e carrossel com motion. O sistema escolhe e adapta o estilo
+sem exigir escolha do cliente. O [plano proposto](design/plano-v0-imagens-video-motion-2026-11-05.md)
+detalha a separação entre fontes externas de pesquisa, skills próprias, catálogo
+interno, contexto privado e motor candidato, além de fatias e gates. A análise
+atual de perfis não mede ritmo, cortes ou áudio; inferência e observação precisam
+ser diferenciadas. Duração de entrada, cotas e publicação seguem por validar.
+
+## 05/11/2026 — avaliação de motion com modelos reais
+
+O titular autorizou chamadas pagas e solicitou trace integral de entradas,
+prompts, saídas e resultados. O [ensaio](evals/ensaio-motion-referencia-2026-11-05.md)
+usou teto operacional de US$ 0,80 em reservas e permanece sujeito à revisão
+do titular; essa referência de orçamento não autoriza futuras rodadas.
+
+## 05/11/2026 — proposta de biblioteca de estilos de motion
+
+O titular prefere uma biblioteca interna de estilos escolhidos automaticamente pelo sistema, sem exigir que o cliente escolha. A [proposta](design/biblioteca-estilos-motion-2026-11-05.md) distingue estilo, kit, skill e conteúdo; ainda não determina persistência ou implementação.
+
+## 04/11/2026 — direção para vídeo e motion
+
+Em 05/11/2026 o titular esclareceu que o cliente não seleciona imagens no acervo: pode enviar imagem própria e envia vídeo para edição; o uso do acervo não é pressuposto nesse vídeo.
+
+Os repositórios HyperFrames e Howseen foram estudados como candidatos, não adotados como decisão de produto. O [estudo](design/estudo-hyperframes-motion-design-2026-11-04.md) propõe ensaio direto, além de listar custos, direitos e condições de segurança para eventual integração.
+
+O titular rejeitou as primeiras prévias e pediu repetir pelo procedimento de ensaio rápido, incluindo áudio, cortes, transições, efeitos e legendas dinâmicas. Autorizou até US$ 0,50 em reservas para a nova rodada, aceitando o risco de uma chamada ultrapassar a reserva. Ver [plano](evals/plano-motion-valido-2026-11-04.md); aceite das novas peças permanece pendente.
+
+O [ensaio direto](evals/ensaio-video-motion-2026-11-04.md) preparou uma prévia de vídeo e três páginas animadas para revisão do titular, sem chamadas pagas. Não constitui decisão sobre aprovação visual ou provedor de produção.
+
+O titular esclareceu que deseja decisões criativas de edição e motion por IA; FFmpeg pode ser usado para montar os arquivos. Quer avaliar vídeo de feed/Reel, story em vídeo e carrossel com um MP4 em loop por página, preservando kit, acervo e referências. Escolheu até 60 segundos por vídeo final na primeira versão e testes separados de vídeo gravado e carrossel; limites de entrada, custos e planos ainda não foram escolhidos. Vídeo gerado e avatar continuam sujeitos a decisões futuras. Ver [estudo](design/estudo-video-motion-2026-11-04.md).
+
+## 04/11/2026 — procedimento para próximos ensaios criativos
+
+O titular pediu que testes de qualidade futuros sejam rápidos e executem as etapas
+diretamente, registrando entradas/saídas e peças, sem criar bancos ou montar o
+sistema completo apenas para essa avaliação. O [procedimento](design/ensaios-rapidos-qualidade.md)
+preserva autorização, custos, identidade e limites. Essa decisão não altera os
+requisitos para testar integração, segurança, bancos ou CI.
+
+Ensaio direto BL04.3 realizado em dois pares; revisão do titular pendente. Os resultados e a limitação da tentativa editorial estão no [relatório](evals/bl043-reference-quality-2026-11-04.md).
+
+O titular esclareceu que a comparação BL04.3 deve ser direta e rápida: simular mensagem WhatsApp, registrar interpretação Jev e as entradas/saídas editoriais e visuais, sem exigir percurso integral pelo sistema. Manter o teto de US$ 2 em reservas e preservar operações incertas. [Plano](evals/bl043-reference-quality-2026-11-04.md).
+
+## 04/11/2026 — escolhas para preparar a avaliação BL04.3
+
+O titular escolheu o negócio fictício do piloto, um par de feed e um de story, e
+um limite novo de US$ 2 em reservas para a rodada inteira incluindo refações;
+aceitou o risco de a cobrança do fornecedor ultrapassar as reservas. Autorizou
+revisão visual pontual do perfil público, sem arquivar publicações ou repetir
+coleta paga, e informou que fará a conferência no navegador. A conferência dos padrões e as guardas do ensaio estão pendentes; orçamento
+histórico não é renovado. O [plano](evals/bl043-reference-quality-2026-11-04.md)
+registra a estimativa, o limite técnico da reserva e o trabalho restante.
+
 Atualizado em **29/10/2026**, incluindo a primeira imagem paga autorizada pelo
 produto (parte 3), o adiamento da recuperação de suporte C10 e a prioridade de
 qualidade de conteúdo, skills e pesquisa de referências definida pelo proprietário.

@@ -1,5 +1,61 @@
 # SDD geral — Meu Braço Direito
 
+A estratégia de [fontes próprias e empacotamento](design/plano-v0-imagens-video-motion-2026-11-05.md#cópias-próprias-e-independência-dos-repositórios-externos) prevê snapshots de origem, backup verificável, dependências controladas e teste sem acesso aos repositórios externos; implementação pendente.
+
+A integração proposta reaproveita instruções, fichas, projetos e scripts permitidos da `claude-video` e de outras fontes, empacotados e versionados no produto; `SKILL.md` sozinho não executa ferramentas. Ver [contrato proposto](design/plano-v0-imagens-video-motion-2026-11-05.md#integração-concreta-da-claude-video).
+
+## Plano de integração audiovisual da v0 — 05/11/2026
+
+A proposta de contratos, roteiro, mídia, escolha automática de motion, render
+isolado, coleção de páginas e validação encontra-se no [plano da v0](design/plano-v0-imagens-video-motion-2026-11-05.md).
+As integrações e a homologação indicadas ali permanecem pendentes. Skills próprias
+ficam no repositório de skills, catálogo técnico inicialmente na plataforma e
+estilo do negócio em dados privados versionados; essa organização é recomendada,
+ainda não implementada.
+
+## Ensaio de motion com modelos reais — 05/11/2026
+
+O [ensaio direto com trace](evals/ensaio-motion-referencia-2026-11-05.md) registra Jev, transcrição, direção por modelo e refação, incluindo limitações e correções. Produção audiovisual integrada e aceitação das peças permanecem pendentes.
+
+## Proposta de estilos de motion — 05/11/2026
+
+Avaliar [catálogo de estilos versionados](design/biblioteca-estilos-motion-2026-11-05.md), com escolha automática pelo sistema e sem exigir escolha do cliente, separado de kit, skill e acervo. Não é capacidade implementada.
+
+A skill externa foi instalada no Codex para pesquisa; sua galeria local não representa um seletor de produto nem dispensa verificar direitos e formatos. Ver [estudo](design/estudo-claude-video-2026-11-05.md).
+
+## Vídeo e motion: direção em estudo, 04/11/2026
+
+Correção de 05/11/2026: cliente não escolhe imagens do acervo; pode enviar imagem e envia o próprio vídeo para edição. A edição de vídeo não pressupõe uso do acervo. O áudio do vídeo pode ser extraído e enviado ao transcritor de áudio existente, mas o fluxo atual não o faz e não retorna tempos por palavra.
+
+A [análise de claude-video](design/estudo-claude-video-2026-11-05.md) e o [plano de ensaio](evals/plano-hyperframes-2026-11-05.md) documentam técnicas e limitações do teste local.
+
+O [resultado do ensaio HyperFrames](evals/ensaio-hyperframes-2026-11-05.md) é uma prévia criada pelo agente com Jev simulado, sem chamada de transcrição ou modelo editorial do produto; revisão humana permanece pendente.
+
+Avaliar HyperFrames como adapter de render e técnicas da skill Howseen para direção, conforme [estudo](design/estudo-hyperframes-motion-design-2026-11-04.md). Em produto, manter Temporal, isolamento do código gerado, privacidade da mídia e rastreabilidade; não há integração implementada por esta análise.
+
+As prévias anteriores foram rejeitadas pelo titular. O [novo ensaio](evals/ensaio-motion-valido-2026-11-04.md) registra o Jev real, direção audiovisual experimental, fontes, peças e orçamento; a revisão do titular, do som e da compatibilidade de publicação permanecem pendentes.
+
+Um vídeo e um carrossel foram montados em ensaios locais diretos, com decisão da assistente e Jev simulado, sem API paga. Essas prévias não comprovam edição integrada, transcrição, aplicação de referências ou publicação; aguardam revisão do titular. Ver [relatório](evals/ensaio-video-motion-2026-11-04.md).
+
+O titular quer IA responsável pelas decisões criativas de vídeo de feed/Reel, story e carrossel animado; FFmpeg pode montar o arquivo. As skills iniciais usam pedido, kit, acervo e referências; o vídeo final terá até 60 segundos na primeira versão; duração de entrada e orçamento exigem definição antes de efeitos. Vídeo pronto e publicação não estão implementados por causa do estudo. Ver [estudo](design/estudo-video-motion-2026-11-04.md).
+
+## Avaliação criativa direta — procedimento vigente
+
+Para ensaios de qualidade, seguir o [procedimento rápido](design/ensaios-rapidos-qualidade.md):
+registrar entradas e saídas de mensagem, Jev, editorial e visual e mostrar peças,
+sem montar banco ou fluxo completo só para avaliação. Manter autorização, ledger,
+identidades duráveis e incertezas. Esta evidência não prova integração, nem muda
+a exigência de banco `_test` e roles restritas para testes de banco ou CI.
+As seções datadas a seguir descrevem estados históricos quando divergirem.
+
+BL04.3 gerou dois pares no ensaio direto com/sem referências, com limites e custos em [avaliação](evals/bl043-reference-quality-2026-11-04.md). Revisão humana e correções permanecem pendentes; não prova integração completa.
+
+A avaliação exploratória BL04.3 foi redirecionada pelo titular para execução direta das etapas, com entradas/saídas registradas e comparação dos padrões nos dois modelos; não prova o fluxo completo. Ver [plano](evals/bl043-reference-quality-2026-11-04.md).
+
+## BL04.3 — estado da preparação em 04/11/2026
+
+O [inventário e plano preliminar](evals/bl043-reference-quality-2026-11-04.md) propõem pares de feed/story, com editorial e visual independentes por braço. A revisão de evidências, o mecanismo que isola os padrões preservando o snapshot e a revalidação, continuam pendentes; o titular escolheu dois pares do negócio fictício do piloto e limite de US$ 2 em reservas incluindo refações, aceitando risco de cobrança maior. Sem chamadas pagas, novos artefatos gerados ou avaliação do titular nesta preparação.
+
 ## Retomada BL04.3 — qualidade com referências
 
 O próximo trabalho é executar a avaliação em quatro passos descrita no

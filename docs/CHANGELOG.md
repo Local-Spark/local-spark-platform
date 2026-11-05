@@ -1,5 +1,69 @@
 # Registro de mudanças
 
+## 05/11/2026 — preservação de fontes de motion
+
+- Planejadas cópias próprias, backups verificáveis e empacotamento das fontes e
+  dependências permitidas, com teste de operação sem os repositórios originais.
+- Nenhum espelho remoto, backup, cópia integral ou integração foi criado nesta
+  alteração documental.
+
+## 05/11/2026 — reutilização concreta de fontes de motion
+
+- Detalhada integração de instruções, fichas, composições e scripts permitidos,
+  adaptados ao produto e às regras de cada negócio, com versões e atribuições.
+- Conferidos os pontos reais do carregador de skills e as licenças publicadas;
+  nenhuma integração, cópia de terceiros ou chamada paga foi executada.
+
+## 05/11/2026 — plano da v0 para imagem e motion
+
+- Documentado plano de desenvolvimento para imagens de feed/story, vídeo do
+  cliente editado para Reel/story e carrossel com MP4 por página, com escolha
+  automática de estilo, limites de evidência e gates de qualidade e integração.
+- Registrada proposta de responsabilidades entre skills próprias, catálogo
+  interno, dados privados do negócio, fontes externas e HyperFrames candidato.
+- Validação documental por inspeção do código e das fontes oficiais; nenhuma
+  implementação, chamada paga, migração ou teste de publicação foi executado.
+
+## 05/11/2026 — correção do fluxo de mídia
+
+- Instalada no Codex a skill `claude-video` e aberta sua galeria local de 21 vídeos; 209 arquivos conferidos pelo hash do commit. A checagem de dependências passou com FFmpeg e FFprobe temporários no PATH do processo; detalhes e limites no [estudo](design/estudo-claude-video-2026-11-05.md).
+- Titular preferiu o Reel v2 deste ensaio e esclareceu que a escolha do estilo deve ser automática pelo sistema, evitando uma decisão adicional do cliente. Preferência não é aprovação de publicação nem regra geral de estilo.
+- [Ensaio de motion com modelos reais](evals/ensaio-motion-referencia-2026-11-05.md) gerou Reel v1/v2 e carrossel com trace, correção de transcrição e ajustes do HTML; reservas US$ 0,78, estimativa ajustada US$ 0,147533 sujeita à fatura. Avaliação visual e auditiva do titular pendente.
+- Registrada [proposta do titular](design/biblioteca-estilos-motion-2026-11-05.md) para biblioteca de estilos de motion, sugestão pelo sistema e opção de escolha pelo cliente. Sem implementação nesta alteração.
+- O titular esclareceu que não escolhe imagens do acervo; pode enviar imagem e envia vídeo para edição. O acervo não é exigência do vídeo. Áudio do vídeo pode ser extraído para o mesmo transcritor, com integração e sincronização por palavra ainda pendentes.
+- Analisada [claude-video](design/estudo-claude-video-2026-11-05.md) e preparados [dois ensaios rápidos](evals/plano-hyperframes-2026-11-05.md), com anexos fictícios e orçamento próprio sujeito à autorização.
+- Renderizadas [prévias locais](evals/ensaio-hyperframes-2026-11-05.md) em HyperFrames: Reel e três páginas com áudio; direção pelo agente e Jev simulado, sem chamadas pagas. Aguardam revisão do titular e não comprovam integração, transcrição real ou publicação.
+
+## 04/11/2026 — pesquisa de vídeo e motion
+
+- Pesquisa documental dos repositórios HyperFrames e Howseen, com comparação, direitos, encaixe arquitetural e proposta de ensaios diretos em [estudo](design/estudo-hyperframes-motion-design-2026-11-04.md). Sem instalação, geração ou chamadas pagas; preservadas as alterações anteriores.
+- O titular rejeitou as prévias silenciosas e quase estáticas. Novo [ensaio direto](evals/ensaio-motion-valido-2026-11-04.md) produziu vídeo e carrossel com Jev real, direção experimental por modelo, áudio, cortes, transições e legendas. Reservas de US$ 0,32 e uso estimado de US$ 0,019071 dentro do limite autorizado; revisão do titular, áudio e compatibilidade seguem pendentes.
+- Dois ensaios diretos e gratuitos produziram uma prévia de vídeo e três páginas de carrossel com MP4 individual; direção pela assistente e Jev simulado. [Relatório](evals/ensaio-video-motion-2026-11-04.md) registra fontes, custos, validação e limitações. Aguardam revisão do titular e não demonstram integração, transcrição ou publicação.
+- Registrada direção do titular: edição criativa por IA, com FFmpeg permitido na montagem, e estudo de vídeos e carrosséis animados. O titular escolheu até 60 segundos por vídeo final e testes separados de vídeo gravado e carrossel; entrada e preços seguem por definir; nenhuma ativação de provedores ou chamada paga nesta pesquisa.
+- O [estudo](design/estudo-video-motion-2026-11-04.md) compara skills públicas, restrições dos formatos e trabalho de integração. Criadas três skills iniciais no repositório de skills e aprovadas na validação estrutural; elas ainda não geram ou publicam peças no produto.
+
+## 04/11/2026 — procedimento de avaliação criativa rápida
+
+- Registrada orientação do titular para próximos ensaios de qualidade: execução
+  direta das etapas e comparação de peças sem preparar banco nem o fluxo completo.
+  [Procedimento](design/ensaios-rapidos-qualidade.md) inclui entradas/saídas,
+  autorização financeira, identidades duráveis e tratamento de incerteza.
+- Testes de banco/integração e CI mantêm base `_test` e roles restritas; um
+  ensaio direto não prova integração nem aceite comercial. Alteração documental,
+  sem geração ou chamadas pagas nesta atualização.
+
+- Titular preferiu os dois resultados com referências e pediu rastreabilidade dos elementos. [Relatório](evals/bl043-reference-quality-2026-11-04.md) distingue padrões agregados, kit, foto, skills e limites de causalidade; preferência não constitui aceite final.
+
+- Ensaio direto BL04.3 gerou quatro peças com/sem referências e registrou Jev, respostas, tentativas e custos em [relatório](evals/bl043-reference-quality-2026-11-04.md). Reserva US$ 1,52, uso estimado US$ 0,216691; sem publicação ou aceite humano. A primeira resposta editorial com referências foi rejeitada e preservada, seguida de nova tentativa.
+
+- Titular redirecionou a BL04.3 para ensaio direto e rápido das etapas, sem exigir fluxo completo; ver [plano](evals/bl043-reference-quality-2026-11-04.md). A preparação anterior permanece documentada como histórica.
+
+## 04/11/2026 — preparação da avaliação BL04.3
+
+- Inventário inicial do piloto e plano preliminar para comparação editorial/visual com e sem padrões, com critérios de revisão humana, estimativa ilustrativa e limites em [relatório](evals/bl043-reference-quality-2026-11-04.md).
+- O controle de padrões requer desenho e prova que preservem snapshot e guardas; conferência individual contra evidências, dimensionamento da guarda dentro do teto de US$ 2 e aceite permanecem pendentes. O titular escolheu dois pares do negócio fictício do piloto, aceitou reservas de US$ 2 com risco de cobrança maior e fará revisão visual pontual do perfil público. Nenhuma chamada paga, geração, alteração de código de produção ou mudança de flags.
+- Validação: revisão de instruções, código de integração, histórico e Git dos dois repositórios; 20 testes e seis subcasos de protótipos privados offline passaram. O protótipo não integra o produto; não houve execução de CI para esta preparação.
+
 ## 2026-11-04 — Origem por endereço vinculada ao cadastro próprio
 
 - Registrada a decisão de preencher a origem por endereço somente com o cadastro
