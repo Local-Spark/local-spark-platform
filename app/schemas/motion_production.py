@@ -7,7 +7,6 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.schemas.motion_plan import MotionPlan
 from app.schemas.motion_scene_direction import MotionSceneDirection
-from app.schemas.motion_speech import MotionSpeechTiming
 
 
 class MotionModel(BaseModel):
@@ -21,20 +20,9 @@ class MotionRequest(MotionModel):
     format: Literal["reel"] = "reel"
     storyboard: bool = Field(default=False, exclude_if=lambda value: not value)
     collection_photo_ids: tuple[UUID, ...] = Field(default=(), max_length=4, exclude_if=lambda value: not value)
-    repertoire_id: Literal["business-reel-v1"] | None = Field(default=None, exclude_if=lambda value: value is None)
-    scene_direction: MotionSceneDirection | None = Field(
-        default=None,
-        exclude_if=lambda value: value is None,
-        repr=False,
-        description="Visual direction supplied before construction; omission retains model-proposed direction.",
-    )
-
-    speech_timing: MotionSpeechTiming | None = Field(default=None, exclude_if=lambda value: value is None, repr=False)
-
+ 
     @model_validator(mode="after")
     def unique_photos(self) -> Self:
-        if self.speech_timing is not None and self.speech_timing.provenance != "owner_reviewed":
-            raise ValueError("Only reviewed timing may be supplied by the caller")
         if len(set(self.collection_photo_ids)) != len(self.collection_photo_ids):
             raise ValueError("Collection photos must be distinct")
         return self
@@ -69,17 +57,6 @@ class MotionIllustration(MotionModel):
     asset_id: str = Field(pattern=r"^assets/illustration-[a-z0-9-]{1,40}\.png$")
     description: str = Field(min_length=1, max_length=1600, pattern=r"\S")
     purpose: str = Field(min_length=1, max_length=400, pattern=r"\S")
-
-
-class MotionConstructionPlan(MotionModel):
-    """Complete planning artifact; deliberately has no executable code."""
-
-    concept: str = Field(min_length=1, max_length=4000)
-    source_usage: str = Field(min_length=1, max_length=4000)
-    audio: MotionAudio
-    motion_plan: MotionPlan
-    illustrations: tuple[MotionIllustration, ...] = Field(max_length=2)
-    scene_direction: MotionSceneDirection
 
 
 class HTMLMotionComposition(MotionModel):
