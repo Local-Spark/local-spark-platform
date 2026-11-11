@@ -1,8 +1,9 @@
-# Guia de QA local — três negócios fictícios
+# Guia de QA local — cenários fictícios
 
-Atualizado em **28/10/2026**. Guia de desenvolvimento, sem execução implícita.
-Os três cenários abaixo são planejados: **não foram criados por este documento e
-não existe seed automático deles**. Usar dados sintéticos/autorizados, sem editar
+Atualizado em **08/11/2026**. Guia de desenvolvimento, sem execução implícita.
+Os três cenários originais de 28/10 continuam abaixo, com ligação ao quarto caso,
+a cafeteria dos ensaios de motion. **Este guia não cria negócios nem fornece seed
+automático**; artefatos dos ensaios não demonstram cadastro desses negócios. Usar dados sintéticos/autorizados, sem editar
 negócio real ou publicar as peças. [SDD](../SDD.md),
 [BL04](../phases/BL04-context-and-ai-production.md) e [decisões](../DECISIONS.md)
 definem estado e critérios vigentes.
@@ -16,8 +17,10 @@ definem estado e critérios vigentes.
 | WhatsApp | Vínculo, processamento e histórico durável de todos os tipos associados; troca de número e destino novo cobertos na entrega simulada. |
 | Intenção/retrieval | Jev e recuperação do acervo opcionais no worker dev/test, desligados por padrão. Não é memória geral ou conversa completa. |
 | Visual fake | Prepara fontes, pedido/reserva e JPEG privado com kit e marca explícita de simulação; não chama gerador de imagem real. |
+| Visual real | `visual_ai` está conectado localmente; uma imagem real privada de feed foi gerada no ensaio BL04.2. Fonte, credencial e orçamento explícitos continuam necessários; não é qualidade comercial comprovada. |
+| Motion | Intensa/Dog/Luma são ensaios locais; o protótipo de inspeção/correção existe, mas a prova comparativa válida e a integração ainda estão pendentes. |
 | Produção/revisão | Propostas, roteiro, prévias técnicas, candidata e decisão/publicação falsas; pedido de ajuste ainda não regenera. |
-| Pendente | Guarda/integração visual real, qualidade BL04.3, jornada automática completa e proatividade BL05, prévia/aprovação WhatsApp e publicação oficiais. |
+| Pendente | Qualidade BL04.3, ciclo de revisão por formato, jornada automática completa e proatividade BL05, prévia/ajuste/aprovação/download e WhatsApp oficial. Postagem Instagram é posterior. |
 
 Há teste técnico local com Temporal/PostgreSQL e provedor/armazenamento falsos,
 a partir de material já processado, até prévia fake e revisão. Ele não demonstra
@@ -66,6 +69,19 @@ usar imagem identificável de pessoa real sem autorização. Testar: “Hoje ten
 agenda livre às 15h”; “Crie um story da esmaltação em gel”; “Não tenho horário
 livre hoje”. Agendamento e disponibilidade não devem ser inventados.
 
+### 4. Cafeteria — referência Intensa
+
+O [caso fictício de cafeteria](../design/v0-motion-etapa-0-formatos-e-casos.md)
+usa kit e material próprios do ensaio. **Intensa** identifica a referência
+criativa, não um segmento ou cliente real. O [registro de validação motion](motion-registro-de-validacao.md)
+conserva o feedback e a origem das peças. Usar os fatos e direitos congelados
+no caso correspondente; não copiar preços dos cenários de alimentação acima.
+A prova atual de revisão compara Intensa, Dog e Luma.
+
+Os quatro cenários são exemplos para validação. O titular ainda não definiu
+participantes reais e escolheu piloto por autoatendimento com cobrança; preço,
+franquias, capacidade e início da operação dependem das próximas entregas.
+
 ## Passos manuais disponíveis
 
 1. Inicie dependências/serviços conforme [ambiente local](../../README.md#ambiente-local).
@@ -105,9 +121,13 @@ livre hoje”. Agendamento e disponibilidade não devem ser inventados.
    custo monetário completo nem trace integral de prompts. Temporal mostra
    workflows iniciados, não cada CRUD da web.
 
-## Critérios aprovados ainda a implementar
+## Critérios de regressão e extensões pendentes
 
-Estes casos devem orientar a próxima fatia; não tratá-los como QA já aprovado:
+C08/C09 abaixo já possuem implementação e testes no recorte local
+`visual_fake`/`visual_ai`, conforme a [BL04](../phases/BL04-context-and-ai-production.md).
+Devem orientar regressão e extensão ao renderer legado/motion, sem presumir
+que o roteiro manual completo ou a futura integração já foram executados.
+C10 continua adiado e os demais escritores conservam seus limites de cobertura:
 
 - Plano vence depois da admissão: concluir a criação, permitir revisão privada,
   impedir novas criações e publicação até renovar (C08).
@@ -126,14 +146,16 @@ nesta etapa. Franquias/quantidades dependem da medição BL04.3/F07.
 
 Em BL04/BL05: entrada simulada → negócio identificado → briefing/fontes → prévia
 privada com budget → comparação com produto/local/kit → ajuste versionado →
-aprovação → publicação **falsa**. Incluir dia sem mensagem, preço vencido, oferta
+aprovação da peça → download. Postagem será uma etapa posterior, com autorização
+própria. Incluir dia sem mensagem, preço vencido, oferta
 ambígua, foto do acervo removida, kit alterado, negação, conta sem aceite e origem
 insuficiente. Não usar retirada individual de IA como caminho de cliente.
 
 Registrar operação, negócio, versões/fontes, esperado/observado, arte e revisão
 humana, duração, uso/custo conhecidos, defeito e reprodução. Custo por peça aceita
 inclui refações/descartes; beleza isolada não prova fidelidade ou faturamento.
-Meta real depende de homologação própria, sem bloquear mocks locais.
+WhatsApp real depende de homologação própria, sem bloquear mocks locais.
+Instagram oficial não é condição do piloto inicial de geração e download.
 
 OpenCode permanece candidato externo de investigação, sem instalação/integração.
 O estudo anterior está no snapshot; sua eventual adoção exige versão, dados,

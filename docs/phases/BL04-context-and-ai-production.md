@@ -1,8 +1,1292 @@
 # BL04 — contexto seletivo e produção visual com IA
 
+**Próximo trabalho planejado — 11/11/2026.** Contrato de sete etapas consolida
+os seis gaps e o inventário de capacidades do vídeo Maestros. Começar por direção
+verificável/repertório e seguir aceites técnicos separados da validação criativa.
+Comparação exige orçamento novo e entrada preparada pelo produto; não reutilizar
+tetos anteriores. Recorte/tracking/OCR/stock/3D e EDL não bloqueiam esta entrega.
+Planejamento apenas; nenhuma etapa implementada nesta alteração. Referência:
+`docs/design/contrato-evolucao-qualidade-motion-2026-11-11.md`.
+
+**Reanálise de qualidade após feedback do titular — 11/11/2026.** A comparação
+executou corretamente, mas a moldura foi considerada estranha e a xícara sem a
+expressividade esperada. Seis frentes detalhadas: direção por sentido da fala,
+integração da gravação, fundo, presença do objeto, som e revisão por cena.
+Auditoria confirmou direção excessivamente prescritiva em moldura, código antes
+dos pixels da imagem, storyboard desligado na rodada e seleção de três eventos
+de fala concentrados no mesmo momento (46 de 49 eventos omitidos). A referência
+Maestros foi reexaminada com transcrição e quatro sequências adicionais; não foi
+incorporada automaticamente à entrada da peça. Prioridade proposta: direção e
+repertório aplicáveis, cobertura da revisão, construção com asset visto, som e
+refinamento delimitado; percepção/3D somente conforme necessidade. Nenhuma nova
+implementação, geração, gasto, migração ou CI nesta análise. Plano e evidências:
+`docs/design/motion-qualidade-direcao-e-gaps-2026-11-11.md`.
+
+
+**Comparação concluída após reposição de créditos — 11/11/2026.** Novo pedido
+pelo fluxo API/Temporal gerou plano e código completos, uma xícara conceitual
+fotográfica, MP4 de 11,2 s (720×1280/30 fps) e crítica adequada. Mesma fonte/voz/kit
+e 12 imagens, sem refações. Moldura, alternância e mudança dos planos de fundo
+observadas; transições próximas de 4 s e 8,8 s ainda merecem refinamento. Crítica
+limitada a amostras, sem escuta; nenhum aceite humano ou publicação.
+Estimativa desta tentativa US$ 0,737973; reservas US$ 2,75 no teto US$ 3.
+Pedido/reservas anteriores preservados separadamente. Worker exclusivo encerrado;
+cinco serviços seguem parados. MP4 e comparação em
+`.local/evals/motion-staged-retry-20261111/`. Relatório:
+`docs/evals/comparacao-construcao-em-etapas-2026-11-11.md`.
+
+
+**Prova real v3: plano completo; implementação bloqueada por créditos da API.**
+Nova rodada de US$ 3 executada pela API/Temporal no banco de desenvolvimento
+existente. Planejamento validado e preservado (3 cenas, 36 beats); segunda chamada
+recusada pelo provedor com `insufficient_quota/credit_balance_exhausted`.
+Não foi outra saída truncada. Nenhuma imagem, crítica ou nova peça produzida;
+conclusão da implementação e acabamento continuam pendentes. Estimativa conhecida
+US$ 0,22592, reservas US$ 1,50 mantidas; rejeição sem usage/custo conhecido.
+Sem repetição ou reutilização de orçamento. Worker exclusivo encerrado; cinco
+serviços seguem parados. Entrada exata da implementação exportada e verificada
+por hash, sem chamadas adicionais. Evidências e próximo desbloqueio:
+`docs/evals/comparacao-construcao-em-etapas-2026-11-11.md`.
+
+
+## Atualização — 11/11/2026
+
+**Correção estrutural da geração implementada, sem comparação paga.** Contrato
+v3 para novas direções fornecidas: planejamento sem código e implementação sem
+repetir plano, com validação intermediária e vínculo por hash. Dois recibos/reservas
+duráveis, sem retry automático, preservando contratos anteriores. Corrigida ordem
+do schema e exportação das duas etapas. Pacote offline conserva as 12 imagens da
+última tentativa. Causa raiz do limite do provedor ainda não comprovada; novo MP4
+e qualidade pendentes. Dev conferido em 0116, sem migração necessária. As melhorias
+do vídeo Maestros ficam para depois da comparação, conforme orientação do titular.
+Detalhes: `docs/design/motion-construcao-em-etapas-2026-11-11.md`.
+473 testes dirigidos passaram, cobertura integral nos seis módulos medidos e
+Mypy/Ruff OK. 23 testes de integração passaram; execução mais ampla interrompida
+por Temporal local indisponível. Não houve CI integral ou chamada real ao modelo.
+
+**Estudo da referência WuzMxEKJHkQ entregue.** Download 1080p, legendas automáticas,
+114 quadros distribuídos e seis detalhes analisados. Mapeadas ferramentas,
+composição, profundidade, alinhamento, percepção espacial, som e revisão ao fluxo
+atual. Um pedido humano não demonstra uma única completion. Recomendada recuperação
+por artefato antes de outra comparação; preservar as quatro melhorias visuais e
+qualificá-las no resultado. Estudo não implementa recorte, tracking, 3D ou cortes
+longos. Sem código alterado, chamadas pagas, render ou CI; validação documental.
+Sem nova tentativa autorizada. Relatório:
+`docs/evals/analise-video-maestros-WuzMxEKJHkQ-2026-11-11.md`.
+
+**Análise das interrupções concluída, sem chamada paga adicional.** Retornos
+reproduzidos offline no parser: corte em scene_init vem marcado pela API; limites
+locais de bytes, orçamento e falta de anexos não explicam a falha registrada.
+Identificados saída indivisível, ordenação alfabética do schema colocando código
+após plano e reasoning=high fixo. A causa raiz do limite reportado continua sem
+comprovação: uso abaixo do teto e dos limites públicos do modelo. Compactação de
+20,87% não era prova de conclusão. Próximos passos documentados, não implementados.
+Relatório: `docs/evals/diagnostico-interrupcao-motion-2026-11-11.md`.
+
+**Tentativa com contrato compacto concluída sem MP4.** O provedor voltou a retornar
+MOTION_AI_OUTPUT_LIMIT, com JSON cortado em scene_init, após 562,74 s. Contrato v2
+foi efetivamente enviado, mas a compactação não resolveu o bloqueio. Contagem:
+35.340 tokens de entrada, 27.924 de saída (18.425 de reasoning); teto solicitado
+e retornado 54.000. A causa do limite permanece indeterminada. Três tentativas
+encerradas: estimativa acumulada US$ 0,998378, reservas US$ 2,80 mantidas. Nenhuma
+imagem, crítica ou nova peça gerada. Sem novas tentativas autorizadas. Worker
+exclusivo encerrado e cinco serviços seguem parados. Próxima geração exige uma
+solução verificada para a saída incompleta; não repetir apenas ajustes de prompt.
+Evidências: `docs/evals/comparacao-quatro-melhorias-2026-11-10.md`.
+
+## Estado vigente — 10/11/2026
+
+**Histórico — contrato compacto v2 preparado em 10/11/2026.**
+Representação dos beats reduzida em 20,87% no plano completo da resposta anterior,
+com igualdade exata dos 63 movimentos após expansão. Contratos antigos preservados;
+mesmas validações e formato completo na persistência/crítica/render. 234 testes
+dirigidos aprovados; cobertura integral dos dois módulos medidos, Ruff/Mypy OK.
+Nenhuma nova chamada paga ou peça gerada. Entrevista de autorização pendente para
+uma tentativa adicional: reservas acumuladas máximas US$ 3,95 no teto US$ 4.
+A causa da interrupção anterior permanece indeterminada; redução não garante
+sucesso. Detalhes: `docs/design/motion-contrato-compacto-2026-11-10.md`.
+
+**Histórico — duas tentativas da comparação bloqueadas; sem novo MP4.** Duas
+composições tentadas, incluindo a recuperação explicitamente autorizada dentro
+do teto acumulado US$ 4. Ambas retornaram MOTION_AI_OUTPUT_LIMIT e JSON cortado
+em scene_init. Recuperação: 364,07 s, 35.075 tokens de entrada e 19.856 de saída
+(8.804 de reasoning), apesar de max_output_tokens=64.000 solicitado e retornado.
+Não atribuir causa definitiva ao modelo nem confundir com falha de renderização.
+Estimativa acumulada US$ 0,630788; reservas US$ 2,15 mantidas. Nenhuma imagem,
+crítica ou MP4 produzido; não há terceira tentativa autorizada. ASR local funcionou
+nas duas operações e registrou 30 palavras com custo zero. Qualidade visual ainda
+não qualificada. Cinco serviços continuam parados; worker exclusivo encerrado.
+Antes de outro gasto, investigar a saída interrompida e reduzir a repetição entre
+plano e código sem perder as quatro melhorias. Detalhes e evidências:
+`docs/evals/comparacao-quatro-melhorias-2026-11-10.md`.
+
+**Histórico da entrega — etapa visual 4 implementada antes da comparação.**
+Backend local faster-whisper baseado na abordagem do Clipador Viral dos Maestros
+da IA: tempos por palavra, confiança e origem não revisada, com possibilidade de
+entrada humana revisada. Execução no fluxo Temporal existente, claim durável e
+reutilização em correção/storyboard. Skill v11, validação de fonte/onsets/focos e
+amostragem dos eventos ligados. Mantidas moldura, fundo, objeto e alternância.
+Configuração desabilitada por padrão; dependências/modelo ainda não instalados no
+worker e nenhuma inferência real executada. Sem chamadas pagas, asset novo, MP4
+ou Docker. 346 testes Python e 11 Node aprovados; cobertura integral nos sete
+módulos medidos. Precisão/qualidade dependem da comparação.
+Aguardar OK do titular para iniciar essa comparação, com escopo/orçamento próprios.
+Vídeos brutos longos e cortes continuam futuros. Detalhes em
+`docs/design/motion-fala-alinhada-2026-11-10.md`.
+
+**Histórico — etapa visual 3: objeto realista em camadas.**
+Novas capturas usam skill v10: seleção de imagem autorizada ou conceitual gerada,
+material/luz coerentes e helper executável de recorte com sombra coordenada.
+Moldura, fundo narrativo e alternância preservados; snapshots v1–v9 intactos.
+Direção Café Pausa e especificação de uma única imagem preparadas; substituem
+preenchimento do desenho por chegada/assentamento. Dependem de asset e capacidade
+configurada; nenhuma imagem ou novo MP4 foi gerado. 131 testes Python e 11 Node
+passaram, cobertura integral no loader medido e Ruff/Mypy aprovados. Sem chamadas
+pagas ou Docker. Etapa 4 (fala alinhada) aguarda OK; qualificação visual pendente.
+Detalhes: `docs/design/motion-objeto-realista-2026-11-10.md`.
+
+**Histórico — etapa visual 2: fundo narrativo.**
+Novas capturas usam skill v9, preservando moldura/escala da etapa 1 e movement-v3.
+Incluído exemplo executável de base opaca, campo de cor e detalhe com movimentos
+coordenados, repouso e contraste planejado. Café Pausa recebe três elementos de
+fundo; os 16 elementos anteriores permanecem intactos. Capturas antigas conservam
+suas skills. 97 testes Python e 9 Node passaram; cobertura integral no loader
+medido, Ruff/Mypy aprovados. Pacote offline montado/verificado, sem geração paga,
+asset novo ou MP4 nesta fatia. Acabamento visual permanece por qualificar.
+Etapa 3 (objeto realista) aguarda OK. Detalhes em
+`docs/design/motion-fundo-narrativo-2026-11-10.md`.
+
+**Histórico — etapa visual 1: tratamento da gravação.**
+Novas capturas usam skill v8 e movement-v3: orientação e exemplo executável de
+moldura, entrada/assentamento, aproximação uniforme e saída coordenada. Corrigido
+reset implícito do arredondamento CSS; radius explícito mantém controle. V1/v2 e
+skills anteriores preservados por hash, inclusive recapturas e repertório v2.
+99 testes Python e 30 Node passaram; cobertura 100% nos três serviços medidos,
+Ruff e Mypy aprovados. Sem CI global, geração paga, asset novo ou MP4 nesta fatia.
+Pacote offline preparado pelo montador; acabamento visual ainda não qualificado.
+Etapa 2 (fundo vivo) aguarda OK do titular. Detalhes em
+`docs/design/motion-tratamento-gravacao-2026-11-10.md`.
+
+**Docker — pedido paralelo de diagnóstico atendido.** Cinco serviços em ciclo de
+reinício consumiam mais de quatro núcleos na amostra inicial. Foram parados com
+autorização explícita para mantê-los parados, sem restaurar ao final. Nenhum dado,
+volume ou contêiner foi removido. Nove contêineres ativos na leitura posterior,
+aproximadamente 492 MiB; limite da VM de ~3,83 GiB não é uso por contêiner.
+Detalhes/limites em `docs/evals/diagnostico-docker-2026-11-10.md`.
+
+**Histórico — etapa 1 de confiabilidade; comparação local concluída.**
+Novas capturas com direção fornecida usam `provided-direction-output-v1`: o
+modelo não repete scene_direction; o servidor a restaura integralmente antes
+das validações/persistência. Snapshots antigos e direção proposta pelo modelo
+preservados. Respostas inválidas agora conservam uso/custo estimado/request ID;
+encerramento do subprocesso drena pipes após interrupção, evitando espera com
+buffer cheio. Sem retry pago implícito ou relaxamento das validações.
+
+O MP4 local da composição completa v6 foi concluído em 99,35 s: 11,2 s,
+720×1280/30 fps, 336 quadros e áudio original, correlação de sinal 0,99998847.
+A pausa temporária de cinco serviços com mais de 1.300 reinícios cada foi
+explicitamente autorizada; os cinco foram restaurados após a captura. O teste
+curto caiu de 75,90 para 26,38 s; limites e sandbox não foram ampliados.
+Causa dos reinícios permanece fora desta fatia e pode voltar a afetar o ambiente.
+
+Comparação: `.local/evals/motion-reliability-20261110/comparacao.html` e
+`comparacao-alternancia.mp4` na mesma pasta. HTML/JS gerados preservados; apenas
+os dois ajustes descritivos anteriores do plano. Não é nova geração v7 nem
+qualificação automática: os pedidos anteriores continuam failed. Fundo ativo,
+moldura e asset realista ainda precisam da prova específica. Zero novas chamadas
+pagas; nenhuma reutilização de orçamento. Contrato compacto validado offline;
+qualificação por modelo requer rodada própria autorizada.
+
+Validação final: 441 testes Python dirigidos passaram (38,64 s), com 100% de
+linhas/ramos nos quatro módulos medidos: adapters motion_ai/motion_html_renderer,
+schema e serviço motion_generation. Ruff e Mypy de seis módulos aprovados;
+exportação final verificada, links e JavaScript da comparação conferidos.
+Sem CI global, testes SQL ou migração. A saída de exemplo cai de 39.029 para
+29.970 bytes (23,21%); reconstrução offline preserva direção validada, HTML e JS.
+
+Detalhes, evidências e pacote externo novo em
+`docs/design/motion-confiabilidade-geracao-captura-2026-11-10.md`.
+
+**Histórico anterior — alternância, fundo e confiabilidade; comparação então pendente.**
+O titular pediu alternância entre gravação e motion e correção dos defeitos de
+recorte/crítica; depois acrescentou fundo ativo, variação de moldura/escala do
+vídeo e objetos mais realistas. Novas capturas usam skill v7, executor v2,
+criativo v6/v7, movimento v2 e crítica v3. Snapshots antigos permanecem intactos.
+
+Movement-v2 não cria máscara em tracks sem clip explícito. A crítica v3 liga
+checks aos problemas por índices e inclui os quadros reais desses problemas,
+sem relaxar mínimos de evidência ou inventar suporte. Passaram 393 testes Python
+com cobertura integral nos cinco módulos avaliados; 66 testes de contexto/skills/
+exportação após o feedback v7; 25 Node, Ruff e Mypy dos dez módulos. A prova
+sintética no Chromium confirmou o conserto do recorte com máscaras preservadas.
+Sem CI global ou SQL nesta fatia.
+
+A rodada de até US$ 3 teve duas gerações autorizadas: primeira completa mas com
+plano inválido (v6), recuperação incompleta (v7). Zero renders/críticas pelo fluxo,
+pedidos failed e workers encerrados. Uso estimado total US$ 0,572968, incluindo
+cálculo local da primeira resposta cujo ledger ficou sem estimativa; reservas
+retidas US$ 2,15. Nenhuma imagem paga, retry adicional ou uso do saldo autorizado.
+
+Não foi concluído novo MP4 para comparação. A variante local da primeira resposta
+completa reuniu apenas dois intervalos descritivos do plano, HTML/JS intactos.
+A captura integral excedeu 600 s; a tentativa local em trechos falhou por timeout
+do navegador. Restaram três quadros estáticos, sem validação de movimento/áudio.
+Processo diagnóstico encerrado; nenhum renderer remanescente. A resposta parcial
+v7 não foi executada. Ver `previas-parciais.html` na pasta local do ensaio.
+Asset realista em camadas (2.5D) é viável com os recursos de imagem existentes;
+geometria 3D giratória ainda exige outra integração. Qualificação visual pendente.
+
+Próximo gate: saída completa/validável, captura confiável, recuperação limitada e uso/custo de erros
+preservados, antes de liberar a jornada do Reel. Depois: pedido/ajuste/aprovação/
+download, fala alinhada, story em vídeo, carrossel e operação. Postagem é posterior.
+Detalhes em `docs/design/motion-alternancia-e-confiabilidade-2026-11-10.md`,
+`docs/evals/plano-motion-alternancia-2026-11-10.md` e
+`docs/design/fechamento-produto-geracao-2026-11-10.md`.
+
+**Histórico — interação entre mensagem e elementos, comparação entregue.** O titular pediu
+setas, ícones e objetos com acabamento adulto e ações ligadas às frases. A direção
+anterior restringia esses recursos indevidamente. A skill v4 e a nova direção
+Café Pausa orientaram tempo→percurso, café→preenchimento, pausa→repouso/convite.
+A coreografia usa texto editorial; não há transcrição alinhada nem sincronismo
+vocal comprovado. Fonte, áudio, kit e versões históricas foram preservados.
+
+A primeira geração veio incompleta. A recuperação explicitamente autorizada
+renderizou, mas contêineres aninhados recortaram o vídeo; a crítica apontou o
+defeito e falhou na vinculação exata das evidências. O pedido permaneceu `failed`.
+Foi entregue uma variante com correção CSS local apenas desses recortes, pelo
+mesmo renderer isolado, sem novas chamadas pagas ou aprovação automática.
+Novas capturas usam skill v5, que acrescenta orientações sobre esses dois problemas;
+recapturas conservam seus hashes. A v5 ainda não foi qualificada em geração real.
+
+Teto acumulado US$ 3 respeitado: reservas US$ 2,90; estimativa pelo uso retornado
+US$ 0,758614, distinta de fatura. O ledger da crítica inválida ficou sem estimativa;
+o total inclui cálculo local explicitamente separado. Worker encerrado, ambiente
+temporário removido. Passaram 100 testes Python e quatro Node; cobertura dirigida
+do loader 100% de linhas/ramos, sem CI global. MP4 local: 11,2 s, 720×1280/30 fps.
+Amostras visuais e sinal de áudio conferidos; acabamento depende do titular.
+Ver `docs/design/motion-interacao-mensagem-2026-11-10.md` e
+`docs/evals/plano-motion-interacao-2026-11-10.md`. Pendentes: confiabilidade do fluxo
+automático, qualidade da v5 em prova futura e sincronismo com fala real. Nenhuma
+nova chamada ou uso do saldo está autorizado.
+
+**Comparação após a refatoração concluída.** Sob teto novo de US$ 5, o fluxo
+API/Temporal gerou e renderizou uma candidata Café Pausa e concluiu uma crítica,
+sem refações nem imagens pagas. Uso total estimado US$ 0,322005; reservas US$ 2,80,
+distintas de fatura. MP4 720×1280/30 fps, 11,2 s; parecer `adequate` sem truncamento
+nesta rodada, sem comparação automática com a peça anterior ou aceite humano.
+Worker dedicado encerrado. Comparação A/B, custos, validação e limites em
+`docs/evals/plano-comparacao-refatoracao-motion-2026-11-10.md`.
+Aguardar avaliação do titular; saldo restante não autoriza novos efeitos.
+
+**Decisão mais recente — etapa 6 concluída; pacote externo entregue.**
+O titular confirmou a proposta Café Pausa em entrevista. O exportador usa o mesmo
+montador de instruções/contexto do produto e `build_request`, com dados factuais
+e amostras verificados da prova registrada. Nenhum prompt paralelo de construção.
+ZIP com 39 arquivos em `.local/exports/motion-cafe-pausa-20261110.zip`: prompt
+integral, JSON/schema/parâmetros, 12 imagens, contexto, direção, repertório/licenças,
+fonte MP4, fontes e runtimes. Manifesto separa entrada do modelo de execução.
+Uso e caminhos em `docs/evals/pacote-externo-motion-2026-11-10.md`.
+
+Sem credenciais, consulta ao banco, despacho Temporal, contagem remota, API paga,
+novos assets ou render. IDs locais novos e ilustrações desabilitadas nesta entrada;
+nenhuma autorização anterior de orçamento reutilizada. Dados factuais e amostras
+são históricos, não uma recaptura/admissão operacional atual. O chat externo pode
+alterar papéis, schema ou leitura; vídeo/runtimes extras são variações documentadas.
+
+Passaram 69 testes curtos com insumos sintéticos: igualdade do payload, anexos,
+hashes, ZIP, ausência de dados privados de teste, bloqueio de rede e compatibilidade
+do montador. Contexto com 100% de linhas/ramos na cobertura dirigida; Ruff, tipos
+e diff aprovados. Pacote real e ZIP verificados, sem CI global ou teste SQL.
+As seis etapas de preparação estão concluídas; aguardar o resultado externo.
+Acabamento, movimento e áudio continuam sem nova prova, sem autorização de produção.
+
+**Histórico — etapa 5 implementada e validada localmente.**
+Novos snapshots incluem `motion-review-v2`, com o mesmo alvo de acabamento na
+geração, crítica e correção. Integridade técnica, legibilidade e preservação do
+kit são distintas de desenvolvimento visual; evidências da peça permanecem
+separadas das referências. Falha criativa acionável deve compartilhar quadro
+atual com o problema correspondente; ausência de evidência não autoriza refação.
+
+A resposta compacta usa IDs de quadros, convertidos ao parecer durável com tempo
+e SHA antes das validações. Prosa/problemas são limitados, mantendo os checks.
+Somente a entrada da crítica omite HTML/JavaScript das composições; a correção
+recebe código completo. Snapshots anteriores conservam o contrato anterior.
+Sem novo serviço, tabela, executor ou aumento de orçamento/teto: crítica permanece
+limitada a 8.000 tokens ou ao limite configurado menor, sem retry automático.
+
+Passaram 214 testes dirigidos; cobertura de linhas/ramos em 100% no serviço de
+crítica e no schema compacto. Ruff, tipos dos quatro módulos e diff aprovados.
+Na fixture sintética, 76,1% menos bytes de resposta para o mesmo parecer; não é
+medição de tokens/custo nem garantia contra truncamento. Sem CI global, banco,
+API real, geração de assets ou render. Detalhes e limites em
+`docs/design/critica-motion-2026-11-10.md`. Acabamento continua sem prova visual.
+O OK para a etapa 6 foi dado na solicitação seguinte.
+
+**Histórico — etapa 4 implementada e validada localmente.**
+Novos pedidos HTML usam a skill `instagram-reel-v3`, com orientações concretas de
+hierarquia tipográfica, máscaras, planos em profundidade, ação com resultado,
+contraste de movimento, leitura e continuidade. Dois exemplos completos usam
+MotionV1 existente: passagem entre focos com gravação contínua e entrada escalonada
+com tempos finais disponíveis para o plano. Não são cenas impostas nem APIs novas.
+A direção fornecida orienta a implementação; identidade, gravação e voz permanecem.
+
+O texto e os exemplos chegam por `authorized_context.skill`, no mesmo corpo
+contado/limitado. O mapa de uso orienta a adaptação do repertório da etapa 2 sem
+copiar identidade. Recapturas HTML carregam o ID/hash original da skill; v1/v2,
+pacote de referências, renderer e runtimes permanecem intactos. Sem novo serviço,
+componente, tabela, motor ou geração de mídia. Caminhos e uso em
+`app/assets/motion_skills/README.md`.
+
+Passaram 170 testes Python e quatro testes Node direcionados. Os dois módulos
+de produção alterados atingiram 100% de linhas/ramos na cobertura dirigida.
+Ruff, tipos e diff aprovados; sem CI global, banco, API real ou render.
+Os testes JavaScript executam os exemplos da própria skill com DOM substituído;
+validam continuidade de estado e busca temporal, não qualidade visual. A proposta
+Café Pausa continua sem aceite criativo. O OK para a etapa 5 foi dado na
+solicitação seguinte. Exportação integral permanece na etapa 6.
+
+**Histórico — etapa 3 implementada e validada localmente.**
+O pedido aceita `scene_direction` opcional com o schema existente. Quando fornecida,
+a direção fica no snapshot antes da construção, sob `reel-creative-v5`, e orienta
+plano e código. O payload distingue direção fornecida de proposta pelo modelo,
+identifica origem/hash e não infere aprovação humana. O serviço rejeita troca da
+direção na geração/correção antes de imagens ou render; tempos e curvas continuam
+no único `motion_plan`. Sem direção fornecida, mantém o fluxo existente em v4.
+
+Proposta revisável Café Pausa: “abrir espaço para uma pausa”, com gravação contínua,
+planos e tipografia em dois momentos específicos da prova. Não exige jarra/xícara
+desenhadas; usa o kit e preserva a voz. A proposta ainda não foi aprovada pelo titular.
+Contrato, uso e briefing substituto em `docs/design/direcao-visual-motion-2026-11-10.md`;
+entrada em `docs/evals/direcao-cafe-pausa-2026-11-10.json`. Sem planejador automático,
+nova chamada, tabela ou alteração do executor. Aprovação de quadros continua separada.
+
+Passaram 228 testes Python direcionados; novo módulo com 100% de linhas/ramos na
+cobertura dirigida. Ruff, tipos dos seis módulos de produção e diff aprovados.
+Sem CI global, banco, API real, geração de assets ou render. Igualdade da direção
+não comprova fidelidade visual do HTML nem acabamento. O OK para a etapa 4 foi
+dado na solicitação seguinte. Exportação integral fica na etapa 6.
+
+**Histórico — etapa 2 implementada e validada localmente.**
+O pedido pode selecionar explicitamente `repertoire_id=business-reel-v1`.
+O mesmo montador do produto captura três exemplos completos adaptados de
+Maestro, Finalizador e claude-video, com fontes/licenças/hashes, e entrega seis
+quadros de Felipe Borges e Lucas Leite ao modelo. Referências têm rótulo, tempo
+aproximado, sequência, uso permitido e limitações; ficam fora dos assets de render.
+Não há estilo imposto globalmente, novas tabelas ou novo executor. Pedidos sem
+seleção e snapshots históricos conservam seu conteúdo.
+
+Os anexos seguem para geração, revisão e correção e integram o mesmo corpo da
+contagem/tetos de entrada existentes. Limites locais de texto/imagens e hashes
+falham antes de envio quando há ausência, alteração ou associação incorreta.
+Pacote: `app/assets/motion_repertoire/README.md`. Passaram 163 testes Python
+focados e dois testes Node sem mídia renderizada; novo módulo com 100% de
+cobertura de linhas/ramos na verificação dirigida. Ruff, tipos dos sete módulos
+alterados e `git diff --check` aprovados; sem CI global.
+Nenhuma API real, geração de assets ou render. Acabamento visual ainda não provado.
+O OK para a etapa 3 foi dado na solicitação seguinte.
+
+**Histórico — etapa 1 da refatoração implementada e validada localmente.**
+O titular pediu documentar a execução em etapas: (1) contrato/contexto sem
+contradições; (2) repertório e referências efetivamente enviados; (3) direção
+visual distinta da construção; (4) orientações e exemplos de construção/movimento;
+(5) crítica alinhada ao alvo e aos limites; (6) exportação do payload completo.
+Plano: `docs/design/refatoracao-contexto-motion-2026-11-10.md`.
+Novos pedidos usam a skill `instagram-reel-v2`, o contrato
+`html-motion-executor-v1` e a projeção `html-executor-style-v1` das fichas;
+arquivos e hashes históricos permanecem intactos, assim como a recaptura de
+pedidos anteriores. Passaram 95 testes direcionados de contexto, skills, estilos
+e adaptador; Ruff check/format e `git diff --check` aprovados, sem CI completo.
+O OK para a etapa 2 foi dado na solicitação seguinte. Ao final da sequência, entregar
+prompt, anexos e manifesto para teste manual em ChatGPT, Grok ou outro modelo.
+Parar antes de chamadas pagas, geração de assets ou render da peça. Não preparar
+um prompt paralelo como se fosse a entrada exata do produto. Aguardar resultado
+externo para decidir prova integrada. Infraestrutura existente e kit preservados.
+
+**10/11 — vídeo renderizado; melhora parcial, qualidade desejada não atingida.**
+Após a recuperação dos quadros (migração 0115), o titular aprovou a versão exata.
+A API registrou o aceite e o Temporal montou o MP4 reutilizando composição e
+materiais. Comparativo: `.local/evals/reel-storyboard-composition-20261109/comparison.html`.
+O titular reconheceu mais elementos visuais, mas considerou o desenho infantil e
+o resultado ainda distante do acabamento profissional das referências. Esse
+feedback não é aprovação criativa final. Pediu analisar dois novos vídeos como
+referência de acabamento. Esclareceu que edição de bruto para YouTube é outra
+ideia, fora do escopo atual: manter a gravação do cliente e explorar muito mais
+a composição/movimento ao redor dela na postagem do negócio. Cortes do bruto
+não são pré-requisito para esta melhoria.
+
+A única crítica prevista veio truncada no limite de 8.000 tokens, sem parecer
+válido. Pedido encerrado como `failed/MOTION_AI_OUTPUT_LIMIT`, MP4 e recibos
+preservados. Corrigida a identidade de falha da continuação para não colidir com
+a falha anterior em audit/outbox; migração aditiva 0116 aplicada no dev, sem
+limpeza. Nenhuma repetição de IA, render ou correção automática nessa recuperação.
+
+Acumulado da prova: quatro chamadas textuais, estimativa US$ 0,775244 e reservas
+US$ 3,40 retidas; nenhuma imagem gerada paga. Estimativa não equivale à fatura.
+Qualquer nova chamada exige plano/autorização próprios; não reutilizar o saldo
+como autorização automática. 69 testes unitários direcionados (1,55 s) e três
+testes SQL em banco `_test` (7,52 s) passaram, com Ruff aprovado. Sem CI completo.
+Ponto 4 não qualificado; etapa 5 não iniciada. Resultado detalhado em
+`docs/evals/resultado-video-composicao-2026-11-10.md`.
+
+**Análise posterior das referências:** download e inspeção dos dois vídeos de Lucas
+Leite concluídos por amostragem visual. Auditoria da chamada confirmou seis quadros
+da fonte, nenhuma referência visual de acabamento, skill resumida e três fichas
+antigas com restrições incompatíveis com o executor HTML. Modelo `gpt-6.1-sol`,
+esforço alto, geração completa; não há benchmark que atribua a causa ao modelo.
+A direção da prova também induziu os desenhos de jarra/xícara. Corrigir contexto
+e testar uma cena exigente é o próximo recorte proposto, ainda não implementado.
+Detalhes: `docs/evals/analise-acabamento-motion-2026-11-10.md`. Nenhuma nova chamada paga.
+
+
+**Adaptação do fluxo de Lucas Leite:** mapeamento das oito etapas e dos guias
+publicados concluído em `docs/design/adaptacao-fluxo-edicao-2026-11-10.md`.
+Base técnica existente reaproveitável; falta separar decisão visual de construção,
+transmitir referências e instruções coerentes e demonstrar acabamento numa cena.
+Hoje direção/plano/código são gerados juntos, antes da aprovação dos quadros.
+O documento é proposta, não integração concluída. Sem nova API paga ou mudança
+no executor; cortes de bruto para YouTube continuam fora do escopo.
+
+**Histórico — reformulação da composição autorizada, antes do vídeo.**
+O titular gostou das xícaras desenhadas e autorizou reformular a composição.
+Isso não aprova a galeria anterior para animação. A nova direção alterna gesto
+real, transformação ilustrada e convite à pausa, com foco, escala e organização
+distintos; preserva desenhos figurativos, kit, fonte integral, áudio e aprovação
+humana dos quadros. Esse roteiro é específico da prova Café Pausa.
+
+Orientação geral de geração/crítica ajustada para avaliar evolução da composição,
+sem impor variedade arbitrária: acrescentar desenhos a um layout repetido não
+demonstra elaboração por si só. Repetição com função narrativa continua válida.
+Vinte testes direcionados passaram em 1,09 s; Ruff/format aprovados. Worker
+reconstruído; renderer, runtime, hashes históricos e banco não foram alterados.
+
+Novo payload preparado para o produto, dentro da autorização original: até
+US$ 3,70 restantes + US$ 1,70 retidos = US$ 5,40. Duas chamadas textuais/contagens,
+até duas ilustrações opcionais, sem correção automática; parar nos quadros.
+Plano: `docs/evals/plano-reformulacao-composicao-2026-11-09.md`.
+Pendente: nova galeria real, aceite humano e vídeo/crítica. Etapa 5 não iniciada.
+
+**Histórico da retomada anterior — três quadros após correção técnica local.**
+Retomada autorizada executou uma geração completa, validada pelo contrato. O modelo
+criou três cenas com desenhos SVG próprios; não solicitou ilustrações pagas.
+O render integrado falhou (`MOTION_RENDER_EXECUTION_FAILED`): elementos estáticos
+receberam tracks com `beats:[]`, mas a biblioteca exige ao menos um intervalo.
+
+Diagnóstico local preservou o original e acrescentou somente holds idênticos ao
+estado inicial dessas tracks. O mesmo renderer isolado capturou três PNGs reais,
+sem nova IA, MP4 ou alteração/reabertura do pedido encerrado. Galeria aberta para
+o titular: `.local/evals/reel-storyboard-resume-20261109/diagnostic-gallery.html`.
+É uma captura após correção técnica, **não** uma galeria aprovada/persistida pelo
+fluxo integrado. O titular depois solicitou reformular essa direção antes do vídeo. Movimento/áudio não
+foram avaliados; a composição ainda repete vídeo à esquerda e desenho à direita.
+
+Instruções da biblioteca agora explicitam 1–12 beats por track e hold para elementos
+estáticos. Runtime e hashes dos snapshots permanecem intactos; não adicionamos
+recuperação automática ou nova geração. Cinco testes direcionados passaram em
+0,68 s, Ruff aprovado; captura real passou pelo sandbox/protocolo 2. Sem CI completo.
+
+Uso estimado da retomada: US$ 0,180125; somado à tentativa truncada, US$ 0,421603.
+Reservas das duas tentativas: US$ 1,70 retidos para conciliação. Nenhuma imagem ou
+crítica paga, nenhuma correção paga. Os limites autorizados não foram ampliados.
+Plano/resultado: `docs/evals/plano-retomada-storyboard-integrada-2026-11-09.md`.
+Pendente: decisão visual, tratamento da falha na integração e vídeo/crítica final.
+Nenhuma equivalência às referências demonstrada; nenhuma etapa 5 iniciada.
+
+**Histórico da conclusão do ponto 3 — quadros completos por cena e aprovação antes do MP4.**
+Pedidos com `storyboard=true`, quando a capacidade estiver explicitamente habilitada,
+produzem um PNG completo por cena com a composição e os assets reais da geração.
+O modelo indica o momento representativo; o renderer captura somente esses momentos,
+sem codificar vídeo/áudio. Não são todos os frames nem evidência de ritmo/mixagem.
+
+Galeria HTML e metadados privados ficam disponíveis pela API autenticada. O aceite
+vincula versão e hash do conjunto; reprovação registra feedback e encerra o pedido,
+sem tentar outra chamada paga. A aprovação emite outbox e retoma pelo Temporal,
+reutilizando composição e ilustrações, revalidando fontes, consentimento e orçamento.
+Reentregas são bloqueadas por identidade durável. A revisão/aprovação final da peça
+continua distinta da aprovação inicial de composição.
+
+Validação: 295 testes Python direcionados em 3,70 s e 72 testes Node em 0,55 s;
+mypy e Ruff aprovados. IO de banco/browser/provedor substituído nos testes locais;
+regressão SQL de isolamento/aceite/reentrega adicionada, não executada. Sem CI
+completo, chamadas pagas, reconstrução Docker, migração aplicada ou prova criativa.
+
+**Pendências registradas ao concluir o ponto 3 (resolvidas na preparação do ponto 4):** aplicar `0114_motion_storyboards`, reconstruir
+renderer com protocolo 2 e configurar seu novo digest; habilitar
+`motion_storyboard_enabled` (default false) e enviar `storyboard=true`.
+Pedidos antigos continuam no fluxo anterior. Naquela conclusão, o ponto 4 aguardava comando: prova real
+com IA, apresentação dos quadros para o titular e avaliação do vídeo após aceite.
+Não há uma nova peça real produzida nesta implementação nem orçamento reutilizado.
+
+**Histórico do ponto 2 — componentes, acervo e ilustrações sob demanda.**
+O fluxo do Reel reúne 16 componentes vetoriais, desenho original por código,
+até quatro fotos autorizadas do acervo e até duas ilustrações geradas quando
+necessárias. A mesma geração textual declara a arte e seus caminhos; o serviço
+cria os PNGs antes do render, e a crítica recebe os pixels gerados. Kits, skills,
+biblioteca de movimento, Temporal e histórico privado continuam preservados.
+
+Ilustrações têm identidade por pedido/asset, reserva própria no ledger compartilhado,
+registro de uso/proveniência e upload privado verificado. Correções reutilizam os
+mesmos arquivos e não podem alterar a lista para disparar novas imagens. Despacho
+repetido, falha incerta, custo desconhecido/excedido e falta de orçamento interrompem.
+A reserva é limite de admissão local, não teto de faturamento imposto pela Images API.
+
+Ativação explícita desabilitada por padrão: `motion_illustrations_enabled=false`,
+reserva e orçamento de imagens zero. O orçamento de imagens é parte do orçamento
+total do Reel; precisa deixar espaço para geração e crítica. Sem novas permissões,
+migração ou chamadas pagas. Modelos e contratos históricos preservados; não há
+ativação retroativa para pedidos capturados sem essa capacidade.
+
+**Na conclusão do ponto 2, o próximo ponto era:** quadros principais com a arte
+pronta antes do vídeo (ponto 3, implementado conforme registro acima). Prova visual com IA real e aceite criativo continuam posteriores;
+esta implementação não demonstra que o acabamento já atingiu as referências.
+Validação: 273 testes direcionados aprovados em 3,76 s, Ruff/format e mypy
+em 12 módulos aprovados. Pixels sintéticos e transporte simulado; sem CI completo,
+banco ou render integrado. Regressão SQL adicionada para o `_test`, não executada.
+
+**Histórico do ponto 1 — direção criativa por cena.**
+Novos pedidos capturam `reel-creative-v3` e exigem `scene-direction-v1`: base no
+briefing, representação visual, composição, ação narrativa, ordem de atenção e
+aparência/construção de cada elemento. A direção se vincula às cenas/elementos
+do `motion_plan-v1`, que conserva os tempos, estados, relações e transições.
+Geração/correção usam a mesma chamada; não há geração de assets nesta fatia.
+O serviço recusa vínculos incompletos/inválidos antes de reservar render. Direção
+acompanha composição privada, crítica e correções; v1/v2 históricos permanecem
+compatíveis. Kits, acervo, skills, motion lib, orçamento e Temporal preservados.
+
+201 testes direcionados em 5,18 s; Ruff/format e mypy aprovados. Cobertura de
+100% nos três módulos medidos de direção/plano/contrato, não CI da aplicação.
+Regressão SQL acrescentada, não executada. Sem banco, API paga, render ou deploy.
+À época, criação/seleção de elementos aguardava comando; estado atual acima. Quadros principais,
+crítica aprimorada e comprovação visual continuam posteriores. Implementar o
+contrato não comprova que o modelo atingirá o acabamento desejado.
+[Escopo, decisões e validação](../design/evolucao-qualidade-motion-referencias-2026-11-09.md).
+
+**Pesquisa de composição concluída:** Maestro contém geração de objetos
+recortados, busca de takes e captura de páginas; Finalizador contém 70 cenas em
+código; claude-video já prevê arte por cena antes da animação. Fontes externas
+oficiais confirmam catálogo de componentes e mídia. Na pesquisa, esses recursos ainda não estavam
+integrados ao Reel; adaptação parcial registrada acima; a pesquisa não demonstra qualidade nem autoriza gastos.
+O titular posteriormente confirmou liberação do conteúdo Maestro para nosso uso;
+a observação anterior sobre o ZIP não bloqueia o escopo autorizado.
+[Inventário, fontes e próximo recorte](../evals/pesquisa-elementos-motion-2026-11-09.md).
+
+**Quarto passo: fluxo técnico concluído; melhora parcial, alvo criativo não atingido.** A retomada
+Café Pausa terminou `completed` pelo worker/Temporal dev, com uma versão real,
+crítica e download autenticado conferido por SHA. Comparativo A/B aberto para o
+titular; não houve correção. Duas chamadas/contagens, 574,11 s, US$ 0,379066 estimado.
+Com a tentativa truncada anterior: US$ 0,562636 estimado e US$ 2,55 reservado,
+dentro do teto original de US$ 3,40. Reservas não são fatura/uso conciliado.
+
+Modelo retornou `adequate`, quatro checks criativos `met` e temporais `pass`.
+Entretanto, as três janelas cobriram entrada de palavra, ponto gráfico e hold de
+CTA; **37 de 40 eventos omitidos**, incluindo as principais transições sem sequência
+próxima completa. Isso valida o fluxo técnico, não o acabamento esperado ou a
+eficácia do crítico nesse alvo. Geração usou 18.102 tokens com override de 32.000;
+defaults gerais de 16.000 não foram alterados. Crítica: 7.924 de 8.000 tokens.
+Worker próprio encerrado; sem CI completo, migração, publicação ou expansão de
+formato. Avaliação humana recebida: melhorou, mas ainda muito longe; faltam
+componentes figurativos, imagens e ícones relacionados à mensagem. Não há aceite
+criativo/comercial nem confirmação específica de áudio ou ausência de regressões.
+A auditoria encontrou entrada restrita a vídeo/fontes/logo, direção centrada em
+tipografia/enquadramento e ausência de transcrição. MotionV1 oferece movimento,
+mas não constrói por si só esse repertório visual. Próximo recorte proposto:
+planejamento visual por mensagem, materiais/componentes associados ao kit e
+crítica das cenas principais. A direção foi implementada posteriormente, conforme
+registro acima; demais pontos pendentes e nenhum novo gasto.
+[Plano concreto](../evals/plano-prova-motion-temporal-integrada-2026-11-09.md).
+[Plano de retomada](../evals/plano-retomada-motion-temporal-2026-11-09.md).
+
+**Terceiro passo da evolução de motion implementado — crítica temporal.**
+Novos snapshots incluem `motion-temporal-v1`: até três eventos distribuídos pela
+peça, cinco quadros de contexto e até cinco por evento, mantendo **no máximo 20
+quadros por versão**. Tempos do plano orientam a extração; somente quadros reais
+decodificados do MP4 fundamentam a crítica. O manifesto privado registra IDs,
+tempos, hashes, cobertura, bordas e eventos omitidos. Nenhuma chamada adicional
+é obrigatória; texto e imagens continuam na contagem/reserva existente.
+
+`MotionReview` passa a exigir, nessa capacidade, continuidade, sobreposição,
+tempo de leitura e coordenação. Um parecer conclusivo requer sequência completa
+com pelo menos três tempos citados, incluindo seus extremos. Correção temporal
+precisa apontar issue acionável compatível e localizada nessa evidência; incerteza
+não autoriza refação. Preferência pela versão nova requer sequências das duas
+versões. Histórico sem capacidade temporal conserva o comportamento anterior.
+Kit e referências continuam separados; calibrações externas são textuais, sem
+alegar comparação visual com vídeos não enviados.
+
+Validação: **292 testes direcionados em 7,29 s**, Ruff e mypy aprovados; proteção
+adicional contra issue genérica de motion contornando incerteza confirmada em
+41 testes (0,80 s). Extração do MP4 sintético anterior: 16 quadros, três eventos
+completos e 12 omitidos explicitamente; sequências inspecionadas. Sem IA paga,
+novo render, CI completo, teste SQL, migração ou deploy. Isso valida implementação
+e vínculo das evidências, não acerto do julgamento da IA ou ganho criativo.
+**Quarto passo com execução técnica concluída e qualidade criativa insuficiente**, conforme
+avaliação humana acima. Não expandimos formatos nesta fatia.
+
+**Segundo passo da evolução de motion implementado — execução reutilizável.**
+`MotionV1` oferece timeline com estados numéricos, curvas cúbicas/Bézier/mola,
+entradas escalonadas, máscaras e transformações coordenadas, calculadas por
+`seek(ms)` sem relógio ou playhead acumulado. A API, versão e SHA-256 entram no
+contrato capturado; o serviço verifica disponibilidade antes da geração paga.
+O adapter inclui os bytes conferidos no início de `scene.js`, pelo canal isolado
+já existente. Assim, a imagem do renderer não precisa incorporar uma nova
+biblioteca; o worker precisa receber o código atualizado. Pedidos históricos
+sem essa capacidade conservam os bytes originais da cena. Kit, acervo, skills,
+estilos, áudio, versões e limites de orçamento permanecem no fluxo existente.
+
+Validação: **266 testes Python em 4,20 s**, 8 testes Node em 0,51 s, Ruff e mypy
+aprovados; após um ajuste de compatibilidade, 30 testes afetados em 1,98 s.
+Reprodução sintética local de **4 s / 120 quadros / 360×640 / 30 fps**, com
+Chromium, CSP/roteamento e FFmpeg reais; quadros extraídos do MP4 inspecionados.
+A demonstração foi escrita manualmente, sem áudio ou geração por IA: comprova
+execução dos recursos, não ganho criativo. Não houve CI completo, teste SQL,
+migração, build/deploy, API paga ou nova prova Linux/Temporal naquela fatia. O
+terceiro passo foi implementado posteriormente, conforme registro acima. A prova
+integrada continua necessária para demonstrar qualidade do produto.
+
+**Primeiro passo da evolução de motion implementado — contrato de movimento.**
+Novos pedidos usam `reel-creative-v2` e exigem `motion-plan-v1` na mesma chamada
+que produz/corrige HTML: cenas e elementos identificados, tempos absolutos,
+estados, trajetória/curva, relações e propósito. Kit, acervo autorizado, skill e
+biblioteca de motions continuam no contexto; referências orientam acabamento do
+movimento, preservando a identidade do negócio. O plano acompanha as versões
+cifradas e a crítica existente. Antes de reservar o efeito de render, o serviço
+confere duração, estilo selecionado e assets autorizados; o schema rejeita
+lacunas de cenas, eventos fora de intervalo e relações inválidas. Sobreposição
+entre cenas é permitida para transições; entre beats do mesmo elemento, não.
+Históricos sem plano e `reel-creative-v1` continuam legíveis e processáveis.
+
+Validação desta fatia: **155 testes direcionados passaram em 8,75 s**, Ruff e
+mypy aprovados. Regressão SQL adicionada para falha sem plano e reentrega sem
+repetir geração; não executada nesta rodada. Sem CI completo, banco, render,
+API paga ou deploy naquela fatia. A conformidade do plano **não comprova execução
+visual** do HTML. O segundo passo foi implementado posteriormente, conforme
+registro acima; a crítica temporal também está implementada. A prova integrada
+(quarto passo) foi executada; o alvo criativo continua não atingido. Detalhes no plano de evolução de qualidade de motion.
+
+**A fatia local de integração do Reel está implementada e tecnicamente
+qualificada.** Pedido/contexto privado, efeitos duráveis, Temporal, renderer
+HTML isolado, crítica/correção condicionais e versões imutáveis estão ligados.
+A coleção permite revisão, cinco confirmações por arquivo e download privado;
+a aprovação não cria postagem. A versão mais nova não é automaticamente a melhor.
+
+O [CI da base anterior à proteção completa de orçamento](../../.local/ci-motion-integration-20261109/run-20261109T154537Z/result.json) passou: **5.353 testes, 100% de 18.570 linhas e 5.090 branches**,
+sem skips. Passaram também 363 testes Python do laboratório, 137 Node dos
+renderers, lint/formatação e tipos. Web: 524 testes/100% nas quatro métricas,
+tipos, build, formatação e QA de interface em 390/1440 px. O código daquela execução permaneceu
+estável durante o CI; os bancos eram exclusivos `_test`, com roles restritas.
+
+Os quatro replays Linux preservaram código/assets: Intensa 67,3 s, Dog 75,2 s,
+Luma 73,3 s e Giz B 107,2 s. A prova do pedido ao download passou em 97,6 s
+com API/auth, SQL/RLS, relay, Temporal, renderer e storage reais; **modelo e
+crítico simulados**. Reentrega não repetiu efeitos; acesso de outro tenant e
+anônimo foi bloqueado. Não houve aprovação humana fabricada nem chamada paga.
+[Comparações, resultados e limites](../evals/qualificacao-integracao-reel-2026-11-09.md).
+
+Os dez workers parados com autorização foram restaurados. O storage descartável
+da prova foi parado, preservando dados e arquivos. A primeira execução do CI
+falhou numa expectativa antiga de tabela; o teste foi alinhado à guarda que
+inclui Reels. Novas provas SQL cobrem bloqueio durante execução e repetição de
+aprovação antiga após surgir outra versão, sem duplicar efeitos ou aprová-la.
+
+**Isso não encerra a ativação comercial da etapa 4 nem a v0.** A configuração
+continua desativada por padrão e restrita a negócios/materiais sintéticos.
+A validação completa do orçamento (ponto 1) foi implementada: contagem da
+entrada multimodal antes da geração, soma com a saída máxima e bloqueio
+quando exceder a reserva compartilhada. A contagem inclui instruções, schema
+e quadros de origem/versões, sem gerar conteúdo. Política qualificada para
+`gpt-6.1-sol` Standard: tarifa conservadora cobre escrita de cache; entrada
+acima de 272 mil tokens e modelos/tarifas não qualificados são bloqueados.
+Cálculo e versão da política ficam no registro cifrado da operação.
+Validação desta mudança: **100 testes unitários direcionados em 1,62 s**,
+Ruff e mypy aprovados; sem CI completo, SQL, render ou chamada externa. O CI
+acima documenta a base anterior, não uma nova execução desta mudança.
+**Ponto 2 implementado após autorização:** target `motion-worker` com cliente
+Docker, overlay opcional com configuração consistente de API/relay/worker e
+pasta temporária compartilhada no mesmo caminho. O renderer recebe somente a
+entrada da própria tentativa; socket/credenciais permanecem fora dele. Há um
+comando de verificação sintética de dois quadros para executar antes da prova.
+**130 testes direcionados passaram em 4,49 s**, Ruff/mypy e Compose resolvido
+aprovados (desativado e fixture fake, sem carregar o `.env` real). Na entrega
+do ponto 2 não houve build/render real; eles foram executados no ponto 3 abaixo.
+**Primeira rodada do ponto 3 — histórico da falha:** a prova Café Pausa com IA real
+produziu duas versões de 11,2 s pelo worker do produto, Temporal local autorizado
+e banco dev existente (migrações 0112/0113 aplicadas com autorização, sem limpeza).
+A crítica detectou acentos corrompidos; a correção preservou o JavaScript e
+corrigiu o texto observado nos quadros. Foram três chamadas ao modelo e quatro
+contagens (a última inferida pelo avanço até o claim); uso estimado conhecido
+**US$ 0,412521**, reservas **US$ 2,55**, teto autorizado US$ 3,40. Fatura não conciliada.
+O PostgreSQL cancelou o INSERT do pacote da crítica final em `motion_effects`
+por ultrapassar o prazo de 10 s. A quarta chamada ao modelo não foi enviada.
+Pedido `failed`, duas versões preservadas, sem peça liberada na coleção:
+crítica final e download ficaram pendentes naquela rodada, concluídos em nova
+operação no item 3 abaixo.
+Não houve retry pago, aceite humano ou publicação. Worker próprio encerrado.
+
+O defeito de UTF-8 foi corrigido no runner, com 71 testes direcionados (1,17 s)
+e verificação real mínima da imagem nova; a prova paga preservou o digest antigo.
+**Correção de persistência implementada após a rodada:** pedidos multimodais e
+quadros cifrados acima de 64 KiB passam ao armazenamento privado existente;
+SQL mantém referência cifrada pequena, hashes e identidade de operação.
+Upload é registrado antes do IO, conferido por tamanho/hash e nunca repetido
+automaticamente; falha interrompe antes da chamada paga. Serialização/cifra saíram
+das transações desses registros. Leitura recupera registros inline antigos e
+referências novas, validando tenant/negócio/pedido antes de buscar o objeto.
+No pacote salvo do Café Pausa, o campo SQL caiu de **42.205.388 para 716 bytes**,
+com conteúdo recuperado exatamente (medição offline, 1,417 s). **81 testes
+unitários direcionados passaram em 1,42 s**, Ruff/mypy aprovados. Acrescentadas
+duas regressões SQL para o CI futuro; não executadas nesta fatia.
+Não houve migração, alteração do dev, build/deploy, CI completo ou API paga.
+O pedido antigo continua falho; a nova prova integrada está registrada abaixo.
+Não foi aumentado o timeout global nem removida a trava de custos.
+A exportação somente leitura usou prazo local de 60 s para recuperar as evidências.
+Temporal dev voltou ao estado parado original, com histórico preservado; seu
+problema permanece separado. Sem CI completo nesta rodada.
+[Vídeos, resultado, custos e limites](../evals/plano-prova-reel-integrada-2026-11-09.md).
+**Item 2 anterior — direção e critérios criativos:** esta entrega introduziu
+`reel-creative-v1` (novos pedidos agora usam v2, conforme atualização acima) no contexto cifrado e no fingerprint. Geração/correção recebem
+orientação para planejar tempos, estados visuais e função das transformações no
+`concept`, com calibrações textuais de Intensa, Dog, Luma e Giz B. Nenhuma mídia
+desses ensaios foi incorporada ou enviada; estilo/intensidade não são universais.
+A crítica exige quatro avaliações: atendimento ao briefing, progressão narrativa,
+função do movimento e desenvolvimento visual. Cada uma liga pedido, observação
+e quadros; as três temporais exigem dois tempos distintos da versão atual.
+`adequate` não admite requisito criativo falho/incerto; lacuna criativa acionável
+usa a correção condicional existente. Incerteza sem defeito concreto não dispara
+refação. Acentos corrigidos não são ganho de motion. Leitura histórica preservada.
+**98 testes direcionados passaram em 1,50 s**, Ruff/mypy aprovados. Acrescentada
+regressão SQL de bloqueio de crítica apenas técnica, para execução futura.
+Sem render, API paga, migração, build/deploy ou CI completo. Esses testes provam
+as regras de validação, não a qualidade criativa do julgamento do modelo.
+Itens 1 e 2 implementados; **item 3: prova técnica real concluída; melhora criativa
+parcial, abaixo do nível esperado pelo titular**. Nova operação Café Pausa terminou `completed`, com
+geração, render, crítica, coleção privada e download autenticado conferido por
+SHA-256. Duas chamadas ao modelo e duas contagens; estimativa **US$ 0,266156**,
+reservas novas **US$ 1,70**. Com US$ 2,55 anteriores, permanecem US$ 4,25 retidos
+sob teto agregado autorizado de US$ 5,95; fatura ainda não conciliada.
+A crítica marcou os quatro requisitos criativos `met` e não pediu correção:
+há uma única versão nova. O A/B compara a peça histórica com a nova geração;
+não demonstra ganho de correção automática. Payloads grandes usaram referências
+SQL cifradas de 716 bytes, sem aumentar o timeout. Workflow em 667,63 s, incluindo
+310,30 s de render; essa medição isolada não define tempo comercial de entrega.
+Worker próprio encerrado. Sem migração, limpeza, retry pago ou CI completo.
+[Plano da nova rodada](../evals/plano-comparacao-criativa-integrada-2026-11-09.md).
+Avaliação humana recebida: B ficou um pouco melhor, mas continua muito aquém dos
+motion graphics e exemplos das bibliotecas esperados. O nível criativo pretendido
+não foi atingido; não há aprovação de qualidade comercial. Áudio e outras possíveis
+regressões não foram avaliados explicitamente na resposta. Os quatro checks `met`
+do modelo não equivalem ao patamar criativo desejado. A rodada usou calibrações
+textuais, sem comparar visualmente com as referências. Próxima necessidade:
+definir uma referência concreta e calibrar geração/crítica contra seu acabamento,
+preservando diversidade; escopo e orçamento de nova execução ainda não definidos.
+
+Referência concreta recebida: vídeo de Felipe Borges, analisado visualmente desde
+o início por sequências de quadros. [Análise e trechos](../evals/referencia-motion-youtube-fqaEZqPzKZs-2026-11-09.md).
+Os exemplos usam cenas gráficas, interfaces, diagramas e composição em camadas.
+A referência esclarece o alvo, mas não conclui a qualidade do produto. Próximo
+recorte proposto: enriquecer o planejamento de cenas e calibrar a crítica visual;
+cortes e áudio alinhado exigem ampliação explícita da integração. Sem nova API paga.
+
+O [Reel específico enviado depois](../evals/referencia-reel-Db9axeiOotS-2026-11-09.md) foi baixado e
+inspecionado por sequências de quadros. Ele prioriza hierarquia, revelação
+progressiva, estados e alternância de composição. Recorte de pessoa e imagens
+geradas não são pré-requisitos dessa próxima prova. Eventos ligados à fala
+exigem alinhamento; em peças sem fala, usar tempos do roteiro. Sem nova geração.
+
+Quatro Shorts adicionais foram analisados, incluindo legendas do tutorial de
+cinco passos. [Plano consolidado de evolução](../design/evolucao-qualidade-motion-referencias-2026-11-09.md).
+Cálculo determinístico e render quadro a quadro já existem. A próxima evolução
+proposta concentra direção visual/quadros-chave, comportamento dos elementos,
+materiais próprios e crítica comparativa. Sem migração de executor ou exigência
+automática de 60 fps. Nenhuma nova geração paga ou mudança de runtime.
+Esclarecimento do titular: as referências orientam qualidade do movimento; kit
+visual, fontes, cores e logo continuam sendo os do negócio. A sequência proposta
+é contrato de movimento → recursos determinísticos → crítica temporal → prova
+integrada; primeira prévia possível após as duas primeiras fatias, sem biblioteca
+completa. Criticar movimento não exige parecer visualmente com a marca da referência.
+
+
+
+
+Contrato para clientes reais e aceite criativo desta peça permanecem pendentes.
+Esta fatia usa a gravação inteira e seu áudio reencodado; não acrescenta
+transcrição, legendas alinhadas ou seleção de música. Quadros não comprovam
+movimento integral ou escuta.
+[Contrato da integração](../design/integracao-reel-2026-11-09.md).
+
+**Etapa 3 concluída no recorte demonstrado:** legibilidade do 1c e preferência
+humana por Giz B (“B ficou melhor.”). Giz é refinamento com feedback/referência
+adicionais; não prova ganho universal de autocrítica ou economia. Artefatos,
+feedback e custos históricos permanecem separados no [registro](../evals/motion-registro-de-validacao.md).
+
+**Etapa 5 ainda não implementada.** O escopo autorizado anteriormente inclui
+o ciclo de imagem feed/story, seguido de story em vídeo e carrossel animado.
+A sequência vigente termina primeiro os três pontos do Reel, um por comando. O
+[desenho de imagens](../design/ciclo-revisao-imagens-2026-11-09.md) prevê inspeção do JPEG final antes da entrega,
+correção condicional e preservação de versões; planejamento não é entrega.
+A [matriz](../design/v0-motion-etapa-0-formatos-e-casos.md) registra o reuso e as lacunas por formato.
+
+WhatsApp (6) e piloto/operação comercial (7) continuam posteriores. Piloto de
+autoatendimento com cobrança, ainda sem participantes reais; usar os quatro
+casos fictícios. Preço/franquias dependem de custo por peça aceita. Publicação
+automática no Instagram permanece posterior. Dúvidas de produto serão tratadas
+em entrevista; manter o foco nas fatias autorizadas.
+
+## Histórico da retomada — 08–09/11/2026, antes da preferência humana por Giz
+
+Os registros abaixo preservam a sequência de preparo, execução e validação.
+Pendências de avaliação humana descritas nessa sequência eram o estado de cada
+momento; a conclusão vigente e os próximos trabalhos são os do bloco acima.
+
+O titular confirmou o texto do [roteiro de sete etapas](../design/execucao-ate-etapa-7-2026-11-07.md).
+A prioridade é alinhar documentos, corrigir a checagem de tipos e restaurar as
+ferramentas locais de mídia, concluir a prova comparativa (3), integrar o Reel
+após comparação e revisão humana (4) e avançar aos outros formatos (5). As
+etapas de jornada (6) e preparação do piloto/comercial (7) permanecem no roteiro.
+Entrevistas tratarão definições faltantes; preparar ou testar não encerra os gates.
+
+A entrevista já definiu autoatendimento com cobrança, sem participantes reais
+escolhidos. Os exemplos de cafeteria, loja física Ponto do Dog, delivery Dog em
+Casa e manicure Estúdio da Luma orientam validação sintética. Valores de plano,
+franquias e limites comerciais dependem da medição. Instagram permanece depois
+da geração/revisão/download; WhatsApp oficial é necessário para a jornada real.
+
+A continuação independente `4338880a-10f2-48a7-96cd-54138f87dbdd` terminou em
+`completed_partial_human_pending`: Dog/Luma receberam críticas v2 `adequate`,
+sem achados ou correções; Intensa e sua reserva incerta continuam bloqueadas.
+Duas novas chamadas somam US$ 0,175165 estimados. Acumulado de Intensa/Dog/Luma: seis
+tentativas, US$ 0,427215 conhecidos, custo da tentativa anterior incerta ainda
+desconhecido e US$ 1,50 em reservas. O teto de US$ 6,75 não foi esgotado.
+[Resultado e relatório](../evals/ensaio-ciclo-revisao-motion-2026-11-06.md).
+
+A tipagem foi corrigida e as ferramentas locais de mídia recuperadas com
+hashes conferidos. Passaram 107 testes Python de motion e o preflight dos três
+casos. O relatório foi corrigido para caminhos longos e validado a 390/1440 px,
+nos modos cego/identificado, com três players e sem overflow, erro JavaScript
+ou rede externa; vídeos/críticas/ledger intactos. Após reproduzir o timeout e
+ajustar a preparação dos testes de concorrência, o módulo passou em quatro
+testes (93,61 s). As falhas posteriores de CI são históricas; a execução final
+de 09/11 passou, conforme abaixo. No
+recorte `app`/`migrations`, apenas `test_destination_lock_proof.py` mudou desde
+a tentativa anterior desta retomada; produção e migrations intactas. O CI de
+06/11 registra a árvore daquela execução.
+A comparação real do 1c abaixo teve a legibilidade reconhecida pelo titular,
+sem aprovação criativa global. Etapa 3, ganho geral e integração permanecem abertos.
+
+Em entrevista, o titular escolheu testar a correção do [Reel histórico 1c](../evals/plano-revisao-reel-1c-2026-11-08.md)
+com defeito conhecido. O pacote offline de 69 arquivos foi concluído e preserva
+dez normalizações históricas. A ponte declarativa foi implementada; passaram
+146 testes locais (57 da orquestração e 89 da ponte), Ruff e mypy estrito.
+Não transforma a origem em resposta HTML/JS. A primeira qualificação do run
+`3a52c376-e8ea-4bea-b997-94ba59c628de` falhou no parsing de metadados FFprobe 4.4.8;
+a tentativa foi preservada e não houve API. Após correção estrita, o preflight
+real confirmou MP4 arquivado idêntico ao original e remux preservando 526 pacotes
+AAC, PCM e tempos, mais 336 quadros RGB24 e tempos. A segunda qualificação
+completa passou depois, recompilando/renderizando a direção original e
+confirmando quadros, tempos e áudio. A prova e seu hash foram preservados.
+
+O titular autorizou em entrevista até três chamadas/US$ 1,25 e o envio à OpenAI.
+O registro `authorization.json` vincula decisão, plano, primeiro pedido e
+qualificação. A execução paga do 1c foi concluída; resultado, custos e comparação
+estão abaixo; o titular confirmou legibilidade, sem aprovação global. A falha de
+unidade tipográfica já foi corrigida na geração atual; esta prova limitada não
+demonstra por si só ganho criativo geral ou economia da revisão em todos os
+pedidos. Prova e julgamento humano (3) precedem integração do Reel (4) e demais
+formatos (5); qualificação técnica não equivale a ganho criativo ou integração.
+
+O [ensaio 1c concluído](../evals/ensaio-revisao-reel-1c-2026-11-08.md) produziu
+original e v1 comparáveis. A crítica inicial encontrou uma falha `major` de
+legibilidade; a correção ampliou títulos/legendas e foi renderizada sem ajuste
+manual. A crítica final retornou `adequate`, sem achados, e preferiu v1; seis
+critérios passaram e áudio ficou `uncertain`. AAC/PCM/tempos foram preservados.
+O executor registra `completed_human_pending`. Depois, o titular confirmou:
+“o B tem os titulos e legendas bem melhor”, mas questionou se era story e por
+que faltava motion. A melhora de legibilidade foi reconhecida; não há aceite
+global, de áudio ou de motion. O pedido original era `reel` com cortes,
+transições, motion e legendas; a entrada era ilustrativa/licenciada com voz
+sintética, não gravação de cliente real.
+
+O 1c tem pequenos ajustes de enquadramento/fades. A prova reparou tipografia,
+mas não qualificou acabamento criativo: presença de animação não comprova
+adequação ao briefing. Intensa/Dog/Luma continuam as referências; 1c não vira
+padrão. O relatório inicial passou em 390/1440 px, dois modos e oito reproduções
+mutadas; isso comprova apresentação, não escuta humana ou qualidade criativa.
+
+A apresentação foi corrigida depois: agora exibe `limitations[]` com escape de
+HTML, explica `adequate` como ausência de outro defeito acionável nas evidências
+e distingue parada automática de aceite criativo. Passaram 15 testes do
+relatório, Ruff e mypy. Somente o HTML foi regenerado, preservando original,
+código e hashes; vídeos, críticas e summary permanecem intactos. O QA dirigido
+do novo HTML passou em 390/1440 px nos dois modos, com limites visíveis apenas
+no identificado, dois players, sete links e nenhum overflow, erro JavaScript
+ou rede externa. O QA anterior foi conservado. Sem API ou custo adicional.
+
+Separar movimento observado de atendimento criativo pertence ao próximo
+contrato de avaliação do Giz, agora implementado e testado, com calibração
+criativa ainda pendente. A correção de apresentação do relatório 1c não
+reclassifica as críticas históricas nem qualifica a criatividade por si só.
+
+O titular respondeu **“Comprovar melhora do motion primeiro (recomendado)”**.
+A etapa 3 exige prova criativa antes da integração. O candidato em análise é
+Giz (`15adf19d`, lote `e2bbd3aa`), anteriormente avaliado abaixo de Intensa.
+A auditoria não encontrou violação inequívoca do briefing original: motion e
+desenho existem; pedidos de tema e janela contínua vieram no feedback posterior.
+A próxima prova será de refinamento guiado por feedback/contexto adicional
+declarado, sem atribuí-lo à descoberta de um erro do pedido inicial. O
+[plano do Giz](../evals/plano-refinamento-motion-giz-2026-11-08.md) e o pacote privado
+foram concluídos: 70 arquivos (68 inventariados mais manifesto/digest), com
+contexto original separado do feedback e das referências novas. O percurso
+proposto tem até duas chamadas: refinamento pelo feedback conhecido e avaliação
+comparativa; não repete esse feedback em uma crítica paga inicial.
+
+O protótipo privado e o contrato estão implementados: confrontam
+`theme_change`, `window_transformation` e `narrative_role`, separando movimento
+observado de atendimento criativo. Passaram 160 testes de Giz/contratos/relatório/
+legado e 66 declarativos; os caminhos genéricos não podem contornar as guardas
+próprias de Giz/1c. `make types` passou a cobrir oito módulos do laboratório.
+
+O replay real do run `1c758136-7530-43d8-96b7-39e4b0e44888` passou: MP4 bruto
+byte a byte igual ao original e remux com 336 quadros RGB24/tempos e AAC/PCM/
+tempos iguais. Código qualificado preservado em 14 arquivos. A equivalência do
+baseline não demonstra ganho criativo. Depois, B passou nas inspeções locais de
+código/artefato e preservação de 176 pacotes AAC, tempos e PCM. HTML, dois avisos
+MIT, textos, assets e fontes foram conferidos; não houve reparo visual manual.
+HTML/JS livre não garante invariância geral de fatos/textos por schema.
+
+O teto de até duas chamadas/US$ 1,25 foi autorizado em **09/11/2026**, com
+registro vinculado ao plano, qualificação e pedido. O ensaio Giz concluiu as
+duas chamadas HTTP 200, sem retry ou operação incerta, e terminou
+`completed_human_pending`. A crítica preferiu v1: três requisitos `met`, seis
+critérios `pass`, áudio `uncertain` e nenhum achado. As amostras mostram mudança
+verde → creme → verde e janela em arco com estados intermediários, preservando
+a linguagem Giz. Isso ainda não é aceite humano de motion ou narrativa.
+
+O [resultado Giz](../evals/ensaio-refinamento-motion-giz-2026-11-09.md) registra
+US$ 0,6482575 estimados incrementais e US$ 0,8686550 de subtotal de APIs com o
+histórico. Comprometimento US$ 1,0138475, dentro de US$ 1,25; a comparação
+excedeu sua reserva em US$ 0,0138475. Subtotal medido de 483,872 s exclui preparo,
+qualificação, inspeções e intervalos. Não são fatura, COGS ou custo por peça aceita.
+QA do relatório aprovado em 390/1440 px e dois modos, com oito reproduções
+mutadas completas, links válidos e 248 arquivos preservados. Comparação aberta
+no navegador e entrevista humana enviada com link; resposta/aceite pendentes.
+O ganho avaliado é refinamento com feedback e referência posteriores, sem atribuí-lo à
+autocrítica do briefing original ou generalizar benefício da revisão.
+
+A [validação técnica de 09/11](../../.local/ci-20261108/ci-final-result.json)
+foi concluída: `make ci` terminou com exit 0, 5.043 testes aprovados e dois
+inicialmente pulados por FFmpeg/FFprobe ausentes do PATH. Esses mesmos dois
+testes reais de MP4 passaram separadamente em 4,97 s após corrigir somente o
+PATH privado, sem alterar testes ou produção. Cobertura da aplicação: 100% das
+17.229 linhas e dos 4.726 branches. Passaram também 363 testes Python motion,
+três Node de áudio, 62 Node do renderer (100% linhas/branches/funções),
+Ruff/formatação e mypy de 272 módulos app mais oito scripts.
+
+Os 735 arquivos app/migrations e 29 do laboratório permaneceram iguais aos
+snapshots. As 69 amostras de relógio não indicaram repouso, com diferença total
+de −0,048 s em 1.114,6 s. As falhas anteriores de recibo/token e seus logs estão
+preservados como histórico, sem credenciais; não são o estado da execução final.
+O PostgreSQL descartável do CI usou `fsync`, `synchronous_commit` e
+`full_page_writes` desligados: esta prova não qualifica perda de energia ou
+recuperação do servidor e não altera requisitos de produção. A entrevista
+humana da comparação Giz continua pendente; nenhuma integração foi iniciada.
+
+No ensaio 1c, três chamadas HTTP 200, sem retry ou incerteza: **US$ 0,527685 estimados novos**,
+US$ 1,25 reservados. Subtotal histórico de APIs US$ 0,106892; subtotal com revisão
+US$ 0,634577, sem fatura ou COGS completo. Chamadas somaram 154,561 s; render e
+evidências, 151,928 s; subtotal medido 306,489 s exclui setup/preflight/intervalos.
+A prova e o feedback sustentam reparação desse defeito histórico, não ganho
+criativo ou retorno financeiro geral. O CI foi concluído; a avaliação humana
+da prova criativa precede integração do Reel (4) e demais formatos (5). A etapa 3
+não recebeu aprovação global; a autorização posterior de Giz não altera esses
+resultados ou o aceite limitado do 1c.
+
+## Histórico: início do ciclo de revisão de Reel — 06/11/2026
+
+O titular priorizou o ensaio em Python/API de gerar, renderizar, inspecionar,
+corrigir e renderizar novamente. O braço revisado parte da mesma composição
+histórica do baseline; são até duas correções, crítica por versão e escolha
+humana explícita. [Desenho](../design/ciclo-revisao-motion-2026-11-06.md) e
+[plano](../evals/plano-ciclo-revisao-motion-2026-11-06.md) descrevem o
+protótipo privado implementado, sem comparação concluída. O titular autorizou até US$ 6,75
+em reservas, até 15 chamadas e envio de quadros/contexto/código à OpenAI para
+Intensa/Dog/Luma; áudio técnico mantém a mixagem e exige escuta humana. O clipe pessoal
+continua aguardando avaliação. Skills e componentes permitidos são fontes de
+estudo; não se prevê servidor Claude Code ou agentes hospedados. A comparação
+precede integração em produto; postagem segue fase posterior à geração.
+Blocos datados seguintes descrevem decisões e estados de seus momentos.
+
+Primeira execução real: três críticas `adequate`, sem correções, estimativa
+US$ 0,2520500 e reservas US$ 0,75. A auditoria constatou que o contexto criativo
+do crítico estava incompleto; isso prova execução, não qualidade ou ganho. A
+[continuação](../evals/plano-ciclo-revisao-motion-2026-11-06.md) com contexto
+corrigido parou na primeira crítica com resultado incerto, sem resposta ou
+refações. Total: quatro chamadas, US$ 0,2520500 conhecidos de estimativa,
+custo da última desconhecido e US$ 1,00 em reservas. Sem retry; A/B pendente.
+[Resultado parcial e limites](../evals/ensaio-ciclo-revisao-motion-2026-11-06.md).
+`make ci` aprovado na árvore de 06/11: 5.045 testes da aplicação, cobertura
+100% de linhas e branches; 91 testes Python de motion, três Node de áudio e 62
+Node do renderer, Ruff e mypy. PostgreSQL `_test` e Temporal descartáveis,
+`TZ=UTC`; [detalhes](../CHANGELOG.md). Não encerra comparação criativa.
+
+## Histórico: caso pessoal musical como foco único — 06/11/2026
+
+Titular solicitou editar sua gravação de 46,5s com formas/realismo ligados à letra.
+Preparação local concluída, fonte intacta, 12 quadros e áudio separados; teste
+técnico de modo pessoal explícito passou. Sem envio real ou gasto novo até
+autorização específica. [Plano de três chamadas](../evals/plano-clipe-musical-pessoal-2026-11-06.md),
+reserva adicional US$ 1,60. Posteriormente titular autorizou verba e envio pessoal;
+ASR recebido, estimativa US$ 0,0047, com conferência parcial pelas legendas
+incorporadas e originais preservados. MP4 de 46,5s e comparação entregues;
+estimativa total US$ 0,51148, sem retry ou ajuste visual manual. Áudio original
+identificado por payload/PCM/tempos; qualidade humana pendente.
+[Resultado](../evals/ensaio-clipe-musical-pessoal-2026-11-06.md).
+Demais frentes ficam adiadas durante esta peça.
+
+## Preparação do step 1: Dog/Luma — 06/11/2026
+
+Titular solicitou executar outros negócios e confirmou marca/experiência sem
+preço. Cenários incluem gravações ilustrativas, kit/skill/fontes concretos e
+metas de contraste e transformação do vídeo, no mesmo renderer qualificado.
+Revisão dos termos Pexels não identificou vedação concreta à inferência pontual;
+ausência de autorização IA específica foi antes tratada com cautela excessiva.
+Proveniência, limites e registros anteriores preservados. [Plano](../evals/plano-motion-outros-negocios-2026-11-06.md).
+Preflight passou; titular autorizou as duas chamadas/envio dos pacotes, até
+US$ 1,50 adicionais. Dois MP4s/comparação entregues, estimativa US$ 0,5906725,
+sem retry pago. Dog traduziu IDs de áudio e renderizou offline, sem alteração
+visual; falha original preservada. [Resultado](../evals/ensaio-motion-outros-negocios-2026-11-06.md).
+Titular gostou bastante e confirmou o nível da Intensa nos dois casos curtos;
+mesma música foi apontada como possível problema. Geração/avaliação criativa
+deste step concluídas, com diversidade musical pendente: só havia uma trilha
+obrigatória. Próximos testes devem oferecer alternativas licenciadas adequadas,
+sem inferir validação de story/carrossel, durações longas ou integração.
+Titular confirmou variedade musical com escolha automática por negócio/peça e
+repetição permitida para continuidade de série/campanha. Seleção entre opções
+e registro do contexto ainda são pendências; decisão não gera nova peça/gasto.
+
+## Validar outras linguagens antes da integração — 06/11/2026
+
+Reel intenso recebeu feedback positivo: “muito legal. melhorou bastante.”
+Próxima sequência solicitada: diversidade no mesmo material, outros negócios
+fictícios, story, carrossel e transferência do caminho qualificado ao produto.
+Vozes mais naturais serão comparação separada com orçamento próprio. Instagram
+permanece posterior; intensidade exploratória não vira regra universal.
+[Registro e pendências](../evals/motion-registro-de-validacao.md).
+
+Preparados três estilos com fichas e código MIT concretos; CLI de lote gera
+comparação de cinco vídeos sem banco/WhatsApp. Preflight e 40 testes Python/três
+Node passaram; CI integral não repetido. Após preparação, titular autorizou as
+três chamadas/envio do pacote, até US$ 2,25 adicionais: duas peças concluídas e
+Papel incerto sem resposta/custo salvos, sem retry. Intensa preferida; Cartaz
+bem avaliado; Giz menos convincente por tema/enquadramento. Próximo passo:
+outros negócios, depois story/carrossel. [Resultado](../evals/ensaio-motion-diversidade-2026-11-06.md).
+Para Dog em Casa/Luma o titular escolheu
+vídeos ilustrativos licenciados; verificação de direitos de envio a provedor
+continua anterior à rodada desses negócios. A feature segue incompleta.
+
+## Intensidade exploratória entregue — 06/11/2026
+
+Disponíveis [versão intensa e comparação](../evals/ensaio-motion-intenso-2026-11-06.md).
+Uma chamada autorizada, estimativa US$ 0,3086025; código executado como recebido,
+inversões de tema e mecanismos adicionais conferidos por código/quadros.
+Ganho criativo e intensidade preferida aguardam o titular; não é padrão universal
+nem conclusão de integração, demais formatos ou publicação.
+
+## Próxima prova criativa: versão “exagerada” — 06/11/2026
+
+O titular gostou um pouco mais da rodada `276486e3`, ainda preferindo o v2,
+e pediu motion mais robusta. O [plano de intensidade](../evals/plano-motion-intenso-2026-11-06.md)
+explora esse pedido e o feedback sobre verde/creme, letras invertidas e ponto.
+Não é rejeição da peça nem decisão de aplicar a mesma linguagem a todo negócio.
+O aceite será sobre o resultado final; orçamento anterior não se renova e a
+integração da feature continua fora desta prova criativa.
+
+## Comparação da nova peça com o piso — 06/11/2026
+
+Disponíveis o [MP4 e relatório comparativo](../evals/ensaio-motion-biblioteca-2026-11-06.md),
+com a skill própria e adaptações reais de três fontes da biblioteca. Uma chamada,
+estimativa US$ 0,28714; código executado sem ajuste manual. A revisão criativa
+final e a integração do produto permanecem pendentes; não houve ampliação
+automática do orçamento ou geração dos demais formatos.
+
+## Evolução autoral acima do piso — 06/11/2026
+
+V2 é mínimo aceito, não template, por esclarecimento do titular. O próximo
+[ensaio preparado](../evals/plano-motion-biblioteca-2026-11-06.md) inclui skill
+própria de Reel, código selecionado da biblioteca e relatório com três vídeos.
+Escolha de linguagem permanece automática. 27 testes offline do CLI passaram;
+o titular autorizou uma chamada/envio do pacote, até US$ 0,75 adicionais, e a
+geração foi iniciada. Resultado e avaliação criativa permanecem pendentes.
+
+## Ganho criativo esperado ainda não demonstrado — 06/11/2026
+
+A peça nova não foi considerada ruim, mas o titular mantém o v2 como preferido:
+janela horizontal/vertical contínua, formas e pontos, transições suaves.
+O diagnóstico identificou escolha de direção e uso parcial das fontes/skill,
+sem as skills próprias por formato no último CLI. Preservar essa preferência
+antes de variar mecanismos. [Registro](../evals/ensaio-motion-comando-2026-11-06.md).
+Sem chamada paga ou alteração no renderer nesta análise.
+
+## Peça nova disponível para avaliação final — 06/11/2026
+
+O comando concluiu a geração após reposição de saldo/retry autorizado: Reel
+11,2 s com vídeo/áudio, sem alterar HTML/JS recebidos. Há componentes reais de
+motion adaptados do motor `cartaz-risografia`. [Peça e trace](../evals/ensaio-motion-comando-2026-11-06.md).
+Gasto desta geração estimado em US$ 0,3114475, não fatura. A validação técnica
+não encerra o aceite criativo, os demais formatos ou a integração do produto.
+
+## Comando pago sem saída por saldo esgotado — 06/11/2026
+
+A tentativa de Reel novo recebeu HTTP 429 `credit_balance_exhausted`, sem
+composição ou uso informado. Resposta/reserva preservadas; nenhum MP4 novo ou
+retry. Qualidade criativa e nova geração permanecem pendentes.
+[Evidências e continuação](../evals/ensaio-motion-comando-2026-11-06.md).
+
+## Ensaio rápido sem portões intermediários — 06/11/2026
+
+O titular escolheu revisão somente do MP4 final. O [comando local](../evals/como-executar-ensaio-motion.md)
+concentra preflight, geração, render e comparação, com orçamento explícito e
+sem refação automática. O cenário inicial permanece fictício, com fontes/kit
+congelados e Jev/transcrição reaproveitados de forma identificada. Provas offline
+do comando não equivalem a nova geração ou aceite criativo. A integração e os
+critérios completos de saída da v0 continuam abertos.
+
+## Histórico: ensaio criativo fiel — 06/11/2026
+
+Executar a [retomada de qualidade](../evals/plano-retomada-qualidade-motion-2026-11-06.md)
+com um Reel primeiro, mesma mídia/kit e v2 como patamar mínimo. Usar referência
+concreta e componentes reais selecionados dos três projetos preservados, com
+direção automática coerente. Registrar bruto e intervenções antes de avaliar a
+peça; só depois ampliar a prova para story/carrossel. Integrações WhatsApp/Instagram
+ficam fora deste ensaio. O titular autorizou duas chamadas até US$ 1,50 adicionais
+e o envio do pacote local. A primeira concluiu; cinco cards estão capturados e
+aguardam aceite. A segunda chamada depende desse aceite; nenhum vídeo novo foi
+gerado. Custo e traces estão no plano da retomada.
+As demais fatias e critérios de saída da v0 continuam pendentes.
+
+## Reprovação criativa da rodada 1c — 06/11/2026
+
+Reel/story/carrossel foram rejeitados pelo titular por simplicidade e falta de
+motion perceptível. A referência continua sendo o Reel v2 anterior; a direção
+concreta dele não foi levada aos novos inputs. Priorizar o diagnóstico do caminho
+criativo e da fidelidade do executor. Os rascunhos seguintes de integração não
+foram aplicados; o CI da clareza do contrato foi interrompido a pedido do titular,
+sem resultado final, e continua independente da avaliação de qualidade.
+
+## Rodada 1c encerrada; revisão das peças em andamento — 06/11/2026
+
+Os três formatos foram reconhecidos pelo Jev e a transcrição do Reel corresponde
+às palavras da fixture. A direção do Reel exigiu correções locais de contrato
+e depois ajuste explícito de legibilidade; o MP4 resultante está pronto para
+avaliação, sem aceite criativo presumido. [Arquivos e trace](../evals/ensaio-motion-v0-rodada-1c-2026-11-06.md).
+O titular autorizou explicitamente a retomada de story/carrossel após o bloqueio
+da revisão automática causado pela rejeição do Reel. As sete operações foram
+executadas sem retry pago; as três direções foram rejeitadas localmente e têm
+derivados separados para montagem. Estimativa global US$ 0,263073, reservas
+US$ 1,55 no teto US$ 1,60. Não há nova chamada autorizada nessa rodada.
+O app ficou preservado durante os efeitos. Depois, descrições de unidades,
+keyframes e áudio foram incorporadas ao contrato/builder, sem afrouxar validação.
+O CI dessa fatia foi interrompido a pedido do titular (saída 143), sem resultado
+final; o baseline aprovado de 5.044 Python/62 Node é da fatia anterior.
+A jornada e os critérios completos de saída
+continuam pendentes.
+
+## Correção após primeiro efeito da rodada 1b — 05/11/2026
+
+A interpretação real reconheceu Reel, mas o limiar de seleção de item bloqueou
+uma entrada sem candidatos. A rodada foi interrompida após uma chamada, com
+reserva preservada, sem transcrição/direção. [Evidência e custo](../evals/ensaio-motion-v0-rodada-1b-2026-11-05.md).
+O adapter agora omite a pergunta de item somente nessa ausência estrutural;
+55 testes dirigidos/100% passaram. Na retomada de 06/11/2026, conferido CI
+integral aprovado: 5.044 testes Python e 62 Node, sem pulados e com cobertura
+de 100%. A admissão
+de conteúdo sem item, com origem/material/fatos verificados, segue pendente.
+Nenhuma nova chamada está autorizada como refação automática.
+
+## Terceiro bloco: contexto, fichas e plano de áudio — 05/11/2026
+
+Concluídos os módulos puros de catálogo próprio, entrada para direção e plano
+de áudio. O catálogo fornece as três fichas verificadas; a escolha automática
+por modelo continua pendente. O builder preserva proveniência e separa
+observações de hipóteses, sem ler mídia, enviar rede ou autorizar acesso.
+O plano de áudio mantém trims/ganhos/fades e evidência de fala, sem alegar
+fidelidade semântica. Protótipos locais executaram cena e mixagem sintéticas,
+com inspeção de frames e amostras PCM; não são renderer de produção nem ensaio
+criativo. O terceiro CI integral passou: 5.042 testes Python e 62 Node, sem
+pulados e com cobertura de 100%. Não houve novas chamadas pagas.
+
+A preparação da [rodada 1b](../evals/plano-motion-v0-rodada-1b-2026-11-05.md)
+usou os contratos e fichas reais, com sete operações propostas. O executor
+privado gerou cinco MP4s sintéticos antes da autorização. A chamada real e a
+interrupção posterior estão registradas no início deste documento. Mocks e
+provas sintéticas não substituem os efeitos reais; a jornada de produto continua
+pendente.
+
+## Segundo bloco: compilador parametrizado — 05/11/2026
+
+O primeiro CI fechou com 4.913 testes aprovados, 2 casos dependentes de binários
+pulados e 100% de linhas/ramos; os casos reais de mídia passaram no recorte
+dirigido. Depois, contrato v2 e serviço de composição foram conectados ao
+compilador próprio. Testes dirigidos: 148 Python/100% e 62 Node/100% de linhas,
+ramos e funções. A prova entre linguagens compila Reel, story e três páginas.
+O titular confirmou carrossel 4:5 e aprovou avançar com a base WAAPI do ensaio.
+CI integral do segundo bloco passou com FFmpeg/FFprobe no PATH: 4.987 testes
+Python sem pulados e 62 Node, com cobertura integral de linhas/ramos e funções
+Node.
+Ainda faltam driver/áudio, seleção automática de estilos, verificação de arquivos
+e snapshots no negócio, persistência/Temporal e revisão sem postagem. Nenhum
+fluxo foi habilitado nem houve chamada paga por esse código.
+
+## Implementação em andamento — 05/11/2026
+
+Primeiras fatias: snapshots das três skills com loader isolado, contrato puro
+de direção, elegibilidade explícita no adapter Jev e inspeção/extração de áudio
+local. Contrato valida gravação, páginas/duração, cortes na fonte, timeline,
+camadas, motion/transições e áudio/legendas opcionais; não comprova fidelidade
+semântica dos cortes, alinhamento de fala ou direitos. A inspeção usa metadados,
+limita bytes/tempo/saída e não recorta automaticamente gravação excedente.
+A amostra original de `claude-video` tem licenças, origem, hashes e verificador
+de arquivo/restauração. Dependências e backup independente ainda pendentes.
+O CI do primeiro bloco passou, conforme registro acima. Formatos de motion
+ainda não estão habilitados na jornada e não houve chamada paga.
+
+O [Reel adaptado com WAAPI](../evals/ensaio-reel-waapi-2026-11-05.md) preserva
+a direção geral do v2 e passou nas verificações técnicas; o titular confirmou
+avançar com a base técnica desse caso. Não é compilador ou renderer integrado. A revisão final
+precisa de [aceite independente de postagem](../design/revisao-peca-sem-postagem-2026-11-05.md),
+pois a operação legada agenda publicação simulada. Nenhum código web foi alterado.
+
+## Escopo confirmado por entrevista — 05/11/2026
+
+A edição recebe uma gravação do cliente por pedido, com até 60 segundos de
+material bruto e até 60 segundos no vídeo final. A prioridade revisada é concluir
+geração, prévia, ajustes, aprovação da peça e download de imagens feed/story,
+Reel, story em vídeo e carrossel com motion. Viabilidade e integração de postagem
+no Instagram foram adiadas para a fase seguinte; conta Meta e publicação real
+não bloqueiam a conclusão da geração. C11 segue vigente para a postagem futura.
+Carrossel tem 3–5 páginas, com 5–8 segundos por MP4. Ajustar uma página preserva
+as demais; mudanças nelas exigem confirmação prévia e a nova sequência requer
+aprovação própria. O estilo é escolhido a cada pedido conforme objetivo, material
+e referências, preservando o kit; guardar snapshots por peça, sem preferência
+fixa por negócio. Integração e homologação seguem pendentes. O titular confirmou
+50 MiB por gravação; excesso de tamanho ou duração pede uma versão menor,
+sem cortar automaticamente. Os limites comerciais
+seguem medição em P05. Retenção já segue C04/C09, com P03 adiada.
+
+## Primeira fatia da v0 de conteúdo — 05/11/2026
+
+A [matriz de formatos e casos](../design/v0-motion-etapa-0-formatos-e-casos.md)
+consolida o ponto de partida para os ensaios; o
+[inventário](../design/inventario-claude-video-2026-11-05.md) identifica fontes
+e direitos ainda a conferir, sem declarar preservação ou integração. A guarda
+de copy recusa padrões específicos da instrução de revisão vazada no ensaio
+BL04.3, rejeitando a proposta sem corrigir o texto automaticamente.
+No fluxo integral, a tentativa segue `uncertain` e não produz documento público.
+Esse controle é limitado; avaliação criativa, novos ensaios e edição audiovisual
+integrada permanecem pendentes. Não houve chamada paga nesta fatia.
+O CI inicialmente interrompido foi concluído nos blocos registrados acima;
+condições do banco efêmero constam no [changelog](../CHANGELOG.md).
+
 A futura integração deve preservar fontes externas e dependências sob controle próprio e provar o runtime sem acesso ao GitHub original; detalhes e estado no [plano](../design/plano-v0-imagens-video-motion-2026-11-05.md#cópias-próprias-e-independência-dos-repositórios-externos).
 
-O plano inclui reaproveitar instruções, fichas, projetos e scripts externos permitidos na integração, em vez de restringi-los a estudo; ver [etapas concretas](../design/plano-v0-imagens-video-motion-2026-11-05.md#integração-concreta-da-claude-video). Nada disso está integrado ainda.
+O plano inclui reaproveitar instruções, fichas, projetos e scripts externos permitidos na integração, em vez de restringi-los a estudo; ver [etapas concretas](../design/plano-v0-imagens-video-motion-2026-11-05.md#integração-concreta-da-claude-video). Amostra e fichas próprias estão disponíveis conforme os blocos acima; a jornada e o empacotamento ainda não estão integrados.
 
 ## Plano para concluir a v0 com motion — 05/11/2026
 
@@ -10,11 +1294,12 @@ O [plano de integração](../design/plano-v0-imagens-video-motion-2026-11-05.md)
 organiza conclusão de imagem, ensaios rápidos, contratos, análise de mídia,
 seleção automática de estilo, render seguro, Reel, story, carrossel e jornada
 integrada. Não altera o estado das entregas existentes: as novas capacidades e
-seus critérios de qualidade e publicação permanecem pendentes.
+seus critérios de qualidade da geração permanecem pendentes; postagem fica para
+a fase posterior definida pelo titular.
 
 ## Ensaio de motion com modelos reais — 05/11/2026
 
-O [ensaio direto](../evals/ensaio-motion-referencia-2026-11-05.md) produziu carrossel e duas direções de Reel, com inputs, prompts, respostas e custos disponíveis; não comprova integração. O Jev não reconheceu os formatos, houve erro de transcrição e o HTML da refação necessitou ajustes. Avaliação do titular pendente.
+O [ensaio direto](../evals/ensaio-motion-referencia-2026-11-05.md) produziu carrossel e duas direções de Reel, com inputs, prompts, respostas e custos disponíveis; não comprova integração. O Jev não reconheceu os formatos, houve erro de transcrição e o HTML da refação necessitou ajustes. O titular preferiu o Reel v2; avaliação completa de som/movimento e aprovação de publicação permanecem pendentes.
 
 ## Proposta de estilos de motion — 05/11/2026
 
@@ -53,6 +1338,9 @@ Os dois pares de feed/story foram gerados no ensaio direto com/sem referências;
 O titular esclareceu que a avaliação comparativa deve seguir um ensaio direto e rápido, semelhante aos anteriores, sem executar o sistema completo. A variável continua sendo a inclusão dos padrões nas etapas editorial e visual, com identidades e orçamento duráveis; conferir [plano atualizado](../evals/bl043-reference-quality-2026-11-04.md). Essa evidência não comprova integração de produto.
 
 ## BL04.3 — preparação iniciada em 04/11/2026
+
+Registro histórico anterior ao ensaio executado; não reabrir a preparação como
+pré-requisito atual nem reutilizar seu orçamento em outra rodada.
 
 O [relatório preliminar](../evals/bl043-reference-quality-2026-11-04.md) inventaria os estados disponíveis, propõe dois pares e explicita fontes, critérios, custos ilustrativos e limites. As duas associações v1 e os nove padrões foram lidos pelo serviço restrito; a verificação individual contra evidências permanece pendente. O produto ainda não oferece controle seguro para retirar apenas padrões: preparar e testar a intervenção sem enfraquecer snapshot ou revalidação antes de qualquer efeito. O titular escolheu dois pares do negócio do piloto, limite de US$ 2 em reservas incluindo refações, aceitando risco de cobrança maior; fará a revisão visual pontual; nenhuma geração, revisão de peças ou refação ocorreu.
 
@@ -479,6 +1767,10 @@ evidência das suas demais condições; esta única imagem não as demonstra nov
 
 ## Próxima fatia de desenvolvimento
 
+Esta seção registra o plano de 30/10 e as pendências então observadas; a frente
+ativa é o ciclo de revisão de Reel no início do documento. A integração de
+referências avançou até 0111, conforme o gate de 04/11 acima.
+
 O banco de desenvolvimento foi atualizado da revisão 0059 à 0099 em 03/11,
 após backups privados com leitura integral verificada. A API iniciada antes da
 0099 precisa de reinício para reconhecer a nova revisão e confirmar prontidão.
@@ -487,8 +1779,9 @@ após backups privados com leitura integral verificada. A API iniciada antes da
 referências externas aceitas quando disponíveis para construir briefing e pedir
 ao modelo a peça final completa. Conferir a peça produzida e oferecer trace
 privado; não tratar texto no prompt como prova de que preço ou marca aparecem
-corretamente. A indicação manual foi implementada localmente; pesquisa e aceite de
-sugestões de concorrentes ainda não estão entregues. A
+corretamente. À época, a indicação manual estava implementada localmente e a
+pesquisa e aceite de sugestões ainda não estavam entregues; a integração local
+e o piloto posteriores estão registrados no gate de referências acima. A
 ideia posterior de orientar seleção de fontes e
 formatos do kit está registrada para estudo no
 [plano de skills e referências](../design/skills-e-referencias-editoriais.md).
@@ -726,7 +2019,11 @@ encerrar o recorte simulado validado; os demais gates da BL04/provedor real cont
 
 ## BL04.3 — qualidade e economia: pendente
 
-### Ponto de retomada — 04/11/2026
+### Ponto de retomada histórico — 04/11/2026
+
+O gate de qualidade de feed/story permanece pendente. A frente ativa atual é o
+ciclo de revisão de Reel acima; a rodada exploratória mencionada foi executada
+posteriormente, com limites e revisão pendente no relatório da BL04.3.
 
 **Próximo trabalho: preparar a avaliação BL04.3 em quatro passos abaixo.** A
 implementação local das referências está concluída até 0111, com 4.734 testes e
@@ -770,7 +2067,7 @@ Testes de software aprovados não demonstram ganho criativo ou aceite comercial.
    uma operação incerta como se fosse uma tentativa nova. Saída: correções
    validadas e relatório que explicite ganho, regressões e limites encontrados.
 
-### Primeiro trabalho do próximo chat
+### Orientação histórica para a retomada de 04/11
 
 Ler as instruções dos dois repositórios e inspecionar Git/código, preservando as
 alterações existentes, inclusive as já staged. Começar pelo inventário dos casos,
@@ -1013,8 +2310,10 @@ editorial continua sendo conferido antes da reserva.
 
 Contrato e validação em [integração de referências na geração](../design/reference-generation-context.md).
 177 testes unitários e 13 casos PostgreSQL passaram nos recortes desta fatia,
-incluindo leitura 0108 e geração visual com HTTP simulado. A agenda completa e
-o CI integral continuam pendentes; essas provas não demonstram qualidade comercial.
+incluindo leitura 0108 e geração visual com HTTP simulado. Naquele recorte, a
+agenda completa e o CI integral ainda estavam pendentes; essas provas não
+demonstravam qualidade comercial. O CI vigente foi concluído em 09/11, conforme
+o estado atual no início deste documento.
 
 ### 0108 — seleção, persistência e atualização dos aprendizados
 

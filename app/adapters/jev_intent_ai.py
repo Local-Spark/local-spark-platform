@@ -36,7 +36,33 @@ INTENTS = {
     "other": "Saudação, mensagem insuficiente ou outra intenção.",
 }
 
-_UNSUPPORTED_FORMAT = re.compile(r"\b(?:v[ií]deos?|reels?|carross[eé]is|carrossel)\b", re.IGNORECASE)
+_FORMAT_CRITERIA = {
+    "photo": "Uma imagem estática para o feed, explicitamente solicitada.",
+    "story": "Uma imagem estática para story; não use para story em vídeo.",
+    "reel": "Um Reel em vídeo, explicitamente solicitado ou identificado como formato do vídeo.",
+    "story_video": "Um story em vídeo ou uma gravação para story, não uma imagem estática.",
+    "carousel_motion": "Um carrossel animado, com movimento ou vídeos em páginas separadas.",
+}
+_MOTION_FORMATS = {"reel", "story_video", "carousel_motion"}
+_VIDEO = re.compile(r"\b(?:v[ií]deos?|grava[çc][ãa]o|grava[çc][õo]es)\b", re.IGNORECASE)
+_REEL = re.compile(r"\breels?\b", re.IGNORECASE)
+_CAROUSEL = re.compile(r"\b(?:carross[eé]is|carrossel)\b", re.IGNORECASE)
+_STORY = re.compile(r"\b(?:story|stories)\b", re.IGNORECASE)
+_MOVEMENT = re.compile(r"\b(?:motion|movimento|anima[çc][ãa]o|animad[oa]s?|loops?)\b", re.IGNORECASE)
+
+
+def _format_needs_clarification(message: str, fmt: str | None) -> bool:
+    """Fail closed on a motion request mapped to the existing static pipeline."""
+    if fmt == "unsupported":
+        return True
+    if fmt in _MOTION_FORMATS:
+        return False
+    return bool(
+        _REEL.search(message)
+        or _CAROUSEL.search(message)
+        or _VIDEO.search(message)
+        or (_STORY.search(message) and _MOVEMENT.search(message))
+    )
 
 
 def _choice(body: Any, question: str, options: set[str], threshold: float) -> str | None:
@@ -76,16 +102,18 @@ class JevIntentProvider:
                 raise ValueError
             if any(not 1 <= len(item["name"]) <= 160 for item in candidates):
                 raise ValueError
-            if len(eligible_formats) != len(set(eligible_formats)) or not set(eligible_formats) <= {"photo", "story"}:
+            if len(eligible_formats) != len(set(eligible_formats)) or not set(eligible_formats) <= set(
+                _FORMAT_CRITERIA
+            ):
                 raise ValueError
         except (KeyError, ValueError, TypeError):
             raise JevIntentError("JEV_INPUT_INVALID") from None
         choices = {f"item_{i}": f"O item na posição {i} da lista candidates." for i in range(len(ids))}
         choices.update(none="Nenhum item corresponde ao pedido.", clarify="Não é possível decidir com segurança.")
-        formats = {item: f"Formato {item}, explicitamente solicitado e disponível." for item in eligible_formats}
+        formats = {item: _FORMAT_CRITERIA[item] for item in eligible_formats}
         formats["unspecified"] = "O formato não foi solicitado explicitamente."
-        formats["unsupported"] = "Pede explicitamente vídeo, reel, carrossel ou outro formato indisponível."
-        payload = {
+        formats["unsupported"] = "Pede explicitamente um formato que não está entre as opções disponíveis."
+        payload: dict[str, Any] = {
             "model": self._model,
             "state": json.dumps({"message": message, "candidates": candidates}, ensure_ascii=False),
             "questions": {
@@ -104,9 +132,20 @@ class JevIntentProvider:
                     ),
                     "criteria": choices,
                 },
-                "format": {"type": "choice", "instructions": "Qual formato foi solicitado?", "criteria": formats},
+                "format": {
+                    "type": "choice",
+                    "instructions": (
+                        "Qual formato foi solicitado? Se a mensagem não fornecer evidência suficiente, "
+                        "escolha unspecified; se pedir formato indisponível, escolha unsupported."
+                    ),
+                    "criteria": formats,
+                },
             },
         }
+        if not ids:
+            # No selectable candidate is a structural fact, not an inference
+            # that the request is complete or that the business has no catalog.
+            payload["questions"].pop("offering")
         try:
             async with httpx.AsyncClient(
                 timeout=15, follow_redirects=False, trust_env=False, transport=self._transport
@@ -127,7 +166,7 @@ class JevIntentProvider:
             if type(incoming) is not int or type(outgoing) is not int or min(incoming, outgoing) < 0:
                 raise ValueError
             intent = _choice(body, "intent", set(INTENTS), 0.5)
-            offering = _choice(body, "offering", set(choices), 0.5)
+            offering = _choice(body, "offering", set(choices), 0.5) if ids else "none"
             fmt = _choice(body, "format", set(formats), 0.5)
         except (httpx.HTTPError, ValueError, KeyError, TypeError, JevIntentError):
             raise JevIntentError("JEV_RESULT_UNCERTAIN") from None
@@ -135,7 +174,7 @@ class JevIntentProvider:
             return JevDecision(intent or "other", "clarify", None, None, incoming, outgoing)
         if intent in {"question", "other"}:
             return JevDecision(intent, "clarify", None, None, incoming, outgoing)
-        if fmt == "unsupported" or _UNSUPPORTED_FORMAT.search(message):
+        if _format_needs_clarification(message, fmt):
             return JevDecision(intent, "clarify", None, None, incoming, outgoing)
         selected = ids[int(offering[5:])] if offering.startswith("item_") else None
         decision = "selected" if selected is not None else offering

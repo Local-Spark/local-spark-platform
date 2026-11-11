@@ -1,6 +1,6 @@
 # SDD — F01.5: contratação e concessão de acesso
 
-Reconciliado em 28/10/2026. Código e sandbox exercitados localmente; homologação
+Reconciliado em 08/11/2026. Código e sandbox exercitados localmente; homologação
 completa de cenários/staging/produção ainda pendente. A versão 0.3 de 21/10 foi
 a base deste contrato; contagens antigas abaixo são evidência daquela fatia.
 
@@ -12,6 +12,11 @@ integridade/dados locais. O aceite único já está integrado antes de novo chec
 não adotar a proposta antiga de migração financeira multinegócio.
 
 ## Decisões
+
+A entrevista do piloto definiu autoatendimento com cobrança, ainda sem
+participantes reais. A preparação da etapa 7 inclui jornada e suporte capazes
+de operar sem acompanhamento obrigatório; não ativa produção nem determina
+preço/franquia. Ver [roteiro confirmado](execucao-ate-etapa-7-2026-11-07.md).
 
 Stripe é o primeiro adapter, com o mesmo contrato em teste e produção e credenciais
 separadas. Escolha técnica para SaaS/Checkout/assinaturas/webhooks, sem alegação de
@@ -76,11 +81,15 @@ Não cria cobrança, cartão ou renovação paga e não entra em MRR/pagantes.
 
 ## Operação e critérios de aceite
 
-Decisões novas C08/C09/C10 ainda exigem implementação: criação já admitida termina
-após vencimento do plano e sua prévia permanece revisável; novos trabalhos e
-publicação aguardam renovação. Prévias são preservadas enquanto conta ativa.
-Somente staff pode resolver pendência do autor sem acesso, de forma restrita e
-auditada. Isso não muda o estado financeiro nem concede acesso a owner revogado.
+C08/C09 já estão implementadas no recorte `visual_fake`/`visual_ai`: criação
+admitida pode concluir e ter revisão privada após vencimento financeiro;
+prévias concluídas e proveniência permanecem sem limpeza automática por prazo.
+Novos trabalhos/publicação exigem plano vigente; bloqueio financeiro explícito
+e perda de acesso não são simples vencimento. A extensão ao renderer legado e
+motion ainda é pendente. Ver [BL04](../phases/BL04-context-and-ai-production.md).
+C10, recuperação staff de pendência cujo autor perdeu acesso, continua adiada;
+owner diferente não assume a pendência. A futura recuperação deverá ser restrita
+e auditada, sem mudar estado financeiro ou conceder acesso a owner revogado.
 Ver [registro de decisões](../DECISIONS.md).
 
 Backend: migração reversível, unitários, PostgreSQL restrito, RLS/concorrência,

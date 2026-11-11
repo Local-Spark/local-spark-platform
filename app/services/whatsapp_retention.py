@@ -100,7 +100,7 @@ async def claim_expired_assets(database: Database, owner: UUID, limit: int = 100
                 await session.execute(
                     text("""WITH candidates AS (
                       SELECT id FROM whatsapp_material_assets
-                      WHERE delete_requested_at IS NOT NULL
+                      WHERE delete_requested_at IS NOT NULL AND NOT motion_asset_in_use(id)
                         AND (delete_lease_until IS NULL OR delete_lease_until<now())
                       ORDER BY expires_at,id LIMIT :limit FOR UPDATE SKIP LOCKED)
                       UPDATE whatsapp_material_assets a SET delete_owner=:owner,
@@ -126,7 +126,7 @@ async def finish_purge(database: Database, owner: UUID, claim: PurgeClaim) -> bo
             await session.execute(
                 text("""SELECT id FROM whatsapp_material_assets
                       WHERE id=:id AND delete_owner=:owner AND delete_fencing_token=:token
-                        AND delete_requested_at IS NOT NULL
+                        AND delete_requested_at IS NOT NULL AND NOT motion_asset_in_use(id)
                       FOR UPDATE"""),
                 {"id": claim.id, "owner": owner, "token": claim.fencing_token},
             )

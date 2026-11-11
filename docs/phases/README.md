@@ -1,5 +1,89 @@
 # Fases de implementação
 
+**Prioridade visual atual — etapa 4, 10/11/2026:** transcrição local automática
+por palavra e ligação ao motion implementadas/testadas. Dependências/modelo
+aguardam provisionamento para a prova; sem nova peça. Comparação só após OK.
+[Escopo e limites](../design/motion-fala-alinhada-2026-11-10.md).
+
+**Histórico — etapa visual 3, 10/11/2026:** objeto realista em camadas
+implementado na skill v10 e testado com o fluxo de imagens existente. Direção e
+especificação preparadas; sem asset gerado ou novo MP4. Etapa 4 aguarda OK.
+[Escopo e limites](../design/motion-objeto-realista-2026-11-10.md).
+
+**Histórico — etapa visual 2, 10/11/2026:** fundo narrativo implementado
+na skill v9 com exemplo executável e pacote offline. Etapa 3 aguarda OK; sem
+novo MP4 ou prova visual automática. [Detalhes](../design/motion-fundo-narrativo-2026-11-10.md).
+
+**Histórico — etapa visual 1, 10/11/2026:** etapa 1 (tratamento da gravação)
+implementada em skill/runtime e testada; sem novo MP4. Etapa 2 (fundo vivo)
+aguarda OK do titular. [Escopo e limites](../design/motion-tratamento-gravacao-2026-11-10.md).
+
+**Atualização da etapa 1 — 10/11/2026:** geração compacta, metadados de falha e
+limpeza de captura implementados; comparação MP4 local concluída. Qualificação
+paga do contrato novo e causa dos reinícios do ambiente ainda pendentes.
+[Resultado e limites](../design/motion-confiabilidade-geracao-captura-2026-11-10.md).
+
+**Prioridade de fechamento, 10/11/2026:** os ajustes de alternância, recorte e crítica estão implementados, mas as duas
+gerações da prova falharam antes do render. Fechar saída completa/validável e
+recuperação limitada antes de liberar a jornada; comparação local não encerra esse gate. A sequência proposta
+posterior está em [fechamento do produto de geração](../design/fechamento-produto-geracao-2026-11-10.md):
+jornada do Reel com ajuste e nova versão, fala alinhada, story em vídeo, carrossel,
+qualidade por formato e operação. Aceite da peça/download não publicam; postagem
+continua posterior. Seções anteriores abaixo são históricas onde divergirem.
+
+## Roteiro vigente — atualizado em 09/11/2026
+
+A [etapa 3 foi concluída no recorte demonstrado](../design/execucao-ate-etapa-7-2026-11-07.md):
+legibilidade do [1c](../evals/ensaio-revisao-reel-1c-2026-11-08.md) reconhecida e
+preferência humana **“B ficou melhor.”** no [Giz](../evals/ensaio-refinamento-motion-giz-2026-11-09.md).
+O Giz é refinamento com feedback/referência adicionais; não prova autocrítica
+do pedido original ou ganho universal. Áudio e cada critério não receberam
+aprovação humana isolada. Custos são estimativas de APIs, sem COGS completo.
+
+A [fatia local do Reel (4)](../evals/qualificacao-integracao-reel-2026-11-09.md)
+está implementada e tecnicamente qualificada: quatro replays Linux, prova
+integrada com modelo/crítico simulados, backend 5.353 testes/100% e web 524/100%.
+Os dez workers foram restaurados. Isso não conclui ativação comercial ou
+homologação do gerador pago; configuração continua desativada por padrão e
+restrita a materiais sintéticos. Limites de entrada/imagens, deploy e contrato
+para clientes reais permanecem pendentes. Nenhuma nova chamada paga.
+
+A próxima fatia autorizada é **demais formatos (5)**, ainda não implementada.
+O [desenho de imagens](../design/ciclo-revisao-imagens-2026-11-09.md) e a
+[matriz](../design/v0-motion-etapa-0-formatos-e-casos.md) registram o trabalho.
+A sequência segue WhatsApp (6) e piloto/comercial (7). Intensa/Dog/Luma continuam
+referências; operação paga incerta não é repetida e 1c não vira padrão criativo.
+
+Piloto: autoatendimento com cobrança, sem participantes reais definidos. Os
+quatro casos fictícios orientam validação; preço/franquias dependem de medição.
+WhatsApp oficial integra a jornada real. Instagram automático fica posterior
+ao piloto de geração, revisão e download. As demais numerações abaixo conservam
+seu contexto histórico.
+
+## Histórico da frente de revisão — 06/11/2026
+
+O próximo ensaio é o [ciclo de revisão de Reel](../evals/plano-ciclo-revisao-motion-2026-11-06.md),
+em Python/API, com crítica por evidência, até duas correções e avaliação humana
+comparativa. O protótipo privado existe, sem comparação concluída; a rodada Intensa/Dog/Luma tem autorização
+de até US$ 6,75 em reservas e 15 chamadas, conforme o plano. O clipe
+pessoal já entregue aguarda avaliação. Story/carrossel, integração por Temporal e
+jornada de WhatsApp seguem após qualificar o caminho; postagem é fase posterior.
+O gate BL04.3 de feed/story continua aberto. As ordens datadas abaixo são
+históricas onde indicarem outra próxima frente.
+[Resultado parcial](../evals/ensaio-ciclo-revisao-motion-2026-11-06.md):
+crítica v2 incerta, sem refação ou avaliação comparativa concluída.
+
+## Prioridade de conteúdo e motion — 05/11/2026
+
+O titular priorizou concluir as peças finais antes de tratar a integração de
+postagem. A sequência corrente está no [plano da v0 de geração](../design/plano-v0-imagens-video-motion-2026-11-05.md):
+fechar a base/CI, preservar e empacotar fontes, ensaios rápidos, contratos e
+roteiro, mídia/transcrição, seleção automática e Reel, story, carrossel, revisão
+e ajustes/download, qualidade e operação da geração. A viabilidade Meta e a
+integração de postagem F06 ficam para depois; não bloqueiam esta entrega.
+Aprovação da peça final não autoriza publicação futura. Os marcos anteriores
+abaixo descrevem a evolução do projeto, não substituem essa ordem de trabalho.
+
 ## Atualização de referências — 04/11/2026
 
 A descoberta Google, classificação Jev, perfis Apify, seleção, ciclo semestral,
@@ -10,7 +94,7 @@ final inclui apenas autoria direta e usa capa/legenda de vídeos/Reels; o CI
 posterior à extensão passou em 4.734 testes/100%. Os detalhes atuais estão no
 [PROJECT](../PROJECT.md) e na [BL04](BL04-context-and-ai-production.md).
 
-A próxima fatia da ordem já aprovada é BL04.3: avaliar
+Na sequência registrada em 04/11, a próxima fatia era BL04.3: avaliar
 post/story com kit, acervo e referências pelo produto, medindo fidelidade e custo
 por peça aceita. O piloto de descoberta/análise não substitui essa avaliação.
 Os [quatro passos e o ponto de retomada](BL04-context-and-ai-production.md#bl043--qualidade-e-economia-pendente)
@@ -104,12 +188,13 @@ fica para essa fase, sem nova exclusão automática agora. Detalhes e lacunas em
 BL02 e BL03 podem avançar com a Meta restrita. BL04 testa localmente com
 mocks e, para fechar qualidade comercial, precisa de avaliação de titular
 com material consentido. BL05 exercita integração e falhas locais; uso real
-depende da homologação F02/F06. A expansão BL06 não precisa atrasar o primeiro
+depende da homologação F02; F06 é necessária para a publicação posterior.
+A expansão BL06 não precisa atrasar o primeiro
 piloto de cafeteria, mas não deve anteceder uma peça personalizada aprovada.
 
 O [roadmap de 27/10 até produção e expansão](../design/delivery-roadmap-2026-10-27.md)
-organiza homologação Meta, custo/franquia, AWS e piloto depois da jornada local.
-A ordem atual para pesquisa e skills é a deste índice e do plano editorial;
+preserva a ordem histórica de homologação, custo/franquia, AWS e piloto. O
+roteiro de sete processos acima define a ordem atual e adia a postagem Instagram;
 importação de cardápio, novos nichos, avatar e multicanal têm fases próprias.
 BL03 atual entrega cadastro manual/fotos; [BL03.3](BL03-business-collection.md#bl033--importação-automática-de-fotos-de-cardápio-planejada)
 extrairá dados de fotos de cardápio/tabela de serviços e preencherá o acervo
@@ -129,10 +214,12 @@ automaticamente como rascunho para conferência. Não bloqueia a primeira peça.
 | [F07](F07-billing-reports.md) | Franquias, assinatura e relatórios honestos | Cobrança mínima F01.5 local; limite por formato e custo real antes do piloto pago. |
 | [F08](F08-production-scale.md) | Deploy, segurança, suporte, recuperação e escala | Staging, backup/restore, capacidade e operação ainda pendentes. |
 
-**Antes do primeiro piloto real:** completar BL02–BL05 para as receitas
+**Antes de um piloto real com postagem:** completar BL02–BL05 para as receitas
 prometidas; fechar qualidade e custo por peça aceita com um negócio consentido;
 homologar WhatsApp e Instagram oficiais; aplicar franquia/orçamento F07 e
-operar staging F08 com logs, alertas e recuperação. Aprovação de peça é
+operar staging F08 com logs, alertas e recuperação. A entrega atual de geração,
+revisão e download não exige integração de postagem ou homologação Instagram.
+Aprovação de peça é
 distinta de confirmação de preço ou escolha do kit. Não prometer frequência,
 venda, alcance ou canal não comprovados.
 

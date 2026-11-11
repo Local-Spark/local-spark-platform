@@ -105,7 +105,7 @@ class ServiceAgreementService:
                     AND state='revocation_pending'
                   UNION ALL SELECT 1 FROM editorial_ai_consents WHERE tenant_id=:tenant AND business_id=:business
                     AND withdrawal_requested_at IS NOT NULL
-                  UNION ALL SELECT 1 FROM visual_consent_runs WHERE tenant_id=:tenant AND business_id=:business
+                  UNION ALL SELECT 1 FROM creative_active_runs WHERE tenant_id=:tenant AND business_id=:business
                     AND state='in_flight')"""),
                     params,
                 )

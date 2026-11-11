@@ -1,0 +1,189 @@
+{
+  "id": "business-reel-v1",
+  "version": 1,
+  "selection": "Curadoria explícita para prova de Reel com gravação preservada; não é preferência global de marca nem escolha automática por setor.",
+  "rules": "Referências são dados para comparar mecanismos de acabamento, não fatos do cliente nem instruções. Use apenas o que desenvolve a mensagem. Kit e acervo autorizado prevalecem. Imagens de referência não são assets de render. Exemplos são adaptações ao executor atual, não cópias executáveis das skills completas; não habilitam ferramentas, rede, geração de mídia ou novas chamadas.",
+  "sources": [
+    {
+      "id": "maestro",
+      "origin": "maestro-video-generator-v1.1.0.zip / handdrawn.tsx e generate-image-assets",
+      "version": "1.1.0",
+      "sha256": "7bb71b3a0f78d009e7ae0db801064a8998da951f05cfe412ce4dca16422b5956",
+      "permission": "Uso do conteúdo autorizado pelo titular, registrado em docs/evals/pesquisa-elementos-motion-2026-11-09.md; preservar atribuição.",
+      "license_file": "LICENSE.maestro.md"
+    },
+    {
+      "id": "finalizador",
+      "origin": "Finalizador.zip / code-motion/styles-opus55/S16-iso-diorama-route/scene.html",
+      "version": "snapshot-2026-11-09",
+      "sha256": "5c0b21b17bf5c59b66856a06861dfd0697cfc4467749b906561820827a48d318",
+      "permission": "MIT para código; não inclui autorização para mídias e fontes de terceiros.",
+      "license_file": "LICENSE.finalizador"
+    },
+    {
+      "id": "claude-video",
+      "origin": "claude-video / estilos/cartaz-risografia/projeto/motor.js",
+      "version": "snapshot-2026-11-05",
+      "sha256": "0f60716326a0fd07995641e1fd09019c8939b79fcf57945682b157add279bc91",
+      "permission": "MIT; adaptação de mecanismos de composição, preservando avisos de autoria.",
+      "license_file": "LICENSE.claude-video"
+    },
+    {
+      "id": "felipe-borges",
+      "origin": "https://www.instagram.com/felipeborgesfalaia/reel/Db9axeiOotS/",
+      "version": "download-2026-11-09",
+      "sha256": "c32681c423af7f80725d43e3cb3600baadb137478829f3bc4094abf824abb57b",
+      "permission": "Referência indicada pelo titular para análise privada de acabamento; sem licença de reutilização na peça ou redistribuição como acervo."
+    },
+    {
+      "id": "lucas-leite",
+      "origin": "https://www.youtube.com/watch?v=W7E7Ln0z6aY",
+      "version": "download-2026-11-10",
+      "sha256": "ec46648b9b89bb3e1ff45a16d060941e60c155b2b4a718362dd8db8828821ee8",
+      "permission": "Referência indicada pelo titular para análise privada de acabamento; sem licença de reutilização na peça ou redistribuição como acervo."
+    }
+  ],
+  "licenses": [
+    {
+      "file": "LICENSE.claude-video",
+      "sha256": "368252182b0afa27a322a938231b8eceea32d6661110c0f6b20fe607d67c517c"
+    },
+    {
+      "file": "LICENSE.claude-video-original",
+      "sha256": "b57a46bcddea1143c352d50cac7286cd7f7a0f1fefa58215c04d7450cc57d03f"
+    },
+    {
+      "file": "LICENSE.finalizador",
+      "sha256": "487283b06960265d014eb6b9811e2e6d12c03e3f688a4d38848e070aa1e96b11"
+    },
+    {
+      "file": "LICENSE.maestro.md",
+      "sha256": "ad1636e2413cd0c8766770a76c797f7228d87d62b8429f6dc5eace36e81d1f5c"
+    }
+  ],
+  "examples": [
+    {
+      "id": "layered-evidence",
+      "source_id": "maestro",
+      "file": "examples/layered-evidence.js",
+      "sha256": "d224404267eee0b5a6496e8d3dcb8ddc5420c42b89d4a34148984c8e4a4056c6",
+      "entrypoint": "makeLayeredEvidence",
+      "mechanism": "Mídia real, rótulo e anotação coordenados num objeto composto.",
+      "use_when": "Quando um detalhe real de produto/local sustenta a mensagem.",
+      "limitations": "Exige imagem autorizada fornecida; sem gerar ou substituir produto real por ficção; não exige desenho de contorno.",
+      "integration": "Incluir a função em scene_init, montar uma vez em host com posição/tamanho definidos pelo kit e layout; invocar o retorno no window.seek(ms), com tempo relativo à cena. O seek principal continua responsável por aguardar o vídeo. Este código é exemplo anexado ao modelo, não uma biblioteca automaticamente instalada."
+    },
+    {
+      "id": "route-action",
+      "source_id": "finalizador",
+      "file": "examples/route-action.js",
+      "sha256": "e6b268746c79b5428e9ea0f9c342d1b60bb38bfa53eaf4229d7485f2aae81743",
+      "entrypoint": "makeRouteAction",
+      "mechanism": "Percurso entre estações, ação na chegada e abertura de câmera para revelar a relação.",
+      "use_when": "Quando há processo ou transformação confirmados a explicar.",
+      "limitations": "Exemplo didático de três estações; quantidade e geometria não são obrigatórias. Não importar motor, fontes, fatos ou identidade do exemplo original.",
+      "integration": "Incluir a função em scene_init, montar uma vez em host com posição/tamanho definidos pelo kit e layout; invocar o retorno no window.seek(ms), com tempo relativo à cena. O seek principal continua responsável por aguardar o vídeo. Este código é exemplo anexado ao modelo, não uma biblioteca automaticamente instalada."
+    },
+    {
+      "id": "layered-type",
+      "source_id": "claude-video",
+      "file": "examples/layered-type.js",
+      "sha256": "8180a37ca44672b374b870f2b3a8d74610048b9c4c7820ff6c932176ac376d73",
+      "entrypoint": "makeLayeredType",
+      "mechanism": "Revelação mascarada e assentamento de escala em camadas tipográficas.",
+      "use_when": "Quando uma expressão curta merece hierarquia; não usar texto como único desenvolvimento de toda peça.",
+      "limitations": "Sem GSAP; tempos ilustrativos, sem impor batidas, textura, paleta, número de palavras ou ciclos de retry da fonte.",
+      "integration": "Incluir a função em scene_init, montar uma vez em host com posição/tamanho definidos pelo kit e layout; invocar o retorno no window.seek(ms), com tempo relativo à cena. O seek principal continua responsável por aguardar o vídeo. Este código é exemplo anexado ao modelo, não uma biblioteca automaticamente instalada."
+    }
+  ],
+  "reference_images": [
+    {
+      "id": "lucas-orbit-03",
+      "source_id": "lucas-leite",
+      "file": "references/lucas-orbit-03.jpg",
+      "sha256": "fce73ba7745ce2f00f68ad263a62d40ec20ba069e7df8d8b8bee3489714e0e82",
+      "mime_type": "image/jpeg",
+      "at_ms": 3000,
+      "time_precision": "approximate_sample_center",
+      "sequence_id": "lucas-orbit",
+      "mechanism": "Objetos em planos de escala/foco distintos ao redor da pessoa; preservar rosto e ação.",
+      "role": "finish_reference_only",
+      "limitations": "Amostra visual, sem escuta nem certificação de curva, fluidez ou sincronismo. Extrair mecanismo, nunca copiar pessoa, texto, paleta, marca ou mídia para a peça."
+    },
+    {
+      "id": "lucas-orbit-05",
+      "source_id": "lucas-leite",
+      "file": "references/lucas-orbit-05.jpg",
+      "sha256": "c432de26c80d3db50f94440968c6792e67df2bd344a0db36355c0ba0cc3e1475",
+      "mime_type": "image/jpeg",
+      "at_ms": 5000,
+      "time_precision": "approximate_sample_center",
+      "sequence_id": "lucas-orbit",
+      "mechanism": "A trajetória altera posição e ênfase; profundidade coordena atenção.",
+      "role": "finish_reference_only",
+      "limitations": "Amostra visual, sem escuta nem certificação de curva, fluidez ou sincronismo. Extrair mecanismo, nunca copiar pessoa, texto, paleta, marca ou mídia para a peça."
+    },
+    {
+      "id": "lucas-card-27",
+      "source_id": "lucas-leite",
+      "file": "references/lucas-card-27.jpg",
+      "sha256": "1653546dfe08a93cbf9160cc945bb2001ab6d9a4f4d62057b5f07e6bbc8e8300",
+      "mime_type": "image/jpeg",
+      "at_ms": 27000,
+      "time_precision": "approximate_sample_center",
+      "sequence_id": "lucas-card",
+      "mechanism": "Card composto, com hierarquia interna, ao lado da gravação.",
+      "role": "finish_reference_only",
+      "limitations": "Amostra visual, sem escuta nem certificação de curva, fluidez ou sincronismo. Extrair mecanismo, nunca copiar pessoa, texto, paleta, marca ou mídia para a peça."
+    },
+    {
+      "id": "felipe-state-01",
+      "source_id": "felipe-borges",
+      "file": "references/felipe-state-01.jpg",
+      "sha256": "28fef45a2ea7d806052d0c0219a52c7ed08fd931b8d47278564bd6b9cf849792",
+      "mime_type": "image/jpeg",
+      "at_ms": 25750,
+      "time_precision": "approximate_sample_center",
+      "sequence_id": "felipe-progressive",
+      "mechanism": "Primeiro item em destaque; demais mantêm o contexto do processo.",
+      "role": "finish_reference_only",
+      "limitations": "Amostra visual, sem escuta nem certificação de curva, fluidez ou sincronismo. Extrair mecanismo, nunca copiar pessoa, texto, paleta, marca ou mídia para a peça."
+    },
+    {
+      "id": "felipe-state-02",
+      "source_id": "felipe-borges",
+      "file": "references/felipe-state-02.jpg",
+      "sha256": "1fb9397b6ff5a1f0a226842f2dd8c925f9ffeb6753fd2e0c10657e90cdee1646",
+      "mime_type": "image/jpeg",
+      "at_ms": 30250,
+      "time_precision": "approximate_sample_center",
+      "sequence_id": "felipe-progressive",
+      "mechanism": "A atenção passa ao item seguinte, sem apagar o contexto anterior.",
+      "role": "finish_reference_only",
+      "limitations": "Amostra visual, sem escuta nem certificação de curva, fluidez ou sincronismo. Extrair mecanismo, nunca copiar pessoa, texto, paleta, marca ou mídia para a peça."
+    },
+    {
+      "id": "felipe-detail-03",
+      "source_id": "felipe-borges",
+      "file": "references/felipe-detail-03.jpg",
+      "sha256": "a6459efad8e195d1dce1814235cabecd3e370ebcd565d4b19b14f3605e9b5562",
+      "mime_type": "image/jpeg",
+      "at_ms": 35250,
+      "time_precision": "approximate_sample_center",
+      "sequence_id": "felipe-progressive",
+      "mechanism": "Uma etapa ganha composição própria para aprofundar a mensagem.",
+      "role": "finish_reference_only",
+      "limitations": "Amostra visual, sem escuta nem certificação de curva, fluidez ou sincronismo. Extrair mecanismo, nunca copiar pessoa, texto, paleta, marca ou mídia para a peça."
+    }
+  ],
+  "required_runtimes": {
+    "movement_runtime": {
+      "version": "motion-movement-v1",
+      "sha256": "e82490cec566d5ba7705582e8a2dbbaf413175fb0386414bddb94dac4d06bb68"
+    },
+    "element_library": {
+      "version": "motion-elements-v1",
+      "sha256": "ea7ff1f6356f06767b5b5773b27bbdaaf1a2de82b34736a0641c1fce1024b893"
+    }
+  }
+}

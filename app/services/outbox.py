@@ -33,6 +33,7 @@ async def claim_events(
     include_geocoding: bool = False,
     include_provider_discovery: bool = False,
     include_learning: bool = False,
+    include_motion: bool = False,
 ) -> list[ClaimedEvent]:
     async with database.sessions() as session, session.begin():
         rows = (
@@ -44,6 +45,7 @@ async def claim_events(
             WHERE (event_type IN ('business.created','brand_kit.changed','reference.search_requested',
                                  'reference.selection_confirmed') OR
                    (:include_geocoding AND event_type='business.address_geocode_requested') OR
+                   (:include_motion AND event_type IN ('motion.requested','motion.storyboard_approved')) OR
                    (:include_learning AND event_type='reference.learning_requested') OR
                    (:include_providers AND event_type IN ('reference.provider_search_requested',
                      'reference.search_reviewed','reference.provider_retry_requested')) OR
@@ -66,6 +68,7 @@ async def claim_events(
                         "include_geocoding": include_geocoding,
                         "include_providers": include_provider_discovery,
                         "include_learning": include_learning,
+                        "include_motion": include_motion,
                     },
                 )
             )
@@ -103,7 +106,18 @@ async def finish_event(database: Database, item: ClaimedEvent, owner_id: UUID, *
 
 
 async def dispatch_once(database: Database, client: Client, settings: Settings, owner_id: UUID) -> int:
-    if getattr(settings, "reference_learning_ready", lambda: False)():
+    if getattr(settings, "motion_execution_ready", lambda: False)():
+        items = await claim_events(
+            database,
+            owner_id,
+            limit=5,
+            include_motion=True,
+            include_learning=getattr(settings, "reference_learning_ready", lambda: False)(),
+            include_provider_discovery=getattr(settings, "reference_discovery_ready", lambda: False)(),
+            include_geocoding=getattr(settings, "reference_geocoding_ready", lambda: False)(),
+            include_fixture_effects=getattr(settings, "reference_discovery_mode", "disabled") == "fake",
+        )
+    elif getattr(settings, "reference_learning_ready", lambda: False)():
         items = await claim_events(
             database,
             owner_id,
@@ -162,6 +176,8 @@ async def _start_workflow(client: Client, settings: Settings, item: ClaimedEvent
     event = item.event
     workflow_type = {
         "business.created": "BusinessCreatedWorkflow",
+        "motion.requested": "MotionProductionWorkflow",
+        "motion.storyboard_approved": "MotionProductionWorkflow",
         "reference.provider_search_requested": "ReferenceProviderDiscoveryWorkflow",
         "reference.learning_requested": "ReferenceLearningWorkflow",
         "business.address_geocode_requested": "BusinessGeocodingWorkflow",
@@ -174,6 +190,8 @@ async def _start_workflow(client: Client, settings: Settings, item: ClaimedEvent
     }[item.event_type]
     workflow_id = {
         "business.created": "business-created",
+        "motion.requested": "motion-production",
+        "motion.storyboard_approved": "motion-storyboard-approved",
         "reference.provider_search_requested": "reference-provider-search",
         "reference.learning_requested": "reference-learning",
         "business.address_geocode_requested": "business-geocoding",

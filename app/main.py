@@ -21,10 +21,12 @@ from app.api.v1.business_address import business_address_router
 from app.api.v1.business_catalog import catalog_router
 from app.api.v1.business_collection import collection_router
 from app.api.v1.content_deliveries import deliveries_router
+from app.api.v1.content_pieces import pieces_router
 from app.api.v1.editorial_context import context_router
 from app.api.v1.editorial_conversation import conversation_router
 from app.api.v1.editorial_proposals import proposals_router
 from app.api.v1.media_previews import previews_router
+from app.api.v1.motion_requests import motion_router
 from app.api.v1.onboarding import onboarding_router
 from app.api.v1.owner_references import owner_references_router
 from app.api.v1.phone_verification import phone_router
@@ -117,6 +119,8 @@ def create_app(
     application.include_router(proposals_router)
     application.include_router(previews_router)
     application.include_router(deliveries_router)
+    application.include_router(pieces_router)
+    application.include_router(motion_router)
 
     @application.middleware("http")
     async def diagnostics(request: Request, call_next):  # type: ignore[no-untyped-def]

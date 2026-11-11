@@ -287,3 +287,26 @@ async def test_usage_allowlist_excludes_provider_extra_fields():
         "output_tokens_details": {"image_tokens": 20},
     }
     assert "do not expose" not in repr(result) and "usage=" not in repr(result)
+
+
+async def test_native_transparent_png_uses_same_single_attempt_images_adapter():
+    import json
+
+    from app.tests.unit.test_motion_illustrations import image_result
+
+    image = image_result()
+    sent = []
+
+    def handler(req):
+        body = json.loads(req.content)
+        sent.append(body)
+        assert body["background"] == "transparent" and body["output_format"] == "png"
+        assert body["n"] == 1 and "images" not in body
+        return httpx.Response(
+            200, json={"data": [{"b64_json": base64.b64encode(image.content).decode()}], "usage": image.usage}
+        )
+
+    result = await OpenAIVisualProvider("test-not-a-key", transport=httpx.MockTransport(handler)).generate(
+        request(background="transparent")
+    )
+    assert result.content == image.content and len(sent) == 1

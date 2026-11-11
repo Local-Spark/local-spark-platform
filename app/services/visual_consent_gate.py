@@ -105,7 +105,7 @@ class VisualConsentGate:
             if state == "revoked":
                 return "revoked"
             count = await session.scalar(
-                text("""SELECT count(*) FROM visual_consent_runs
+                text("""SELECT count(*) FROM creative_active_runs
               WHERE tenant_id=:tenant AND business_id=:business AND state='in_flight'"""),
                 params,
             )
@@ -279,30 +279,38 @@ class VisualConsentGate:
                   ON CONFLICT DO NOTHING"""),
                     params,
                 )
-            if state == "revocation_pending":
-                count = await session.scalar(
-                    text("""SELECT count(*) FROM visual_consent_runs
-                  WHERE tenant_id=:tenant AND business_id=:business AND state='in_flight'"""),
-                    params,
-                )
-                if not count:
-                    await session.execute(
-                        text("""UPDATE visual_consent_gates SET state='revoked',updated_at=now()
-                      WHERE tenant_id=:tenant AND business_id=:business"""),
-                        params,
-                    )
-                    await session.execute(
-                        text("""UPDATE visual_ai_consents SET actor_id=:actor,revoked_at=now()
-                      WHERE tenant_id=:tenant AND business_id=:business AND revoked_at IS NULL"""),
-                        params,
-                    )
-                    await self._audit(session, tenant, business, actor, "visual.ai_revoked")
-                    state = "revoked"
+            state = await self.finish_withdrawal_if_idle(session, tenant, business, actor, state)
             await VisualPendingChanges.apply_pending_in_session(session, tenant, business)
         if self.settings is not None:
             from app.services.visual_pending_scripts import apply_pending_script_changes
 
             await apply_pending_script_changes(self.settings, self.database, tenant, business, actor)
+        return state
+
+    async def finish_withdrawal_if_idle(
+        self, session: AsyncSession, tenant: UUID, business: UUID, actor: UUID, state: GateState
+    ) -> GateState:
+        """Shared completion under the business gate, including admitted motion."""
+        params = {"tenant": tenant, "business": business, "actor": actor}
+        if state == "revocation_pending":
+            count = await session.scalar(
+                text("""SELECT count(*) FROM creative_active_runs
+              WHERE tenant_id=:tenant AND business_id=:business AND state='in_flight'"""),
+                params,
+            )
+            if not count:
+                await session.execute(
+                    text("""UPDATE visual_consent_gates SET state='revoked',updated_at=now()
+                  WHERE tenant_id=:tenant AND business_id=:business"""),
+                    params,
+                )
+                await session.execute(
+                    text("""UPDATE visual_ai_consents SET actor_id=:actor,revoked_at=now()
+                  WHERE tenant_id=:tenant AND business_id=:business AND revoked_at IS NULL"""),
+                    params,
+                )
+                await self._audit(session, tenant, business, actor, "visual.ai_revoked")
+                state = "revoked"
         return state
 
     async def withdrawn_preview_consent(

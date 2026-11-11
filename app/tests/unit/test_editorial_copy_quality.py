@@ -53,6 +53,34 @@ def test_public_copy_keeps_natural_language(text):
     assert public_copy_has_no_internal_artifacts(_draft().model_copy(update={"art_text": text}))
 
 
+@pytest.mark.parametrize("field", ["art_text", "caption", "cta"])
+@pytest.mark.parametrize(
+    "instruction",
+    [
+        "Revisar imagem e texto antes da publicação",
+        "Confira a legenda antes de publicar",
+        "APROVE A ARTE ANTES DA PUBLICAÇÃO",
+        "Verifique o conteúdo e o texto antes de publicar",
+    ],
+)
+def test_public_copy_rejects_specific_publication_review_instructions(field, instruction):
+    proposal = _draft().model_copy(update={field: f"Conheça nosso trabalho! {instruction}."})
+    assert not public_copy_has_no_internal_artifacts(proposal)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Revise seu currículo antes da entrevista e venha conversar com a gente.",
+        "Confira a imagem da nossa coleção e encontre sua favorita.",
+        "Revisamos cada peça com cuidado antes da entrega.",
+        "Confira a arte. Antes de publicar, compartilhe com quem você ama.",
+    ],
+)
+def test_review_language_in_customer_copy_is_not_generally_blocked(text):
+    assert public_copy_has_no_internal_artifacts(_draft().model_copy(update={"caption": text}))
+
+
 def test_prompt_separates_public_text_from_directions_and_internal_metadata(settings):
     cfg = settings.model_copy(update={"editorial_ai_mode": "openai", "openai_api_key": SecretStr("fake")})
     request = OpenAIEditorialProvider(cfg).build_request({"editorial_skill": {"instructions": "Story criativo"}})
@@ -61,3 +89,4 @@ def test_prompt_separates_public_text_from_directions_and_internal_metadata(sett
     assert "Nunca inclua IDs, UUIDs" in developer
     assert "Coloque instruções de fotografia, composição e tipografia apenas em creative_brief" in developer
     assert "registre dúvidas e pendências em questions" in developer
+    assert "Instruções para revisar ou aprovar a peça antes de publicar" in developer

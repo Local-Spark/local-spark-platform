@@ -1,0 +1,31 @@
+{
+  "cases": [
+    {
+      "baseline_cost_note": "Geração histórica: US$0,3086025 estimados; reaproveitada sem nova cobrança nesta rodada. Voz sintética e gravação ilustrativa; o nome interno da fixture não vai à arte.",
+      "baseline_run": ".local/evals/motion-runs/b14bc09d-4131-4018-b666-1f9d0fff8651",
+      "id": "intensa",
+      "label": "Cafeteria — Intensa",
+      "video_sha256": "61d3b3585378a08e3cdfe93bfebbd9dd0164e0185c3d468aa59747d1f0cb5bc8"
+    },
+    {
+      "baseline_cost_note": "Geração histórica: US$0,290055 estimados. O render usado é o derivado offline com IDs de áudio corrigidos, sem mudança visual. Custo da geração original contado uma vez; replay não o zera.",
+      "baseline_run": ".local/evals/motion-runs/72973f12-9b18-426f-af63-112562dfca51",
+      "generation_run": ".local/evals/motion-batches/04e48db9-1313-4a52-a188-7a151a9d0e80/runs/fc3d6447-a4f7-4cc5-8507-db74deb58f33",
+      "id": "dog",
+      "label": "Dog em Casa",
+      "video_sha256": "7ada678f4f715354b176a77f4c538ed14f1a62e17c483c310ecad1e22f55abbd"
+    },
+    {
+      "baseline_cost_note": "Geração histórica: US$0,3006175 estimados; reaproveitada. Vídeo ilustrativo sem fala; CTA do pedido Agende pelo WhatsApp prevalece sobre CTA genérico do kit, sem criar número.",
+      "baseline_run": ".local/evals/motion-batches/04e48db9-1313-4a52-a188-7a151a9d0e80/runs/40c72fda-0c69-4866-be57-1ae26fa7314f",
+      "id": "luma",
+      "label": "Estúdio da Luma",
+      "video_sha256": "47e7fc8120bfb4eb016db31c4b319b30c23d00af3d4a168c21ef4398657ecaf4"
+    }
+  ],
+  "context_version": 2,
+  "independent_continuation_of": ".local/evals/motion-review-runs/87acffe2-12ef-488d-921e-8f1745691d1f",
+  "max_corrections": 1,
+  "synthetic_fixture": true,
+  "version": 1
+}

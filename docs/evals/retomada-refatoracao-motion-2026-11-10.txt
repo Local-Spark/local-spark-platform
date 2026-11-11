@@ -1,0 +1,42 @@
+Estamos no projeto /Users/israelsilva/PycharmProjects/local-spark-platform.
+
+Retome a melhoria de qualidade de motion para postagens de pequenos negócios.
+Leia AGENTS.md, docs/PROJECT.md, docs/SDD.md, a fase BL04 e o plano vigente:
+docs/design/refatoracao-contexto-motion-2026-11-10.md.
+Consulte também docs/evals/analise-acabamento-motion-2026-11-10.md e
+docs/design/adaptacao-fluxo-edicao-2026-11-10.md.
+
+Execute as seis etapas documentadas, em fatias pequenas: contexto coerente;
+skills/referências realmente entregues; direção antes da construção; construção
+e movimento; crítica; exportação da entrada completa. Verifique primeiro o que
+já foi implementado, pois este texto pode ser usado depois de novos avanços.
+
+Não precisamos de mais pesquisa genérica ou de trocar Python/API/Temporal.
+Temos material Maestro, Finalizador, claude-video e referências Felipe Borges e
+Lucas Leite. O kit do negócio define a identidade; referências orientam acabamento.
+Edição de bruto para YouTube é outra ideia, fora do escopo. Podemos preservar
+a gravação e desenvolver muito mais a composição e o movimento ao redor dela.
+
+A prova Café Pausa B melhorou parcialmente, mas foi avaliada como infantil e ainda
+muito abaixo do alvo. Não há aprovação criativa final. A geração usou
+gpt-6.1-sol/high e foi completa; a crítica truncou. O payload tinha seis imagens
+da fonte e nenhuma referência visual de acabamento, além de fichas antigas que
+contradizem o executor HTML. Não atribua a causa ao modelo sem comparação.
+
+Preserve alterações existentes, snapshots históricos, RLS, ledger, isolamento,
+auditoria/outbox e identidades duráveis. Evite novas tabelas, runners e features
+sem necessidade comprovada. Faça apenas testes curtos e pertinentes; não passe
+horas em suítes locais/CI e não alegue validação que não executou.
+
+Ao concluir os ajustes, exporte o prompt COMPLETO do mesmo montador usado pelo
+produto, JSON/schema/parâmetros, imagens anexadas e arquivos necessários, com
+manifesto e caminhos. Não invente um prompt manual diferente e o apresente como
+payload real. Não inclua credenciais. Explique diferenças inevitáveis ao usar
+esse pacote num chat externo.
+
+PARE antes de enviar ao modelo, gerar assets ou renderizar a peça. Eu farei o
+teste em ChatGPT, Grok ou outro e trarei a saída. Não reutilize orçamentos antigos;
+qualquer chamada paga futura exige plano e autorização específicos.
+
+Atualize documentos e me informe em cada avanço. Se surgir uma decisão necessária,
+pergunte em formato de entrevista. Ao terminar, avise e entregue o pacote de teste.

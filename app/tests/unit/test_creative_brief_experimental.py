@@ -139,11 +139,26 @@ def test_technical_direction_filter_still_rejects_unsupported_commercial_claims(
         ("caption", "Croissant por R$ 19,90 (asset_id)"),
         ("art_text", "Foto close-up do croissant"),
         ("cta", "Ver 2f075099-f621-5bc5-8e81-dad99622f9f0"),
+        ("caption", "Croissant por R$ 19,90. Revisar imagem e texto antes da publicação."),
     ],
 )
 def test_full_piece_rejects_public_internal_artifacts(field, value):
     proposal = draft().model_copy(update={field: value})
     assert not natural_generated_copy_matches_fact(proposal, "Croissant por R$ 19,90", [])
+
+
+def test_generated_proposal_guard_rejects_leaked_publication_review():
+    proposal = draft()
+    fact_id = proposal.fact_ids[0]
+    data = {
+        "confirmed_facts": [{"id": str(fact_id), "statement": "Croissant por R$ 19,90"}],
+        "preferences": {"avoided_topics": []},
+        "requested_format": "photo",
+        "eligible_formats": ["photo"],
+    }
+    assert EditorialProposalService._safe_generated(proposal, data, {fact_id}, full_piece=True)
+    leaked = proposal.model_copy(update={"caption": "Revisar imagem e texto antes da publicação."})
+    assert not EditorialProposalService._safe_generated(leaked, data, {fact_id}, full_piece=True)
 
 
 def test_configured_phone_is_allowed_but_does_not_authorize_other_numbers():

@@ -6,6 +6,11 @@ sem acrescentar ao cliente uma escolha que ele não precisa fazer. A proposta
 está em estudo: ainda não há
 biblioteca, seleção, preferência persistida ou integração implementada.
 
+Na entrevista posterior de 05/11, o titular definiu que o sistema escolhe o
+estilo a cada pedido, conforme objetivo, material e referências, preservando a
+identidade do kit. A v0 guarda snapshots por peça; não fixa preferência de estilo
+por negócio a partir das peças aprovadas.
+
 Para pesquisa, a skill de Felipe Borges foi instalada no Codex e sua galeria
 pública foi aberta em localhost temporário, com 21 prévias. Ela é fonte externa
 de estudo, não a
@@ -18,9 +23,11 @@ Cada estilo pode ter nome, descrição curta e prévia animada que mostre ritmo,
 tipografia, comportamento de imagens e transições para a equipe e o sistema.
 O sistema deve escolher o estilo com base em pedido, negócio, kit, material
 enviado e referências autorizadas, sem exigir decisão adicional do cliente.
-O cliente segue revisando a peça; a possibilidade de pedir alteração por
-mensagem natural é uma opção futura, ainda sem desenho definido. Escolha de
-estilo não é escolha de imagens no acervo.
+O cliente segue revisando a peça e pode pedir alterações por mensagem natural;
+a integração dessa jornada aos novos formatos permanece pendente. No carrossel,
+ajustar uma página preserva as demais, pedindo confirmação antes de mudá-las
+quando necessário e nova aprovação da sequência resultante. Escolha de estilo
+não é escolha de imagens no acervo.
 
 O **kit** continua fornecendo identidade do negócio: cores, fontes e demais
 elementos autorizados. A **skill de formato** orienta Reel, story ou carrossel;
@@ -49,8 +56,9 @@ estilo pode ser testada pelo procedimento rápido, sem banco novo.
 Um catálogo versionado pode guardar identificador, versão, descrição,
 restrições e formatos suportados, código/instruções, hash e prévia licenciada.
 Cada geração deve registrar a versão escolhida, dados usados e razão da escolha
-automática. Preferência durável, se implementada, deve ter escopo do negócio,
-autorização, RLS e auditoria. Peças precisam conservar o snapshot do
+automática. Preferência durável por negócio fica fora desta v0; uma evolução
+nesse sentido exigirá decisão própria, escopo do negócio, RLS e auditoria.
+Peças precisam conservar o snapshot do
 estilo e kit efetivamente usados; alteração posterior não deve reescrever o
 histórico. Os contratos e a revisão por formato, especialmente carrossel com
 vários arquivos, ainda precisam de implementação e testes próprios.

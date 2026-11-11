@@ -1,0 +1,32 @@
+# Copy to an ignored .local file. This template does not authorize activation.
+# Use an EXISTING absolute directory, without commas/quotes, visible to Docker.
+MOTION_SCRATCH_DIRECTORY=/absolute/project/path/.local/motion-scratch
+MOTION_DOCKER_SOCKET=/var/run/docker.sock
+# Match the owner of the shared directory. On macOS use id -u and id -g.
+MOTION_WORKER_UID=10001
+MOTION_WORKER_GID=10001
+# Group of the Docker socket as mounted inside the worker; explicit, not privileged mode.
+MOTION_DOCKER_GID=0
+# Set the sha256 image ID or repository@sha256 digest already loaded in this daemon.
+MEU_BRACO_DIREITO_MOTION_RENDERER_IMAGE=
+MEU_BRACO_DIREITO_MOTION_EXECUTION_ENABLED=false
+MEU_BRACO_DIREITO_MOTION_AI_MODE=disabled
+MEU_BRACO_DIREITO_MOTION_LOCAL_QUALIFICATION_BUSINESS_ID=
+MEU_BRACO_DIREITO_MOTION_LOCAL_QUALIFICATION_ASSET_IDS=[]
+MEU_BRACO_DIREITO_MOTION_AI_MODEL=
+MEU_BRACO_DIREITO_MOTION_AI_MAX_OUTPUT_TOKENS=16000
+MEU_BRACO_DIREITO_MOTION_AI_INPUT_USD_MICROS_PER_MILLION_TOKENS=0
+MEU_BRACO_DIREITO_MOTION_AI_OUTPUT_USD_MICROS_PER_MILLION_TOKENS=0
+MEU_BRACO_DIREITO_MOTION_AI_RESERVATION_USD_MICROS=0
+MEU_BRACO_DIREITO_MOTION_REQUEST_BUDGET_USD_MICROS=0
+MEU_BRACO_DIREITO_MOTION_MAX_CORRECTIONS=1
+# Existing encryption key, API credential and shared monthly budgets come from .env.
+# Do not generate a replacement encryption key for an existing database.
+
+# Optional illustrative assets. Separate opt-in/budget; no paid execution authorized by this template.
+MEU_BRACO_DIREITO_MOTION_ILLUSTRATIONS_ENABLED=false
+MEU_BRACO_DIREITO_MOTION_ILLUSTRATION_RESERVATION_USD_MICROS=0
+MEU_BRACO_DIREITO_MOTION_ILLUSTRATION_BUDGET_USD_MICROS=0
+
+# Requires migration 0114 and a renderer image supporting protocol 2.
+MEU_BRACO_DIREITO_MOTION_STORYBOARD_ENABLED=false

@@ -38,11 +38,19 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
       - uses: astral-sh/setup-uv@v7
         with:
           version: "0.10.6"
           enable-cache: true
       - run: uv sync --frozen
+      - name: Install local media tools for synthetic motion tests
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends ffmpeg
       - run: make lint types
       - name: Migrate isolated test database and create restricted logins
         run: |

@@ -13,6 +13,7 @@ from app.services.audio_transcription import AudioTranscriptionService
 from app.services.business_geocoding import BusinessGeocodingRunner
 from app.services.editorial_proposals import EditorialProposalService
 from app.services.media_previews import MediaPreviewService
+from app.services.motion_runtime import build_motion_runner
 from app.services.reference_learning_execution import ReferenceLearningExecution
 from app.services.reference_provider_execution import ReferenceProviderExecution
 from app.services.visual_generation_runner import DatabaseVisualGenerationRunner
@@ -28,6 +29,8 @@ from app.workflows.editorial_proposal import EditorialProposalWorkflow
 from app.workflows.foundation import BrandKitChangedWorkflow, BusinessCreatedWorkflow
 from app.workflows.media_activities import MediaPreviewActivities
 from app.workflows.media_preview import StaticPreviewWorkflow
+from app.workflows.motion_activities import MotionActivities
+from app.workflows.motion_production import MotionProductionWorkflow
 from app.workflows.reference_discovery import ReferenceDiscoveryWorkflow
 from app.workflows.reference_discovery_activities import ReferenceDiscoveryActivities
 from app.workflows.reference_effect import (
@@ -102,6 +105,11 @@ async def run_worker() -> None:
             if material_database and settings.visual_ai_execution_enabled
             else None
         )
+        motion_activities = (
+            MotionActivities(build_motion_runner(settings, database, material_database))
+            if settings.motion_execution_ready() and material_database
+            else None
+        )
         reference_effect_activities = (
             ReferenceEffectActivities(database, settings, material_database)
             if settings.reference_discovery_mode == "fake" and material_database
@@ -138,6 +146,7 @@ async def run_worker() -> None:
             + ([EditorialProposalWorkflow] if editorial_activities else [])
             + ([StaticPreviewWorkflow] if media_activities else [])
             + ([VisualGenerationWorkflow] if visual_activities else [])
+            + ([MotionProductionWorkflow] if motion_activities else [])
             + (
                 [ReferenceEffectWorkflow, ReferenceCostProjectionWorkflow, ReferenceEffectProjectionWorkflow]
                 if reference_effect_activities
@@ -170,6 +179,7 @@ async def run_worker() -> None:
             + ([editorial_activities.generate_editorial_proposal] if editorial_activities else [])
             + ([media_activities.render_static_preview] if media_activities else [])
             + ([visual_activities.run_visual_generation] if visual_activities else [])
+            + ([motion_activities.run] if motion_activities else [])
             + (
                 [
                     reference_effect_activities.simulate_effect,

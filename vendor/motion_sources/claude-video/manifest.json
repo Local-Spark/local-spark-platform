@@ -1,0 +1,121 @@
+{
+  "source": "https://github.com/Felpborges/claude-video",
+  "commit_reported": "ee3dc316759ae266effab49f55c1221c64028081",
+  "origin_evidence": "Cópia instalada comparada byte a byte com staging local e seus blobs Git SHA-1 validados contra árvore JSON recuperada anteriormente; commit informado pelo estudo, sem checkout Git local.",
+  "license": "MIT; ver original/LICENSE e original/LICENSE-original.txt",
+  "scope": "Amostra de fontes originais sem alteração, não repositório completo, backup independente nem dependências de runtime.",
+  "files": [
+    {
+      "path": "original/LICENSE",
+      "source_path": "LICENSE",
+      "git_blob_sha1": "490b2ca8fa7ed9ab0612071a52d2bfee822024d6",
+      "sha256": "368252182b0afa27a322a938231b8eceea32d6661110c0f6b20fe607d67c517c",
+      "bytes": 1227
+    },
+    {
+      "path": "original/LICENSE-original.txt",
+      "source_path": "LICENSE-original.txt",
+      "git_blob_sha1": "d44913d23a17034c20418ae5b916a5dacb018ae6",
+      "sha256": "b57a46bcddea1143c352d50cac7286cd7f7a0f1fefa58215c04d7450cc57d03f",
+      "bytes": 1089
+    },
+    {
+      "path": "original/referencias/movimento.md",
+      "source_path": "referencias/movimento.md",
+      "git_blob_sha1": "f8354c10aecc55ef72feafb018c7722e20fbbb39",
+      "sha256": "a915b0451cf8d00426932a13451dd867b8140ebab25c9bc6b78a1e867e8952a1",
+      "bytes": 2419
+    },
+    {
+      "path": "original/referencias/loops.md",
+      "source_path": "referencias/loops.md",
+      "git_blob_sha1": "ccb5deeabd3d82576e078ac1f5ff8c3dfd282ee4",
+      "sha256": "5bdaaa370cf9bf17ce0643022d30d3409b120d902119baf931d75ca6d5cb141e",
+      "bytes": 1942
+    },
+    {
+      "path": "original/scripts/_midia.py",
+      "source_path": "scripts/_midia.py",
+      "git_blob_sha1": "98e6c7b0b445ee7b2d9786ade8cc633d4d835e7a",
+      "sha256": "641fdfee07d0b1b5c70a8d759eeddb6e37e5f05bc429d318699ce995e4b22273",
+      "bytes": 1666
+    },
+    {
+      "path": "original/scripts/pericia-movimento.py",
+      "source_path": "scripts/pericia-movimento.py",
+      "git_blob_sha1": "2d76838e2b1f729af0971e6e85ee5dbb8cc86450",
+      "sha256": "77326547a76e837c47a8d1aec97902dc12d9a22a9a7d95b80a75a7fed5fb6e98",
+      "bytes": 8932
+    },
+    {
+      "path": "original/scripts/ritmo.py",
+      "source_path": "scripts/ritmo.py",
+      "git_blob_sha1": "3456efa79600ad8fad7a8675afb4eeef994ddefd",
+      "sha256": "8995f7d0b3804b9edc62b38af682ec960fef4980c14b5ab8fc24d4064920c106",
+      "bytes": 4667
+    },
+    {
+      "path": "original/scripts/loop.py",
+      "source_path": "scripts/loop.py",
+      "git_blob_sha1": "be08c968b7941903ec0649745f5cfd8aede80e95",
+      "sha256": "8caa3035eb30d4359d77117bda42e90f9f980af9180d177d2877896559e7ba96",
+      "bytes": 3036
+    },
+    {
+      "path": "original/scripts/storyboard.py",
+      "source_path": "scripts/storyboard.py",
+      "git_blob_sha1": "a56554d51daba77a4d9f3180acf4814f088b15c7",
+      "sha256": "b065b86a553437c3b6df5c3d2d7e2d503581ec36f13d4b7d1c7ff3c83583514a",
+      "bytes": 4116
+    },
+    {
+      "path": "original/estilos/cartaz-risografia/ESTILO.md",
+      "source_path": "estilos/cartaz-risografia/ESTILO.md",
+      "git_blob_sha1": "0de86171c950a15a386fe2a4c7e64daf3a235e4e",
+      "sha256": "48adf1a128cfb45ac98fd497461d51c70ef40bac5bbed86d3430198a65536500",
+      "bytes": 7793
+    },
+    {
+      "path": "original/estilos/cartaz-risografia/LEIA-ME.md",
+      "source_path": "estilos/cartaz-risografia/LEIA-ME.md",
+      "git_blob_sha1": "063802efe8622540e754f8141cf26e5bde00d528",
+      "sha256": "6ad07ddbcc61c07f9e858fff97d3e806727932a4841f1928b79cbfffbf3aaf85",
+      "bytes": 1626
+    },
+    {
+      "path": "original/estilos/cartaz-risografia/projeto/index.html",
+      "source_path": "estilos/cartaz-risografia/projeto/index.html",
+      "git_blob_sha1": "6346d86229b1a35d8ad52a825fcaeda584715663",
+      "sha256": "13dae15b7aa14f409e156b4daa1fdc091fd146f511db2fa94d92091b81c8a11b",
+      "bytes": 1077
+    },
+    {
+      "path": "original/estilos/cartaz-risografia/projeto/motor.js",
+      "source_path": "estilos/cartaz-risografia/projeto/motor.js",
+      "git_blob_sha1": "511ffa8fff95af06d4b783baf5f7d13aff79fc72",
+      "sha256": "0f60716326a0fd07995641e1fd09019c8939b79fcf57945682b157add279bc91",
+      "bytes": 14241
+    },
+    {
+      "path": "original/estilos/cartaz-risografia/projeto/hyperframes.json",
+      "source_path": "estilos/cartaz-risografia/projeto/hyperframes.json",
+      "git_blob_sha1": "a8a6bd951b92e76ad2b42fc5268f47d9177a37df",
+      "sha256": "57fda7e9bd8054756b082c9c2f3aa4c4e5f2c69c5199ad458d467401527ca4f7",
+      "bytes": 72
+    },
+    {
+      "path": "original/estilos/cartaz-gritado/ESTILO.md",
+      "source_path": "estilos/cartaz-gritado/ESTILO.md",
+      "git_blob_sha1": "3b826dcac976f002ddf0b4c951cddb9af376cb6a",
+      "sha256": "c495db2a4295c0fb7424fa3508f807f178ca4634b8ccbd99136fc950d4300632",
+      "bytes": 6635
+    },
+    {
+      "path": "original/estilos/cartaz-gritado/LEIA-ME.md",
+      "source_path": "estilos/cartaz-gritado/LEIA-ME.md",
+      "git_blob_sha1": "a643d24db1856129aa0d7cf7765fd9942ffc0488",
+      "sha256": "5c7cf633ba15c7e9abc372f98010dc6950f70f92db4efa83738f04099db49a2c",
+      "bytes": 1717
+    }
+  ]
+}

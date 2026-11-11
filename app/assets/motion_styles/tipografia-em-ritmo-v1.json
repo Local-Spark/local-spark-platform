@@ -1,0 +1,126 @@
+{
+  "version": 1,
+  "status": "hipotese_local_nao_homologada",
+  "formats": [
+    "reel",
+    "story_video",
+    "carousel_motion"
+  ],
+  "format_constraints": {
+    "video_recordings_per_order_max": 1,
+    "video_input_max_ms": 60000,
+    "video_output_max_ms": 60000,
+    "carousel_pages_min": 3,
+    "carousel_pages_max": 5,
+    "carousel_page_min_ms": 5000,
+    "carousel_page_max_ms": 8000,
+    "reel_story_aspect_ratio": "9:16",
+    "carousel_aspect_ratio": "4:5"
+  },
+  "global_rules": [
+    "O kit autorizado determina identidade, cores e fontes; adaptar a base ao kit, não o contrário.",
+    "Escolher a cada pedido com base na solicitação, objetivo, contexto, material e referências disponíveis; não inferir o estilo apenas do setor nem fixar preferência por negócio.",
+    "Padrões editoriais e visuais derivados de imagens são observações parciais: não comprovam movimento, transições, som ou ritmo.",
+    "Sem sinais de estilo, a base neutra é hipótese inicial, não substitui solicitar fatos ou gravação essenciais.",
+    "Use somente afirmações confirmadas, fontes de mídia autorizadas e os limites do formato; sem conteúdo ou marca de terceiros.",
+    "Áudio e legenda dependem do material e da direção: preservar o sentido da fala; não alegar sincronização sem evidência.",
+    "Valores de grade e tempo desta ficha são faixas de hipótese, não template, obrigação de cortes ou métricas de qualidade.",
+    "Para uma página de carrossel, planejar início e fim e revisar perceptivamente a emenda sem prometer loop infinito."
+  ],
+  "current_visual_subset": {
+    "layer_kinds": [
+      "video",
+      "image",
+      "text",
+      "rectangle",
+      "circle"
+    ],
+    "keyframes": [
+      "x",
+      "y",
+      "width",
+      "height",
+      "scale",
+      "opacity",
+      "rotation",
+      "clip_insets"
+    ],
+    "easing": [
+      "linear",
+      "ease_in",
+      "ease_out",
+      "ease_in_out"
+    ],
+    "media_fit": [
+      "cover",
+      "contain"
+    ],
+    "transitions": [
+      "cut",
+      "fade"
+    ],
+    "font": "font_id e peso aprovados pelo snapshot de kit; sem fonte externa",
+    "layers_max": 64,
+    "keyframes_per_layer_max": 32
+  },
+  "execution_restrictions": [
+    "O executor visual experimental não mistura áudio nem altera velocidade de vídeo; não ocultar ou descartar esses requisitos.",
+    "Uma direção que exija áudio, preservação de fala ou velocidade variável requer executor apropriado ainda não entregue; falhar com estado explícito.",
+    "HTML, CSS, JavaScript, comandos, caminhos e URLs não são saída executável do modelo.",
+    "Nenhum dado desta ficha substitui validação de direitos, recursos, isolamento, revisão humana, legibilidade ou qualidade da mídia final."
+  ],
+  "id": "tipografia-em-ritmo-v1",
+  "name": "Tipografia em ritmo",
+  "hypothesis": "Palavras ou frases curtas ganham hierarquia e movimento em contraste com formas simples.",
+  "justification": "Adequada quando o pedido pede mensagem expressiva e o material dá suporte a contrastes legíveis; não inferir apenas pela atividade do negócio.",
+  "abilities": [
+    "tipografia de destaque com posições e escala distintas",
+    "formas retangulares e circulares",
+    "máscara retangular simples",
+    "camadas, recortes e mudanças de campo",
+    "cortes e fades",
+    "animação em keyframes com pausas"
+  ],
+  "grid_hypothesis": {
+    "columns_min": 2,
+    "columns_max": 5,
+    "outer_margin_bp_min": 400,
+    "outer_margin_bp_max": 1000,
+    "visual_window_width_bp_min": 3000,
+    "visual_window_width_bp_max": 9000,
+    "text_weight": "priorizar contraste permitido pelo kit e legibilidade"
+  },
+  "timing_hypothesis_ms": {
+    "entry_min": 160,
+    "entry_max": 650,
+    "hold_min": 1100,
+    "hold_max": 3200,
+    "transition_min": 100,
+    "transition_max": 450,
+    "note": "evitar flashes, preservar fala e estender o tempo para leitura quando necessário"
+  },
+  "limitations": [
+    "Não exigir palavra por batida ou cortes acelerados; ritmo decorre do conteúdo.",
+    "Não copiar tipografia, texto, identidade, paleta, projeto ou marcas das referências; usar fontes do kit."
+  ],
+  "sources": [
+    {
+      "type": "adaptacao_de_orientacoes_mit",
+      "path": "estilos/cartaz-gritado/ESTILO.md",
+      "sha256": "c495db2a4295c0fb7424fa3508f807f178ca4634b8ccbd99136fc950d4300632",
+      "contribution": "contraste e ênfase tipográfica por camadas; sem copiar a sequência, a paleta ou as fontes do exemplo."
+    },
+    {
+      "type": "adaptacao_de_orientacoes_mit",
+      "path": "referencias/movimento.md",
+      "sha256": "a915b0451cf8d00426932a13451dd867b8140ebab25c9bc6b78a1e867e8952a1",
+      "contribution": "pensar em entrada, tempo de leitura e saída; sem impor os números ou easing proprietários dos exemplos."
+    },
+    {
+      "type": "adaptacao_de_orientacoes_mit",
+      "path": "estilos/cartaz-risografia/ESTILO.md",
+      "sha256": "48adf1a128cfb45ac98fd497461d51c70ef40bac5bbed86d3430198a65536500",
+      "contribution": "hierarquia e sobreposição de campos gráficos, sem copiar textura, paleta, imagens ou a peça de origem."
+    }
+  ]
+}

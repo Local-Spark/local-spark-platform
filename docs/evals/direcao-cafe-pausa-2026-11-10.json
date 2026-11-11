@@ -1,0 +1,67 @@
+{
+  "version": "scene-direction-v1",
+  "scenes": [
+    {
+      "scene_id": "preparo",
+      "brief_basis": "A gravação mostra o preparo do café. O pedido busca composição elaborada mantendo registro, voz e kit, sem inventar oferta ou atributo do produto.",
+      "visual_representation": "O gesto real é o centro. Planos gráficos se afastam para abrir espaço ao registro; a expressão 'O tempo de um café.' passa de uma linha compacta a uma hierarquia com ênfase em 'tempo'.",
+      "composition": "Gravação íntegra no plano central, cerca de 70% da largura, sem esconder mãos, jarra ou xícara. Tipografia ancorada na margem superior esquerda. Dois planos de papel do kit criam profundidade atrás do vídeo; a cor de destaque aparece apenas na área de atenção, fora da ação real.",
+      "narrative_action": "Os planos abrem espaço e revelam a gravação já em curso; a tipografia se desdobra, primeiro frase e depois palavra em foco. O espaço aberto permanece para leitura e dá continuidade ao convite. Sem tracking de gotas nem sincronismo inventado com a fala.",
+      "attention_order": ["preparo-video", "preparo-texto", "preparo-planos"],
+      "elements": [
+        {
+          "element_id": "preparo-video",
+          "depicts": "A gravação original de preparo, assets/source.mp4, sem cortes temporais ou espaciais.",
+          "appearance": "Aparência original, proporção preservada e enquadramento contain. O vídeo segue seu tempo original durante toda a composição.",
+          "construction": "authorized_asset"
+        },
+        {
+          "element_id": "preparo-texto",
+          "depicts": "O tempo de um café.",
+          "appearance": "DejaVu Serif do kit no título e hierarquia por escala/espessura; verde do kit e destaque cobre em 'tempo'. Texto legível, sem fontes ou efeito neon das referências.",
+          "construction": "code"
+        },
+        {
+          "element_id": "preparo-planos",
+          "depicts": "Dois planos gráficos que abrem espaço para o gesto, sem representar produto fictício.",
+          "appearance": "Geometria editorial ampla em papel claro e verde do kit, com bordas alinhadas e sobreposição atrás da gravação. Profundidade por escala e deslocamento, sem personagens ou xícaras desenhadas.",
+          "construction": "code"
+        }
+      ]
+    },
+    {
+      "scene_id": "convite",
+      "brief_basis": "Converter o preparo observado em convite à pausa. Usar somente o CTA confirmado 'Saiba mais', sem acrescentar destino, preço ou promessa comercial.",
+      "visual_representation": "O espaço aberto pelos planos torna-se a área do convite. A palavra 'pausa' ganha escala e espaço entre letras enquanto a gravação continua visível; esse movimento concretiza a ideia de abrir espaço para uma pausa.",
+      "composition": "A gravação migra de forma contínua para a região superior direita, mantendo a fonte inteira e a ação legível. O convite ocupa uma área ampla inferior esquerda. Um plano claro organiza o texto; a assinatura Café Pausa e o CTA ficam numa base estável, fora da interface do Instagram.",
+      "narrative_action": "O mesmo plano da abertura se expande e muda de função, de moldura para área de leitura. 'Que tal uma pausa?' é revelado como frase; 'pausa' abre espaço e estabiliza. A assinatura e o CTA entram após a ideia estar legível. A fonte e o áudio não reiniciam na transição.",
+      "attention_order": ["convite-video", "convite-texto", "convite-assinatura"],
+      "elements": [
+        {
+          "element_id": "convite-video",
+          "depicts": "Continuação da mesma gravação original assets/source.mp4, não outro take nem replay.",
+          "appearance": "Registro original em contain, com proporção e aparência preservadas. Passagem contínua do enquadramento anterior, sem ocultar o resultado do gesto.",
+          "construction": "authorized_asset"
+        },
+        {
+          "element_id": "convite-texto",
+          "depicts": "Que tal uma pausa?",
+          "appearance": "Tipografia do kit em composição editorial; 'pausa' é dominante. Contraste verde/papel e detalhe cobre subordinado à leitura. Sem imitar tipografia, textos ou paleta dos exemplos.",
+          "construction": "code"
+        },
+        {
+          "element_id": "convite-plano",
+          "depicts": "Plano gráfico contínuo da abertura, agora formando espaço para o convite.",
+          "appearance": "Superfície de papel claro do kit com escala distinta da abertura. Serve à relação entre texto e gravação, sem adicionar ícones avulsos ou desenhos figurativos obrigatórios.",
+          "construction": "code"
+        },
+        {
+          "element_id": "convite-assinatura",
+          "depicts": "Café Pausa — Saiba mais",
+          "appearance": "Assinatura textual em fontes do kit, sem inventar logotipo ou endereço. CTA em escala secundária com área de leitura própria e margem de segurança.",
+          "construction": "code"
+        }
+      ]
+    }
+  ]
+}

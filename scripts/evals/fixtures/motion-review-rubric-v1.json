@@ -1,0 +1,22 @@
+{
+  "version": "motion-review-v1",
+  "purpose": "Revisar Reels fictícios renderizados, sem impor refação nem declarar aprovação humana.",
+  "criteria": {
+    "factuality": "Preservar fatos, sentido da fala, condições, sinalização ilustrativa e atribuições. Não criar preços, contatos, procedimentos ou resultados.",
+    "brand": "Manter identidade, paleta e fontes fornecidas. O nome interno da fixture não é uma marca pública. Não redesenhar marca ou confundir fonte ilustrativa com negócio real.",
+    "legibility": "Texto importante legível no celular, sem corte, sobreposição ou contraste insuficiente nas amostras. Julgar margens editoriais, sem alegar homologação das áreas de interface Instagram.",
+    "composition": "Hierarquia clara, protagonista legível e enquadramento funcional. Não descaracterizar a linguagem aprovada por preferência estética arbitrária.",
+    "motion": "Examinar continuidade e mudança entre quadros observados. Preservar riqueza e variação de enquadramento. Amostragem não comprova movimento completo, leitura temporal, sincronismo nem ausência de flashes.",
+    "technical": "Decodificação integral, dimensões, duração e presença de áudio medidas localmente. Sucesso técnico não prova qualidade comercial.",
+    "audio": "Sempre uncertain na revisão por modelo desta rodada: não há áudio enviado. Métricas, plano de mix e transcrição não equivalem a escuta; trilha/mix permanecem congelados para isolar a revisão visual."
+  },
+  "correction_gate": "Somente defeito visual observado, relevante (major/blocking), acionável e vinculado a evidências. Minor, preferência estética e insuficiência de evidência não disparam geração.",
+  "second_correction_gate": "Somente se a primeira for preferida pelo crítico à anterior e persistir falha relevante. Recomendação é provisória; decisão final humana.",
+  "maximum_corrections": 2,
+  "preservation": "Todas as versões, críticas e custos são conservados. Empate ou dúvida recomenda a versão anterior. Não editar manualmente a arte para apresentar sucesso do modelo.",
+  "evaluation": "Comparar antes/depois da mesma composição inicial. Medir preferência humana, defeitos, tempo e custo incremental e histórico separado. Três exemplos não demonstram ganho geral.",
+  "upstream_learning": "Problemas recorrentes devem alimentar melhoria do primeiro briefing. Esta rodada não testa um braço separado de novo briefing e não pode atribuir a ele ganho.",
+  "pricing_source": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+  "pricing_checked_on": "2026-11-06",
+  "cost_estimate_policy": "US$2,50/M para toda entrada, conservador inclusive cache write; US$10/M saída, incluindo raciocínio. Estimativa, não fatura. Reservas controlam admissão, não faturamento externo."
+}

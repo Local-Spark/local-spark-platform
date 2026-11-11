@@ -174,7 +174,7 @@ async def test_accept_rejects_admitted_work_before_recording_agreement(settings,
         await ServiceAgreementService(settings, SimpleNamespace(transaction=transaction)).accept(
             uuid4(), uuid4(), uuid4(), SERVICE_AGREEMENT_VERSION, SERVICE_AGREEMENT_HASH
         )
-    assert "visual_consent_runs" in str(session.scalar.await_args.args[0])
+    assert "creative_active_runs" in str(session.scalar.await_args.args[0])
     session.execute.assert_not_awaited()
 
 

@@ -1,19 +1,25 @@
 # F06 — Aprovação, agenda e Instagram
 
-Status: Fatia local em andamento. Atualizado em 28/10/2026.
+Status: Fatia local em andamento; integração oficial posterior ao piloto de geração.
+Atualizado em 08/11/2026.
 Dependências: F01 e F04, incluindo a entrega da prévia por WhatsApp em F04.3.
 F05 é necessária somente para peças com avatar.
 
 ## Contrato corrente e limites da entrega
 
+O [roteiro vigente](../design/execucao-ate-etapa-7-2026-11-07.md) prioriza geração,
+revisão, aprovação da peça e download. Postagem Instagram é posterior e não
+bloqueia o piloto por autoatendimento com cobrança; a aprovação da peça não
+serve como autorização implícita para publicar.
+
 O [aceite único do serviço](../DECISIONS.md) substitui permissões de IA por
 fornecedor, sem substituir aprovação de publicação. Envios WhatsApp associados
-já são preservados, mas a retenção automática de prévias ainda precisa seguir a
-nova decisão: sem TTL enquanto a conta estiver ativa. Se o plano vencer durante
-criação iniciada, concluí-la e permitir revisão privada; novas criações e
-publicação exigem renovação. Esses dois comportamentos estão aprovados, mas
-ainda não foram implementados nos prazos/limpeza/gates existentes. Validade
-factual, prazo da decisão e URL assinada curta continuam separados de retenção.
+já são preservados. C08/C09 estão implementadas no recorte `visual_fake`/`visual_ai`:
+conclusão e revisão privada após vencimento financeiro de trabalho admitido,
+com conservação das prévias/proveniência; novas criações/publicação exigem plano
+vigente. Bloqueio financeiro explícito e perda de acesso são situações distintas.
+A extensão ao renderer legado e motion permanece pendente. Validade factual,
+prazo da decisão e URL assinada curta continuam separados da preservação.
 
 Material associado continua em processamento durante troca de número; a entrega
 simulada usa o novo número ativo verificado após vínculo. O envio real de prévia/
@@ -36,7 +42,8 @@ desenvolvimento mostra o simulador e o estado. A publicação falsa é proibida 
 production. Pedido de ajustes ainda não cria nova versão; comandos ambíguos
 são ignorados sem publicação e precisam uma resposta de orientação. Cancelamento,
 recibo/erro Meta, reconciliação real e expurgo do conteúdo/telefone cifrado das
-entregas após o prazo de retenção permanecem pendentes antes do piloto.
+entregas conforme política aplicável permanecem pendentes para o futuro piloto
+com publicação. Não presumir prazo de exclusão enquanto P03 estiver adiado.
 
 ## Features e contratos
 

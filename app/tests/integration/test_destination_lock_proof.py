@@ -39,6 +39,31 @@ def pause_final_worker_session(database):
     return reached, release
 
 
+async def wait_for_delivery_barrier(delivered, reached):
+    """Bound preparation separately from the lock behavior under observation."""
+    waiting = asyncio.create_task(reached.wait())
+    try:
+        done, _ = await asyncio.wait((delivered, waiting), timeout=60, return_when=asyncio.FIRST_COMPLETED)
+        if not done:
+            pytest.fail("delivery did not reach its lock-test barrier within the preparation deadline")
+        if delivered in done:
+            await delivered
+            pytest.fail("delivery finished without reaching its lock-test barrier")
+        assert waiting in done
+    finally:
+        if not waiting.done():
+            waiting.cancel()
+        await asyncio.gather(waiting, return_exceptions=True)
+
+
+async def cancel_unfinished(*tasks):
+    pending = [task for task in tasks if task is not None]
+    for task in pending:
+        if not task.done():
+            task.cancel()
+    await asyncio.gather(*pending, return_exceptions=True)
+
+
 async def test_restricted_role_row_locks_and_tenant_isolation(admin, database, seeded, settings):
     cfg, app_db, worker_db, tenant, business, actor, _, event, preview, _ = await _visual_candidate_case(
         admin, seeded, settings, database
@@ -99,7 +124,7 @@ async def test_phone_change_waits_for_simulated_delivery(admin, database, seeded
     try:
         service = ContentDeliveryService(cfg, app_db, worker_db)
         delivered = asyncio.create_task(service.record(event, preview))
-        await asyncio.wait_for(reached.wait(), 2)
+        await wait_for_delivery_barrier(delivered, reached)
         changed = asyncio.create_task(
             PhoneVerificationService(cfg, app_db, AsyncMock()).update_phone(tenant, business, actor, "+5511888888888")
         )
@@ -123,9 +148,7 @@ async def test_phone_change_waits_for_simulated_delivery(admin, database, seeded
             )
     finally:
         release.set()
-        for task in (delivered, changed):
-            if task and not task.done():
-                task.cancel()
+        await cancel_unfinished(delivered, changed)
         await worker_db.close()
         await app_db.close()
 
@@ -156,7 +179,7 @@ async def test_link_confirmation_waits_for_simulated_delivery(admin, database, s
         linker = WhatsAppLinkService(cfg, app_db, worker_db)
         monkeypatch.setattr(linker, "_find_proof", AsyncMock(return_value=proof))
         delivered = asyncio.create_task(ContentDeliveryService(cfg, app_db, worker_db).record(event, preview))
-        await asyncio.wait_for(reached.wait(), 2)
+        await wait_for_delivery_barrier(delivered, reached)
         confirmed = asyncio.create_task(linker.confirm(tenant, business, actor))
         await asyncio.sleep(0.15)
         assert not confirmed.done(), "link confirmation passed while destination was locked"
@@ -165,25 +188,49 @@ async def test_link_confirmation_waits_for_simulated_delivery(admin, database, s
         assert (await asyncio.wait_for(confirmed, 2))["status"] == "linked"
     finally:
         release.set()
-        for task in (delivered, confirmed):
-            if task and not task.done():
-                task.cancel()
+        await cancel_unfinished(delivered, confirmed)
         await worker_db.close()
         await app_db.close()
 
 
-async def test_destination_lock_timeout_does_not_record_delivery(admin, database, seeded, settings):
+async def test_destination_lock_timeout_does_not_record_delivery(admin, database, seeded, settings, monkeypatch):
     cfg, app_db, worker_db, tenant, business, actor, _, event, preview, _ = await _visual_candidate_case(
         admin, seeded, settings, database
     )
+    original_transaction = app_db.transaction
+    reached, release = asyncio.Event(), asyncio.Event()
+    delivered = None
+
+    @asynccontextmanager
+    async def gated_transaction(tenant_id, actor_id):
+        async with original_transaction(tenant_id, actor_id) as session:
+            execute = session.execute
+
+            async def gated_execute(statement, *args, **kwargs):
+                sql = " ".join(str(statement).split())
+                if "FROM business_profiles" in sql and "FOR UPDATE" in sql:
+                    reached.set()
+                    await release.wait()
+                return await execute(statement, *args, **kwargs)
+
+            monkeypatch.setattr(session, "execute", gated_execute)
+            yield session
+
     try:
         async with app_db.transaction(tenant, actor) as blocker:
             await blocker.execute(
                 text("SELECT phone FROM business_profiles WHERE tenant_id=:t AND business_id=:b FOR UPDATE"),
                 {"t": tenant, "b": business},
             )
-            with pytest.raises(DBAPIError):
-                await asyncio.wait_for(ContentDeliveryService(cfg, app_db, worker_db).record(event, preview), 5)
+            monkeypatch.setattr(app_db, "transaction", gated_transaction)
+            delivered = asyncio.create_task(ContentDeliveryService(cfg, app_db, worker_db).record(event, preview))
+            # Preparatory reads are not part of the database lock-timeout proof.
+            # Observe early completion too, so a missing lock never strands the barrier.
+            await wait_for_delivery_barrier(delivered, reached)
+            release.set()
+            with pytest.raises(DBAPIError) as failure:
+                await asyncio.wait_for(delivered, 5)
+            assert failure.value.orig.sqlstate == "55P03"
         async with admin.connect() as conn:
             assert (
                 await conn.scalar(
@@ -192,5 +239,7 @@ async def test_destination_lock_timeout_does_not_record_delivery(admin, database
                 == 0
             )
     finally:
+        release.set()
+        await cancel_unfinished(delivered)
         await worker_db.close()
         await app_db.close()

@@ -1,0 +1,67 @@
+"""Bounded model response; services expand evidence IDs to the durable review schema."""
+
+from typing import Annotated, Literal
+
+from pydantic import Field
+
+from app.schemas.motion_production import CriterionName, MotionModel
+
+EvidenceID = Annotated[str, Field(pattern=r"^(current|previous|source)-[0-9]{1,2}$")]
+Observation = Annotated[str, Field(min_length=1, max_length=240, pattern=r"\S")]
+
+
+class CompactCriterion(MotionModel):
+    name: CriterionName
+    status: Literal["pass", "fail", "uncertain"]
+    observation: Observation
+    evidence: tuple[EvidenceID, ...] = Field(max_length=32)
+
+
+class CompactCreativeCheck(MotionModel):
+    name: Literal["brief_alignment", "narrative_progression", "motion_role", "visual_development"]
+    status: Literal["met", "not_met", "uncertain"]
+    brief_basis: Annotated[str, Field(min_length=1, max_length=160, pattern=r"\S")]
+    observation: Observation
+    evidence: tuple[EvidenceID, ...] = Field(max_length=32)
+
+
+class CompactTemporalCheck(MotionModel):
+    name: Literal["continuity", "overlap", "reading_time", "coordination"]
+    status: Literal["pass", "fail", "uncertain"]
+    observation: Observation
+    event_ids: tuple[str, ...] = Field(max_length=3)
+    evidence: tuple[EvidenceID, ...] = Field(max_length=32)
+    issue_indices: tuple[int, ...] = Field(max_length=6)
+
+
+class CompactIssue(MotionModel):
+    severity: Literal["blocking", "major", "minor"]
+    criterion: CriterionName
+    actionable: bool = Field(strict=True)
+    evidence_id: EvidenceID
+    problem: Observation
+    correction: Annotated[str, Field(min_length=1, max_length=320, pattern=r"\S")]
+
+
+class CompactMotionReview(MotionModel):
+    verdict: Literal["adequate", "needs_revision", "reject", "insufficient_evidence"]
+    criteria: tuple[CompactCriterion, ...] = Field(min_length=7, max_length=7)
+    preferred: Literal["current", "previous", "undetermined"]
+    preference_reason: Observation
+    preference_evidence: tuple[EvidenceID, ...] = Field(max_length=32)
+    issues: tuple[CompactIssue, ...] = Field(max_length=6)
+    limitations: tuple[Observation, ...] = Field(min_length=1, max_length=4)
+    creative_checks: tuple[CompactCreativeCheck, ...] = Field(max_length=4)
+    temporal_checks: tuple[CompactTemporalCheck, ...] = Field(max_length=4)
+
+
+class LinkedCreativeCheck(CompactCreativeCheck):
+    issue_indices: tuple[Annotated[int, Field(strict=True, ge=0, le=5)], ...] = Field(
+        max_length=6,
+        description="Zero-based indices in issues explicitly supporting this not_met check. "
+        "Their current evidence is included by the service; use [] for met/uncertain.",
+    )
+
+
+class LinkedMotionReview(CompactMotionReview):
+    creative_checks: tuple[LinkedCreativeCheck, ...] = Field(max_length=4)

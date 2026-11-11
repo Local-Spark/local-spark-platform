@@ -1,5 +1,436 @@
 # Decisões vigentes e pendências
 
+## 09/11/2026 — recorte da integração do Reel qualificado localmente
+
+A implementação autorizada preserva HTML/`scene_init` e o caminho de serviços
+Python/Temporal. Pedido, render isolado, revisão condicional e versões privadas
+compõem a etapa 4; os demais formatos vêm após sua qualificação. A coleção
+`content_pieces` registra aceite da versão sem criar postagem e mantém a
+proveniência simulada visível. Selecionar uma versão anterior como melhor não
+apaga alternativas posteriores; a interface usa “atual” e “alternativa”, sem
+confundir seleção com cronologia.
+
+A crítica distingue evidências de fonte, atual e anterior; aprovação/reprovação
+de critério exige quadro da versão atual. A reserva precisa cobrir o máximo de
+saída configurado, mas ainda não prova teto total com entrada/imagens. Antes
+de ativar chamadas integradas, definir esse limite por modelo, credenciais e
+orçamento explícito. Os ensaios pagos históricos não renovam autorização.
+
+A [qualificação local](evals/qualificacao-integracao-reel-2026-11-09.md) passou
+com quatro replays, prova integrada com modelo/crítico simulados, backend
+5.353 testes/100% e web 524/100%. A configuração continua desativada por padrão.
+Isso não substitui avaliação criativa do gerador pago nem ativação comercial. [Desenho e limites](design/integracao-reel-2026-11-09.md).
+
+## 09/11/2026 — preferência humana por B e conclusão delimitada da etapa 3
+
+O titular respondeu **“B ficou melhor.”** à entrevista de motion/narrativa do
+Giz, `call_3e1d59720b1b4daabd16fcb8cfd27982`, item 0. O
+[registro humano](../.local/evals/motion-feedback-review-runs/1c758136-7530-43d8-96b7-39e4b0e44888/human-feedback.json)
+vincula a resposta aos hashes de A/B, relatório e summary, sem alterar esses
+artefatos ou a crítica. O estado automático `completed_human_pending` permanece
+como registro histórico, anterior ao feedback.
+
+A etapa 3 está concluída **no recorte demonstrado**: reparação de legibilidade
+1c e refinamento criativo Giz guiado por feedback/referência adicionais, com
+preferência humana por B. Não inferir aprovação separada de áudio, todo critério,
+todos os formatos ou benefício econômico geral. A evidência não transforma a
+revisão em descoberta autônoma de um erro do briefing original.
+
+Prosseguir à **implementação do Reel integrado (4)** e depois dos **demais
+formatos (5)**, conforme autorização já recebida. Essas entregas ainda não estão
+concluídas. Novas APIs pagas continuam sujeitas ao escopo/orçamento aplicáveis;
+esta preferência não autoriza postagem ou renova automaticamente os tetos.
+
+O CI e o QA já foram concluídos. Na entrevista operacional
+`call_9cd4f8a76acd4c8c81f68ace7f4918e1`, item 0, o titular respondeu “Sim, posso
+manter o Mac acordado”; isso não exige nem autoriza por si só repetir o CI já
+concluído. As falhas e resultados anteriores permanecem preservados.
+
+## 08/11/2026 — legibilidade do 1c reconhecida, motion não aprovado
+
+Registro anterior à resposta final do Giz em 09/11. A limitação do 1c permanece;
+a pendência humana do Giz abaixo foi encerrada pela decisão vigente acima.
+
+O titular confirmou que B tem títulos e legendas melhores e perguntou se era
+story, se deveria ter motion e por que parecia apenas vídeo com texto sobreposto.
+O [feedback integral](evals/ensaio-revisao-reel-1c-2026-11-08.md) confirma a melhora
+de legibilidade, sem aceite global, aprovação de áudio/motion ou liberação da
+integração. Não registrar a peça inteira como aceita nem calcular seu custo
+por peça aceita com base nessa confirmação parcial.
+
+O contexto original conferido especifica `reel` com cortes, transições, motion
+graphics e legendas. A entrada é ilustrativa/licenciada com voz sintética,
+não gravação de cliente. O diagnóstico da retomada é que os pequenos ajustes
+de enquadramento/fades não demonstram o acabamento criativo esperado. A crítica
+ter classificado movimento como `pass` expõe uma lacuna: presença de animação
+não comprova qualidade criativa ou atendimento ao briefing.
+
+Intensa/Dog/Luma continuam as referências de qualidade; o 1c é evidência de
+reparação específica e caso de limitação criativa, não padrão a integrar.
+O CI foi concluído em 09/11; a avaliação humana da prova criativa continua
+anterior às etapas 4/5. Esse feedback
+de legibilidade isoladamente não autorizou outro gasto; a escolha e autorização
+posteriores de Giz estão registradas abaixo.
+
+A entrevista posterior foi respondida: **“Comprovar melhora do motion primeiro
+(recomendado)”**. A etapa 3 exige prova criativa antes da integração. Giz
+(operação `15adf19d`, lote `e2bbd3aa`), antes avaliado abaixo de Intensa, é o
+candidato em análise. Não foi identificada violação inequívoca do briefing
+original: motion/desenho existem, e pedidos de tema/janela contínua são feedback
+posterior. A prova deve declarar refinamento com contexto adicional, sem
+apresentar esse resultado como descoberta de erro do pedido original.
+O [plano do Giz](evals/plano-refinamento-motion-giz-2026-11-08.md) e pacote de
+70 arquivos estão concluídos; contexto original, feedback e novas referências
+ficam separados. O percurso proposto tem até duas chamadas: refinamento e
+avaliação comparativa, sem crítica paga inicial para repetir feedback conhecido.
+Protótipo/contrato implementados e replay real qualificado: 336 quadros/tempos
+e áudio preservados. Isso prova equivalência técnica do baseline, não ganho
+criativo. B foi inspecionada localmente no código e no artefato antes da
+comparação paga; isso não é aprovação do titular. HTML livre não garante
+invariância geral de fatos/textos por schema; as conferências do caso e a prova
+de AAC/PCM/tempos foram preservadas.
+O orçamento concreto proposto é US$ 1,25 de admissão para até duas chamadas,
+com reservas de US$ 0,75/US$ 0,25 e folga US$ 0,25. Em 09/11, o titular
+respondeu “Autorizar até US$ 1,25 para a prova Giz”. `authorization.json` vincula
+a decisão ao plano, qualificação e pedido; o plano proposto original permanece
+intacto. As duas chamadas foram concluídas, sem retry/incerteza ou reparo manual.
+A crítica preferiu v1 e considerou os três requisitos atendidos; áudio ficou
+incerto. Estimativa incremental US$ 0,6482575, comprometimento US$ 1,0138475
+dentro do teto. [Resultado e comparação](evals/ensaio-refinamento-motion-giz-2026-11-09.md).
+QA do relatório aprovado; comparação aberta e entrevista humana enviada com
+link explícito. Resposta/aceite pendentes. A avaliação é de refinamento com
+feedback/contexto posterior, sem provar autocrítica do
+pedido inicial. A decisão humana continua pendente; nenhuma integração foi iniciada. O CI
+foi concluído em 09/11 com 5.043 testes aprovados e dois pulados inicialmente,
+completados separadamente após ajuste de PATH, cobertura app 100% e verificações
+do laboratório aprovadas. Isso não substitui aceite criativo nem qualifica
+durabilidade de produção: opções de durabilidade foram desligadas apenas no
+PostgreSQL descartável do CI.
+
+## 08/11/2026 — testar correção do Reel histórico com defeito conhecido
+
+Após Dog/Luma receberem críticas v2 `adequate` sem refação, o titular escolheu
+em entrevista: **“Testar a correção do Reel antigo com problema conhecido”**.
+A escolha mantém a prova antes da integração; não aceita antecipadamente seguir
+com ganho não demonstrado. O [plano 1c](evals/plano-revisao-reel-1c-2026-11-08.md)
+usa a primeira montagem histórica com tipografia pequena, preservando as dez
+normalizações anteriores e distinguindo a variante manual posterior.
+
+A origem tem direção declarativa, não HTML/JS. Sua ponte está implementada,
+com qualificação completa aprovada e pacote offline ampliado de 56 para 69
+arquivos para incluir custos históricos.
+O manifesto anterior permanece preservado. A falha de unidades já foi corrigida no
+schema atual; testar reparação desse caso não atribui ao crítico a melhoria do
+briefing já realizada nem demonstra benefício criativo geral. Avaliação humana
+continua necessária. Depois da qualificação, o titular autorizou em entrevista
+própria **US$ 1,25 para até três chamadas e envio à OpenAI**. O registro privado
+`authorization.json` vincula decisão, plano, primeiro pedido e qualificação.
+A autorização é específica do 1c; não transfere o orçamento de Intensa/Dog/Luma.
+A execução paga concluiu três chamadas e gerou v1; a crítica final preferiu v1
+pela legibilidade, com estimativa incremental de US$ 0,527685. O [resultado](evals/ensaio-revisao-reel-1c-2026-11-08.md)
+é evidência automatizada específica. O feedback posterior acima confirmou a
+melhora tipográfica, mas não a qualidade global. A integração continua
+condicionada à avaliação criativa e à validação técnica; ganho global e retorno
+financeiro geral não foram demonstrados.
+
+## 08/11/2026 — roteiro recuperado, retomada e piloto por autoatendimento
+
+O titular forneceu o texto original dos [sete processos](design/execucao-ate-etapa-7-2026-11-07.md)
+e autorizou alinhar a documentação, resolver pendências técnicas e concluir a
+prova da etapa 3 antes da integração do Reel (4); depois, implementar os outros
+formatos (5). Comparação real e avaliação humana continuam anteriores à
+integração. Cada formato exige qualificação própria; não converter limite de
+correções em obrigação de gerar nem considerar a última versão a melhor.
+
+A confirmação de 07/11 permanece: etapa 7 é preparar o piloto e a operação
+comercial. A entrevista foi respondida: não há participantes reais definidos e
+o modelo escolhido é **autoatendimento com cobrança**. Usar os quatro cenários
+fictícios documentados para validação inicial; não registrá-los como clientes.
+Patrocínio de seis meses não é concedido automaticamente. Preço/franquias
+continuam dependentes de medição (P05), e P03 não foi revogado.
+
+WhatsApp oficial é necessário para a jornada real. Publicação no Instagram
+fica após geração, revisão e download, sem bloquear esse piloto. A aprovação
+da peça é independente de postagem. O backlog após os sete itens é proposta a
+priorizar pelos resultados do piloto, sem novo escopo fechado. O trabalho
+atual preserva autorização, identidades e reservas do ensaio Intensa/Dog/Luma;
+resultado incerto continua sem retry. Outras rodadas pagas precisam de orçamento
+específico. Dúvidas serão tratadas em entrevista e os avanços comunicados.
+
+## 06/11/2026 — ciclo de revisão em Python/API
+
+O titular priorizou ensaiar revisão iterativa de Reel em Python/APIs: gerar,
+renderizar, inspecionar, corrigir e renderizar, sem servidor Claude Code ou
+agentes hospedados. Usar composição inicial histórica comum aos braços,
+crítica por versão, até duas correções e julgamento humano, preservando as
+versões anteriores. Não presumir que a última seja melhor. Isso substitui a
+prioridade exclusiva anterior do clipe pessoal, cuja avaliação ainda está
+pendente. Não habilita produção. Para Intensa/Dog/Luma o titular autorizou até
+15 chamadas e US$ 6,75 em reservas, com envio de quadros/contexto/código à
+OpenAI; áudio técnico conserva mix/trilha, com escuta humana explícita. Outras
+rodadas exigem orçamento e materiais autorizados. O
+[desenho](design/ciclo-revisao-motion-2026-11-06.md) distingue a decisão do
+trabalho ainda não implementado e da integração posterior.
+
+## 06/11/2026 — uma frente: peça musical pessoal
+
+Priorizar o arquivo fornecido pelo titular, mantendo a performance/áudio e
+adicionando narrativa visual ligada à letra. Brabo/Higgsfield são frentes
+adiadas, não dependências da peça. Consentimento de fixtures não autoriza envio
+da voz/quadros pessoais; apresentar plano de três chamadas e orçamento novo.
+Modo pessoal separado não altera guardas sintéticas ou habilita produção geral.
+[Plano](evals/plano-clipe-musical-pessoal-2026-11-06.md).
+Titular autorizou três chamadas e envio do áudio/quadros pessoais e derivados,
+apoios licenciados e código local/MIT, até US$ 1,60 adicionais, sem refação
+automática. Não inclui Higgsfield, TTS ou geração paga de imagens/vídeos.
+Peça entregue com fonte pessoal e apoios licenciados; direção recebeu revisão
+escrita para evitar motion restrito às bordas. Composição final executada sem
+alteração visual; áudio original preservado. Aceite criativo continua humano.
+[Resultado](evals/ensaio-clipe-musical-pessoal-2026-11-06.md).
+
+## 06/11/2026 — step 1 com foco de marca e experiência
+
+Para Dog/Luma, titular confirmou foco de marca/experiência sem preços, com
+material ilustrativo e sem afirmar trabalho real dos negócios. Intensa orienta
+o nível; direção/kit continuam próprios. Dois clipes individuais Pexels podem
+ser usados para edição pontual por inferência conforme revisão fundamentada
+do §5/§8/FAQ; não há coleta em escala ou desenvolvimento/treinamento de modelo.
+Não é liberação irrestrita nem autorização para reenviar Papel incerto. O novo
+[plano](evals/plano-motion-outros-negocios-2026-11-06.md) foi autorizado: duas
+chamadas/envio dos pacotes, até US$ 1,50 adicionais, sem refação automática.
+Foram entregues os dois Reels, estimativa US$ 0,5906725. Dog teve tradução
+estrita de IDs de áudio e render offline, sem modificar o visual ou repetir
+geração paga. Resposta/falha originais preservadas. Titular gostou bastante e
+declarou que mantiveram o nível da Intensa; duração curta considerada boa.
+Mesma música apontada como possível problema: os pacotes só ofereciam uma
+trilha obrigatória. Seleção automática entre faixas licenciadas adequadas é
+pendência a qualificar. Titular confirmou: IA escolhe conforme negócio e peça,
+varia entre pedidos e pode repetir em séries/campanhas com continuidade. Não
+exige música inédita em toda peça. Seleção/histórico seguem pendentes de implementação.
+[Resultado](evals/ensaio-motion-outros-negocios-2026-11-06.md).
+
+## 06/11/2026 — feedback positivo e sequência de validação
+
+O titular gostou bastante da versão intensa e, após comparar a diversidade,
+declarou-a a melhor até agora, sem adoção universal. Autorizou seguir a sequência: linguagens distintas no mesmo
+material, outros negócios fictícios, story e carrossel, preparando a integração
+posterior. Para Dog em Casa e Estúdio da Luma escolheu vídeos ilustrativos
+licenciados; não simular que fotos sejam gravações. Manter origem e limites de
+uso explícitos, inclusive antes de enviar material ao provedor.
+
+Conservar o caminho qualificado com versões, inputs/outputs, código efetivamente
+executado, custos e avaliação humana. Não reduzir a integração a um contrato que
+apague os mecanismos aceitos. [Registro](evals/motion-registro-de-validacao.md).
+Após a preparação, o titular autorizou três chamadas e o envio do pacote,
+até US$ 2,25 adicionais, sem refação automática. Duas peças concluídas; Papel
+incerto sem resposta/custo salvos, sem retry. Cartaz bem avaliado; Giz menos
+convincente pela falta de mudanças de tema e transições no formato do vídeo.
+Levar o nível da Intensa aos outros negócios, depois story/carrossel;
+não repetir Giz/Papel automaticamente. [Resultado](evals/ensaio-motion-diversidade-2026-11-06.md).
+Não confundir preparação, qualidade, integração e backup remoto.
+
+## 06/11/2026 — rodada intensa autorizada e entregue
+
+O titular autorizou uma chamada/envio do pacote intenso, até US$ 0,75 adicionais,
+sem refação automática. A peça foi entregue com comparação ao v2 mínimo e à
+rodada anterior. Não presumir aceite criativo, estilo padrão ou renovação de
+verba para outras tentativas. [Resultado](evals/ensaio-motion-intenso-2026-11-06.md).
+
+## 06/11/2026 — explorar intensidade sem transformar preferência em regra
+
+O titular gostou um pouco mais da peça `276486e3` e mantém a preferência pelo
+v2. O pedido de uma versão “exagerada”, com motion mais robusta, abre um ensaio
+exploratório; não constitui rejeição da peça nem adoção dessa intensidade para
+todos os negócios. Mudanças verde/creme, letras invertidas e o ponto compõem o
+feedback a considerar. V2 continua piso de qualidade, sem obrigar cópia.
+Revisão criativa permanece no resultado final, sem renovação automática de verba.
+[Plano da rodada](evals/plano-motion-intenso-2026-11-06.md).
+
+## 06/11/2026 — rodada adicional pela biblioteca autorizada e entregue
+
+O titular autorizou uma chamada e envio do pacote preparado, até US$ 0,75
+adicionais, sem refação automática. O ensaio entregou nova peça e comparação
+com v2 mínimo/rodada anterior. Isso não autoriza nova geração nem constitui
+aceite criativo ou declaração de superioridade.
+[Resultado](evals/ensaio-motion-biblioteca-2026-11-06.md).
+
+## 06/11/2026 — v2 mínimo, sem reprodução da composição
+
+O titular esclareceu: “a ideia não é copiar v2 aprovado. ela é uma versão minima
+aceita”. Usar os bons exemplos da biblioteca para uma evolução própria e manter
+a demonstração comparativa em HTML da rodada anterior. Isso substitui qualquer
+interpretação de preservar o layout/storyboard v2 como base obrigatória; suas
+qualidades orientam o piso, sem estilo universal. Revisão humana segue somente
+no resultado final. [Plano](evals/plano-motion-biblioteca-2026-11-06.md).
+
+## 06/11/2026 — preferência pelo mecanismo do Reel v2
+
+O titular esclareceu que a peça nova não ficou ruim, mas esperava evolução
+maior. Prefere transformação contínua da janela horizontal/vertical, formas
+geométricas e pontos nas transições do v2. Isso orienta este benchmark, sem
+fixar o mesmo estilo para todos os negócios. Mais fontes e execução fiel
+não equivalem a ganho criativo aprovado. O feedback não autoriza nova rodada.
+[Evidências](evals/ensaio-motion-comando-2026-11-06.md).
+
+## 06/11/2026 — retomada explícita após reposição de saldo
+
+O titular informou “ja adicionei mais creditos. pode tentar novamente”. A
+rejeição 429 anterior permaneceu intacta; a retomada criou nova identidade,
+vinculou a evidência de rejeição e usou teto de US$ 0,75 para esta tentativa,
+sem retries automáticos. O Reel foi gerado e entregue para avaliação final,
+com código recebido preservado e sem ajuste manual. Isso não é aceite criativo
+nem renovação automática de orçamento para novas amostras.
+[Registro](evals/ensaio-motion-comando-2026-11-06.md).
+
+## 06/11/2026 — comando único e revisão criativa somente no final
+
+O titular escolheu expressamente “Sim, gerar o MP4 e avaliar só no final” para
+o ensaio rápido. Essa decisão substitui os portões intermediários de cards e
+frames da skill `claude-video` neste modo. Encadear etapas num comando não
+significa uma única chamada para qualquer material: a primeira fixture
+reaproveita Jev/transcrição e solicita uma composição completa. Orçamento
+explícito, resposta bruta, identidade, reserva e ausência de retries permanecem.
+Os resultados continuam sujeitos à avaliação criativa humana final.
+[Uso](evals/como-executar-ensaio-motion.md).
+
+## 06/11/2026 — orçamento e envio autorizados; cards aguardam aceite
+
+O titular autorizou duas chamadas com teto de **US$ 1,50 adicionais** e,
+explicitamente, o envio do pacote local a `api.openai.com/v1/responses`.
+Duas rejeições anteriores da revisão automática ocorreram antes de iniciar
+o processo, sem envio ou gasto. A primeira chamada concluiu; cinco cards foram
+capturados. A segunda continua condicionada ao aceite desses cards e não foi
+executada. Não há vídeo novo. [Registro e resultados](evals/plano-retomada-qualidade-motion-2026-11-06.md).
+
+## 06/11/2026 — retomar somente a qualidade criativa
+
+O titular priorizou um ensaio fiel e expressivo antes da integração, com o v2
+como patamar mínimo. A sequência proposta começa por um Reel, com a mesma
+mídia/kit. Levar a referência
+concreta e reutilizar código permitido dos projetos selecionados, preservando
+origem e intervenções. A escolha de componentes/estilo continua automática e
+coerente com cada pedido; o v2 não vira estilo universal. WhatsApp/Instagram
+ficam fora desta prova. Na preparação do [novo plano](evals/plano-retomada-qualidade-motion-2026-11-06.md),
+ainda não havia autorização nem execução de nova chamada; a autorização posterior
+está registrada acima.
+
+O repositório próprio informado recebeu apenas o snapshot local selecionado,
+com licenças MIT preservadas, sem commit/push. A importação não comprova sua
+privacidade remota, backup ou direitos de dependências/fontes externas.
+
+## 06/11/2026 — rodada 1c rejeitada; referência v2 permanece
+
+O titular rejeitou a qualidade criativa de todos os formatos 1c: Reel e story
+simples demais, carrossel sem movimento perceptível. A preferência pelo Reel v2
+anterior permanece; não considerar os derivados 1c aprovados por terem sido
+renderizados. Investigar e explicar a regressão antes de promover essa direção
+na integração. O feedback não autoriza chamadas pagas adicionais.
+
+## 06/11/2026 — separar derivação técnica de aceitação da direção
+
+As três direções da rodada 1c completaram no provedor, mas foram rejeitadas pelo
+contrato local. Correções de montagem ficam em cópias derivadas com cada patch
+registrado; não reclassificam o resultado pago, devolvem reservas ou aprovam a
+peça. O ajuste de tipografia do Reel é intervenção visual explícita, distinta
+das correções técnicas. A versão do contrato e seus validadores permanecem;
+esclarecer suas regras no schema/instruções após encerrar a rodada, com testes.
+O esclarecimento não constitui correção automática nem prova de confiabilidade
+do modelo. Novas chamadas pagas exigem plano e orçamento próprios.
+
+## 06/11/2026 — retomada após rejeição do Reel autorizada
+
+Após o bloqueio da revisão automática, o titular autorizou explicitamente
+retomar somente as duas direções ainda não enviadas: story e carrossel.
+A autorização permite prosseguir apesar da condição de parada após a rejeição
+do Reel, sem repeti-lo e sem refações pagas. Reserva adicional US$ 1,00;
+comprometimento planejado global US$ 1,55; teto global mantido em US$ 1,60.
+Grant, rejeição e reservas anteriores permanecem preservados, com registro
+separado da autorização de retomada.
+
+## 06/11/2026 — continuação motion 1c autorizada
+
+O titular autorizou as sete novas chamadas do [plano 1c](evals/plano-motion-v0-rodada-1c-2026-11-05.md):
+três interpretações Jev (incluindo nova interpretação do Reel corrigido), uma
+transcrição e três direções. O teto global permanece US$ 1,60; a reserva anterior
+de US$ 0,01 é preservada, com limite próprio de US$ 1,59 e reservas planejadas
+de US$ 1,54 para a continuação. Sem refação automática. A rodada 1b permanece
+encerrada; esta autorização não reclassifica sua resposta nem autoriza postagem.
+
+## 05/11/2026 — rodada motion 1b autorizada
+
+O titular autorizou a [rodada 1b](evals/plano-motion-v0-rodada-1b-2026-11-05.md):
+três interpretações Jev, uma transcrição e três direções, com reserva planejada
+de US$ 1,54 e teto operacional de US$ 1,60. Sem refação automática. A autorização
+é específica dessas sete operações; não autoriza publicação ou novas tentativas.
+
+## 05/11/2026 — proporção do carrossel confirmada
+
+O titular escolheu **4:5 vertical** como padrão inicial de todos os MP4s de uma
+sequência de carrossel. Reel e story em vídeo permanecem em **9:16**. Isso não
+altera os limites de 3–5 páginas/5–8 segundos nem antecipa homologação de postagem.
+
+## 05/11/2026 — base técnica de Reel com animações nativas aprovada
+
+O titular confirmou que podemos avançar com a base do
+[Reel adaptado sem GSAP](evals/ensaio-reel-waapi-2026-11-05.md), após receber
+o MP4 e a comparação com o v2. A confirmação vale para esse ensaio: não torna
+o estilo universal, não conclui o renderer integrado e não autoriza chamadas
+pagas ou publicação. Prosseguir com composição parametrizada, escolha de
+direção por pedido e empacotamento/isolamento próprios.
+
+## 05/11/2026 — limite de entrada confirmado na implementação
+
+O titular confirmou o teto de **50 MiB (52.428.800 bytes)** por gravação,
+além dos 60 segundos já definidos. Se qualquer limite for excedido, explicar
+o limite e pedir uma versão menor; **não cortar automaticamente** a gravação.
+Essa decisão fecha a pendência de tamanho e comportamento de excesso registrada
+abaixo. Preservação do original e retenção seguem C04/C09.
+
+## 05/11/2026 — geração primeiro; postagem em fase posterior
+
+O titular reviu a exigência de publicação integrada nesta entrega. Primeiro,
+concluir a geração das peças finais de imagem, Reel, story em vídeo e carrossel
+com motion, incluindo prévia, ajustes, aprovação da peça e download. Só depois
+tratar a viabilidade e o fluxo de integração de postagem no Instagram.
+
+Esta decisão substitui o requisito anterior de publicação para concluir a fase
+atual de geração. Conta Meta, homologação da API e postagem real não são critérios
+de saída dessa fase. A integração de postagem permanece como trabalho futuro,
+sem alegar que está entregue. Aprovar a peça final não autoriza publicação:
+C11 continua exigindo aprovação específica antes de qualquer postagem futura.
+Os demais limites e escolhas da entrevista abaixo permanecem vigentes.
+
+## 05/11/2026 — entrevista de escopo da v0 de conteúdo
+
+- A edição de vídeo recebe inicialmente **uma gravação do cliente por pedido**,
+  com **até 60 segundos de material bruto**. O vídeo final também terá no máximo
+  60 segundos. O teto de entrada é 50 MiB; excesso pede versão menor sem corte
+  automático, conforme confirmação acima. Isso não limita imagens do carrossel.
+- **Entrega atual: geração, revisão, ajustes, aprovação da peça e download**
+  de imagens feed/story, Reel, story em vídeo e carrossel com motion. A exigência
+  anterior de publicação integrada foi substituída pela decisão acima; a
+  viabilidade e a integração de postagem ficam para uma fase posterior.
+- O carrossel tem **de 3 a 5 páginas, cada MP4 com 5 a 8 segundos**; a IA escolhe
+  quantidade e duração nessa faixa conforme o pedido. Validar legibilidade,
+  movimento, arquivos finais e custo sem alterar os limites silenciosamente.
+- Ao ajustar uma página, **preservar as demais**. Se o ajuste exigir mudanças
+  nelas, pedir confirmação antes de aplicar; depois, apresentar a nova versão
+  completa para revisão e aprovação da peça. Confirmar o alcance do ajuste ou
+  aceitar a peça não aprova publicação futura, que continua sujeita a C11.
+- O estilo de motion é escolhido **a cada pedido**, conforme objetivo, material
+  e referências, preservando o kit. A v0 guarda snapshots por peça e não fixa uma
+  preferência de estilo por negócio com base nas peças aprovadas.
+- Preços, franquias e limites comerciais de refação seguem P05, após medição de
+  qualidade e custo; não fixar quantidades por inferência.
+- O titular autorizou criar um repositório privado próprio no GitHub para as
+  fontes adotadas, quando necessário, informando nome e link depois da criação.
+  Licenças, atribuições e direitos por material devem ser verificados; nenhum
+  repositório de preservação foi criado até este registro.
+
+Essas são decisões de produto a implementar, não capacidades já entregues.
+Aplicam-se as regras de retenção C04/C09 e o adiamento de encerramento P03;
+não reabrir essas escolhas como se fossem indefinidas.
+
 O titular quer evitar dependência da permanência de repositórios de terceiros. O plano prevê cópias e backups próprios das fontes e dependências permitidas, além do empacotamento do runtime; não afirma que esses backups já existem.
 
 O titular esclareceu que quer **reutilização concreta** dos projetos abertos, além de pesquisa. O plano passa a prever incorporar e adaptar materiais permitidos, com origem, versão e licença; a integração continua pendente.
@@ -12,7 +443,10 @@ sem exigir escolha do cliente. O [plano proposto](design/plano-v0-imagens-video-
 detalha a separação entre fontes externas de pesquisa, skills próprias, catálogo
 interno, contexto privado e motor candidato, além de fatias e gates. A análise
 atual de perfis não mede ritmo, cortes ou áudio; inferência e observação precisam
-ser diferenciadas. Duração de entrada, cotas e publicação seguem por validar.
+ser diferenciadas. A entrevista acima definiu uma gravação de até 60 segundos
+por pedido. O titular priorizou concluir geração, revisão, ajustes e download,
+deixando viabilidade e integração de postagem para a fase seguinte; cotas seguem
+pendentes, enquanto 50 MiB e reenvio sem corte foram confirmados acima.
 
 ## 05/11/2026 — avaliação de motion com modelos reais
 
@@ -35,7 +469,7 @@ O titular rejeitou as primeiras prévias e pediu repetir pelo procedimento de en
 
 O [ensaio direto](evals/ensaio-video-motion-2026-11-04.md) preparou uma prévia de vídeo e três páginas animadas para revisão do titular, sem chamadas pagas. Não constitui decisão sobre aprovação visual ou provedor de produção.
 
-O titular esclareceu que deseja decisões criativas de edição e motion por IA; FFmpeg pode ser usado para montar os arquivos. Quer avaliar vídeo de feed/Reel, story em vídeo e carrossel com um MP4 em loop por página, preservando kit, acervo e referências. Escolheu até 60 segundos por vídeo final na primeira versão e testes separados de vídeo gravado e carrossel; limites de entrada, custos e planos ainda não foram escolhidos. Vídeo gerado e avatar continuam sujeitos a decisões futuras. Ver [estudo](design/estudo-video-motion-2026-11-04.md).
+O titular esclareceu que deseja decisões criativas de edição e motion por IA; FFmpeg pode ser usado para montar os arquivos. Quer avaliar vídeo de feed/Reel, story em vídeo e carrossel com um MP4 em loop por página, preservando kit, acervo e referências. Escolheu até 60 segundos por vídeo final na primeira versão e testes separados de vídeo gravado e carrossel. A entrevista posterior de 05/11 definiu uma gravação de até 60 segundos de entrada por pedido; tamanho em bytes, custos e planos continuam pendentes. Vídeo gerado e avatar continuam sujeitos a decisões futuras. Ver [estudo](design/estudo-video-motion-2026-11-04.md).
 
 ## 04/11/2026 — procedimento para próximos ensaios criativos
 
@@ -45,9 +479,9 @@ sistema completo apenas para essa avaliação. O [procedimento](design/ensaios-r
 preserva autorização, custos, identidade e limites. Essa decisão não altera os
 requisitos para testar integração, segurança, bancos ou CI.
 
-Ensaio direto BL04.3 realizado em dois pares; revisão do titular pendente. Os resultados e a limitação da tentativa editorial estão no [relatório](evals/bl043-reference-quality-2026-11-04.md).
+Ensaio direto BL04.3 realizado em dois pares; o titular preferiu as peças com referências, com revisão completa e aceite final ainda pendentes. Os resultados e a limitação da tentativa editorial estão no [relatório](evals/bl043-reference-quality-2026-11-04.md).
 
-O titular esclareceu que a comparação BL04.3 deve ser direta e rápida: simular mensagem WhatsApp, registrar interpretação Jev e as entradas/saídas editoriais e visuais, sem exigir percurso integral pelo sistema. Manter o teto de US$ 2 em reservas e preservar operações incertas. [Plano](evals/bl043-reference-quality-2026-11-04.md).
+O titular esclareceu que a comparação BL04.3 deve ser direta e rápida: simular mensagem WhatsApp, registrar interpretação Jev e as entradas/saídas editoriais e visuais, sem exigir percurso integral pelo sistema. O teto de US$ 2 em reservas aplicou-se àquela rodada; novas rodadas exigem orçamento próprio, preservando operações incertas anteriores. [Plano](evals/bl043-reference-quality-2026-11-04.md).
 
 ## 04/11/2026 — escolhas para preparar a avaliação BL04.3
 
@@ -130,7 +564,7 @@ e fornecedor ainda devem ser avaliados; uso de referências não autoriza cópia
 | C09 | Preservar as prévias geradas sem expiração automática enquanto a conta estiver ativa. | Prévias concluídas saem do purge por prazo; propostas, roteiro e snapshots referenciados são conservados e a revisão histórica usa links privados. Tentativas visuais iniciadas sem resultado resolvido também são preservadas. `expires_at` continua delimitando criação/aprovação, sem apagar a concluída. URL assinada e validade factual mantêm prazos próprios. Sem exclusão automática após encerramento nesta etapa. |
 | C10 | Se quem iniciou uma alteração perder acesso, somente a equipe da plataforma pode resolver a pendência, com ação registrada. | Outro owner já não pode substituir nem descartar a pendência do autor original. **Implementação da recuperação staff adiada pelo proprietário em 29/10/2026**, para evolução de gestão de acesso/suporte; não bloqueia o fechamento da fatia simulada validada. Até lá, a pendência excepcional permanece bloqueada. A proposta de novas permissões não foi aprovada; manter autoria, RLS e auditoria existentes. |
 | C11 | Publicação exige aprovação explícita da versão, arquivo/hash, legenda, destino e horário aplicáveis. | Revisão/publicação simuladas locais. Escolher kit, confirmar fato, aceitar o serviço ou permanecer em silêncio não aprova publicação. Meta/Instagram reais pendentes. |
-| C12 | Foto e story são os formatos da oferta inicial. Vídeo e suas franquias/preço serão definidos depois; avatar/voz sintética ficam após o primeiro piloto comercial. | Regra inicial de formatos no código; não há franquia comercial final nem qualidade homologada. R$ 99/mês e teto total de R$ 50/cliente/mês orientam medição. |
+| C12 | A oferta inicial implementada admite foto e story. O escopo de desenvolvimento da v0 foi ampliado em 05/11 para vídeo do cliente em Reel/story e carrossel com motion. A entrega atual conclui as peças finais; viabilidade e integração de postagem ficam para fase posterior. Franquias e preço de vídeo seguem P05; avatar/voz sintética ficam após o primeiro piloto comercial. | O código ainda limita os formatos iniciais; isso não reduz o novo escopo da v0 nem habilita os formatos novos. Não há franquia comercial final nem qualidade homologada. R$ 99/mês e teto total de R$ 50/cliente/mês orientam medição. |
 | C13 | Provar a primeira peça personalizada antes de ampliar nichos; fechar BL04, depois a jornada/ajuste/proatividade BL05. | BL01/BL02 e BL03.1/BL03.2 locais; BL04 em implementação. BL03.3, BL06, pesquisa ampla, avatar e expansão multicanal têm etapas próprias. |
 | C14 | Priorizar a qualidade da geração e estudar skills reutilizáveis para orientar as peças antes de avançar na jornada completa. Começar por feed e story e avaliar o resultado com o contexto e os materiais de cada negócio. | A skill do formato entra no briefing editorial e na peça integral, versionada por ID/hash; validação de qualidade real e seleção completa no WhatsApp ainda pendentes. O gate BL04.3 permanece. |
 | C15 | Após o trabalho inicial de skills, desenvolver pesquisa de referências que combine indicações do cliente com descoberta automática de negócios semelhantes em destaque. Usar referências para orientar a criação sem copiar conteúdo ou identidade de terceiros. | Indicação manual e snapshot implementados localmente. A descoberta automática, a relevância e as métricas ainda precisam ser implementadas e avaliadas; uma indicação do cliente não substitui a descoberta. O titular confirmou a possibilidade de armazenar a nota própria e a associação dos perfis do Apify, e escolheu Jev para avaliar candidatos, não como fonte de dados. |

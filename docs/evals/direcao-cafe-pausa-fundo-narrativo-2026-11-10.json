@@ -1,0 +1,167 @@
+{
+  "version": "scene-direction-v1",
+  "scenes": [
+    {
+      "scene_id": "tempo",
+      "brief_basis": "Texto editorial autorizado: O tempo de um café. A unidade em foco é tempo. Não há transcrição alinhada; o movimento responde ao texto da tela, preservando o áudio original.",
+      "visual_representation": "Um marcador circular de tempo, sem números ou contagem factual, cria um percurso em cobre. O marcador percorre esse traço enquanto tempo ganha ênfase; a seta terminal conduz ao foco café da próxima cena.",
+      "composition": "Gravação dominante em contain, moldura verde/cobre, respiro papel e sombra da etapa 1. Fundo com base papel e plano verde atrás da janela, acompanhado por faixa cobre subordinada. Área opaca papel protege a leitura verde da frase. Conferir borda/padding e escala máxima. A passagem anterior cobre vídeo e moldura rumo ao motion pleno.",
+      "narrative_action": "Gravação entra, assenta e aproxima como na etapa 1. O fundo prepara espaço atrás da janela; repousa para observar o preparo. O marcador percorre a seta, e o plano verde se expande para entregar atenção a café. Cobertura gráfica leva ao motion pleno. Mesmo vídeo, seek absoluto e áudio contínuos.",
+      "attention_order": [
+        "tempo-texto",
+        "tempo-marcador",
+        "tempo-percurso",
+        "tempo-video"
+      ],
+      "elements": [
+        {
+          "element_id": "tempo-video",
+          "depicts": "Mesmo nó de assets/source.mp4 em tempo absoluto, duração/ordem e áudio preservados. A visibilidade muda conforme a composição da cena; sem novo take, reinício ou duplicação.",
+          "appearance": "Moldura de referência: borda verde 2 px, filete cobre 1 px, padding papel 12 px, raio externo 24 px e sombra verde suave; ajustar à escala do quadro. Mídia em contain e decoração em wrapper próprio. Aproximar o conjunto uniformemente, sem cortar mãos/rosto/produto; conferir a área externa no maior tamanho. Borda estável durante a observação.",
+          "construction": "authorized_asset"
+        },
+        {
+          "element_id": "tempo-texto",
+          "depicts": "O tempo de um café., com foco inicial em tempo.",
+          "appearance": "Fontes do kit. Texto completo legível, verde sobre papel, destaque cobre restrito à unidade em foco. Máscaras não cortam acentos ou descendentes.",
+          "construction": "code"
+        },
+        {
+          "element_id": "tempo-marcador",
+          "depicts": "Marcador gráfico de tempo, sem prometer duração de preparo.",
+          "appearance": "Anel aberto e ponteiro/ponto com espessuras finas deliberadas, tamanhos proporcionais e pivô correto. Sem relógio de brinquedo, carinha, números ou quique.",
+          "construction": "code"
+        },
+        {
+          "element_id": "tempo-percurso",
+          "depicts": "Traço e seta que ligam tempo à próxima ideia: café.",
+          "appearance": "Percurso cobre com origem/destino visíveis, ponta de seta proporcional. Desenho progressivo e marcador acompanhando o traço; não faz tracking da gravação.",
+          "construction": "code"
+        },
+        {
+          "element_id": "tempo-fundo",
+          "depicts": "Planos do kit que sustentam a gravação e preparam a passagem de tempo para café.",
+          "appearance": "Base papel opaca, campo verde e faixa cobre discreta em profundidades distintas. Área de leitura papel permanece opaca e estável sob texto verde. Plano atrás da moldura abre espaço e participa da cobertura final; sem textura pulsante ou formas cruzando glifos.",
+          "construction": "code"
+        }
+      ]
+    },
+    {
+      "scene_id": "cafe",
+      "brief_basis": "A gravação evidencia o preparo. Café é o segundo foco da frase editorial. A xícara desenhada é conceitual, não fotografia do produto nem afirmação de ingrediente.",
+      "visual_representation": "O percurso anterior chega a uma xícara gráfica composta por corpo, borda, alça e líquido. Café ganha ênfase quando o líquido sobe dentro da xícara; uma linha de vapor nasce do conteúdo e conduz ao convite.",
+      "composition": "Motion em tela inteira, sem miniatura de vídeo. Campo verde recebido da cena anterior enquadra uma área papel para xícara e leitura; detalhe cobre dá continuidade à seta. Xícara em escala dominante e texto café legível. Fundo e objeto têm movimentos distintos, com repouso durante o preenchimento. Áudio e seek continuam.",
+      "narrative_action": "O plano recebido abre área papel para a xícara, e a seta entrega a atenção. Corpo, borda e alça assentam; líquido sobe como na etapa anterior. Fundo repousa durante os estados vazio, preenchimento e cheio. O vapor alonga-se e conduz a abertura dos planos para o retorno da gravação, sem tracking da gota real.",
+      "attention_order": [
+        "cafe-percurso",
+        "cafe-xicara",
+        "cafe-liquido",
+        "cafe-texto",
+        "cafe-vapor"
+      ],
+      "elements": [
+        {
+          "element_id": "cafe-video",
+          "depicts": "Mesmo nó de assets/source.mp4 em tempo absoluto, duração/ordem e áudio preservados. A visibilidade muda conforme a composição da cena; sem novo take, reinício ou duplicação.",
+          "appearance": "Quando visível, proporção original/contain e ação legível. Na cena café fica totalmente oculto por composição gráfica deliberada, mantendo seek. Retorno na cena pausa mostra o instante corrente, sem faixa residual.",
+          "construction": "authorized_asset"
+        },
+        {
+          "element_id": "cafe-texto",
+          "depicts": "Continuação de O tempo de um café., agora com foco em café.",
+          "appearance": "Mesmas fontes e alinhamento lógico da frase. Transferir ênfase de tempo para café, sem repetir uma cartela inteira ou animar cada preposição.",
+          "construction": "code"
+        },
+        {
+          "element_id": "cafe-percurso",
+          "depicts": "Continuação do traço/seta da cena tempo, chegando à xícara.",
+          "appearance": "Mesma identidade visual e continuidade espacial; não apagar e redesenhar uma seta desconectada. Cabeça e traço têm hierarquia subordinada à xícara.",
+          "construction": "code"
+        },
+        {
+          "element_id": "cafe-xicara",
+          "depicts": "Xícara conceitual composta por corpo cerâmico, borda elíptica e alça.",
+          "appearance": "Silhueta adulta, proporções consistentes, borda delicada e alça conectada atrás do corpo. Preenchimento papel, sombra verde sutil e detalhe cobre do kit. Volume contido; não apenas outline grosso ou desenho infantil.",
+          "construction": "code"
+        },
+        {
+          "element_id": "cafe-liquido",
+          "depicts": "Líquido ilustrado que preenche a xícara conceitual.",
+          "appearance": "Plano cobre com superfície elíptica e máscara dentro do corpo; não vaza pela borda/alça. A mudança de nível deve ser visível, sem afirmar relação exata com o conteúdo do vídeo.",
+          "construction": "code"
+        },
+        {
+          "element_id": "cafe-vapor",
+          "depicts": "Linha de vapor estilizada que conecta café ao convite seguinte.",
+          "appearance": "Traço fino orgânico, origem na abertura da xícara. Alongamento fluido com amplitude contida, sem caricatura, nuvem ou novo SFX.",
+          "construction": "code"
+        },
+        {
+          "element_id": "cafe-fundo",
+          "depicts": "Continuação do campo verde que estabelece a cena gráfica e abre a área de atenção da xícara.",
+          "appearance": "Campo verde, área papel opaca com profundidade discreta atrás de xícara/texto e detalhe cobre subordinado. Herdar posição visual do plano anterior; não apagar tudo entre cenas. Abertura e recolhimento coordenados; área de leitura estável no preenchimento. Sem novo asset ou alteração do desenho da xícara.",
+          "construction": "code"
+        }
+      ]
+    },
+    {
+      "scene_id": "pausa",
+      "brief_basis": "Texto editorial autorizado: Que tal uma pausa? Assinatura Café Pausa e CTA Saiba mais. Pausa é uma metáfora gráfica, não comando para interromper a gravação.",
+      "visual_representation": "O vapor e o percurso desaceleram e abrem espaço em torno de pausa. Um pequeno símbolo de duas barras reforça a ideia; a xícara permanece como resultado da ação anterior, junto do convite.",
+      "composition": "Retorno da gravação no instante corrente, com escala distinta, moldura verde/cobre e sombra da etapa 1. Planos de fundo recebidos se afastam: verde organiza a margem e papel sustenta convite/CTA com contraste constante. Vídeo em contain e áreas próprias para texto/ação. Assinatura conclui em composição estável.",
+      "narrative_action": "Vapor conduz o afastamento dos planos e a volta da gravação com assentamento, sem reiniciar. A aproximação suave do conjunto entrega atenção ao convite. Fundo reduz movimento antes da leitura de pausa e permanece estável na assinatura. Preservar moldura, áudio original e repouso para observar a ação.",
+      "attention_order": [
+        "pausa-vapor",
+        "pausa-texto",
+        "pausa-simbolo",
+        "pausa-assinatura",
+        "pausa-xicara",
+        "pausa-video"
+      ],
+      "elements": [
+        {
+          "element_id": "pausa-video",
+          "depicts": "Mesmo nó de assets/source.mp4 em tempo absoluto, duração/ordem e áudio preservados. A visibilidade muda conforme a composição da cena; sem novo take, reinício ou duplicação.",
+          "appearance": "Moldura de referência: borda verde 2 px, filete cobre 1 px, padding papel 12 px, raio externo 24 px e sombra verde suave; ajustar à escala do quadro. Mídia em contain e decoração em wrapper próprio. Aproximar o conjunto uniformemente, sem cortar mãos/rosto/produto; conferir a área externa no maior tamanho. Borda estável durante a observação.",
+          "construction": "authorized_asset"
+        },
+        {
+          "element_id": "pausa-vapor",
+          "depicts": "Continuidade do vapor/percurso que agora conduz ao convite.",
+          "appearance": "Mesma linha da cena café, suavizada e desacelerada. Pode passar a organizar a margem do convite; não cobre texto, rosto ou mãos.",
+          "construction": "code"
+        },
+        {
+          "element_id": "pausa-texto",
+          "depicts": "Que tal uma pausa?",
+          "appearance": "Tipografia do kit com pausa dominante. A ação gráfica prepara espaço para a frase completa; leitura estável no fechamento, sem distorcer letras.",
+          "construction": "code"
+        },
+        {
+          "element_id": "pausa-simbolo",
+          "depicts": "Duas barras como símbolo conceitual de pausa.",
+          "appearance": "Pequeno grafismo verde/cobre junto da palavra, sem aparência de botão funcional ou indicador de playback. Abertura do espaço coordena-se com a palavra; sem quique.",
+          "construction": "code"
+        },
+        {
+          "element_id": "pausa-xicara",
+          "depicts": "A mesma xícara conceitual preenchida da cena café, agora em repouso.",
+          "appearance": "Preservar desenho, partes e nível do líquido; reduzir escala de modo contínuo e subordinado ao convite. Não adicionar prato, utensílios ou personagens sem função.",
+          "construction": "code"
+        },
+        {
+          "element_id": "pausa-assinatura",
+          "depicts": "Café Pausa — Saiba mais",
+          "appearance": "Assinatura textual e CTA nas fontes do kit. Sem inventar logo, oferta, preço ou destino; entram depois do convite estar legível.",
+          "construction": "code"
+        },
+        {
+          "element_id": "pausa-fundo",
+          "depicts": "Planos herdados do motion que devolvem espaço à gravação e ao convite.",
+          "appearance": "Verde recolhido para margem, papel opaco na área de leitura e detalhe cobre em repouso. Passagem contínua com a área da xícara; não trocar somente a cor global. Fundo atrás da moldura; nenhum plano cruza o CTA durante sua leitura, nem expõe preto/transparência nas bordas.",
+          "construction": "code"
+        }
+      ]
+    }
+  ]
+}

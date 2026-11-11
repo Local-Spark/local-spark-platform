@@ -72,13 +72,40 @@ async def test_implicit_advertising_request_has_explicit_criteria_without_promot
 
 @pytest.mark.asyncio
 async def test_no_match_is_never_promoted_to_a_product():
+    def handler(request):
+        request_data = json.loads(request.content)
+        assert set(request_data["questions"]) == {"intent", "format"}
+        assert json.loads(request_data["state"])["candidates"] == []
+        body = response_body(0)
+        del body["answers"]["offering"]
+        return httpx.Response(200, json=body)
+
     provider = JevIntentProvider(
         SecretStr("key"),
         "jev-1.14.0",
-        transport=httpx.MockTransport(lambda request: httpx.Response(200, json=response_body(0))),
+        transport=httpx.MockTransport(handler),
     )
     result = await provider.interpret("Quero divulgar algo", [], ["photo", "story"], uuid4())
     assert result.decision == "none" and result.offering_id is None
+    assert result.intent == "content_request" and result.format == "photo"
+
+
+@pytest.mark.parametrize("uncertain_field", ["intent", "format"])
+async def test_no_candidates_keeps_motion_intent_and_format_uncertainty(uncertain_field):
+    eligible = ["photo", "story", "reel"]
+    body = response_body(0)
+    del body["answers"]["offering"]
+    body["answers"]["format"] = answer("reel", set(eligible) | {"unspecified", "unsupported"})
+    body["answers"][uncertain_field]["confidence"] = 0.1
+
+    def handler(request):
+        assert "offering" not in json.loads(request.content)["questions"]
+        return httpx.Response(200, json=body)
+
+    provider = JevIntentProvider(SecretStr("key"), "jev-1.14.0", transport=httpx.MockTransport(handler))
+    result = await provider.interpret("Faça um reel", [], eligible, uuid4())
+    assert result.decision == "clarify" and result.offering_id is None and result.format is None
+    assert result.intent == ("other" if uncertain_field == "intent" else "content_request")
 
 
 @pytest.mark.asyncio
@@ -196,4 +223,96 @@ async def test_video_word_fails_closed_even_when_model_misclassifies_format(cand
         transport=httpx.MockTransport(lambda _: httpx.Response(200, json=response_body())),
     )
     result = await provider.interpret("Crie um vídeo do Dog", [candidate], ["photo", "story"], uuid4())
+    assert result.decision == "clarify" and result.format is None
+
+
+@pytest.mark.parametrize(
+    "message,format",
+    [
+        ("Edite um reel do Dog", "reel"),
+        ("Edite minha gravação para story", "story_video"),
+        ("Faça um story animado", "story_video"),
+        ("Crie um carrossel animado do Dog", "carousel_motion"),
+        ("Crie um carrossel do Dog", "carousel_motion"),
+        ("Carrossel animado com fotos", "carousel_motion"),
+        ("Faça carrossel com as fotos que enviei", "carousel_motion"),
+        ("Faça carrossel animado sem vídeo", "carousel_motion"),
+        ("Crie um carrossel em vídeo", "carousel_motion"),
+        ("Edite o vídeo como reel", "reel"),
+        ("Faça um reel com a gravação para divulgar nos stories", "reel"),
+        ("Faça reel sem música", "reel"),
+        ("Faça vídeo", "story_video"),
+        ("Quero uma peça em movimento", "reel"),
+    ],
+)
+async def test_motion_format_available_only_when_explicitly_eligible(candidate, message, format):
+    eligible = ["photo", "story", format]
+
+    def handler(request):
+        body = json.loads(request.content)
+        criteria = body["questions"]["format"]["criteria"]
+        assert "evidência suficiente" in body["questions"]["format"]["instructions"]
+        assert set(criteria) == set(eligible) | {"unspecified", "unsupported"}
+        assert "indisponível" not in criteria["unsupported"] or "opções" in criteria["unsupported"]
+        assert "estática" in criteria["story"] and "vídeo" in criteria[format].lower()
+        result = response_body()
+        result["answers"]["format"] = answer(format, set(criteria))
+        return httpx.Response(200, json=result)
+
+    provider = JevIntentProvider(SecretStr("key"), "jev-1.14.0", transport=httpx.MockTransport(handler))
+    result = await provider.interpret(message, [candidate], eligible, uuid4())
+    assert result.decision == "selected" and result.format == format
+
+
+@pytest.mark.parametrize(
+    "message,chosen",
+    [
+        ("Faça vídeo", "photo"),
+        ("Faça vídeo para story", "story"),
+        ("Faça vídeo para story", "unspecified"),
+        ("Faça um story animado", "story"),
+        ("Faça carrossel animado", "photo"),
+        ("Quero foto", "unsupported"),
+    ],
+)
+async def test_motion_requests_do_not_fall_through_to_static_format(candidate, message, chosen):
+    eligible = ["photo", "story", "reel", "story_video", "carousel_motion"]
+    body = response_body()
+    body["answers"]["format"] = answer(chosen, set(eligible) | {"unspecified", "unsupported"})
+    provider = JevIntentProvider(
+        SecretStr("key"), "jev-1.14.0", transport=httpx.MockTransport(lambda _: httpx.Response(200, json=body))
+    )
+    result = await provider.interpret(message, [candidate], eligible, uuid4())
+    assert result.decision == "clarify" and result.offering_id is None and result.format is None
+
+
+@pytest.mark.parametrize("message", ["Faça um reel", "Faça um story em vídeo", "Faça carrossel animado"])
+async def test_default_formats_still_refuse_motion_even_if_model_returns_story(candidate, message):
+    body = response_body()
+    body["answers"]["format"] = answer("story", {"photo", "story", "unspecified", "unsupported"})
+    provider = JevIntentProvider(
+        SecretStr("key"), "jev-1.14.0", transport=httpx.MockTransport(lambda _: httpx.Response(200, json=body))
+    )
+    result = await provider.interpret(message, [candidate], ["photo", "story"], uuid4())
+    assert result.decision == "clarify" and result.format is None
+
+
+async def test_provider_cannot_select_motion_format_outside_eligible_formats(candidate):
+    body = response_body()
+    body["answers"]["format"] = answer("reel", {"photo", "story", "reel", "unspecified", "unsupported"})
+    provider = JevIntentProvider(
+        SecretStr("key"), "jev-1.14.0", transport=httpx.MockTransport(lambda _: httpx.Response(200, json=body))
+    )
+    with pytest.raises(JevIntentError, match="JEV_RESULT_UNCERTAIN"):
+        await provider.interpret("Faça um reel", [candidate], ["photo", "story"], uuid4())
+
+
+async def test_uncertain_motion_format_is_not_silently_treated_as_unspecified(candidate):
+    eligible = ["photo", "story", "reel"]
+    body = response_body()
+    body["answers"]["format"] = answer("reel", set(eligible) | {"unspecified", "unsupported"}, confidence=0.1)
+    provider = JevIntentProvider(
+        SecretStr("key"), "jev-1.14.0", transport=httpx.MockTransport(lambda _: httpx.Response(200, json=body))
+    )
+    result = await provider.interpret("Faça reel", [candidate], eligible, uuid4())
     assert result.decision == "clarify" and result.format is None

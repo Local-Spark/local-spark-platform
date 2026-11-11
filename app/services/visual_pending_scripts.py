@@ -93,7 +93,7 @@ async def apply_pending_script_changes(
             )
             await VisualConsentGate._lock(session, tenant, business, actor)
             if await session.scalar(
-                text("""SELECT 1 FROM visual_consent_runs WHERE tenant_id=:tenant AND business_id=:business
+                text("""SELECT 1 FROM creative_active_runs WHERE tenant_id=:tenant AND business_id=:business
                   AND state='in_flight' LIMIT 1"""),
                 params,
             ):

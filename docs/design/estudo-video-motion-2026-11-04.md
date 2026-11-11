@@ -1,5 +1,15 @@
 # Estudo: vídeos e carrosséis com movimento — 04/11/2026
 
+**Registro histórico de estudo.** As decisões posteriores de 05/11 estão em
+[DECISIONS](../DECISIONS.md): uma gravação por pedido de edição, até 60 segundos
+de entrada e saída; carrossel com 3–5 páginas de 5–8 segundos; estilo escolhido
+a cada pedido; preservação das demais páginas ao ajustar uma delas, com
+confirmação prévia para alterá-las. A revisão posterior de prioridades separou
+a entrega das peças finais da viabilidade e integração de postagem no Instagram,
+que ficam para depois. Pendências abaixo refletem o momento do estudo e não
+reabrem essas decisões. Implementação e validação da geração seguem pendentes;
+homologação de postagem não bloqueia esta entrega.
+
 Este é um estudo de produto e de referências técnicas, não uma capacidade já
 implementada ou homologada. O titular deseja criar publicações com movimento a
 partir do material do negócio, incluindo vídeos gravados pelo cliente e

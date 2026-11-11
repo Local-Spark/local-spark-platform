@@ -107,6 +107,7 @@ class OpenAIEditorialProvider:
                 "Nunca inclua IDs, UUIDs, nomes internos de campos ou observações de bastidores nesses textos. "
                 "Coloque instruções de fotografia, composição e tipografia apenas em creative_brief; "
                 "registre dúvidas e pendências em questions, sem copiá-las para a legenda ou a peça. "
+                "Instruções para revisar ou aprovar a peça antes de publicar não são texto para o público. "
                 "Use o canal de ação somente quando estiver confirmado em preferences.cta_destination; "
                 "sem canal confirmado, use uma chamada neutra sem citar destino específico. "
                 "Uma imagem não é um botão: não prometa clique, link ou sticker no feed ou story "

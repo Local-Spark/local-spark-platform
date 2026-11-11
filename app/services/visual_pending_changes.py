@@ -120,7 +120,7 @@ class VisualPendingChanges:
             )
             await VisualConsentGate._audit(session, tenant, business, actor, "visual.change_superseded")
         count = await session.scalar(
-            text("""SELECT count(*) FROM visual_consent_runs
+            text("""SELECT count(*) FROM creative_active_runs
           WHERE tenant_id=:tenant AND business_id=:business AND state='in_flight'"""),
             params,
         )
@@ -147,7 +147,7 @@ class VisualPendingChanges:
 
         params = {"tenant": tenant, "business": business}
         active = await session.scalar(
-            text("""SELECT count(*) FROM visual_consent_runs
+            text("""SELECT count(*) FROM creative_active_runs
           WHERE tenant_id=:tenant AND business_id=:business AND state='in_flight'"""),
             params,
         )

@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "status": "hipotese_local_nao_homologada",
+  "formats": [
+    "reel",
+    "story_video",
+    "carousel_motion"
+  ],
+  "format_constraints": {
+    "video_recordings_per_order_max": 1,
+    "video_input_max_ms": 60000,
+    "video_output_max_ms": 60000,
+    "carousel_pages_min": 3,
+    "carousel_pages_max": 5,
+    "carousel_page_min_ms": 5000,
+    "carousel_page_max_ms": 8000,
+    "reel_story_aspect_ratio": "9:16",
+    "carousel_aspect_ratio": "4:5"
+  },
+  "global_rules": [
+    "O kit autorizado determina identidade, cores e fontes; adaptar a base ao kit, não o contrário.",
+    "Escolher a cada pedido com base na solicitação, objetivo, contexto, material e referências disponíveis; não inferir o estilo apenas do setor nem fixar preferência por negócio.",
+    "Padrões editoriais e visuais derivados de imagens são observações parciais: não comprovam movimento, transições, som ou ritmo.",
+    "Sem sinais de estilo, a base neutra é hipótese inicial, não substitui solicitar fatos ou gravação essenciais.",
+    "Use somente afirmações confirmadas, fontes de mídia autorizadas e os limites do formato; sem conteúdo ou marca de terceiros.",
+    "Áudio e legenda dependem do material e da direção: preservar o sentido da fala; não alegar sincronização sem evidência.",
+    "Valores de grade e tempo desta ficha são faixas de hipótese, não template, obrigação de cortes ou métricas de qualidade.",
+    "Para uma página de carrossel, planejar início e fim e revisar perceptivamente a emenda sem prometer loop infinito."
+  ],
+  "current_visual_subset": {
+    "layer_kinds": [
+      "video",
+      "image",
+      "text",
+      "rectangle",
+      "circle"
+    ],
+    "keyframes": [
+      "x",
+      "y",
+      "width",
+      "height",
+      "scale",
+      "opacity",
+      "rotation",
+      "clip_insets"
+    ],
+    "easing": [
+      "linear",
+      "ease_in",
+      "ease_out",
+      "ease_in_out"
+    ],
+    "media_fit": [
+      "cover",
+      "contain"
+    ],
+    "transitions": [
+      "cut",
+      "fade"
+    ],
+    "font": "font_id e peso aprovados pelo snapshot de kit; sem fonte externa",
+    "layers_max": 64,
+    "keyframes_per_layer_max": 32
+  },
+  "execution_restrictions": [
+    "O executor visual experimental não mistura áudio nem altera velocidade de vídeo; não ocultar ou descartar esses requisitos.",
+    "Uma direção que exija áudio, preservação de fala ou velocidade variável requer executor apropriado ainda não entregue; falhar com estado explícito.",
+    "HTML, CSS, JavaScript, comandos, caminhos e URLs não são saída executável do modelo.",
+    "Nenhum dado desta ficha substitui validação de direitos, recursos, isolamento, revisão humana, legibilidade ou qualidade da mídia final."
+  ],
+  "id": "editorial-janela-v1",
+  "name": "Editorial em janela",
+  "hypothesis": "Material em destaque com respiros e movimentos de janela controlados.",
+  "justification": "Útil quando a leitura de gestos ou detalhes do material pede espaço e uma narrativa próxima; pode se adaptar a diferentes tons, não é regra por segmento.",
+  "abilities": [
+    "recortes e enquadramento focal",
+    "revelação por insets retangulares",
+    "tipografia em camadas",
+    "movimentos graduais de posição, escala e opacidade",
+    "cortes e fades independentes",
+    "continuidade visual de página"
+  ],
+  "grid_hypothesis": {
+    "columns_min": 3,
+    "columns_max": 6,
+    "outer_margin_bp_min": 500,
+    "outer_margin_bp_max": 1200,
+    "visual_window_width_bp_min": 4500,
+    "visual_window_width_bp_max": 9000,
+    "text_weight": "hierarquia conforme kit e conteúdo"
+  },
+  "timing_hypothesis_ms": {
+    "entry_min": 350,
+    "entry_max": 900,
+    "hold_min": 1200,
+    "hold_max": 4000,
+    "transition_min": 180,
+    "transition_max": 800,
+    "note": "não encurtar fala ou leitura para cumprir faixas hipotéticas"
+  },
+  "limitations": [
+    "O foco pode se mover com crop e posição, sem pressupor tracking automático.",
+    "Não imitar composição ou paleta do Reel v2 se o pedido/kit apontar outra direção."
+  ],
+  "sources": [
+    {
+      "type": "projeto_proprio_ensaio",
+      "ref": "docs/evals/ensaio-motion-referencia-2026-11-05.md",
+      "contribution": "Reel v2 é direção da avaliação anterior; janela e recortes são hipóteses de composição, não norma universal."
+    },
+    {
+      "type": "adaptacao_de_orientacoes_mit",
+      "path": "referencias/movimento.md",
+      "sha256": "a915b0451cf8d00426932a13451dd867b8140ebab25c9bc6b78a1e867e8952a1",
+      "contribution": "consideração de tempo de leitura e movimento com pausas, adaptada sem impor medidas rígidas."
+    }
+  ]
+}

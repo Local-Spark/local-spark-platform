@@ -50,6 +50,7 @@ class VisualRequest:
     output_format: str
     request_id: UUID
     references: tuple[VisualReference, ...] = field(default=(), repr=False)
+    background: str | None = None
 
 
 @dataclass(frozen=True)
@@ -130,6 +131,10 @@ def _validate(request: VisualRequest) -> tuple[int, int]:
         or height > width * 3
     ):
         raise VisualAIError("VISUAL_INVALID_SETTINGS")
+    if request.background not in {None, "transparent", "opaque", "auto"} or (
+        request.background == "transparent" and request.output_format not in {"png", "webp"}
+    ):
+        raise VisualAIError("VISUAL_INVALID_SETTINGS")
     if len(request.references) > 5:
         raise VisualAIError("VISUAL_INVALID_REFERENCE")
     for reference in request.references:
@@ -149,6 +154,7 @@ def visual_request_http_parts(request: VisualRequest) -> tuple[str, dict[str, An
         "size": request.size,
         "output_format": request.output_format,
         "n": 1,
+        **({"background": request.background} if request.background is not None else {}),
     }
 
 

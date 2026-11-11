@@ -1,9 +1,16 @@
 # F07 — Franquias, assinatura e relatórios
 
-Status: Parcial; contratação mínima antecipada na F01.5. Atualizado em 28/10/2026.
+Status: Parcial; contratação mínima antecipada na F01.5. Atualizado em 08/11/2026.
 Dependências: F00, F01; integra F03–F06.
 
 ## Estado local e decisões correntes
+
+O piloto será por **autoatendimento com cobrança**, conforme entrevista já
+respondida. Ainda não há participantes reais definidos. A etapa 7 do
+[roteiro de trabalho](../design/execucao-ate-etapa-7-2026-11-07.md) prepara essa
+operação; preço/franquias dependem do custo completo por peça aceita, e o
+sandbox não comprova contratação comercial pronta. Instagram não é condição
+desse piloto de geração, revisão e download.
 
 Checkout/webhook Stripe sandbox, pagamento de teste confirmado, reconciliação
 por evento e patrocínio local existem. Billing segue por organização, agora
@@ -17,11 +24,14 @@ inclusive teto agregado mensal OpenAI no ledger visual. Isso não completa quota
 comercial, tarifa versionada, custo faturado ou margem. Não criar novo agregado
 como se `0049` ainda não existisse; integrá-lo à admissão visual na BL04.
 
-Se o plano vencer durante criação já iniciada, a decisão aprovada é concluir e
-liberar revisão privada, bloqueando novas criações/publicação até renovar. O
-comportamento ainda precisa ser aplicado aos gates atuais. Preservar prévias
-sem TTL com conta ativa também está aprovado e não implementado. A assinatura
-não se renova por uma sugestão de IA nem por terminar um trabalho iniciado.
+C08/C09 estão entregues no recorte local `visual_fake`/`visual_ai`: uma criação
+admitida pode concluir e permitir revisão privada após vencimento financeiro;
+prévias concluídas, proveniência e tentativas sem resultado resolvido são
+preservadas sem limpeza automática por prazo. Novas criações/publicação exigem
+plano vigente; bloqueio financeiro explícito e perda de acesso não são simples
+vencimento. O renderer legado e a futura integração motion ainda precisam dessa
+extensão. Ver [limites da BL04](BL04-context-and-ai-production.md). A assinatura
+não se renova por sugestão de IA ou por terminar trabalho já admitido.
 
 ## Objetivo
 
@@ -30,8 +40,8 @@ Controlar direito de uso, custo real e continuidade comercial com resultados obs
 O [contrato de cadência e evidência](../design/editorial-planning-and-evidence.md)
 define que cada plano tenha teto mensal por formato/canal e limite de revisões;
 F03 sugere uma cadência dentro da franquia. Valores e volumes finais dependem
-do custo por peça aceita medido na BL04, respeitando a meta de até R$ 50 de
-custo mensal para o plano de entrada de R$ 99. Exceder o plano exige upgrade
+do custo por peça aceita medido na BL04. R$ 99/mês e custo total desejado de
+até R$ 50/cliente/mês são hipóteses de medição, não preço/franquia aprovados. Exceder o plano exige upgrade
 com preço e aceite explícitos; uma sugestão da IA nunca gera cobrança.
 
 ## Features e contratos

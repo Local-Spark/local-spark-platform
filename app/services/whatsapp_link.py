@@ -85,7 +85,7 @@ class WhatsAppLinkService:
             if await VisualPendingChanges.has_pending_in_session(session, tenant, business):
                 raise AuthError("SERVICE_AGREEMENT_CHANGE_PENDING", 409)
             if await session.scalar(
-                text("""SELECT 1 FROM visual_consent_runs
+                text("""SELECT 1 FROM creative_active_runs
               WHERE tenant_id=:tenant AND business_id=:business AND state='in_flight' LIMIT 1"""),
                 params,
             ):

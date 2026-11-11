@@ -23,22 +23,25 @@ def jev_handler(request):
     state = json.loads(data["state"])
     case = next(item for item in evals.cases() if item["message"] == state["message"])
     intent, decision, fmt = case["expected"]
-    choices = data["questions"]["offering"]["criteria"]
     formats = data["questions"]["format"]["criteria"]
     item_name = case.get("expected_candidate") or (case["candidates"][0]["name"] if decision == "selected" else None)
     index = next((i for i, candidate in enumerate(case["candidates"]) if candidate["name"] == item_name), None)
     offering = f"item_{index}" if index is not None else "clarify"
     format_choice = "unsupported" if case["id"] == "video" else (fmt or "unspecified")
+    answers = {
+        "intent": choice(intent, data["questions"]["intent"]["criteria"]),
+        "format": choice(format_choice, formats),
+    }
+    if case["candidates"]:
+        answers["offering"] = choice(offering, data["questions"]["offering"]["criteria"])
+    else:
+        assert "offering" not in data["questions"]
     return httpx.Response(
         200,
         json={
             "model": evals.JEV_MODEL,
             "usage": {"input_tokens": 100, "output_tokens": 10},
-            "answers": {
-                "intent": choice(intent, data["questions"]["intent"]["criteria"]),
-                "offering": choice(offering, choices),
-                "format": choice(format_choice, formats),
-            },
+            "answers": answers,
         },
     )
 

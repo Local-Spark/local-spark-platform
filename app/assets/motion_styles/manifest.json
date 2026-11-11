@@ -1,0 +1,68 @@
+{
+  "schema_version": "motion-style-catalog-review-v1",
+  "status": "review_only_not_integrated",
+  "description": "Três fichas de hipótese, escolhidas por modelo em cada pedido; sem classificação por segmento ou preferência persistida.",
+  "styles": [
+    {
+      "id": "editorial-janela-v1",
+      "version": 1,
+      "name": "Editorial em janela",
+      "path": "editorial-janela-v1.json",
+      "sha256": "a1a3769d35495d08722ecfd7bd981a2ba3646105705c0e43377624ae9f48ab1f"
+    },
+    {
+      "id": "tipografia-em-ritmo-v1",
+      "version": 1,
+      "name": "Tipografia em ritmo",
+      "path": "tipografia-em-ritmo-v1.json",
+      "sha256": "1bcbd0d526dd90426335cc1b488c7615ade85bda5d2a421f0a491fb1bce71156"
+    },
+    {
+      "id": "clareza-neutra-v1",
+      "version": 1,
+      "name": "Clareza neutra",
+      "path": "clareza-neutra-v1.json",
+      "sha256": "b47d7256db13b32ce7f9e236196aee60cc14a7576b4c7efd07225291712d1391"
+    }
+  ],
+  "upstream": {
+    "repository": "https://github.com/Felpborges/claude-video",
+    "reported_commit": "ee3dc316759ae266effab49f55c1221c64028081",
+    "evidence": "manifesto parcial vendor/motion_sources/claude-video/manifest.json; commit relatado, sem checkout local Git",
+    "license": "MIT",
+    "notices": [
+      "claude-video-LICENSE",
+      "claude-video-LICENSE-original.txt"
+    ],
+    "original_files": [
+      {
+        "path": "referencias/movimento.md",
+        "sha256": "a915b0451cf8d00426932a13451dd867b8140ebab25c9bc6b78a1e867e8952a1"
+      },
+      {
+        "path": "referencias/loops.md",
+        "sha256": "5bdaaa370cf9bf17ce0643022d30d3409b120d902119baf931d75ca6d5cb141e"
+      },
+      {
+        "path": "estilos/cartaz-gritado/ESTILO.md",
+        "sha256": "c495db2a4295c0fb7424fa3508f807f178ca4634b8ccbd99136fc950d4300632"
+      },
+      {
+        "path": "estilos/cartaz-risografia/ESTILO.md",
+        "sha256": "48adf1a128cfb45ac98fd497461d51c70ef40bac5bbed86d3430198a65536500"
+      }
+    ]
+  },
+  "external_assets_copied": false,
+  "images_fonts_music_or_gallery_copied": false,
+  "not_implemented": [
+    "automatic_selection",
+    "durable_snapshot",
+    "catalog_service",
+    "audio_renderer",
+    "variable_playback",
+    "secure_render",
+    "creative_validation"
+  ],
+  "hash_definition": "SHA-256 dos bytes UTF-8 exatos do arquivo de cada ficha; o manifesto não é autoassinado"
+}

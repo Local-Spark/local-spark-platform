@@ -103,6 +103,33 @@ class Settings(BaseSettings):
     visual_ai_reservation_usd_micros: int = Field(default=0, ge=0, le=1_000_000_000_000)
     visual_ai_monthly_budget_usd_micros: int = Field(default=0, ge=0, le=1_000_000_000_000)
     visual_ai_global_monthly_budget_usd_micros: int = Field(default=0, ge=0, le=1_000_000_000_000)
+    # Qualification is deliberately limited to explicitly configured synthetic inputs.
+    # Existing image/service agreements do not authorize production video processing.
+    motion_ai_mode: Literal["disabled", "fake", "openai"] = "disabled"
+    motion_execution_enabled: bool = False
+    motion_local_qualification_business_id: UUID | None = None
+    motion_local_qualification_asset_ids: tuple[UUID, ...] = ()
+    motion_ai_model: str = ""
+    motion_ai_max_output_tokens: int = Field(default=16000, ge=1024, le=64000)
+    motion_ai_input_usd_micros_per_million_tokens: int = Field(default=0, ge=0)
+    motion_ai_output_usd_micros_per_million_tokens: int = Field(default=0, ge=0)
+    motion_ai_reservation_usd_micros: int = Field(default=0, ge=0, le=1_000_000_000_000)
+    motion_request_budget_usd_micros: int = Field(default=0, ge=0, le=1_000_000_000_000)
+    motion_speech_mode: Literal["disabled", "local"] = "disabled"
+    motion_speech_model_directory: str = ""
+    motion_speech_model_sha256: str = ""
+    motion_speech_language: str = Field(default="pt", pattern=r"^[a-z]{2,3}$")
+    motion_speech_threads: int = Field(default=2, ge=1, le=4)
+    motion_speech_timeout_seconds: int = Field(default=180, ge=10, le=300)
+    motion_storyboard_enabled: bool = False
+    motion_illustrations_enabled: bool = False
+    motion_illustration_reservation_usd_micros: int = Field(default=0, ge=0, le=1_000_000_000_000)
+    motion_illustration_budget_usd_micros: int = Field(default=0, ge=0, le=1_000_000_000_000)
+    motion_max_corrections: int = Field(default=1, ge=0, le=2)
+    motion_renderer_image: str = ""
+    motion_renderer_docker_executable: str = ""
+    motion_renderer_docker_socket: str = ""
+    motion_renderer_scratch_directory: str = ""
     jwt_secret: SecretStr = Field(min_length=32)
     jwt_issuer: str = "meu-braco-direito-local"
     jwt_audience: str = "meu-braco-direito-api"
@@ -337,6 +364,34 @@ class Settings(BaseSettings):
             and self.reference_feed_tariff_version
             and self.reference_feed_credential_version
             and self.reference_feed_reserved_usd_micros > 0
+        )
+
+    def motion_execution_ready(self) -> bool:
+        return bool(
+            self.motion_execution_enabled
+            and self.environment in {"development", "testing"}
+            and self.motion_ai_mode in {"fake", "openai"}
+            and self.motion_local_qualification_business_id
+            and self.motion_local_qualification_asset_ids
+            and self.meta_encryption_key
+            and self.correlator_database_url
+            and self.motion_renderer_image
+            and self.motion_renderer_docker_executable
+            and self.motion_renderer_docker_socket
+            and self.material_storage_bucket
+            and self.motion_ai_reservation_usd_micros > 0
+            and self.motion_request_budget_usd_micros >= 2 * self.motion_ai_reservation_usd_micros
+            and self.visual_ai_monthly_budget_usd_micros > 0
+            and (
+                self.motion_ai_mode == "fake"
+                or (
+                    self.openai_api_key
+                    and self.motion_ai_model
+                    and self.motion_ai_input_usd_micros_per_million_tokens > 0
+                    and self.motion_ai_output_usd_micros_per_million_tokens > 0
+                    and self.visual_ai_global_monthly_budget_usd_micros > 0
+                )
+            )
         )
 
     def visual_execution_ready(self) -> bool:

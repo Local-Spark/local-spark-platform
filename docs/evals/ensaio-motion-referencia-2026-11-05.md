@@ -62,5 +62,7 @@ continua pendente, assim como infraestrutura e trabalho não medidos.
 
 Os arquivos têm áudio e foram decodificados; imagens e legendas foram
 inspecionadas. Não houve audição perceptiva, teste de compatibilidade com o
-Instagram ou prova de loop contínuo. Falta revisão do titular. Esta rodada não
-demonstra edição de uma fala humana real nem geração automática no produto.
+Instagram ou prova de loop contínuo. A preferência do titular pelo Reel v2 está
+registrada acima; revisão completa de som/movimento e aprovação de publicação
+continuam pendentes. Esta rodada não demonstra edição de uma fala humana real
+nem geração automática no produto.

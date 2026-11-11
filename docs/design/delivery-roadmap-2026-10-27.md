@@ -5,6 +5,28 @@ Atualizado em 29/10/2026. Complementa o [índice](../phases/README.md) e a
 BL01–BL06 ordenam o produto. As duas numerações não são projetos concorrentes.
 “Concluído localmente” não significa homologação, qualidade ou operação comercial.
 
+## Precedência do roteiro confirmado em 08/11/2026
+
+A sequência vigente é o [roteiro de sete processos](execucao-ate-etapa-7-2026-11-07.md),
+recuperado e confirmado pelo titular. Ele exige prova comparativa antes de
+integrar o Reel, seguida dos outros formatos, jornada WhatsApp e preparação do
+piloto por autoatendimento com cobrança. Ainda não há participantes reais
+escolhidos. O preço/franquias dependem de medição, não de valores deste histórico.
+
+A tabela de oito passos abaixo conserva o plano de 29/10. A exigência então
+prevista de Instagram antes do piloto e a modalidade acompanhada foram
+superadas: WhatsApp oficial pertence à jornada real, enquanto postagem
+Instagram é posterior ao piloto de geração, revisão e download. Seu backlog de
+expansão é referência a priorizar, não uma sequência posterior já aprovada.
+
+## Marco local de 09/11/2026
+
+A [qualificação técnica do Reel](../evals/qualificacao-integracao-reel-2026-11-09.md)
+passou com quatro replays, prova integrada com modelo/crítico simulados, backend
+5.353 testes/100% e web 524/100%. Workers restaurados. Ativação comercial e
+gerador integrado pago permanecem pendentes; demais formatos (etapa 5) ainda
+não implementados. O plano abaixo conserva seu contexto histórico.
+
 ## Base disponível
 
 Identidade/auth própria, onboarding, admin, convites/MFA, cobrança sandbox,
@@ -28,7 +50,7 @@ demais gates, conectar real, validar BL04.3 e seguir BL05. Materiais WhatsApp
 associados já são duráveis (0058); isso não implementa memória geral. Ver
 [decisões](../DECISIONS.md).
 
-## Ordem até o primeiro piloto comercial
+## Ordem histórica de 29/10 até o primeiro piloto comercial
 
 | Ordem | Fase | Entrega e condição de saída |
 | --- | --- | --- |
@@ -51,7 +73,7 @@ O alvo do plano de entrada permanece R$ 99/mês com custo total máximo pretendi
 de R$ 50/cliente/mês, sujeito a comprovação. Qualidade não é substituída por
 cobertura de testes. O piloto não exige avatar do cliente (decisão P15).
 
-## Evolução até o escopo ampliado do produto
+## Backlog histórico de evolução do escopo
 
 | Ordem | Entrega | Resultado |
 | --- | --- | --- |
