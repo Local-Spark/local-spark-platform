@@ -1,5 +1,14 @@
 # Meu Braço Direito — contexto vigente
 
+**Revisão dos prints de referência — 12/11/2026.** Após ver os anexos, o titular
+rejeitou a seleção genérica. Próxima rodada deve retirar os oito prints mostrados,
+preservando histórico, evidências da gravação/base, materiais, skills e código.
+Cinco foram enviados na última geração; três adicionais só constam no rascunho.
+Ganho criativo não foi demonstrado. Critérios de seleção pertinente e distinção
+entre fontes consultadas/conteúdo anexado/capacidade integrada registrados em
+`docs/evals/ensaio-acompanhado-motion-2026-11-12.md`. Decisão documentada; alteração
+da seleção no montador ainda pendente, sem mudança de runtime ou nova geração.
+
 **Ensaio acompanhado, entrada revisada — 12/11/2026.** Montador real conferido
 sem envio: 15 quadros da fonte, 20 da base, oito referências e um preview. A
 entrevista invalidou o rascunho: cliente fala simples, peça anterior é piso de

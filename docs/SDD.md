@@ -1,5 +1,13 @@
 # SDD geral — Meu Braço Direito
 
+**Curadoria de referências revisada — 12/11/2026.** Retirar da próxima seleção
+os oito prints examinados pelo titular, mantendo pacotes históricos e as demais
+evidências/capacidades. O builder atual vincula todas as imagens do pacote por
+ID/hash; evoluir seleção/contrato sem relaxar essas guardas. Referência nova exige
+necessidade da cena, mecanismo demonstrável, evidência adequada, adaptação viável
+e verificação posterior. Decisão/limites em
+`docs/evals/ensaio-acompanhado-motion-2026-11-12.md`; implementação pendente.
+
 **Conferência da entrada acompanhada — 12/11/2026.** Captura/builder reais
 produziram pacote inspecionável sem submissão. Entrevista posterior superou o
 rascunho: mensagem natural, piso funcional sem template e seleção sonora pública

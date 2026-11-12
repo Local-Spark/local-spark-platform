@@ -1,5 +1,20 @@
 # Registro de mudanças
 
+## 2026-11-12 — decisão sobre prints e uso das fontes de motion
+
+- Registrado feedback após o titular examinar os oito prints: seleção genérica,
+  sem ganho de qualidade demonstrado. Cinco foram enviados na última geração;
+  três adicionais estavam somente no rascunho não enviado.
+- Próxima rodada deve retirar esses prints da seleção, preservando pacotes
+  históricos, quadros da fonte/base, materiais, skills, exemplos e bibliotecas.
+- Documentados critérios de pertinência/evidência/adaptação/verificação e a
+  necessidade de evoluir o montador sem relaxar associação ou hashes.
+- Esclarecido uso de snapshots/adaptações locais das skills e consulta parcial
+  às fontes; processos completos dos agentes externos não são executados.
+- Atualizados PROJECT, SDD, BL04 e o relatório
+  `docs/evals/ensaio-acompanhado-motion-2026-11-12.md`. Somente documentação;
+  runtime, seleção efetiva, assets, serviços e banco não alterados. Sem gasto/render.
+
 ## 2026-11-12 — inspeção real da preparação e correções da entrevista
 
 - Captura de contexto/mídia e payload pelos builders reais, sem admissão ou envio:

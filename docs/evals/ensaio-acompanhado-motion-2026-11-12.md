@@ -2,9 +2,74 @@
 
 Data: 12/11/2026. Continuação das fases 1–3 de preparação/revisão. Nenhuma
 chamada paga, nova geração de asset, render, criação de pedido ou alteração de
-banco nesta inspeção. HEAD continua `4adb596`; alterações staged do titular
-preservadas. Esta entrega registra a primeira fronteira do ensaio, não uma nova
+banco nesta inspeção. Na captura inicial, HEAD era `4adb596`; alterações staged
+do titular foram preservadas. Esta entrega registra a primeira fronteira do ensaio, não uma nova
 peça nem a conclusão do percurso até `awaiting_render`.
+
+## Revisão posterior — prints e uso das fontes
+
+Complemento de 12/11/2026, após o titular examinar os oito prints apresentados
+no chat. HEAD conferido: `30c6575`; working tree estava limpo antes desta mudança
+documental. Esta decisão estava na conversa/mensagem de transição e passa a
+integrar a documentação. Os registros da captura inicial abaixo são históricos.
+
+O titular considerou a seleção genérica e sem utilidade demonstrada para a
+qualidade esperada. A inspeção confirmou arquivos idênticos aos bytes dos
+respectivos payloads, distinguindo a geração executada do rascunho não enviado:
+
+| Seleção | Arquivos/IDs | Instantes aproximados | Situação |
+| --- | --- | --- | --- |
+| Explicação de trajetória/interpolação, Maestros | `021.jpg`, `022.jpg`, `023.jpg` / `maestros-trajetoria-021/022/023` | 01:20, 01:24, 01:28 | Enviados na última geração, repertório v2 |
+| Objetos orbitando a pessoa, Lucas Leite | `lucas-orbit-03.jpg`, `lucas-orbit-05.jpg` | 00:03, 00:05 | Enviados na última geração, repertório v2 |
+| Planos, luz e sombra, Maestros | `maestros-space-041.jpg`, `maestros-space-042.jpg`, `maestros-space-043.jpg` | 02:40, 02:44, 02:48 | Acrescentados no rascunho v3, ainda não enviado |
+
+Os cinco primeiros também estão no rascunho v3. São arquivos em
+`app/assets/motion_repertoire/business-reel-v2/references/` e
+`app/assets/motion_repertoire/business-reel-v3/references/`. A associação aos
+payloads comprova entrega/integridade, não aproveitamento criativo. Não houve
+comparação controlada que demonstre ganho causado por esses prints; também não
+há evidência para atribuir a eles, isoladamente, toda a regressão das peças.
+As fichas existentes descrevem mecanismos genéricos, mas não demonstram a
+transferência para as ações, transições e o acabamento esperados nesta peça.
+
+**Decisão para a próxima rodada:** retirar esses oito prints da seleção. Manter
+arquivos, hashes e pacotes históricos; esta decisão não remove quadros da
+gravação, previews dos materiais, evidências da base, skills, exemplos de código
+ou bibliotecas úteis. Não substituir os prints por outra seleção arbitrária nem
+tratar quantidade de anexos como ganho de qualidade.
+
+Cada referência futura precisa explicitar:
+
+1. A necessidade concreta da cena e o mecanismo pertinente que demonstra.
+2. A evidência disponível: quadro para composição; sequência temporal adequada
+   ou trecho para movimento. Não inferir curva, sincronismo ou escuta de prints.
+3. A adaptação viável aos materiais, kit e executor existentes, sem transformar
+   o exemplo em receita obrigatória de Café Pausa.
+4. Os limites da referência e onde sua aplicação poderá ser conferida no plano
+   e, após autorização, no resultado visual/sonoro.
+
+Ausência de evidência pertinente deve ficar explícita; não anexar imagens apenas
+para preencher um repertório. A seleção precisa passar pelo montador real. Hoje
+ele exige as imagens exatas do pacote capturado; implementar a seleção revisada
+requer evolução compatível do pacote/contrato, preservando validação de presença,
+associação e hash. **A retirada ainda não foi implementada no runtime.**
+
+A conferência também esclareceu a origem das skills: o repositório
+`../meu-braco-direito-skills` mantém a skill de Reel original (22 linhas), igual
+à cópia v1 local. O percurso HTML usa `instagram-reel-v13` (713 linhas), evoluída
+dentro da plataforma. `../meu-braco-direito-motion-sources` e extratos
+Maestro/Finalizador continuam como fontes de consulta. Seleções de orientações e
+três exemplos adaptados chegam ao modelo; os agentes/processos completos dessas
+fontes não são executados por essa chamada, que não oferece ferramentas de
+busca. Não confundir fonte disponível, conteúdo anexado, capacidade integrada e
+qualidade comprovada. Não importar tudo nem descartar os mecanismos existentes
+para resolver a curadoria.
+
+Escopo deste complemento: documentação e rastreabilidade. Sem mudança de código,
+assets, pacotes, banco ou serviços; sem chamada paga, render ou novo teste de
+qualidade. Diff e referências documentais conferidos; CI integral não foi
+executado nesta alteração exclusivamente textual. A implementação e a avaliação do efeito
+da nova seleção continuam pendentes.
 
 ## Entrada após a entrevista
 

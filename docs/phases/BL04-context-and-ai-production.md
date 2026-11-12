@@ -1,5 +1,14 @@
 # BL04 — contexto seletivo e produção visual com IA
 
+**Revisão da seleção visual — 12/11/2026.** Titular examinou os prints e
+questionou sua contribuição. Decidido retirar os oito da próxima rodada, sem
+apagar histórico, demais evidências, skills ou exemplos úteis. Não contabilizar
+anexos recebidos como melhoria criativa. Documentados arquivos/instantes,
+cinco enviados versus três somente preparados, critérios de curadoria e uso
+parcial dos repositórios de origem em
+`docs/evals/ensaio-acompanhado-motion-2026-11-12.md`. Só documentação nesta fatia;
+seleção revisada no produto e qualidade resultante ainda não implementadas/validadas.
+
 **Primeira fronteira do ensaio acompanhado — 12/11/2026.** Pacote montado pelo
 produto, não enviado, revelou direção herdada restritiva e nenhuma seleção de
 SFX. Titular corrigiu entrada técnica e uso da referência como molde; escolheu
