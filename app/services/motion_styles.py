@@ -8,6 +8,7 @@ import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, cast
 
 from app.services.auth import AuthError
 
@@ -56,13 +57,13 @@ def list_motion_styles() -> tuple[MotionStyleSnapshot, ...]:
     return tuple(resolve_motion_style(style_id, version, digest) for style_id, (version, digest) in _STYLES.items())
 
 
-def html_style_card(content: str) -> dict:
+def html_style_card(content: str) -> dict[str, Any]:
     """Project verified historical style guidance onto the HTML executor contract.
 
     The snapshot hash identifies the original fiche, not this projection. Its
     declarative-executor limits must not be presented as HTML capabilities.
     """
-    card = json.loads(content)
+    card = cast(dict[str, Any], json.loads(content))
     card.pop("current_visual_subset", None)
     card.pop("execution_restrictions", None)
     return card

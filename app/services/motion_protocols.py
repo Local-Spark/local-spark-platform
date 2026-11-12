@@ -24,6 +24,7 @@ class MotionModelRequest:
     asset_previews: tuple[tuple[str, RenderedFrame], ...] = field(default=(), repr=False)
     reference_images: tuple[RepertoireImage, ...] = field(default=(), repr=False)
     construction_plan: MotionConstructionPlan | None = field(default=None, repr=False)
+    baseline_frames: tuple[RenderedFrame, ...] = field(default=(), repr=False)
 
 
 @dataclass(frozen=True)

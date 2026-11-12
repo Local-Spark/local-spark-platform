@@ -13,7 +13,8 @@ from uuid import uuid5
 import httpx
 from pydantic import BaseModel, ValidationError
 
-from app.schemas.motion_generation import MotionImplementationOutput, MotionPlanningOutput
+from app.adapters.motion_inputs import PreparedMotionInput
+from app.schemas.motion_generation import MotionImplementationOutput, MotionImplementationOutputV4, MotionPlanningOutput
 from app.schemas.motion_production import (
     DirectedHTMLMotionComposition,
     HTMLMotionComposition,
@@ -21,8 +22,10 @@ from app.schemas.motion_production import (
     MotionReview,
     PlannedHTMLMotionComposition,
 )
+from app.services.motion_corrections import correction_enabled, correction_scope
 from app.services.motion_generation import (
     GENERATION_CONTRACT,
+    asset_informed_enabled,
     construction_plan_hash,
     decode_construction_plan,
     decode_implementation,
@@ -31,6 +34,7 @@ from app.services.motion_generation import (
     provided_output_enabled,
     staged_generation_enabled,
 )
+from app.services.motion_materials import verify_implementation_materials
 from app.services.motion_plan import requires_motion_plan, requires_scene_direction
 from app.services.motion_protocols import MotionModelRequest, MotionModelResult
 from app.services.motion_repertoire import REFERENCE_RULES, validate_repertoire_images
@@ -220,6 +224,9 @@ class OpenAIMotionProvider:
         self._output_limit = max_output_tokens
 
     def build_request(self, request: MotionModelRequest) -> dict[str, Any]:
+        from app.services.motion_preparation import evidence_bindings
+
+        bindings = evidence_bindings(request)
         validate_speech_input(request.context)
         provided_output = provided_output_enabled(request.context)
         staged = staged_generation_enabled(request.context) and request.kind == "generate"
@@ -227,6 +234,19 @@ class OpenAIMotionProvider:
             raise MotionAIError("MOTION_CONSTRUCTION_PLAN_UNEXPECTED")
         if request.construction_plan is not None:
             validate_direction_fidelity(request.construction_plan, request.context)
+            if asset_informed_enabled(request.context):
+                verify_implementation_materials(
+                    request.construction_plan,
+                    PreparedMotionInput(
+                        request.context,
+                        request.assets,
+                        request.source_frames,
+                        request.context["output"]["duration_ms"],
+                        request.context["authorized_audio"],
+                        request.asset_previews,
+                        request.reference_images,
+                    ),
+                )
         stage = "implementation" if request.construction_plan is not None else "plan"
         planned = requires_motion_plan(request.context)
         compact = compact_review_enabled(request.context)
@@ -237,6 +257,11 @@ class OpenAIMotionProvider:
             raise MotionAIError("MOTION_AI_COMPOSITION_REQUIRED")
         if request.kind == "correct" and (request.review is None or request.review.verdict != "needs_revision"):
             raise MotionAIError("MOTION_AI_CORRECTION_NOT_JUSTIFIED")
+        bounded_correction = correction_enabled(request.context)
+        if bounded_correction and request.kind == "correct":
+            assert request.composition is not None and request.review is not None
+            if request.context.get("correction_scope") != correction_scope(request.composition, request.review):
+                raise MotionAIError("MOTION_CORRECTION_SCOPE_CHANGED")
         if request.kind == "review" and not request.frames:
             raise MotionAIError("MOTION_AI_EVIDENCE_REQUIRED")
         context: dict[str, Any] = {
@@ -250,6 +275,19 @@ class OpenAIMotionProvider:
             else None,
             "critique": request.review.model_dump(mode="json") if request.review else None,
         }
+        if bindings:
+            context["preparation_evidence"] = bindings
+        if request.context.get("request", {}).get("evolution") is not None:
+            baseline = request.context.get("evolution")
+            if not baseline or not request.baseline_frames:
+                raise MotionAIError("MOTION_EVOLUTION_EVIDENCE_REQUIRED")
+            context["historical_baseline"] = {
+                **baseline,
+                "composition": {
+                    key: value for key, value in baseline["composition"].items() if key not in {"html", "scene_init"}
+                },
+            }
+            context["authorized_context"] = {key: value for key, value in request.context.items() if key != "evolution"}
         if requires_scene_direction(request.context):
             context["visual_direction_input"] = visual_input
         if staged:
@@ -314,6 +352,7 @@ class OpenAIMotionProvider:
             ("source", request.source_frames),
             ("current", request.frames),
             ("previous", request.incumbent_frames),
+            ("baseline", request.baseline_frames),
         ):
             if len(frames) > 64:
                 raise MotionAIError("MOTION_AI_EVIDENCE_TOO_LARGE")
@@ -339,6 +378,12 @@ class OpenAIMotionProvider:
                     ]
                 )
         instructions = REVIEW_RULES if request.kind == "review" else CREATIVE_RULES
+        if request.context.get("authorized_soundtrack") is not None:
+            instructions += (
+                " A trilha complementar foi escolhida pelo titular e será mixada pelo servidor. "
+                "O campo audio da resposta contém apenas authorized_audio integral, sem duplicar ou alterar a fonte. "
+                "Não alegue escuta, compatibilidade musical ou sincronismo verificados."
+            )
         if compact:
             instructions += " Os alvos de acabamento em review_contract orientam a peça; integridade não basta."
         if compact_review:
@@ -368,10 +413,25 @@ class OpenAIMotionProvider:
                     "Copie plan_sha256 da entrada. Implemente todos os elementos e movimentos usando as "
                     "bibliotecas fornecidas. Evite comentários e infraestrutura repetida; não omita código."
                 )
+                if asset_informed_enabled(request.context):
+                    instructions += (
+                        " No contrato v4 os previews de materiais identificados já foram resolvidos antes desta "
+                        "etapa. A observação histórica da política de imagem sobre não vê-los não se aplica "
+                        "à implementation; interprete os pixels e limites efetivamente anexados."
+                    )
         if references:
             instructions += REFERENCE_RULES
         if request.kind in {"review", "correct"} and temporal_enabled(request.context):
             instructions += TEMPORAL_RULES
+            if request.context["creative_contract"]["temporal_review"]["version"] in {
+                "motion-temporal-v2",
+                "motion-temporal-v3",
+            }:
+                instructions += (
+                    " No manifesto v2, se houver passagens omitidas ou cenas sem cobertura, os checks temporais "
+                    "não podem passar: use uncertain quando faltar evidência, ou fail apenas para problema "
+                    "observado em sequência completa. Declare omissões; não invente defeitos."
+                )
         if planned:
             instructions += (
                 " O motion_plan explicita direção temporal; kit, acervo, skill e styles continuam sendo as fontes "
@@ -387,6 +447,20 @@ class OpenAIMotionProvider:
                 "não limite a correção a textos e margens. "
                 "Se o defeito for apenas técnico, não alegue ganho de motion. Explique alterações em concept."
             )
+        if bounded_correction and request.kind in {"review", "correct"}:
+            instructions += " " + request.context["correction_contract"]["rules"]
+            if request.kind == "correct":
+                instructions = instructions.replace("Explique alterações em concept.", "Preserve concept literalmente.")
+                instructions = instructions.replace(
+                    "Na correção, atualize o plano junto do código e preserve IDs de cenas/elementos não alterados.",
+                    "Na correção, preserve integralmente motion_plan e scene_direction.",
+                )
+                instructions += (
+                    " correction_scope é o único escopo autorizado nesta tentativa: implemente expected_result "
+                    "somente nesse intervalo com suas margens. Devolva todos os campos fora html/scene_init "
+                    "idênticos à composição atual. Não trate os deferred_issue_indices nesta tentativa. "
+                    "Fora da janela, o raster deve permanecer idêntico, inclusive nas vizinhanças de entrada/saída."
+                )
         payload = {
             "model": self.model,
             "reasoning": {"effort": "high"},
@@ -397,6 +471,8 @@ class OpenAIMotionProvider:
                 "format": _format(
                     MotionPlanningOutput
                     if staged and stage == "plan"
+                    else MotionImplementationOutputV4
+                    if staged and asset_informed_enabled(request.context)
                     else MotionImplementationOutput
                     if staged
                     else review_wire_model(request.context)
@@ -536,7 +612,28 @@ class OpenAIMotionProvider:
                 if request.construction_plan is None:
                     construction_plan = decode_construction_plan(texts[0], request.context)
                 else:
-                    composition = decode_implementation(texts[0], request.construction_plan)
+                    if asset_informed_enabled(request.context):
+                        output = MotionImplementationOutputV4.model_validate_json(texts[0])
+                        if output.plan_sha256 != construction_plan_hash(request.construction_plan):
+                            raise ValueError
+                        if output.status == "requires_plan_revision":
+                            raise MotionAIError(
+                                "MOTION_PLAN_REVISION_REQUIRED",
+                                raw_response=response_bytes,
+                                usage=usage,
+                                estimated_usd_micros=estimate,
+                                provider_request_id=request_id,
+                            )
+                        assert output.html is not None and output.scene_init is not None
+                        composition = DirectedHTMLMotionComposition.model_validate(
+                            {
+                                **request.construction_plan.model_dump(mode="json"),
+                                "html": output.html,
+                                "scene_init": output.scene_init,
+                            }
+                        )
+                    else:
+                        composition = decode_implementation(texts[0], request.construction_plan)
             else:
                 composition_type = (
                     DirectedHTMLMotionComposition

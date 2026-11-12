@@ -45,7 +45,9 @@ async def claim_events(
             WHERE (event_type IN ('business.created','brand_kit.changed','reference.search_requested',
                                  'reference.selection_confirmed') OR
                    (:include_geocoding AND event_type='business.address_geocode_requested') OR
-                   (:include_motion AND event_type IN ('motion.requested','motion.storyboard_approved')) OR
+                   (:include_motion AND event_type IN (
+                      'motion.requested','motion.storyboard_approved','motion.storyboard_recapture_requested',
+                      'motion.plan_approved','motion.render_approved')) OR
                    (:include_learning AND event_type='reference.learning_requested') OR
                    (:include_providers AND event_type IN ('reference.provider_search_requested',
                      'reference.search_reviewed','reference.provider_retry_requested')) OR
@@ -177,7 +179,10 @@ async def _start_workflow(client: Client, settings: Settings, item: ClaimedEvent
     workflow_type = {
         "business.created": "BusinessCreatedWorkflow",
         "motion.requested": "MotionProductionWorkflow",
+        "motion.plan_approved": "MotionProductionWorkflow",
+        "motion.render_approved": "MotionProductionWorkflow",
         "motion.storyboard_approved": "MotionProductionWorkflow",
+        "motion.storyboard_recapture_requested": "MotionProductionWorkflow",
         "reference.provider_search_requested": "ReferenceProviderDiscoveryWorkflow",
         "reference.learning_requested": "ReferenceLearningWorkflow",
         "business.address_geocode_requested": "BusinessGeocodingWorkflow",
@@ -191,7 +196,10 @@ async def _start_workflow(client: Client, settings: Settings, item: ClaimedEvent
     workflow_id = {
         "business.created": "business-created",
         "motion.requested": "motion-production",
+        "motion.plan_approved": "motion-plan-approved",
+        "motion.render_approved": "motion-render-approved",
         "motion.storyboard_approved": "motion-storyboard-approved",
+        "motion.storyboard_recapture_requested": "motion-storyboard-recapture",
         "reference.provider_search_requested": "reference-provider-search",
         "reference.learning_requested": "reference-learning",
         "business.address_geocode_requested": "business-geocoding",

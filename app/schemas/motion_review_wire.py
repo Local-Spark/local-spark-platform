@@ -4,9 +4,10 @@ from typing import Annotated, Literal
 
 from pydantic import Field
 
+from app.schemas.motion_correction import MotionCorrectionRegion
 from app.schemas.motion_production import CriterionName, MotionModel
 
-EvidenceID = Annotated[str, Field(pattern=r"^(current|previous|source)-[0-9]{1,2}$")]
+EvidenceID = Annotated[str, Field(pattern=r"^(current|previous|source|baseline)-[0-9]{1,2}$")]
 Observation = Annotated[str, Field(min_length=1, max_length=240, pattern=r"\S")]
 
 
@@ -65,3 +66,23 @@ class LinkedCreativeCheck(CompactCreativeCheck):
 
 class LinkedMotionReview(CompactMotionReview):
     creative_checks: tuple[LinkedCreativeCheck, ...] = Field(max_length=4)
+
+
+class LocalizedIssue(CompactIssue):
+    localization: MotionCorrectionRegion | None
+
+
+class LocalizedMotionReview(LinkedMotionReview):
+    issues: tuple[LocalizedIssue, ...] = Field(max_length=6)
+
+
+class CompactBaselineCheck(MotionModel):
+    dimension: Literal["meaning", "recording", "space", "rhythm", "identity"]
+    result: Literal["improved", "equivalent", "regressed", "uncertain"]
+    observation: Observation
+    evidence: tuple[EvidenceID, ...] = Field(max_length=32)
+
+
+class EvolutionMotionReview(LocalizedMotionReview):
+    baseline_video_sha256: Annotated[str, Field(pattern=r"^[a-f0-9]{64}$")]
+    baseline_checks: tuple[CompactBaselineCheck, ...] = Field(min_length=5, max_length=5)

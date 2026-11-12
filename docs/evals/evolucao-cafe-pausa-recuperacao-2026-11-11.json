@@ -1,0 +1,175 @@
+{
+  "version": "motion-evolution-v1",
+  "baseline_request_id": "f9a58258-0c49-576f-ac3f-d9cf315495ab",
+  "baseline_number": 0,
+  "baseline_video_sha256": "187b611018d2b24c27edb99f07a4a21aecd5599e7333a64ad1b227147df0c451",
+  "owner_reference_confirmed": true,
+  "hypothesis": "Melhorar a passagem gravação/cenário/xícara/retorno preservando abertura, texto, kit, voz, material original e funções da base. Preparar apoio antes da revelação e reorganizar objeto e vídeo conjuntamente no retorno. Não refazer o restante da peça.",
+  "elements": [
+    {
+      "baseline_element_id": "tempo-video",
+      "disposition": "preserve",
+      "target_element_ids": [
+        "tempo-video"
+      ],
+      "function": "Apresentar a ação real com enquadramento integral e acabamento visível.",
+      "expected_result": "Conservar a função na abertura de controle."
+    },
+    {
+      "baseline_element_id": "tempo-texto",
+      "disposition": "preserve",
+      "target_element_ids": [
+        "tempo-texto"
+      ],
+      "function": "Organizar a unidade sensorial sem legendar cada palavra.",
+      "expected_result": "Conservar a função na abertura de controle."
+    },
+    {
+      "baseline_element_id": "tempo-marcador",
+      "disposition": "preserve",
+      "target_element_ids": [
+        "tempo-marcador"
+      ],
+      "function": "Iniciar e conduzir o percurso sensorial.",
+      "expected_result": "Conservar a função na abertura de controle."
+    },
+    {
+      "baseline_element_id": "tempo-percurso",
+      "disposition": "preserve",
+      "target_element_ids": [
+        "tempo-percurso"
+      ],
+      "function": "Materializar o aroma como ligação gráfica para a pausa.",
+      "expected_result": "Conservar a função na abertura de controle."
+    },
+    {
+      "baseline_element_id": "tempo-fundo",
+      "disposition": "preserve",
+      "target_element_ids": [
+        "tempo-fundo"
+      ],
+      "function": "Sustentar contraste e preparar a ocupação gráfica do quadro.",
+      "expected_result": "Conservar a função na abertura de controle."
+    },
+    {
+      "baseline_element_id": "cafe-video",
+      "disposition": "preserve",
+      "target_element_ids": [
+        "cafe-video"
+      ],
+      "function": "Manter a continuidade técnica da fonte durante a cobertura gráfica.",
+      "expected_result": "Manter a função e coordenar a passagem, com objeto e gravação relacionados no retorno."
+    },
+    {
+      "baseline_element_id": "cafe-texto",
+      "disposition": "preserve",
+      "target_element_ids": [
+        "cafe-texto"
+      ],
+      "function": "Evoluir da pausa para os atributos sensoriais reconhecidos na fala.",
+      "expected_result": "Manter a função e coordenar a passagem, com objeto e gravação relacionados no retorno."
+    },
+    {
+      "baseline_element_id": "cafe-percurso",
+      "disposition": "preserve",
+      "target_element_ids": [
+        "cafe-percurso"
+      ],
+      "function": "Dar destino ao traço sensorial e antecipar a presença da xícara.",
+      "expected_result": "Manter a função e coordenar a passagem, com objeto e gravação relacionados no retorno."
+    },
+    {
+      "baseline_element_id": "cafe-xicara",
+      "disposition": "preserve",
+      "target_element_ids": [
+        "cafe-xicara"
+      ],
+      "function": "Representar conceitualmente o café com material natural e apoio coerente.",
+      "expected_result": "Manter a função e coordenar a passagem, com objeto e gravação relacionados no retorno."
+    },
+    {
+      "baseline_element_id": "cafe-vapor",
+      "disposition": "preserve",
+      "target_element_ids": [
+        "cafe-vapor"
+      ],
+      "function": "Prolongar a percepção do café e preparar o convite.",
+      "expected_result": "Manter a função e coordenar a passagem, com objeto e gravação relacionados no retorno."
+    },
+    {
+      "baseline_element_id": "cafe-fundo",
+      "disposition": "preserve",
+      "target_element_ids": [
+        "cafe-fundo"
+      ],
+      "function": "Cobrir a gravação e construir uma área útil para a pausa e o objeto.",
+      "expected_result": "Manter a função e coordenar a passagem, com objeto e gravação relacionados no retorno."
+    },
+    {
+      "baseline_element_id": "pausa-video",
+      "disposition": "preserve",
+      "target_element_ids": [
+        "pausa-video"
+      ],
+      "function": "Retomar a ação real no instante corrente, com outra escala de composição.",
+      "expected_result": "Manter a função e coordenar a passagem, com objeto e gravação relacionados no retorno."
+    },
+    {
+      "baseline_element_id": "pausa-vapor",
+      "disposition": "preserve",
+      "target_element_ids": [
+        "pausa-vapor"
+      ],
+      "function": "Transferir a atenção do objeto para a área do convite.",
+      "expected_result": "Manter a função e coordenar a passagem, com objeto e gravação relacionados no retorno."
+    },
+    {
+      "baseline_element_id": "pausa-texto",
+      "disposition": "preserve",
+      "target_element_ids": [
+        "pausa-texto"
+      ],
+      "function": "Entregar o convite com contraste e leitura até o final.",
+      "expected_result": "Manter a função e coordenar a passagem, com objeto e gravação relacionados no retorno."
+    },
+    {
+      "baseline_element_id": "pausa-simbolo",
+      "disposition": "preserve",
+      "target_element_ids": [
+        "pausa-simbolo"
+      ],
+      "function": "Pontuar a assinatura com o conceito de pausa.",
+      "expected_result": "Manter a função e coordenar a passagem, com objeto e gravação relacionados no retorno."
+    },
+    {
+      "baseline_element_id": "pausa-xicara",
+      "disposition": "preserve",
+      "target_element_ids": [
+        "pausa-xicara"
+      ],
+      "function": "Manter continuidade material do motion no convite final.",
+      "expected_result": "Manter a função e coordenar a passagem, com objeto e gravação relacionados no retorno."
+    },
+    {
+      "baseline_element_id": "pausa-assinatura",
+      "disposition": "preserve",
+      "target_element_ids": [
+        "pausa-assinatura"
+      ],
+      "function": "Concluir com identidade confirmada e CTA sem destino inventado.",
+      "expected_result": "Manter a função e coordenar a passagem, com objeto e gravação relacionados no retorno."
+    },
+    {
+      "baseline_element_id": "pausa-fundo",
+      "disposition": "preserve",
+      "target_element_ids": [
+        "pausa-fundo"
+      ],
+      "function": "Devolver espaço à gravação e estabilizar o convite final.",
+      "expected_result": "Manter a função e coordenar a passagem, com objeto e gravação relacionados no retorno."
+    }
+  ],
+  "reuse_illustration_ids": [
+    "assets/illustration-xicara-realista.png"
+  ]
+}

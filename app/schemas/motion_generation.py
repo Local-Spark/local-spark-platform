@@ -1,8 +1,8 @@
 """Compact construction response; full direction is retained by the server."""
 
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from app.schemas.motion_plan import Description, Identifier, Moment, MotionCurve, MotionPlan
 from app.schemas.motion_production import MotionAudio, MotionIllustration, MotionModel
@@ -89,3 +89,22 @@ class MotionImplementationOutput(MotionModel):
     plan_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
     html: str = Field(min_length=1, max_length=2 * 1024 * 1024, repr=False)
     scene_init: str = Field(min_length=1, max_length=1024 * 1024, repr=False)
+
+
+class MotionImplementationOutputV4(MotionModel):
+    """Asset-aware implementation can stop and request a separate plan revision."""
+
+    plan_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    status: Literal["implemented", "requires_plan_revision"]
+    html: str | None = Field(min_length=1, max_length=2 * 1024 * 1024, repr=False)
+    scene_init: str | None = Field(min_length=1, max_length=1024 * 1024, repr=False)
+    revision_reason: str | None = Field(min_length=1, max_length=1000, repr=False)
+
+    @model_validator(mode="after")
+    def coherent_outcome(self) -> Self:
+        if self.status == "implemented":
+            if self.html is None or self.scene_init is None or self.revision_reason is not None:
+                raise ValueError("Implemented requires code without a revision request")
+        elif self.html is not None or self.scene_init is not None or self.revision_reason is None:
+            raise ValueError("Revision requires a reason without executable code")
+        return self

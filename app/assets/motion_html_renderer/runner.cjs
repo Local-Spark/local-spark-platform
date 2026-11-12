@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { spawnSync } = require('node:child_process');
-const { buildAudioArgs } = require('./audio.cjs');
+const { buildAudioArgs, parseAudioMetrics } = require('./audio.cjs');
 // Preserve absolute asset URLs used by qualified compositions; still one fixed, routed origin.
 const ORIGIN = 'https://motion-fixture.invalid';
 const MAX_INPUT = 256 * 1024 * 1024;
@@ -32,6 +32,17 @@ function command(binary, args, timeout = 30000) {
   });
   if (result.error || result.status !== 0) fail('MOTION_RENDER_MEDIA_FAILED');
   return result.stdout;
+}
+function audioMetrics(file) {
+  const result = spawnSync('/usr/bin/ffmpeg', ['-hide_banner', '-nostdin', '-v', 'info',
+    '-protocol_whitelist', 'file,pipe', '-i', file, '-map', '0:a:0',
+    '-af', 'ebur128=peak=sample', '-f', 'null', '-'], {
+    env: { PATH: '/usr/bin:/bin', HOME: '/tmp/home', TMPDIR: '/tmp', LANG: 'C.UTF-8' },
+    timeout: 30000, killSignal: 'SIGKILL', maxBuffer: 2 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  if (result.error || result.status !== 0) fail('MOTION_RENDER_AUDIO_INVALID');
+  try { return parseAudioMetrics(result.stderr.toString('utf8')); }
+  catch (_) { fail('MOTION_RENDER_AUDIO_INVALID'); }
 }
 async function deadline(promise, ms = 10000) {
   let timer;
@@ -90,6 +101,9 @@ async function controls(context) {
 async function render() {
   const ownFilters = isolation();
   const configBytes = read('/input/config.json', 1024 * 1024), cfg = JSON.parse(configBytes);
+  if (cfg.fingerprint_frames !== undefined && (cfg.fingerprint_frames !== true || cfg.version !== 1)) {
+    fail('MOTION_RENDER_PROFILE_INVALID');
+  }
   if (![1, 2].includes(cfg.version) || cfg.fps !== 30 || !Number.isSafeInteger(cfg.duration_ms) || cfg.duration_ms < 1 || cfg.duration_ms > 60000 ||
       !Number.isSafeInteger(cfg.width) || !Number.isSafeInteger(cfg.height) || cfg.width < 64 || cfg.height < 64 ||
       cfg.width > 1920 || cfg.height > 1920 || cfg.width % 2 || cfg.height % 2 || !Array.isArray(cfg.assets) || cfg.assets.length > 32 ||
@@ -118,6 +132,9 @@ async function render() {
     const availableMs = Number(metadata.format.duration) * 1000;
     if (!metadata.streams.some(stream => stream.codec_type === 'audio') || !Number.isFinite(availableMs) ||
         availableMs <= 0 || track.trim_start_ms >= availableMs) fail('MOTION_RENDER_AUDIO_INVALID');
+    // New optional audio must cover the declared event; never silently stretch or truncate it.
+    if (cfg.audio.version === 'motion-audio-v2' && track.role !== 'original' &&
+        track.trim_end_ms > availableMs + 1) fail('MOTION_RENDER_AUDIO_INVALID');
     // Preserve the qualified mixer: atrim stops at EOF; no padding or synthetic speech is added.
     audioSourceSpans.push({ asset_id: track.asset_id, available_ms: availableMs,
       trim_start_ms: track.trim_start_ms, trim_end_ms: track.trim_end_ms,
@@ -214,11 +231,17 @@ async function render() {
       await context.close();
       return;
     }
+    const fingerprints = [];
+    const fingerprintEnvironment = cfg.fingerprint_frames ? hash(JSON.stringify({
+      browser: browser.version(), node: process.version, platform: process.platform, arch: process.arch,
+      runner: hash(fs.readFileSync(__filename)), screenshot: {type:'jpeg', quality:95},
+    })) : null;
     let bytes = 0;
     for (let index = 0; index < count; index++) {
       if (Date.now() > end) fail('MOTION_RENDER_DEADLINE');
       await deadline(page.evaluate(async ms => { await window.seek(ms); }, index * 1000 / 30));
       const frame = await page.screenshot({ type: 'jpeg', quality: 95, animations: 'allow', timeout: 10000 });
+      if (cfg.fingerprint_frames) fingerprints.push(hash(frame));
       bytes += frame.length;
       if (bytes > 1536 * 1024 * 1024) fail('MOTION_RENDER_FRAME_LIMIT');
       fs.writeFileSync(`/tmp/render/frames/frame-${String(index).padStart(4, '0')}.jpg`, frame, { mode: 0o600 });
@@ -259,10 +282,13 @@ async function render() {
       images.push(png);
     }
     const mp4 = read(output, MAX_VIDEO);
+    const audioMeasurement = cfg.audio.version === 'motion-audio-v2' ? audioMetrics(output) : null;
     const diagnostics = { frame_count: count, width: cfg.width, height: cfg.height, duration_ms: cfg.duration_ms,
       fps: 30, sandbox: true, seccomp: 2, host_seccomp_filters: ownFilters, renderer_seccomp_filters: rendererFilters,
       denied_requests: denied, audio_mode: cfg.audio.mode, audio_source_spans: audioSourceSpans,
       video_codec: 'h264', protocol_version: 1, evidence_source: 'decoded_mp4',
+      ...(audioMeasurement ? {audio_measurements: audioMeasurement} : {}),
+      ...(cfg.fingerprint_frames ? {frame_fingerprints: fingerprints, fingerprint_environment: fingerprintEnvironment} : {}),
       html_sha256: cfg.html_sha256, scene_sha256: cfg.scene_sha256, config_sha256: hash(configBytes) };
     const header = Buffer.from(JSON.stringify({ version: 1, video: { size: mp4.length, sha256: hash(mp4) }, frames, diagnostics }) + '\n');
     process.stdout.write(header);
@@ -271,7 +297,7 @@ async function render() {
   } finally { if (browser) await browser.close(); }
 }
 
-module.exports = { RenderFault, hash, read, command, deadline, status, isolation, browserSandbox, range, controls, render };
+module.exports = { RenderFault, hash, read, command, audioMetrics, deadline, status, isolation, browserSandbox, range, controls, render };
 if (require.main === module) {
   render().catch(error => {
     process.stderr.write(JSON.stringify({ event: 'motion.render.failed', code: error instanceof RenderFault ? error.code : 'MOTION_RENDER_EXECUTION_FAILED' }) + '\n');

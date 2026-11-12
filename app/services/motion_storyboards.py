@@ -26,7 +26,8 @@ from app.services.motion_payloads import MotionPayloads
 from app.services.motion_plan import validate_motion_plan
 from app.services.motion_protocols import MotionRenderer
 from app.services.motion_requests import MotionRequestService
-from app.services.motion_storyboard_frames import StoryboardMoment, storyboard_moments
+from app.services.motion_storyboard_frames import StoryboardMoment, storyboard_moments, storyboard_upload_name
+from app.services.motion_temporal import evidence_manifest
 from app.services.visual_pending_changes import VisualPendingChanges
 from app.services.visual_pending_scripts import apply_pending_script_changes
 from app.services.whatsapp_materials import WhatsAppMaterialsService
@@ -46,8 +47,11 @@ class MotionStoryboards:
         composition: HTMLMotionComposition,
         renderer: MotionRenderer,
         effects: MotionEffects,
+        *,
+        capture_id: UUID | None = None,
     ) -> None:
-        moments = storyboard_moments(composition)
+        moments = storyboard_moments(composition, prepared.context)
+        assert composition.motion_plan is not None
         validate_motion_plan(
             composition,
             prepared.context,
@@ -56,7 +60,7 @@ class MotionStoryboards:
         )
         if composition.audio.model_dump(mode="json") != prepared.audio:
             raise AuthError("MOTION_ORIGINAL_AUDIO_CHANGED", 409)
-        operation = uuid5(row["operation_id"], "storyboard:0")
+        operation = capture_id or uuid5(row["operation_id"], "storyboard:0")
         bundle = RenderBundle(
             composition.html,
             composition.scene_init,
@@ -95,7 +99,8 @@ class MotionStoryboards:
             raise AuthError("MOTION_STORAGE_SINGLE_ATTEMPT_REQUIRED", 409)
         frames = []
         for moment, frame in zip(moments, rendered.evidence, strict=True):
-            upload = uuid5(operation, str(moment["scene_id"]))
+            upload_name = storyboard_upload_name(moment)
+            upload = uuid5(operation, upload_name)
             key = f"motion/{row['tenant_id']}/{row['business_id']}/{row['id']}/storyboard/{upload}.png"
             manifest = {
                 **moment,
@@ -131,6 +136,36 @@ class MotionStoryboards:
             "frames": frames,
             "illustrations": art,
             "source_fingerprint": row["source_fingerprint"],
+            **(
+                {
+                    "baseline_evidence": [
+                        {"ms": f.ms, "sha256": f.sha256, "png": base64.b64encode(f.png).decode()}
+                        for f in prepared.baseline_frames
+                    ]
+                }
+                if prepared.baseline_frames
+                else {}
+            ),
+            **(
+                {
+                    "asset_hashes": [{"id": a.id, "sha256": a.sha256} for a in prepared.assets],
+                    "runtime_hashes": [bundle.movement_runtime_sha256, bundle.element_runtime_sha256],
+                    "temporal_preview": evidence_manifest(
+                        composition,
+                        rendered.evidence,
+                        "current",
+                        prepared.context["creative_contract"]["temporal_review"],
+                    ),
+                    "omitted_scene_cards": [
+                        scene.id
+                        for scene in composition.motion_plan.scenes
+                        if scene.keyframe_ms is not None
+                        and scene.keyframe_ms * 30 // 1000 not in {moment["frame_index"] for moment in moments}
+                    ],
+                }
+                if any("event_id" in moment for moment in moments)
+                else {}
+            ),
         }
         sha = digest(payload)
         ciphertext = await effects.persist_payload(row, token, operation, "board", payload)
@@ -244,8 +279,48 @@ class MotionStoryboards:
                 + html.escape(str(frame["message"]))
                 + " · "
                 + str(frame["at_ms"] / 1000)
+                + " s"
+                + (" · " + html.escape(str(frame["event_id"])) if "event_id" in frame else "")
+                + "</figcaption></figure>"
+            )
+        preview = payload.get("temporal_preview")
+        baseline_cards = []
+        for frame in payload.get("baseline_evidence", []):
+            png = base64.b64decode(frame["png"], validate=True)
+            if hashlib.sha256(png).hexdigest() != frame["sha256"] or not png.startswith(b"\x89PNG\r\n\x1a\n"):
+                raise AuthError("MOTION_EVOLUTION_EVIDENCE_INVALID", 409)
+            baseline_cards.append(
+                '<figure><img alt="Peça de referência" src="data:image/png;base64,'
+                + base64.b64encode(png).decode()
+                + '"><figcaption>Base · '
+                + html.escape(str(frame["ms"] / 1000))
                 + " s</figcaption></figure>"
             )
+        comparison = (
+            "<section><h2>Peça de referência</h2><p>Compare a mesma ação nas duas versões. "
+            "Os instantes podem ser diferentes. Estes quadros não comprovam movimento ou som.</p><main>"
+            + "".join(baseline_cards)
+            + "</main></section><h2>Proposta atual</h2>"
+            if baseline_cards
+            else ""
+        )
+        coverage = (
+            "<p>Prévia amostrada: "
+            + str(preview["omitted_events"])
+            + " eventos e "
+            + str(preview["omitted_transitions"])
+            + " passagens não selecionados; "
+            + str(preview["incomplete_events"])
+            + " sequências incompletas. "
+            + str(len(payload.get("omitted_scene_cards", [])))
+            + " quadros principais de cena omitidos. "
+            + "Cenas sem janela: "
+            + html.escape(", ".join(preview["uncovered_scene_ids"]) or "nenhuma")
+            + ". "
+            "Quadros não demonstram movimento contínuo nem áudio.</p>"
+            if preview
+            else ""
+        )
         return (
             '<!doctype html><html lang="pt-BR"><meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width">'
@@ -254,7 +329,9 @@ class MotionStoryboards:
             "main{display:flex;gap:24px;flex-wrap:wrap}figure{margin:0;width:min(360px,100%)}img{width:100%}"
             "figcaption{padding:12px 0}code{overflow-wrap:anywhere}</style><h1>Composição das cenas</h1>"
             "<p>Confira leitura, imagens, identidade e composição. Movimento e áudio serão avaliados no vídeo.</p>"
-            "<p>"
+            + coverage
+            + comparison
+            + "<p>"
             + html.escape(labels[str(board["state"])])
             + '</p><main data-version="'
             + str(board["version_id"])
@@ -368,6 +445,18 @@ class MotionStoryboards:
         payload = await self.payloads.open(row, board["payload_ciphertext"])
         if digest(payload) != board["content_sha256"] or payload["source_fingerprint"] != row["source_fingerprint"]:
             raise AuthError("MOTION_STORYBOARD_BYTES_CHANGED", 409)
+        if "asset_hashes" in payload:
+            expected = payload["asset_hashes"]
+            current = {asset.id: hashlib.sha256(asset.data).hexdigest() for asset in prepared.assets}
+            for art in payload["illustrations"]:
+                current.setdefault(art["asset_id"], art["sha256"])
+            if (
+                {item["id"]: item["sha256"] for item in expected} != current
+                or payload["runtime_hashes"] != [movement_hash(prepared.context), elements_hash(prepared.context)]
+                or payload["context"].get("request", {}).get("scene_direction")
+                != prepared.context.get("request", {}).get("scene_direction")
+            ):
+                raise AuthError("MOTION_STORYBOARD_BYTES_CHANGED", 409)
         composition = HTMLMotionComposition.model_validate(payload["composition"])
         assets, previews = list(prepared.assets), list(prepared.asset_previews)
         for art in payload["illustrations"]:

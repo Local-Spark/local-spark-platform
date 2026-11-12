@@ -1,0 +1,113 @@
+{
+  "version": "scene-direction-v1",
+  "scenes": [
+    {
+      "scene_id": "tempo",
+      "brief_basis": "Feche os olhos por um segundo. Sinta o cheiro. Transcrição automática não revisada; conservar a fala integral e usar seus tempos como estimativas.",
+      "visual_representation": "O ritual filmado conduz a atenção das mãos e da jarra ao café na xícara. O espaço ao redor prepara uma pausa, sem ornamentar a gravação por padrão.",
+      "composition": "Gravação dominante, preservando mãos, jarra, fluxo e xícara; fonte e kit originais. Texto curto complementa a ação com leitura clara. Vídeo integral ou janela sem borda conforme a cena; borda somente se exercer função justificável.",
+      "narrative_action": "Preparar a abertura do espaço enquanto o gesto real continua; em cheiro, a atenção acompanha o ritual. O fundo responde e conduz à pausa seguinte; a gravação segue em tempo absoluto e o áudio permanece integral.",
+      "attention_order": [
+        "tempo-video",
+        "tempo-texto",
+        "tempo-fundo"
+      ],
+      "elements": [
+        {
+          "element_id": "tempo-video",
+          "depicts": "Gravação original em assets/source.mp4, com mãos, jarra, fluxo e xícara.",
+          "appearance": "Proporção e regiões importantes protegidas; tratamento escolhido para integrar a cena, sem exigir moldura, sombra, filete ou recorte automático.",
+          "construction": "authorized_asset"
+        },
+        {
+          "element_id": "tempo-texto",
+          "depicts": "Sinta o cheiro.",
+          "appearance": "Tipografia do kit, contraste e leitura estáveis; não cobrir o gesto nem animar cada palavra.",
+          "construction": "code"
+        },
+        {
+          "element_id": "tempo-fundo",
+          "depicts": "Espaço que acolhe o ritual e prepara a passagem para o café.",
+          "appearance": "Cores e materialidade coerentes com o kit; participa da passagem sem impor um painel ou detalhe decorativo.",
+          "construction": "code"
+        }
+      ]
+    },
+    {
+      "scene_id": "cafe",
+      "brief_basis": "É hora de uma pausa; venha experimentar o momento só seu; café, calma e carinho. Os tempos automáticos são aproximados e não autorizam cortar ou reordenar a voz.",
+      "visual_representation": "O espaço aberto pelo ritual recebe uma xícara conceitual; a revelação é o acento principal e a calma aparece no repouso que a sucede.",
+      "composition": "Motion em tela inteira quando a gravação cede foco. Objeto, superfície, luz, sombra, fundo e texto compartilham a mesma lógica espacial; leitura e espaço têm função durante a preparação.",
+      "narrative_action": "Na pausa, preparar a chegada com mudança de foco e espaço. A xícara se revela com acento associado a café, encontra apoio e repousa em calma; o fundo recebe a ação e prepara a volta. Antecipação e acento são ações distintas no plano temporal existente.",
+      "attention_order": [
+        "cafe-fundo",
+        "cafe-xicara",
+        "cafe-texto"
+      ],
+      "elements": [
+        {
+          "element_id": "cafe-video",
+          "depicts": "Mesmo assets/source.mp4, ainda em tempo absoluto quando a cena gráfica o cobre.",
+          "appearance": "Sem reinício, duplicação ou corte do áudio; reaparece no instante corrente.",
+          "construction": "authorized_asset"
+        },
+        {
+          "element_id": "cafe-xicara",
+          "depicts": "Xícara conceitual de cerâmica com café; não é foto documental do produto do cliente.",
+          "appearance": "Imagem conceitual de aparência fotográfica com recorte transparente e ângulo fixo, vista pela implementação antes do código. Manter os mesmos pixels durante a peça; coordenar apoio e sombra externos ao recorte. Revelação, deslocamento, escala uniforme e pequena inclinação 2D conforme a ação; sem inventar faces, preenchimento de líquido ou rotação 3D.",
+          "construction": "generated_asset"
+        },
+        {
+          "element_id": "cafe-texto",
+          "depicts": "Uma pausa. Café, calma e carinho.",
+          "appearance": "Texto do trecho em tipografia do kit, com tempo de leitura suficiente e hierarquia subordinada à revelação.",
+          "construction": "code"
+        },
+        {
+          "element_id": "cafe-fundo",
+          "depicts": "Superfície e espaço que preparam, recebem e sustentam a xícara.",
+          "appearance": "Planos coerentes com o kit e luz do objeto; não deixar espaço vazio sem função nem cruzar a leitura.",
+          "construction": "code"
+        }
+      ]
+    },
+    {
+      "scene_id": "pausa",
+      "brief_basis": "Pausa na nossa cafeteria. Te esperamos. A gravação volta no instante corrente e a assinatura respeita o kit.",
+      "visual_representation": "A ação desacelera e devolve a atenção ao ritual real e ao convite, conservando uma relação visual com o espaço anterior.",
+      "composition": "A gravação retorna dominante e o convite tem área própria legível. Usar um elemento compartilhado apenas se ajudar a passagem; não impor moldura, filete ou xícara repetida.",
+      "narrative_action": "Preparar o retorno durante o repouso do objeto; fundo e objeto cedem espaço à gravação sem atravessar o gesto. O convite entra depois da passagem e permanece estável até o fim.",
+      "attention_order": [
+        "pausa-video",
+        "pausa-texto",
+        "pausa-assinatura"
+      ],
+      "elements": [
+        {
+          "element_id": "pausa-video",
+          "depicts": "Mesmo assets/source.mp4 no instante corrente, com áudio original contínuo.",
+          "appearance": "Preservar as regiões importantes do gesto e um tratamento coerente com a abertura; sem elementos acidentais sobre a gravação.",
+          "construction": "authorized_asset"
+        },
+        {
+          "element_id": "pausa-texto",
+          "depicts": "Te esperamos.",
+          "appearance": "Fontes do kit, contraste estável e convite legível.",
+          "construction": "code"
+        },
+        {
+          "element_id": "pausa-assinatura",
+          "depicts": "Café Pausa — Saiba mais.",
+          "appearance": "Assinatura e chamada nas fontes do kit, sem inventar logo, oferta ou destino.",
+          "construction": "code"
+        },
+        {
+          "element_id": "pausa-fundo",
+          "depicts": "Continuação do espaço anterior que devolve a atenção à gravação.",
+          "appearance": "Retira-se de forma coordenada, preservando contraste e sem linhas ou painéis residuais sobre vídeo e texto.",
+          "construction": "code"
+        }
+      ]
+    }
+  ]
+}

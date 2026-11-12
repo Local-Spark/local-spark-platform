@@ -28,6 +28,47 @@ def context():
     }
 
 
+def test_v2_reference_cards_and_pixels_reach_product_payload_with_explicit_provenance():
+    ctx = {
+        "creative_contract": motion_creative_contract(),
+        "repertoire": repertoire.capture_repertoire("business-reel-v2"),
+    }
+    descriptor = ctx["repertoire"]
+    images = repertoire.load_repertoire_images(ctx)
+    payload = provider().build_request(replace(request(), context=ctx, reference_images=images))
+    content = payload["input"][0]["content"]
+    serialized = json.loads(content[0]["text"])["authorized_context"]["repertoire"]
+    assert serialized == descriptor
+    assert len(images) == 5
+    assert {card["id"] for card in serialized["reference_cards"]} == {
+        "maestros-acao-com-consequencia", "lucas-hierarquia-espacial"
+    }
+    assert all(
+        card["before"] and card["action"] and card["after"] and card["adaptation"]
+        for card in serialized["reference_cards"]
+    )
+    assert {image_id for card in serialized["reference_cards"] for image_id in card["reference_image_ids"]} == {
+        image.id for image in images
+    }
+    for index, image in enumerate(images):
+        metadata = json.loads(content[1 + index * 2]["text"])["finish_reference"]
+        assert metadata == descriptor["reference_images"][index]
+        assert metadata["role"] == "finish_reference_only"
+        assert base64.b64decode(content[2 + index * 2]["image_url"].split(",")[1]) == image.data
+    assert json.loads(content[0]["text"])["assets"] == []
+
+
+def test_v2_rejects_altered_card_under_the_pinned_capture():
+    ctx = {
+        "creative_contract": motion_creative_contract(),
+        "repertoire": repertoire.capture_repertoire("business-reel-v2"),
+    }
+    images = repertoire.load_repertoire_images(ctx)
+    ctx["repertoire"]["reference_cards"][0]["adaptation"] = "changed"
+    with pytest.raises(AuthError, match="MOTION_REPERTOIRE_CHANGED"):
+        repertoire.validate_repertoire_images(ctx, images)
+
+
 async def test_full_repertoire_enters_same_counted_payload_without_becoming_assets():
     ctx = context()
     images = repertoire.load_repertoire_images(ctx)

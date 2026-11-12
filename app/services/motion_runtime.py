@@ -12,6 +12,7 @@ from app.adapters.visual_ai import OpenAIVisualProvider
 from app.core.config import Settings
 from app.db.session import Database
 from app.services.auth import AuthError
+from app.services.motion_context import MotionContext
 from app.services.motion_illustration_policy import illustration_policy
 from app.services.motion_orchestrator import MotionOrchestrator
 from app.services.motion_protocols import MotionModelProvider
@@ -48,7 +49,7 @@ def build_motion_runner(settings: Settings, database: Database, worker_database:
             if settings.motion_renderer_scratch_directory
             else None,
         ),
-        MotionInputLoader(store),
+        MotionInputLoader(store, MotionContext(settings)),
         store,
         speech_recognizer=LocalMotionSpeech(settings.motion_speech_model_directory)
         if speech_policy(settings)

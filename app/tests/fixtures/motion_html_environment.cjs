@@ -45,6 +45,7 @@ function environment(options = {}) {
   };
   let router, opened = 0, browserClosed = 0, contextClosed = 0, deniedProbe = 0;
   const proc = {
+    version: 'synthetic-node', platform: 'synthetic-platform', arch: 'synthetic-arch',
     getuid: () => 65532,
     stdout: {write: value => stdout.push(Buffer.from(value))},
     stderr: {write: value => stderr.push(String(value))},
@@ -107,6 +108,7 @@ function environment(options = {}) {
     async close() { contextClosed++; },
   };
   const browser = {
+    version: () => 'synthetic-browser',
     async newContext(config) { this.contextOptions = config; return context; },
     async close() { browserClosed++; },
   };
@@ -122,6 +124,7 @@ function environment(options = {}) {
       return {isFile: () => true, size: body.length};
     },
     readFileSync(file, encoding) {
+      if (file === filename) return Buffer.from(source);
       if (file.startsWith('/proc/')) {
         if (file.endsWith('cmdline')) return 'chrome\0--type=renderer\0';
         const filters = file === '/proc/self/status' ? 1 : 2;
@@ -157,7 +160,7 @@ function environment(options = {}) {
   const load = name => Object.hasOwn(mocks, name) ? mocks[name] : require(name);
   load.main = options.main ? module : undefined;
   let ticks = 0;
-  sandbox = vm.createContext({require: load, module, process: proc, Buffer, Map, setTimeout, clearTimeout,
+  sandbox = vm.createContext({require: load, module, __filename: filename, process: proc, Buffer, Map, setTimeout, clearTimeout,
     window, document: {fonts: {ready: Promise.resolve()}, querySelectorAll: () => [video]},
     Date: options.expired ? {now: () => (++ticks === 1 ? 0 : 600001)} : Date});
   new vm.Script(source, {filename}).runInContext(sandbox);

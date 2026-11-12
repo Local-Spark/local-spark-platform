@@ -7,11 +7,12 @@ This adapter never calls a model, downloads an image or decides creative quality
 import asyncio
 import hashlib
 import json
+import math
 import re
 import tempfile
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 from uuid import UUID
 
 from app.services.auth import AuthError
@@ -21,7 +22,8 @@ from app.services.motion_movement import movement_bytes
 MAX_INPUT_BYTES = 256 * 1024 * 1024
 MAX_VIDEO_BYTES = 128 * 1024 * 1024
 MAX_EVIDENCE_BYTES = 32 * 1024 * 1024
-MAX_OUTPUT_BYTES = MAX_VIDEO_BYTES + MAX_EVIDENCE_BYTES + 65536
+MAX_HEADER_BYTES = 262144
+MAX_OUTPUT_BYTES = MAX_VIDEO_BYTES + MAX_EVIDENCE_BYTES + MAX_HEADER_BYTES
 ASSET_ID = re.compile(r"assets/[A-Za-z0-9_.-]{1,80}\Z")
 SHA256 = re.compile(r"[a-f0-9]{64}\Z")
 IMAGE = re.compile(r"(?:[a-zA-Z0-9./:_-]+@)?sha256:[a-f0-9]{64}\Z")
@@ -80,6 +82,7 @@ class RenderBundle:
     movement_runtime_sha256: str | None = None
     element_runtime_sha256: str | None = None
     frames_only: bool = False
+    fingerprint_frames: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -110,6 +113,7 @@ class RenderConfig(TypedDict):
     assets: list[dict[str, str]]
     audio: dict[str, object]
     sample_frames: list[int]
+    fingerprint_frames: NotRequired[bool]
 
 
 def _integer(value: object, low: int, high: int) -> int:
@@ -119,6 +123,8 @@ def _integer(value: object, low: int, high: int) -> int:
 
 
 def _audio(plan: dict[str, object], assets: dict[str, RenderAsset], duration: int) -> dict[str, object]:
+    if plan.get("version") == "motion-audio-v2":
+        return _audio_v2(plan, assets, duration)
     if set(plan) != {"mode", "tracks"} or not isinstance(plan["tracks"], list):
         raise MotionRenderError("MOTION_RENDER_INVALID_INPUT")
     tracks = plan["tracks"]
@@ -155,6 +161,51 @@ def _audio(plan: dict[str, object], assets: dict[str, RenderAsset], duration: in
             {"asset_id": asset_id, "offset_ms": offset, "trim_start_ms": start, "trim_end_ms": end, "volume": volume}
         )
     return {"mode": "mix", "tracks": result}
+
+
+def _audio_v2(plan: dict[str, object], assets: dict[str, RenderAsset], duration: int) -> dict[str, object]:
+    if set(plan) != {"version", "mode", "tracks", "ducking"} or plan["mode"] != "mix":
+        raise MotionRenderError("MOTION_RENDER_INVALID_INPUT")
+    tracks = plan["tracks"]
+    if not isinstance(tracks, list) or not 1 <= len(tracks) <= 16:
+        raise MotionRenderError("MOTION_RENDER_INVALID_INPUT")
+    plain = []
+    for track in tracks:
+        if not isinstance(track, dict) or set(track) != {
+            "asset_id", "offset_ms", "trim_start_ms", "trim_end_ms", "volume", "role", "fade_in_ms", "fade_out_ms"
+        }:
+            raise MotionRenderError("MOTION_RENDER_INVALID_INPUT")
+        if not isinstance(track["role"], str) or track["role"] not in {"original", "music", "effect"}:
+            raise MotionRenderError("MOTION_RENDER_INVALID_INPUT")
+        fade_in = _integer(track["fade_in_ms"], 0, 60000)
+        fade_out = _integer(track["fade_out_ms"], 0, 60000)
+        start = _integer(track["trim_start_ms"], 0, 60000)
+        end = _integer(track["trim_end_ms"], start + 1, 60000)
+        if fade_in + fade_out > end - start:
+            raise MotionRenderError("MOTION_RENDER_INVALID_INPUT")
+        if track["role"] == "original":
+            if (track["asset_id"] != "assets/source.mp4" or track["offset_ms"] != 0 or start != 0
+                    or track["volume"] != 1 or fade_in or fade_out):
+                raise MotionRenderError("MOTION_RENDER_INVALID_INPUT")
+        elif track["asset_id"] == "assets/source.mp4":
+            raise MotionRenderError("MOTION_RENDER_INVALID_INPUT")
+        plain.append({key: track[key] for key in ("asset_id", "offset_ms", "trim_start_ms", "trim_end_ms", "volume")})
+    _audio({"mode": "mix", "tracks": plain}, assets, duration)
+    originals = sum(track["role"] == "original" for track in tracks)
+    if originals > 1 or (originals == 1 and tracks[0]["role"] != "original"):
+        raise MotionRenderError("MOTION_RENDER_INVALID_INPUT")
+    duck = plan["ducking"]
+    if duck is not None:
+        if (not isinstance(duck, dict) or set(duck) != {"threshold", "ratio", "attack_ms", "release_ms"}
+                or originals != 1 or not any(track["role"] == "music" for track in tracks)):
+            raise MotionRenderError("MOTION_RENDER_INVALID_INPUT")
+        for key, low, high in (("threshold", 0.00097563, 1), ("ratio", 1, 20)):
+            value = duck[key]
+            if type(value) not in (int, float) or not math.isfinite(value) or not low <= value <= high:
+                raise MotionRenderError("MOTION_RENDER_INVALID_INPUT")
+        _integer(duck["attack_ms"], 1, 2000)
+        _integer(duck["release_ms"], 5, 9000)
+    return plan
 
 
 def _prepare(bundle: RenderBundle, directory: Path) -> RenderConfig:
@@ -217,6 +268,8 @@ def _prepare(bundle: RenderBundle, directory: Path) -> RenderConfig:
     audio = _audio(bundle.audio, assets, duration)
     if type(bundle.frames_only) is not bool or (bundle.frames_only and not bundle.sample_times_ms):
         raise MotionRenderError("MOTION_RENDER_INVALID_INPUT")
+    if type(bundle.fingerprint_frames) is not bool or (bundle.fingerprint_frames and bundle.frames_only):
+        raise MotionRenderError("MOTION_RENDER_INVALID_INPUT")
     samples = bundle.sample_times_ms
     if len(samples) > 64 or len(set(samples)) != len(samples):
         raise MotionRenderError("MOTION_RENDER_INVALID_INPUT")
@@ -240,6 +293,8 @@ def _prepare(bundle: RenderBundle, directory: Path) -> RenderConfig:
         "audio": audio,
         "sample_frames": sample_frames,
     }
+    if bundle.fingerprint_frames:
+        config["fingerprint_frames"] = True
     directory.mkdir(mode=0o755)
     for name, data in [("index.html", html), ("scene.js", scene), ("config.json", json.dumps(config).encode())]:
         target = directory / name
@@ -255,7 +310,7 @@ def _prepare(bundle: RenderBundle, directory: Path) -> RenderConfig:
 
 def _decode(data: bytes, expected: RenderConfig) -> RenderedMotion:
     line, separator, payload = data.partition(b"\n")
-    if not separator or len(line) > 65536:
+    if not separator or len(line) > (MAX_HEADER_BYTES if expected.get("fingerprint_frames") else 65536):
         raise MotionRenderError("MOTION_RENDER_INVALID_OUTPUT")
     try:
         header = json.loads(line)
@@ -277,6 +332,13 @@ def _decode(data: bytes, expected: RenderConfig) -> RenderedMotion:
             raise ValueError
         if diagnostics.get("config_sha256") != hashlib.sha256(json.dumps(expected).encode()).hexdigest():
             raise ValueError
+        if expected.get("fingerprint_frames"):
+            hashes = diagnostics.get("frame_fingerprints")
+            environment = diagnostics.get("fingerprint_environment")
+            if (not isinstance(hashes, list) or len(hashes) != diagnostics["frame_count"]
+                    or any(not isinstance(item, str) or not SHA256.fullmatch(item) for item in hashes)
+                    or not isinstance(environment, str) or not SHA256.fullmatch(environment)):
+                raise ValueError
         own_filters, renderer_filters = (
             diagnostics.get("host_seccomp_filters"),
             diagnostics.get("renderer_seccomp_filters"),
@@ -291,6 +353,20 @@ def _decode(data: bytes, expected: RenderConfig) -> RenderedMotion:
             != ("browser_keyframes" if expected["version"] == 2 else "decoded_mp4")
         ):
             raise ValueError
+        if expected["version"] == 1 and expected["audio"].get("version") == "motion-audio-v2":
+            metrics = diagnostics.get("audio_measurements")
+            if (
+                not isinstance(metrics, dict)
+                or set(metrics) != {"integrated_lufs", "sample_peak_dbfs", "peak_kind", "source"}
+                or metrics["peak_kind"] != "sample" or metrics["source"] != "decoded_output"
+                or type(metrics["integrated_lufs"]) not in (int, float)
+                or not math.isfinite(metrics["integrated_lufs"])
+                or (metrics["sample_peak_dbfs"] is not None and (
+                    type(metrics["sample_peak_dbfs"]) not in (int, float)
+                    or not math.isfinite(metrics["sample_peak_dbfs"])
+                ))
+            ):
+                raise ValueError
         size = video["size"]
         minimum = 0 if expected["version"] == 2 else 1
         if type(size) is not int or not minimum <= size <= MAX_VIDEO_BYTES or size > len(payload):
@@ -469,7 +545,10 @@ class IsolatedMotionRenderer:
                     timeout=self.timeout_seconds,
                     limit=MAX_OUTPUT_BYTES,
                 )
-                return _decode(output, config)
+                result = _decode(output, config)
+                if bundle.fingerprint_frames:
+                    result = replace(result, diagnostics={**result.diagnostics, "executor_image": self.image})
+                return result
             finally:
                 # The ID comes only from this successful create; never remove a pre-existing name.
                 await _command([*prefix, "rm", "--force", container], env=env, timeout=30, limit=1024)

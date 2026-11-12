@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const root = path.resolve(__dirname, '../../assets');
-const skill = fs.readFileSync(path.join(root, 'motion_skills/instagram-reel-v11.md'), 'utf8');
+const skill = fs.readFileSync(path.join(root, 'motion_skills/instagram-reel-v12.md'), 'utf8');
 const examples = [...skill.matchAll(/```javascript\n([\s\S]*?)\n```/g)].map(match => match[1]);
 function setup(ids) {
   const element=()=>({style:{},children:[],appendChild(node){this.children.push(node);}});

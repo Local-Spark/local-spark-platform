@@ -4,7 +4,14 @@ from copy import deepcopy
 from typing import Any
 
 from app.schemas.motion_production import MotionReview
-from app.schemas.motion_review_wire import CompactMotionReview, LinkedMotionReview
+from app.schemas.motion_review_wire import (
+    CompactMotionReview,
+    EvolutionMotionReview,
+    LinkedMotionReview,
+    LocalizedMotionReview,
+)
+from app.services.auth import AuthError
+from app.services.motion_corrections import correction_enabled, validate_location
 from app.services.motion_creative import CREATIVE_CRITERIA, SUPPORTED_CREATIVE_CONTRACTS
 from app.services.motion_protocols import MotionModelRequest
 from app.services.motion_temporal import TEMPORAL_CRITERIA, temporal_payload
@@ -88,6 +95,10 @@ def review_contract() -> dict[str, Any]:
 
 
 def review_wire_model(context: dict[str, Any]) -> type[CompactMotionReview]:
+    if context.get("evolution") is not None:
+        return EvolutionMotionReview
+    if correction_enabled(context):
+        return LocalizedMotionReview
     return LinkedMotionReview if context.get("review_contract") == LINKED_REVIEW_CONTRACT else CompactMotionReview
 
 
@@ -108,6 +119,7 @@ def review_evidence_index(request: MotionModelRequest) -> dict[str, Any]:
             ("current", request.frames),
             ("previous", request.incumbent_frames),
             ("source", request.source_frames),
+            ("baseline", request.baseline_frames),
         )
         for index, frame in enumerate(frames)
     }
@@ -154,6 +166,8 @@ def decode_review(request: MotionModelRequest, raw: str) -> MotionReview:
     for group in ("criteria", "creative_checks", "temporal_checks"):
         for check in data[group]:
             check["evidence"] = expand(check["evidence"])
+    for check in data.get("baseline_checks", []):
+        check["evidence"] = expand(check["evidence"])
     data["preference_evidence"] = expand(data["preference_evidence"])
     for issue in data["issues"]:
         ref = expand([issue.pop("evidence_id")])[0]
@@ -165,12 +179,22 @@ def decode_review(request: MotionModelRequest, raw: str) -> MotionReview:
 
 def validate_review(request: MotionModelRequest, review: MotionReview) -> None:
     compact = compact_review_enabled(request.context)
+    if correction_enabled(request.context):
+        for issue in review.issues:
+            if issue.actionable and issue.severity != "minor":
+                if request.composition is None:
+                    raise MotionReviewError("MOTION_CORRECTION_COMPOSITION_REQUIRED")
+                try:
+                    validate_location(request.composition, issue)
+                except AuthError as exc:
+                    raise MotionReviewError(exc.code) from None
     available = {
         (version, frame.ms, frame.sha256)
         for version, frames in (
             ("source", request.source_frames),
             ("current", request.frames),
             ("previous", request.incumbent_frames),
+            ("baseline", request.baseline_frames),
         )
         for frame in frames
     }
@@ -178,11 +202,12 @@ def validate_review(request: MotionModelRequest, review: MotionReview) -> None:
     references.extend(review.preference_evidence)
     references.extend(ref for check in review.creative_checks for ref in check.evidence)
     references.extend(ref for check in review.temporal_checks for ref in check.evidence)
+    references.extend(ref for check in review.baseline_checks for ref in check.evidence)
     if any((ref.version, ref.at_ms, ref.sha256) not in available for ref in references):
         raise MotionReviewError("MOTION_REVIEW_UNSENT_EVIDENCE")
     if any(("current", issue.at_ms, issue.evidence_sha256) not in available for issue in review.issues):
         raise MotionReviewError("MOTION_REVIEW_UNSENT_EVIDENCE")
-    versions = {ref.version for ref in review.preference_evidence if ref.version != "source"}
+    versions = {ref.version for ref in review.preference_evidence if ref.version in {"current", "previous"}}
     if review.preferred == "previous" and not request.incumbent_frames:
         raise MotionReviewError("MOTION_REVIEW_INVALID_PREFERENCE")
     if review.preferred == "current":
@@ -224,6 +249,30 @@ def validate_review(request: MotionModelRequest, review: MotionReview) -> None:
         ):
             raise MotionReviewError("MOTION_CREATIVE_CORRECTION_UNGROUNDED")
     validate_temporal_review(request, review)
+    validate_baseline_review(request, review)
+
+
+def validate_baseline_review(request: MotionModelRequest, review: MotionReview) -> None:
+    baseline = request.context.get("evolution")
+    if baseline is None:
+        if review.baseline_checks or review.baseline_video_sha256 is not None:
+            raise MotionReviewError("MOTION_EVOLUTION_REVIEW_UNEXPECTED")
+        return
+    if (
+        review.baseline_video_sha256 != baseline["selection"]["baseline_video_sha256"]
+        or len(review.baseline_checks) != 5
+        or {c.dimension for c in review.baseline_checks} != {"meaning", "recording", "space", "rhythm", "identity"}
+    ):
+        raise MotionReviewError("MOTION_EVOLUTION_REVIEW_REQUIRED")
+    for check in review.baseline_checks:
+        if check.result == "uncertain":
+            continue
+        minimum = 1 if check.dimension == "identity" else 2
+        if any(
+            len({r.at_ms for r in check.evidence if r.version == version}) < minimum
+            for version in ("current", "baseline")
+        ):
+            raise MotionReviewError("MOTION_EVOLUTION_COMPARATIVE_EVIDENCE_REQUIRED")
 
 
 def validate_temporal_review(request: MotionModelRequest, review: MotionReview) -> None:
@@ -253,6 +302,12 @@ def validate_temporal_review(request: MotionModelRequest, review: MotionReview) 
             if not ids or any(not covered(windows[id], refs) for id in ids):
                 raise MotionReviewError("MOTION_TEMPORAL_SEQUENCE_REQUIRED")
             if check.status == "pass" and ids != windows.keys():
+                raise MotionReviewError("MOTION_TEMPORAL_COVERAGE_REQUIRED")
+            if (
+                check.status == "pass"
+                and manifest["current"]["policy"]["version"] in {"motion-temporal-v2", "motion-temporal-v3"}
+                and (manifest["current"]["omitted_transitions"] or manifest["current"]["uncovered_scene_ids"])
+            ):
                 raise MotionReviewError("MOTION_TEMPORAL_COVERAGE_REQUIRED")
         if check.issue_indices and check.status != "fail":
             raise MotionReviewError("MOTION_TEMPORAL_CORRECTION_UNGROUNDED")

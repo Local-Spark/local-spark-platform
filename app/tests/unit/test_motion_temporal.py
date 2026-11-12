@@ -13,8 +13,15 @@ from app.adapters.motion_fixture import FixtureMotionProvider
 from app.schemas.motion_production import MotionReview
 from app.services.auth import AuthError
 from app.services.motion_orchestrator import needs_correction
-from app.services.motion_review import MotionReviewError, validate_review
-from app.services.motion_temporal import TEMPORAL_CRITERIA, events, evidence_manifest, sample_times, temporal_enabled
+from app.services.motion_review import MotionReviewError, validate_review, validate_temporal_review
+from app.services.motion_temporal import (
+    POLICY_V2,
+    TEMPORAL_CRITERIA,
+    events,
+    evidence_manifest,
+    sample_times,
+    temporal_enabled,
+)
 from app.tests.unit.test_motion_ai import composition, frame, provider, request, response_data, review_data
 from app.tests.unit.test_motion_creative import creative_case
 from app.tests.unit.test_motion_plan import context, planned
@@ -227,3 +234,153 @@ def test_review_prioritizes_linked_speech_events_with_the_existing_frame_limit()
     times = sample_times(composition, ctx)
     assert len(times) <= 20
     assert 0 in times and 500 in times
+
+
+def synthetic_three_scene_plan():
+    from app.tests.unit.test_motion_plan import plan_data
+
+    data = plan_data()
+    prototype = data["scenes"][0]
+    element = prototype["elements"][0]
+    scenes = []
+    for index, (start, end) in enumerate(((0, 4200), (3600, 9000), (8400, 11200))):
+        scene = deepcopy(prototype)
+        scene.update(id=f"scene-{index}", start_ms=start, end_ms=end, keyframe_ms=(start + end) // 2)
+        item = deepcopy(element)
+        item.update(id=f"item-{index}", related_element_ids=[])
+        item["beats"][0].update(start_ms=start + 100, end_ms=start + 500, speech_cue_id="same-cue")
+        scene["elements"] = [item]
+        if index == 0:
+            for number in range(3):
+                duplicate = deepcopy(item)
+                duplicate["id"] = f"duplicate-{number}"
+                scene["elements"].append(duplicate)
+        if index == 1:
+            item.update(role="image", asset_id="assets/object.png")
+            item["beats"][0].update(start_ms=6800, end_ms=7400, speech_cue_id="object-cue")
+        scenes.append(scene)
+    data.update(duration_ms=11200, scenes=scenes)
+    return planned(data)
+
+
+def test_v2_distributes_transitions_and_object_without_speech_crowding():
+    comp = synthetic_three_scene_plan()
+    old, total = events(comp)
+    selected, new_total = events(comp, POLICY_V2)
+    assert total == new_total and len({event.start_ms for event in old}) == 1
+    assert [(event.id, event.start_ms, event.end_ms) for event in selected] == [
+        ("transition-scene-1", 3500, 4200),
+        ("beat-item-1-0", 6800, 7400),
+        ("transition-scene-2", 8300, 9000),
+    ]
+    ctx = context()
+    ctx["creative_contract"]["temporal_review"] = POLICY_V2
+    times = sample_times(comp, ctx)
+    assert len(times) <= 20 and times == tuple(sorted(set(times)))
+    frames = tuple(frame(round((ms * 30 // 1000) * 1000 / 30)) for ms in times)
+    manifest = evidence_manifest(comp, frames, "current", POLICY_V2)
+    assert manifest["omitted_events"] == total - 3
+    assert manifest["covered_scene_ids"] == ["scene-0", "scene-1", "scene-2"]
+    assert not manifest["uncovered_scene_ids"] and not manifest["omitted_transitions"]
+    assert all(event["complete"] for event in manifest["events"])
+    missing_time = manifest["events"][0]["expected_times_ms"][0]
+    missing = evidence_manifest(comp, tuple(item for item in frames if item.ms != missing_time), "current", POLICY_V2)
+    assert missing["incomplete_events"] > 0
+
+
+def test_v2_short_piece_discloses_incomplete_windows():
+    from app.tests.unit.test_motion_plan import plan_data
+
+    data = plan_data()
+    data["scenes"] = data["scenes"][:1]
+    data["duration_ms"] = data["scenes"][0]["end_ms"] = 2
+    item = data["scenes"][0]["elements"][0]
+    item["related_element_ids"] = []
+    item["beats"][0]["end_ms"] = 2
+    comp = planned(data)
+    ctx = context()
+    ctx["creative_contract"]["temporal_review"] = POLICY_V2
+    times = sample_times(comp, ctx)
+    frames = tuple(frame(round(ms * 30 // 1000 * 1000 / 30)) for ms in times)
+    manifest = evidence_manifest(comp, frames, "current", POLICY_V2)
+    assert len(times) == 1 and manifest["incomplete_events"] == 1
+
+
+def test_v2_storyboard_does_not_request_frame_at_duration_boundary():
+    from app.services.motion_storyboard_frames import storyboard_moments
+    from app.tests.unit.test_motion_plan import plan_data
+
+    data = plan_data()
+    data["scenes"] = data["scenes"][:1]
+    scene = data["scenes"][0]
+    data["duration_ms"] = scene["end_ms"] = 34
+    scene["keyframe_ms"] = 0
+    item = scene["elements"][0]
+    item["related_element_ids"] = []
+    item["beats"][0]["end_ms"] = 34
+    ctx = context()
+    ctx["creative_contract"]["temporal_review"] = POLICY_V2
+    moments = storyboard_moments(planned(data), ctx)
+    assert [moment["requested_ms"] for moment in moments] == [0]
+
+
+@pytest.mark.parametrize("duration", [34, 67, 1000, 60000])
+def test_v2_sample_bounds_at_short_and_long_durations(duration):
+    from app.tests.unit.test_motion_plan import plan_data
+
+    data = plan_data()
+    data["scenes"] = data["scenes"][:1]
+    data["duration_ms"] = data["scenes"][0]["end_ms"] = duration
+    item = data["scenes"][0]["elements"][0]
+    item["related_element_ids"] = []
+    item["beats"][0]["end_ms"] = duration
+    comp = planned(data)
+    ctx = context()
+    ctx["creative_contract"]["temporal_review"] = POLICY_V2
+    times = sample_times(comp, ctx)
+    assert 1 <= len(times) <= 20 and times == tuple(sorted(set(times)))
+    assert all(0 <= instant < duration for instant in times)
+
+
+def test_v2_manifest_and_coverage_rules_reach_real_request_builder():
+    comp = synthetic_three_scene_plan()
+    ctx = context()
+    ctx["creative_contract"]["temporal_review"] = POLICY_V2
+    frames = tuple(frame(round((ms * 30 // 1000) * 1000 / 30)) for ms in sample_times(comp, ctx))
+    job = replace(request("review", composition=comp, frames=frames), context=ctx)
+    payload = provider(lambda _: pytest.fail("Network must not be called")).build_request(job)
+    sent = json.loads(payload["input"][0]["content"][0]["text"])["temporal_evidence"]["current"]
+    assert sent == evidence_manifest(comp, frames, "current", POLICY_V2)
+    assert "passagens omitidas" in payload["instructions"]
+    assert sum(block["type"] == "input_image" for block in payload["input"][0]["content"]) == len(frames)
+
+
+def test_v2_reports_omitted_transitions_and_does_not_allow_temporal_pass():
+    from app.tests.unit.test_motion_plan import plan_data
+
+    data = plan_data()
+    prototype = data["scenes"][0]
+    scenes = []
+    for index in range(5):
+        scene = deepcopy(prototype)
+        scene.update(id=f"scene-{index}", start_ms=index * 1000, end_ms=(index + 1) * 1000)
+        item = scene["elements"][0]
+        item.update(id=f"item-{index}", related_element_ids=[])
+        item["beats"][0].update(start_ms=index * 1000, end_ms=index * 1000 + 400)
+        scenes.append(scene)
+    data.update(duration_ms=5000, scenes=scenes)
+    comp = planned(data)
+    ctx = context()
+    ctx["creative_contract"]["temporal_review"] = POLICY_V2
+    frames = tuple(frame(round((ms * 30 // 1000) * 1000 / 30)) for ms in sample_times(comp, ctx))
+    manifest = evidence_manifest(comp, frames, "current", POLICY_V2)
+    assert manifest["omitted_transitions"] == 2
+    assert len(frames) <= 20
+    job, review_data_value, _ = temporal_case()
+    refs = [{"version": "current", "at_ms": item.ms, "sha256": item.sha256} for item in frames]
+    for check in review_data_value["temporal_checks"]:
+        check["event_ids"] = [event["id"] for event in manifest["events"]]
+        check["evidence"] = refs
+    review = MotionReview.model_validate(review_data_value)
+    with pytest.raises(MotionReviewError, match="COVERAGE_REQUIRED"):
+        validate_temporal_review(replace(job, context=ctx, composition=comp, frames=frames), review)

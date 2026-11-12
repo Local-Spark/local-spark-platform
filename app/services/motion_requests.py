@@ -114,6 +114,12 @@ class MotionRequestService:
               VALUES(:tenant,:business,:id,:source)"""),
                 {"tenant": tenant, "business": business, "id": request_id, "source": body.source_asset_id},
             )
+            for audio_id in sorted({event.asset_id for event in body.sound_events}):
+                await session.execute(
+                    text("""INSERT INTO motion_request_assets(tenant_id,business_id,request_id,asset_id)
+                      VALUES(:tenant,:business,:id,:source)"""),
+                    {"tenant": tenant, "business": business, "id": request_id, "source": audio_id},
+                )
             await _event(session, tenant, business, actor, body.operation_id, "motion.requested")
             row = await self.row(session, tenant, business, request_id)
             return MotionRequestRead.model_validate({key: row[key] for key in MotionRequestRead.model_fields})

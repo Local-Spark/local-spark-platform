@@ -108,7 +108,7 @@ class MotionIllustrations:
         row: dict[str, Any],
         token: UUID,
         prepared: PreparedMotionInput,
-        composition: HTMLMotionComposition,
+        composition: HTMLMotionComposition | MotionConstructionPlan,
     ) -> PreparedMotionInput:
         validate_declarations(composition, prepared)
         if not composition.illustrations:
@@ -122,7 +122,8 @@ class MotionIllustrations:
         if amount > policy["budget_usd_micros"] or not await self.effects.capacity(
             row,
             token,
-            amount + self.effects.requests.settings.motion_ai_reservation_usd_micros,
+            amount + (2 if isinstance(composition, MotionConstructionPlan) else 1)
+            * self.effects.requests.settings.motion_ai_reservation_usd_micros,
         ):
             raise AuthError("MOTION_ILLUSTRATION_BUDGET_EXCEEDED", 409)
         if getattr(self.store, "single_attempt_put", False) is not True:

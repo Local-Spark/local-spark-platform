@@ -1,0 +1,13 @@
+{
+  "version": "motion-illustrations-v1",
+  "model": "gpt-image-2.5-flare-2026-09-08",
+  "quality": "medium",
+  "size": "1024x1024",
+  "output_format": "png",
+  "background": "transparent",
+  "cost_policy": "image-2.5-standard-2026-11-09",
+  "rules": "Use illustrations=[] quando acervo/componentes/código atenderem à cena. Só peça uma ilustração se ela acrescentar uma representação útil que as opções disponíveis não resolvem. Para cada imagem, declare asset_id assets/illustration-<nome>.png, description detalhando objeto, partes, enquadramento e linguagem visual do kit, e purpose justificando sua função narrativa. Use esse asset_id no motion_plan com role=image e construction=generated_asset na direção. O serviço gerará o PNG antes de renderizar. Reserve o espaço no HTML; mantenha texto, logo e animação fora da imagem. Só ilustrações genéricas/conceituais: não invente foto de produto, pessoa, local, resultado ou atributos reais do negócio. No máximo max_images, sem imagens decorativas gratuitas. Recortes transparentes podem ser reutilizados em várias cenas. A correção conserva integralmente illustrations e reutiliza os mesmos arquivos; não regenera. A imagem ainda não foi vista na geração inicial: a crítica recebe os pixels efetivamente gerados.",
+  "max_images": 1,
+  "reservation_usd_micros": 500000,
+  "budget_usd_micros": 500000
+}

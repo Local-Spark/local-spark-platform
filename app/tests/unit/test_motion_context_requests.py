@@ -383,7 +383,7 @@ async def test_html_context_serializes_compatible_contract_and_preserves_histori
     capabilities = transmitted["executor_contract"]["capabilities"]
     assert all(term in capabilities for term in ("HTML", "JavaScript", "SVG", "Canvas", "misturar", "cut/fade"))
     assert "não exige vídeo sempre visível" in transmitted["executor_contract"]["integration_policy"]
-    assert transmitted["skill"]["id"] == "instagram-reel-v11"
+    assert transmitted["skill"]["id"] == "instagram-reel-v13"
     assert "escolha os trechos" not in transmitted["skill"]["instructions"]
     for item in transmitted["styles"]:
         assert item["projection"] == "html-executor-style-v1"
@@ -450,6 +450,7 @@ async def test_construction_skill_reaches_the_exact_counted_request(context_case
     import httpx
 
     from app.schemas.motion_production import MotionReview
+    from app.services.motion_corrections import correction_scope
     from app.services.motion_repertoire import load_repertoire_images
     from app.tests.unit.test_motion_ai import frame, provider, request, review_data
     from app.tests.unit.test_motion_plan import direction_data, planned
@@ -471,17 +472,28 @@ async def test_construction_skill_reaches_the_exact_counted_request(context_case
         context=captured,
         reference_images=load_repertoire_images(captured),
     )
+    if kind == "correct":
+        localized = review_data(revise=True)
+        localized["issues"][0]["localization"] = {
+            "scene_id": "hook", "element_ids": ["title"], "start_ms": 0, "end_ms": 300,
+            "margin_before_ms": 0, "margin_after_ms": 0,
+        }
+        review = MotionReview.model_validate(localized)
+        job = replace(job, review=review, context={
+            **captured, "correction_scope": correction_scope(job.composition, review),
+        })
     payload = model.build_request(job)
     authorized = json.loads(payload["input"][0]["content"][0]["text"])["authorized_context"]
-    assert authorized == captured
+    assert authorized == job.context
     assert authorized["request"]["scene_direction"] == direction_data()
     instructions = authorized["skill"]["instructions"]
-    assert authorized["skill"]["id"] == "instagram-reel-v11"
+    assert authorized["skill"]["id"] == "instagram-reel-v13"
     assert "function makeCompositionPassage" in instructions
     assert "function makeReadingReveal" in instructions
     assert "MotionV1.stagger" in instructions
     assert "makeCutoutObject" in instructions
     assert "makeNarrativeBackdrop" in instructions
+    assert "makeGroundedPassage" in instructions
     assert "makeVideoFrameTreatment" in instructions
     assert "Na revisão," in instructions  # Instructions are not render evidence.
     assert "Coreografia ligada ao sentido da mensagem" in instructions
@@ -545,7 +557,7 @@ def test_new_guidance_coordinates_background_video_and_objects_without_new_capab
 
     body = MotionRequest(operation_id=uuid4(), source_asset_id=uuid4(), instruction="Elaborated motion")
     guidance = capture_motion_guidance(body)
-    assert guidance["skill"]["id"] == "instagram-reel-v11"
+    assert guidance["skill"]["id"] == "instagram-reel-v13"
     text = guidance["skill"]["instructions"]
     assert "Fundo vivo significa participação na narrativa" in text
     assert "mesma janela de tamanho fixo" in text
@@ -571,8 +583,42 @@ def test_v7_with_v2_movement_recaptures_without_upgrading_historical_frames():
     }
     previous["creative_contract"]["movement_runtime"] = movement_v2_contract()
     assert capture_motion_guidance(body, previous=previous) == previous
-    assert current["skill"]["id"] == "instagram-reel-v11"
+    assert current["skill"]["id"] == "instagram-reel-v13"
     assert "makeVideoFrameTreatment" in current["skill"]["instructions"]
+
+
+def test_v11_guidance_is_preserved_when_recapturing_after_v12():
+    from copy import deepcopy
+
+    from app.services.motion_context import capture_motion_guidance
+    from app.services.motion_skills import load_motion_skill
+
+    body = MotionRequest(operation_id=uuid4(), source_asset_id=uuid4(), instruction="Motion")
+    previous = deepcopy(capture_motion_guidance(body))
+    digest = "998b792152dd4c513226155ad3c5340ec3640c5a93ca232925de47d91c577ce3"
+    previous["skill"] = {
+        "id": "instagram-reel-v11",
+        "sha256": digest,
+        "instructions": load_motion_skill("instagram-reel-v11", digest, "reel"),
+    }
+    assert capture_motion_guidance(body, previous=previous) == previous
+
+
+def test_v12_guidance_is_preserved_when_recapturing_after_v13():
+    from copy import deepcopy
+
+    from app.services.motion_context import capture_motion_guidance
+    from app.services.motion_skills import load_motion_skill
+
+    body = MotionRequest(operation_id=uuid4(), source_asset_id=uuid4(), instruction="Motion")
+    previous = deepcopy(capture_motion_guidance(body))
+    digest = "9924e20bf34c8ee4c1de5ff4fab6e33370bbb5f60b3c29c05187158e0d32b8ec"
+    previous["skill"] = {
+        "id": "instagram-reel-v12",
+        "sha256": digest,
+        "instructions": load_motion_skill("instagram-reel-v12", digest, "reel"),
+    }
+    assert capture_motion_guidance(body, previous=previous) == previous
 
 
 def test_background_skill_recapture_preserves_the_previous_video_treatment_version():

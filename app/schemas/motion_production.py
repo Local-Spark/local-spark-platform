@@ -5,12 +5,56 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.schemas.motion_correction import MotionCorrectionRegion
+from app.schemas.motion_evolution import MotionEvolutionRequest
 from app.schemas.motion_plan import MotionPlan
+from app.schemas.motion_preparation import MotionPreparation
 from app.schemas.motion_scene_direction import MotionSceneDirection
+from app.schemas.motion_speech import MotionSpeechTiming
 
 
 class MotionModel(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+class MotionSoundEvent(MotionModel):
+    """An owner-selected, rights-confirmed audio event; never inferred from a prompt."""
+
+    asset_id: UUID
+    role: Literal["music", "effect"]
+    rights_confirmed: bool = Field(strict=True)
+    not_duplicate_of_source: bool = Field(strict=True)
+    trim_start_ms: int = Field(strict=True, ge=0, le=60000)
+    trim_end_ms: int = Field(strict=True, gt=0, le=60000)
+    offset_ms: int = Field(strict=True, ge=0, le=60000)
+    volume: float = Field(strict=True, ge=0, le=1)
+    fade_in_ms: int = Field(strict=True, ge=0, le=60000)
+    fade_out_ms: int = Field(strict=True, ge=0, le=60000)
+
+    @model_validator(mode="after")
+    def interval(self) -> Self:
+        duration = self.trim_end_ms - self.trim_start_ms
+        if (
+            not self.rights_confirmed
+            or not self.not_duplicate_of_source
+            or duration <= 0
+            or self.offset_ms + duration > 60000
+        ):
+            raise ValueError("Sound rights and bounded interval are required")
+        if self.fade_in_ms + self.fade_out_ms > duration:
+            raise ValueError("Invalid sound interval or fades")
+        if not float(self.volume * 1000000).is_integer():
+            raise ValueError("Volume exceeds six decimal places")
+        return self
+
+
+class MotionDucking(MotionModel):
+    """User-selected compressor parameters; applied only to music against the source."""
+
+    threshold: float = Field(strict=True, ge=0.00097563, le=1)
+    ratio: float = Field(strict=True, ge=1, le=20)
+    attack_ms: int = Field(strict=True, ge=1, le=2000)
+    release_ms: int = Field(strict=True, ge=5, le=9000)
 
 
 class MotionRequest(MotionModel):
@@ -20,11 +64,46 @@ class MotionRequest(MotionModel):
     format: Literal["reel"] = "reel"
     storyboard: bool = Field(default=False, exclude_if=lambda value: not value)
     collection_photo_ids: tuple[UUID, ...] = Field(default=(), max_length=4, exclude_if=lambda value: not value)
- 
+    repertoire_id: Literal["business-reel-v1", "business-reel-v2", "business-reel-v3"] | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    scene_direction: MotionSceneDirection | None = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+        repr=False,
+        description="Visual direction supplied before construction; omission retains model-proposed direction.",
+    )
+    speech_timing: MotionSpeechTiming | None = Field(default=None, exclude_if=lambda value: value is None, repr=False)
+    sound_events: tuple[MotionSoundEvent, ...] = Field(default=(), max_length=8, exclude_if=lambda value: not value)
+    music_ducking: MotionDucking | None = Field(default=None, exclude_if=lambda value: value is None)
+    evolution: MotionEvolutionRequest | None = Field(default=None, exclude_if=lambda value: value is None)
+    preparation: MotionPreparation | None = Field(default=None, exclude_if=lambda value: value is None, repr=False)
+    review_checkpoints: bool = Field(default=False, strict=True, exclude_if=lambda value: not value)
+
     @model_validator(mode="after")
     def unique_photos(self) -> Self:
+        if self.review_checkpoints and (
+            self.preparation is None or self.scene_direction is None or not self.storyboard
+        ):
+            raise ValueError("Checkpoints require preparation, supplied direction and storyboard")
+        if self.preparation is not None:
+            if self.scene_direction is None:
+                raise ValueError("Preparation requires a direction to bind its decisions")
+            scenes = {scene.scene_id for scene in self.scene_direction.scenes}
+            mentioned = {scene for item in self.preparation.decisions for scene in item.scene_ids}
+            mentioned |= {scene for evidence in self.preparation.evidence for scene in evidence.scene_ids}
+            if not mentioned <= scenes:
+                raise ValueError("Preparation refers to an unknown scene")
+            if {scene for item in self.preparation.decisions for scene in item.scene_ids} != scenes:
+                raise ValueError("Every scene requires an explicit decision basis")
+        if self.evolution is not None and (self.scene_direction is None or not self.storyboard):
+            raise ValueError("Evolution requires supplied direction and storyboard")
+        if self.speech_timing is not None and self.speech_timing.provenance != "owner_reviewed":
+            raise ValueError("Only reviewed timing may be supplied by the caller")
         if len(set(self.collection_photo_ids)) != len(self.collection_photo_ids):
             raise ValueError("Collection photos must be distinct")
+        if self.music_ducking is not None and not any(event.role == "music" for event in self.sound_events):
+            raise ValueError("Ducking requires an explicitly selected music event")
         return self
 
 
@@ -59,6 +138,17 @@ class MotionIllustration(MotionModel):
     purpose: str = Field(min_length=1, max_length=400, pattern=r"\S")
 
 
+class MotionConstructionPlan(MotionModel):
+    """Complete planning artifact; deliberately has no executable code."""
+
+    concept: str = Field(min_length=1, max_length=4000)
+    source_usage: str = Field(min_length=1, max_length=4000)
+    audio: MotionAudio
+    motion_plan: MotionPlan
+    illustrations: tuple[MotionIllustration, ...] = Field(max_length=2)
+    scene_direction: MotionSceneDirection
+
+
 class HTMLMotionComposition(MotionModel):
     html: str = Field(min_length=1, max_length=2 * 1024 * 1024, repr=False)
     scene_init: str = Field(min_length=1, max_length=1024 * 1024, repr=False)
@@ -84,7 +174,7 @@ MANDATORY_CRITERIA = frozenset({"factuality", "brand", "legibility", "technical"
 
 
 class MotionEvidenceReference(MotionModel):
-    version: Literal["current", "previous", "source"]
+    version: Literal["current", "previous", "source", "baseline"]
     at_ms: int = Field(strict=True, ge=0, lt=60000)
     sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
 
@@ -112,6 +202,7 @@ class MotionIssue(MotionModel):
     evidence_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
     problem: str = Field(min_length=1, max_length=1000)
     correction: str = Field(min_length=1, max_length=1000)
+    localization: MotionCorrectionRegion | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @model_validator(mode="after")
     def actionable_audio(self) -> Self:
@@ -137,6 +228,13 @@ class MotionTemporalCheck(MotionModel):
     issue_indices: tuple[int, ...] = Field(max_length=20)
 
 
+class MotionBaselineCheck(MotionModel):
+    dimension: Literal["meaning", "recording", "space", "rhythm", "identity"]
+    result: Literal["improved", "equivalent", "regressed", "uncertain"]
+    observation: str = Field(min_length=1, max_length=1000)
+    evidence: tuple[MotionEvidenceReference, ...] = Field(max_length=32)
+
+
 class MotionReview(MotionModel):
     verdict: Literal["adequate", "needs_revision", "reject", "insufficient_evidence"]
     criteria: tuple[MotionCriterion, ...] = Field(min_length=7, max_length=7)
@@ -149,6 +247,12 @@ class MotionReview(MotionModel):
     # Optional only for reading historical evaluations; live v1 contracts require all four.
     creative_checks: tuple[MotionCreativeCheck, ...] = Field(default=(), max_length=4)
     temporal_checks: tuple[MotionTemporalCheck, ...] = Field(default=(), max_length=4)
+    baseline_video_sha256: str | None = Field(
+        default=None, pattern=r"^[a-f0-9]{64}$", exclude_if=lambda value: value is None
+    )
+    baseline_checks: tuple[MotionBaselineCheck, ...] = Field(
+        default=(), max_length=5, exclude_if=lambda value: not value
+    )
 
     @property
     def mandatory_pass(self) -> bool:

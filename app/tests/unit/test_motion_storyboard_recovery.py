@@ -128,6 +128,35 @@ async def test_recovery_checks_bytes_outside_locks_and_is_idempotent(recovery_ca
     assert r.c.requests.current.await_count == 2
 
 
+async def test_recovery_replays_v2_sequence_and_unique_frame_receipts(recovery_case):
+    from app.services.motion_temporal import POLICY_V2
+
+    r = recovery_case
+    ctx = r.payload["context"]
+    ctx["creative_contract"] = {"temporal_review": POLICY_V2}
+    moments = storyboard_moments(boarded(), ctx)
+    output = board_output(boarded(), ctx)
+    r.payload["frames"] = []
+    for moment, frame in zip(moments, output.evidence, strict=True):
+        name = f"{moment['scene_id']}:{moment['frame_index']}" if "event_id" in moment else moment["scene_id"]
+        operation = uuid5(r.version, name)
+        key = f"motion/{r.c.row['tenant_id']}/{r.c.row['business_id']}/{r.c.row['id']}/storyboard/{operation}.png"
+        manifest = {**moment, "at_ms": frame.ms, "sha256": frame.sha256,
+                    "size_bytes": len(frame.png), "object_key": key}
+        r.payload["frames"].append(manifest)
+        r.pngs[key] = frame.png
+        response_key = str(operation) + "-response"
+        r.receipts[response_key] = manifest
+        r.effects[operation] = dict(operation_id=operation, kind="upload", state="received", request_hash="hash",
+                                    request_ciphertext="request", response_ciphertext=response_key,
+                                    reserved_usd_micros=0, estimated_usd_micros=None)
+    signed = r.receipts[str(r.version) + "-request"]
+    signed["moments"] = moments
+    received = r.receipts[str(r.version) + "-response"]
+    received["frames"] = [{"ms": frame.ms, "sha256": frame.sha256} for frame in output.evidence]
+    assert (await r.service.reconcile(*r.args, digest(r.payload)))["reconciled"]
+
+
 @pytest.mark.parametrize("changed", [False, True])
 async def test_staged_capture_recovery_requires_matching_planning_receipt(recovery_case, changed):
     from app.services.motion_context import digest

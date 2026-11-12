@@ -10,6 +10,7 @@ from app.services.motion_creative import (
     SUPPORTED_CREATIVE_CONTRACTS,
 )
 from app.services.motion_elements import elements_hash
+from app.services.motion_evolution import validate_evolution_plan
 from app.services.motion_speech import validate_speech_plan
 from app.services.motion_visual_direction import validate_direction_fidelity
 
@@ -99,6 +100,7 @@ def validate_motion_plan(
     validate_speech_plan(composition, context)
     required = requires_motion_plan(context)
     validate_direction_fidelity(composition, context)
+    validate_evolution_plan(composition, context)
     plan = composition.motion_plan
     if plan is None:
         if required:

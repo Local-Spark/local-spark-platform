@@ -2,6 +2,7 @@
 
 import hashlib
 from contextlib import asynccontextmanager
+from copy import deepcopy
 from dataclasses import replace
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -16,6 +17,7 @@ from app.services.auth import AuthError
 from app.services.motion_context import digest
 from app.services.motion_storyboard_frames import storyboard_moments
 from app.services.motion_storyboards import MotionStoryboards
+from app.services.motion_temporal import POLICY_V2, POLICY_V3
 from app.tests.unit.test_motion_ai import frame
 from app.tests.unit.test_motion_html_renderer import bundle, output, packed
 from app.tests.unit.test_motion_plan import context, planned
@@ -28,9 +30,9 @@ def boarded():
     return HTMLMotionComposition.model_validate(data)
 
 
-def board_output(value):
+def board_output(value, ctx=None):
     frames = []
-    for moment in storyboard_moments(value):
+    for moment in storyboard_moments(value, ctx):
         index = moment["frame_index"]
         raw = frame(round(index * 1000 / 30))
         frames.append(replace(raw, frame_index=index, pts_seconds=f"{index / 30:.6f}"))
@@ -248,6 +250,46 @@ async def test_capture_persists_every_scene_and_provenance_without_mp4(board_cas
     assert "awaiting_approval" in str(c.session.execute.await_args.args[0])
 
 
+@pytest.mark.parametrize("policy", [POLICY_V2, POLICY_V3])
+async def test_v2_preview_keeps_sequences_and_unique_durable_frame_ids(board_case, policy):
+    from app.adapters.motion_inputs import PreparedMotionInput
+
+    c = board_case
+    composition = boarded()
+    ctx = context()
+    ctx["creative_contract"]["temporal_review"] = policy
+    pixels = board_output(composition, ctx)
+    renderer = SimpleNamespace(render=AsyncMock(return_value=pixels))
+    saved = []
+
+    async def persist(*args):
+        saved.append(args[-1])
+        return "encrypted board"
+
+    effects = SimpleNamespace(claim=AsyncMock(), received=AsyncMock(), persist_payload=AsyncMock(side_effect=persist))
+
+    async def put(key, media):
+        assert not c.active
+        c.store.get_image.return_value = media.data
+
+    c.store.put.side_effect = put
+    prepared = PreparedMotionInput(ctx, (), (), 1000, {"mode": "silent", "tracks": []})
+    await c.service.capture(c.row, c.row["execution_token"], prepared, composition, renderer, effects)
+    payload = saved[0]
+    assert len(payload["frames"]) > 2 and len(payload["frames"]) <= 20
+    assert len({item["object_key"] for item in payload["frames"]}) == len(payload["frames"])
+    assert any(item.get("kind") == "transition" for item in payload["frames"])
+    assert payload["temporal_preview"]["policy"] == policy
+    assert not payload["temporal_preview"]["incomplete_events"]
+    assert payload["asset_hashes"] == []
+    c.service.load = AsyncMock(return_value=(c.row, c.board, payload))
+    png = pixels.evidence[0].png
+    c.service.read_png = AsyncMock(return_value=png)
+    page = await c.service.gallery(c.row["tenant_id"], c.row["business_id"], c.row["actor_id"], c.row["id"])
+    assert "Prévia amostrada" in page and "passagens não selecionados" in page
+    assert "transition-" in page and "não demonstram movimento contínuo" in page
+
+
 @pytest.mark.parametrize(
     "state,valid", [("approved", True), ("rendering", True), ("awaiting_approval", True), ("approved", False)]
 )
@@ -308,6 +350,43 @@ async def test_restore_approved_art_uses_private_bytes_and_never_calls_a_provide
     c.board["content_sha256"] = "f" * 64
     with pytest.raises(AuthError, match="BYTES_CHANGED"):
         await c.service.restore(c.row, c.board, prepared)
+
+
+@pytest.mark.parametrize("change", [None, "asset", "direction", "composition"])
+async def test_v2_resume_binds_approved_material_and_direction(board_case, change):
+    from app.adapters.motion_html_renderer import RenderAsset
+    from app.adapters.motion_inputs import PreparedMotionInput
+    from app.services.motion_elements import elements_hash
+    from app.services.motion_movement import movement_hash
+
+    c = board_case
+    ctx = context()
+    ctx["request"] = {"scene_direction": {"version": "original"}}
+    data = b"synthetic"
+    asset = RenderAsset("assets/source.mp4", "video/mp4", data, hashlib.sha256(data).hexdigest())
+    payload = {
+        "composition": boarded().model_dump(mode="json"),
+        "context": deepcopy(ctx),
+        "source_fingerprint": c.row["source_fingerprint"],
+        "illustrations": [],
+        "asset_hashes": [{"id": asset.id, "sha256": asset.sha256}],
+        "runtime_hashes": [movement_hash(ctx), elements_hash(ctx)],
+    }
+    c.board["content_sha256"] = digest(payload)
+    if change == "asset":
+        asset = replace(asset, data=b"modified")
+    elif change == "direction":
+        ctx["request"]["scene_direction"]["version"] = "changed"
+    elif change == "composition":
+        payload["composition"]["html"] = "changed"
+    c.service.payloads.open = AsyncMock(return_value=payload)
+    prepared = PreparedMotionInput(ctx, (asset,), (), 1000, {"mode": "silent", "tracks": []})
+    if change:
+        with pytest.raises(AuthError, match="BYTES_CHANGED"):
+            await c.service.restore(c.row, c.board, prepared)
+    else:
+        _, composition = await c.service.restore(c.row, c.board, prepared)
+        assert composition == boarded()
 
 
 async def test_relay_resumes_through_temporal_with_separate_durable_workflow_identity():

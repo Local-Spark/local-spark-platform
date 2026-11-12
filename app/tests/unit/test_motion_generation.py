@@ -13,6 +13,7 @@ from app.schemas.motion_production import MotionRequest, MotionReview
 from app.services.auth import AuthError
 from app.services.motion_context import capture_motion_guidance
 from app.services.motion_generation import (
+    ASSET_INFORMED_GENERATION_CONTRACT,
     GENERATION_CONTRACT,
     LEGACY_GENERATION_CONTRACT,
     STAGED_GENERATION_CONTRACT,
@@ -188,12 +189,14 @@ def test_v2_projection_does_not_bypass_plan_validation(change):
         decode_provided_output(json.dumps(wire), ctx)
 
 
-def test_v3_default_and_immutable_v1_v2_recapture():
+def test_v4_default_and_immutable_v1_v2_v3_recapture():
     body = MotionRequest(
         operation_id=uuid4(), source_asset_id=uuid4(), instruction="Synthetic", scene_direction=direction_data()
     )
     current = capture_motion_guidance(body)
-    assert current["generation_contract"] == STAGED_GENERATION_CONTRACT
+    assert current["generation_contract"] == ASSET_INFORMED_GENERATION_CONTRACT
+    v3 = {**current, "generation_contract": deepcopy(STAGED_GENERATION_CONTRACT)}
+    assert capture_motion_guidance(body, previous=v3)["generation_contract"] == STAGED_GENERATION_CONTRACT
     v2 = {**current, "generation_contract": deepcopy(GENERATION_CONTRACT)}
     assert capture_motion_guidance(body, previous=v2)["generation_contract"] == GENERATION_CONTRACT
     old = {**current, "generation_contract": deepcopy(LEGACY_GENERATION_CONTRACT)}

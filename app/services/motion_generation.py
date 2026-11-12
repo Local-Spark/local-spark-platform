@@ -59,10 +59,32 @@ STAGED_GENERATION_CONTRACT = {
     "plan_rules": GENERATION_CONTRACT["response_rules"].split(" Nesta versão,", 1)[1],
 }
 
+ASSET_INFORMED_GENERATION_CONTRACT = {
+    **STAGED_GENERATION_CONTRACT,
+    "version": "provided-direction-output-v4",
+    "response_rules": STAGED_GENERATION_CONTRACT["response_rules"].replace(
+        "Na etapa implementation, execute o plano validado fornecido; entregue somente plan_sha256, "
+        "html e scene_init completos, sem repetir nem alterar o plano, áudio ou direção. ",
+        "Na etapa implementation, respeite o plano validado e use o schema v4 para declarar sucesso ou "
+        "necessidade de revisão; não repita nem altere plano, áudio ou direção. ",
+    )
+    + (
+        " Antes da implementation, os materiais declarados são resolvidos e seus previews verificados são anexados. "
+        "Use dimensões e transparência informadas, respeite as limitações do material e o hash do plano imutável. "
+        "Imagem plana não permite revelar faces ocultas ou supor geometria 3D. Se o material inviabilizar "
+        "o plano, use status requires_plan_revision, forneça revision_reason e não entregue código. "
+        "Uma revisão posterior exige novo plano e novo hash; nunca altere o plano silenciosamente."
+    ),
+}
+
+
+def asset_informed_enabled(context: dict[str, Any]) -> bool:
+    return context.get("generation_contract") == ASSET_INFORMED_GENERATION_CONTRACT
+
 
 def staged_generation_enabled(context: dict[str, Any]) -> bool:
     provided_output_enabled(context)
-    return context.get("generation_contract") == STAGED_GENERATION_CONTRACT
+    return context.get("generation_contract") in (STAGED_GENERATION_CONTRACT, ASSET_INFORMED_GENERATION_CONTRACT)
 
 
 def construction_plan_hash(plan: MotionConstructionPlan) -> str:
@@ -122,7 +144,8 @@ def provided_output_enabled(context: dict[str, Any]) -> bool:
     contract = context.get("generation_contract")
     if contract is None:
         return False
-    if contract not in (LEGACY_GENERATION_CONTRACT, GENERATION_CONTRACT, STAGED_GENERATION_CONTRACT):
+    if contract not in (LEGACY_GENERATION_CONTRACT, GENERATION_CONTRACT, STAGED_GENERATION_CONTRACT,
+                        ASSET_INFORMED_GENERATION_CONTRACT):
         raise AuthError("MOTION_GENERATION_CONTRACT_UNKNOWN", 409)
     if supplied_direction(context) is None:
         raise AuthError("MOTION_VISUAL_DIRECTION_REQUIRED", 409)

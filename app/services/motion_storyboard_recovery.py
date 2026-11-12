@@ -11,7 +11,7 @@ from app.services.auth import AuthError
 from app.services.content_pieces import _event
 from app.services.motion_context import digest
 from app.services.motion_generation import staged_generation_enabled
-from app.services.motion_storyboard_frames import storyboard_moments
+from app.services.motion_storyboard_frames import storyboard_moments, storyboard_upload_name
 from app.services.motion_storyboards import MotionStoryboards
 
 
@@ -110,7 +110,7 @@ class MotionStoryboardRecovery:
         signed = await receipt(version, "render", "request_ciphertext")
         generated = await receipt(generation, "generate")
         rendered = await receipt(version, "render")
-        moments = storyboard_moments(composition)
+        moments = storyboard_moments(composition, payload["context"])
         if (
             signed.get("purpose") != "storyboard"
             or signed["composition"] != payload["composition"]
@@ -121,7 +121,8 @@ class MotionStoryboardRecovery:
             raise AuthError("MOTION_STORYBOARD_BYTES_CHANGED", 409)
         frames = []
         for moment, manifest in zip(moments, payload["frames"], strict=True):
-            upload = uuid5(version, moment["scene_id"])
+            upload_name = storyboard_upload_name(moment)
+            upload = uuid5(version, upload_name)
             key = f"motion/{row['tenant_id']}/{row['business_id']}/{row['id']}/storyboard/{upload}.png"
             if (
                 any(manifest[k] != v for k, v in moment.items())

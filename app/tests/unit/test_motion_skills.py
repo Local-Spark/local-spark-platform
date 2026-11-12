@@ -28,11 +28,16 @@ def test_resolve_snapshot_for_each_motion_format(format: str, skill_id: str, req
 def test_html_reel_skill_preserves_recording_and_old_snapshot() -> None:
     skill_id, digest, instructions = motion_skills.resolve_html_motion_skill("reel")
 
-    assert skill_id == "instagram-reel-v11"
+    assert skill_id == "instagram-reel-v13"
     assert digest == hashlib.sha256(instructions.encode("utf-8")).hexdigest()
     assert "preserva a gravação inteira e sua voz" in instructions
     assert "HTML/scene_init" in instructions
     assert "não invente transcrição" in instructions
+    assert "Moldura ou borda é opcional" in instructions
+    assert "Acento é o momento da transformação significativa" in instructions
+    assert "não exija objeto realista" in instructions
+    assert "makeGroundedPassage" in instructions
+    assert "Para a xícara conceitual, description deve pedir" not in instructions
     old_id, old_digest, old_instructions = motion_skills.resolve_motion_skill("reel")
     assert old_id == "instagram-reel-v1"
     assert old_digest == "4ed6a1307437b492cf423612855645752fda331e206920abfcf155c198271ec7"
@@ -100,6 +105,8 @@ def test_load_rejects_invalid_utf8_even_if_digest_matches(tmp_path, monkeypatch)
         "instagram-reel-v9",
         "instagram-reel-v10",
         "instagram-reel-v11",
+        "instagram-reel-v12",
+        "instagram-reel-v13",
     ],
 )
 def test_html_skill_versions_reject_modified_bytes(tmp_path, monkeypatch, skill_id):

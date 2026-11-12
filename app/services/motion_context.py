@@ -15,14 +15,18 @@ from app.schemas.motion_production import MotionRequest
 from app.services.auth import AuthError
 from app.services.brand_kits import BrandKitService
 from app.services.editorial_context import EditorialContextService
+from app.services.motion_corrections import CORRECTION_POLICY, correction_enabled
 from app.services.motion_creative import MEDIA_VISIBILITY_POLICY, alternating_creative_contract
-from app.services.motion_generation import STAGED_GENERATION_CONTRACT, provided_output_enabled
+from app.services.motion_evolution import capture_evolution
+from app.services.motion_generation import ASSET_INFORMED_GENERATION_CONTRACT, provided_output_enabled
 from app.services.motion_illustration_policy import illustration_policy
+from app.services.motion_preparation import PREPARATION_RULES
 from app.services.motion_repertoire import capture_repertoire
 from app.services.motion_review import compact_review_enabled, review_contract
 from app.services.motion_skills import load_motion_skill, resolve_html_motion_skill, resolve_motion_skill
 from app.services.motion_speech_policy import speech_policy
 from app.services.motion_styles import html_style_card, list_motion_styles
+from app.services.motion_temporal import POLICY_V3
 from app.services.motion_visual_direction import supplied_direction
 from app.services.reference_generation_context import capture_generation_context
 
@@ -66,10 +70,12 @@ def capture_motion_guidance(
     generation = (
         previous.get("generation_contract")
         if previous is not None
-        else dict(STAGED_GENERATION_CONTRACT)
+        else dict(ASSET_INFORMED_GENERATION_CONTRACT)
         if request.scene_direction is not None
         else None
     )
+    if request.evolution is not None and previous is None:
+        creative = {**cast(dict[str, Any], creative), "temporal_review": dict(POLICY_V3)}
     if generation is not None and previous is None:
         creative = dict(cast(dict[str, Any], creative))
         creative["scene_direction_rules"] = creative["scene_direction_rules"].replace(
@@ -88,6 +94,8 @@ def capture_motion_guidance(
     )
     review_policy = review_contract() if previous is None else previous.get("review_contract")
     compact_review_enabled({"review_contract": review_policy})
+    correction_policy = dict(CORRECTION_POLICY) if previous is None else previous.get("correction_contract")
+    correction_enabled({"correction_contract": correction_policy})
     supplied_direction(
         {
             "request": request.model_dump(mode="json"),
@@ -120,6 +128,7 @@ def capture_motion_guidance(
             }
         )
     return {
+        **({"preparation_contract": PREPARATION_RULES} if request.preparation is not None else {}),
         **(
             {
                 "executor_contract": previous["executor_contract"]
@@ -136,6 +145,7 @@ def capture_motion_guidance(
         "creative_contract": creative,
         **({"generation_contract": generation} if generation is not None else {}),
         **({"review_contract": review_policy} if review_policy is not None else {}),
+        **({"correction_contract": correction_policy} if correction_policy is not None else {}),
         "request": request.model_dump(mode="json"),
         **({"illustration_generation": illustration_generation} if illustration_generation is not None else {}),
         "skill": {"id": skill_id, "sha256": skill_hash, "instructions": skill_text},
@@ -245,6 +255,26 @@ class MotionContext:
             if photo is None:
                 raise AuthError("MOTION_COLLECTION_PHOTO_UNAVAILABLE", 409)
             photos.append(dict(photo))
+        audio_materials = []
+        for audio_id in sorted({event.asset_id for event in request.sound_events}):
+            material = (
+                (
+                    await session.execute(
+                        text("""SELECT id,object_key,mime_type,size_bytes,sha256 FROM whatsapp_material_assets
+                          WHERE tenant_id=:tenant AND business_id=:business AND id=:audio AND kind='audio'
+                            AND mime_type IN ('audio/wav','audio/ogg','audio/mpeg')
+                            AND object_key IS NOT NULL AND sha256 IS NOT NULL AND size_bytes>0
+                            AND delete_requested_at IS NULL AND delete_lease_until IS NULL
+                            AND (expires_at IS NULL OR expires_at>clock_timestamp()) FOR SHARE"""),
+                        {"tenant": tenant, "business": business, "audio": audio_id},
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+            if material is None:
+                raise AuthError("MOTION_AUDIO_MATERIAL_UNAVAILABLE", 409)
+            audio_materials.append(dict(material))
         kit = (await BrandKitService._state(session, tenant, business)).confirmed
         if kit is None:
             raise AuthError("MOTION_CONFIRMED_KIT_REQUIRED", 409)
@@ -255,6 +285,7 @@ class MotionContext:
             params,
         )
         references = await capture_generation_context(session, business)
+        evolution = await capture_evolution(session, tenant, business, request, self.open)
         logo = None
         if kit.overrides.logo_asset_id is not None:
             logo_row = (
@@ -282,7 +313,9 @@ class MotionContext:
                         "tenant_id": tenant,
                         "business_id": business,
                         "source": dict(source),
+                        **({"evolution": evolution} if evolution is not None else {}),
                         **({"collection_photos": photos} if photos else {}),
+                        **({"audio_materials": audio_materials} if audio_materials else {}),
                         "logo": logo,
                         "kit": kit.model_dump(mode="json"),
                         "context_version": context.version,

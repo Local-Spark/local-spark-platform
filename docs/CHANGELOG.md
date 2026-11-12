@@ -1,5 +1,311 @@
 # Registro de mudanças
 
+## 2026-11-12 — inspeção real da preparação e correções da entrevista
+
+- Captura de contexto/mídia e payload pelos builders reais, sem admissão ou envio:
+  44 imagens (15 fonte, 20 base, oito referências, um material), hashes verificados.
+- Titular rejeitou exigir termos técnicos do cliente e congelar a peça anterior;
+  definiu piso de qualidade e seleção de efeitos de biblioteca pública licenciada.
+  Rascunho preservado como evidência, marcado superado; entrada revista separada.
+- Probes reais confirmam direção exigida pelos checkpoints e imutabilidade da
+  direção fornecida. Registrados 18 `preserve` herdados e restrição sonora conflitante.
+- Inventário das fontes registra ElevenLabs no estudo Maestros e síntese nos
+  exemplos claude-video. Mixer existente não obtém nem seleciona esses materiais.
+  Dois candidatos CC0 pesquisados, sem download, escuta ou vínculo de runtime.
+- Relatório: `docs/evals/ensaio-acompanhado-motion-2026-11-12.md`. Sem alteração de
+  produção, banco, serviços ou dependências; cinco contêineres continuam `exited`.
+  Nenhuma chamada paga, asset gerado ou render. Qualidade e CI global não revalidados.
+
+## 2026-11-12 — preparação verificável e checkpoints antes de código/render
+
+- Implementadas fases 1–3 posteriores à auditoria: mensagem preservada, origem e
+  escopo de requisitos/observações/exemplos/hipóteses; cenas precisam de fundamento.
+- Evidências vinculadas a bytes efetivos no builder. Amostras extras da fonte
+  respeitam limite/duração; repertório v3 opcional inclui luz/camadas de material
+  já estudado. v1/v2, skills, áudio, kit, acervo e base histórica preservados.
+- Pausas opt-in após plano e código, com payload/retorno real inspecionáveis por
+  API privada. Decisão por hash, idempotência, outbox/Temporal, erro terminal ou
+  quarentena. Retomada não repete plano/ASR; antes da segunda aprovação há zero
+  render. Aprovar render libera só storyboard; MP4 conserva aprovação própria.
+- Migração 0118 aditiva, sem tabela nova. Aplicada exclusivamente no existente
+  `meu_braco_direito_platform_test` após autorização explícita. Divergência antiga
+  da 0075 reconciliada na tabela vazia de opções de perfil, sem apagar dados ou
+  alterar dev. Cinco serviços confirmados `exited`; nenhum iniciado.
+- 65 testes dirigidos passaram, cobertura de linhas/branches 100% nos quatro
+  módulos novos (307 statements/96 branches); 1.533 testes motion/exportadores
+  passaram, dois skipped; seis integrações de regressão passaram. Ruff lint
+  global e Mypy 330 módulos aprovados. `make ci` para na formatação preexistente
+  de 17 arquivos; CI/cobertura globais não certificados. Nenhum módulo excluído.
+- Sem chamada paga, geração de imagem ou render de peça. Qualidade visual/sonora
+  continua não validada. Contrato/API/limites em
+  `docs/design/motion-preparacao-e-revisao-fases-1-3-2026-11-12.md`.
+- Titular questionou cobertura versus qualidade e sugeriu OpenCode/Web/ChatUI.
+  Pesquisa oficial e proposta de uso com os serviços reais documentadas em
+  `docs/design/opencode-e-inspecao-do-produto-2026-11-12.md`; sem instalação ou
+  nova execução. Trace observado não equivale a acesso ao raciocínio interno.
+
+## 2026-11-12 — rastreamento técnico completo da rodada recuperada
+
+- Detalhada origem do brief e entrada direta por API via ASGI: entendimento de
+  mensagem natural/WhatsApp não participou da prova, sem alegar remoção de recursos.
+- Rastreado API/snapshot/outbox/Temporal → inputs/ASR → duas chamadas de modelo →
+  storyboard com falha → MP4 de avaliação separado. Crítica/correção não executadas.
+- Extraídas respostas literais dos recibos e confrontadas com plano/composição
+  normalizados; conferidos hashes de ambas as entradas originais. Documentada
+  reinserção da direção fornecida pelo servidor, não gerada pelo modelo.
+- Somente documentação/evidência local, sem runtime, rede, banco, serviço, render
+  ou gasto novo. Validação por leitura dos recibos e diff; sem novo CI/aceite visual.
+
+## 2026-11-12 — primeira conferência do fluxo real de geração
+
+- Priorizada auditoria por etapa a pedido do titular, antes do experimento visual.
+  Reconstruída offline a entrada histórica pelo builder do produto: igualdade
+  semântica, assets/anexos verificados e hash original compatível com recibo.
+- Registrados pedido, saída da preparação, recursos presentes, não selecionados
+  e limites de percepção; nenhuma alegação de novo inventário do acervo.
+- Identificada ausência de pausa humana entre plano e implementação; habilitar
+  retomada durável é pendência, sem mudança de runtime nesta entrega.
+- Relatório: `docs/evals/auditoria-fluxo-motion-2026-11-12.md`. Sem chamada paga,
+  asset, render, banco ou serviço; verificação local do builder e diff, sem CI.
+
+## 2026-11-12 — alcance do feedback e proposta de estudo por trechos
+
+- Registrada a crítica do titular à transformação de exemplos em regras.
+  Conferidos skill, brief, direção e controles: opções gerais permanecem, mas
+  decisões fornecidas são fixadas na rodada; fidelidade não comprova qualidade.
+- Proposto estudo de ações completas em cerca de 4–5 s e comparação de uma
+  janela dentro da peça inteira. Imagem/som concebidos juntos; A/B isolado é
+  instrumento diagnóstico, sem impor intensidade ou duração ao produto.
+- Atualizada a revisão de acabamento e a documentação vigente. Nenhum código,
+  artefato anterior, staging, serviço ou banco alterado; sem geração/gasto/render.
+  Validação documental por diff; estudo temporal/escuta, aplicação e pendências
+  técnicas anteriores permanecem abertos.
+
+## 2026-11-11 — feedback positivo e auditoria de acabamento da peça recuperada
+
+- Registrado feedback favorável à prévia MP4 e distância ainda percebida da
+  referência; arquivo/hash preservados como referência de continuidade, sem
+  promover a peça falha no banco ou declarar qualidade final aprovada.
+- Auditados payload/código/quadros: 18 elementos, preparo de 2,560 s antes da
+  xícara, apoio com degradê muito sutil, zero eventos sonoros adicionais e seleção
+  Maestros centrada em trajetória. Mixer existe; direção/seleção sonora ainda
+  dependem de material e escolha explícitos. Sem alegação de escuta realizada.
+- Documentadas prioridades delimitadas, ciclo de revisão por rodada e lacuna do
+  seletor que confunde incremento localizado com fechamento global. Propostas
+  ainda não implementadas; nenhum asset, render, provider, banco ou serviço usado.
+- Relatório: `docs/evals/revisao-acabamento-cinematografico-motion-2026-11-11.md`.
+  Validação documental/artefatos e diff; nenhuma nova alegação de CI/qualidade.
+
+## 2026-11-11 — R5: MP4 de avaliação da prévia autorizada
+
+- Renderizado o mesmo código recebido, por executor/Temporal existentes, após
+  autorização do titular sobre a prévia. Sem novas chamadas ao modelo/assets,
+  edição de composição, alteração do pedido falho ou aprovação fictícia no banco.
+- MP4 720 × 1280, 30 fps, 11,2 s, faixa original; FFprobe e decodificação completa
+  passaram. Player local e recibos em `.local/evals/motion-recovery-run-20261111/`.
+- Nenhum gasto adicional de modelo; cinco serviços parados. Falha de persistência,
+  estabilidade de recaptura, CI integral e aceite visual permanecem pendentes.
+- Relatório: `docs/evals/execucao-recuperacao-motion-2026-11-11.md`.
+
+## 2026-11-11 — R5: colisão de uploads corrigida; recuperação bloqueada
+
+- Dois modelos concluíram com base histórica/material original no payload real.
+  Estimativa US$ 0,568106, reservas US$ 2,50; nenhum novo asset ou MP4 do cliente.
+- Corrigido identificador de quadros globais v3, com teste de persistência. Adicionada
+  recaptura explícita, isolada em outbox/Temporal, sem provider e com comparação de
+  hashes; migração 0117 permite seus dois eventos. Sem tabela nova/apagamento.
+- Recaptura parou por diferença de pixels; pedido continua falho. Diagnóstico
+  separado guardou 20 PNGs, 19 iguais ao recibo original. Sem aprovação automática.
+- 113 testes de motion, 95 de controle/outbox, um teste PostgreSQL da migração
+  passaram; Mypy 326 módulos. CI integral/qualidade visual permanecem pendentes.
+- Detalhes e prévia: `docs/evals/execucao-recuperacao-motion-2026-11-11.md`.
+
+## 2026-11-11 — R5: nova autorização e execução controlada
+
+- Autorizada nova rodada da proposta R5, teto US$ 6,25, reutilizando xícara original,
+  sem imagem nova ou música; storyboard antes do MP4. Sem orçamento anterior.
+- Admissão pelo montador real e executor sintético conferidos; 77 testes dirigidos
+  passaram. CI integral/100% permanece pendente, sem declaração de merge aprovado.
+- Execução e evidências em `docs/evals/execucao-recuperacao-motion-2026-11-11.md`.
+
+## 2026-11-11 — recuperação R1–R5: base no contexto e seleção comparativa
+
+- Implementados vínculo histórico opcional e matriz de preservação/substituição,
+  com escopo de negócio, hashes e reutilização explícita de imagem existente.
+  Base separada da candidata anterior da correção; nenhuma tabela nova.
+- Direção Café Pausa revista com 18 elementos contabilizados. Política temporal
+  v3 cobre passagens completas; galeria inclui quadros da base. Crítica exige
+  comparação fundamentada e seleção bloqueia resultado inferior/equivalente/incerto.
+- Script de R5 preparou payload pelo montador real com 20 quadros da base,
+  seis da fonte, cinco referências e xícara original. Zero chamada paga/render;
+  reserva nova proposta US$ 6,25 não autorizada, sem reaproveitar US$ 6,75 antigos.
+- 1.114 testes passaram, dois skipped; 19 testes novos sintéticos. Ruff nos arquivos
+  alterados e Mypy (325 módulos) passaram. CI completa parou em formatação
+  preexistente; cobertura 100%/integração não comprovadas. Qualidade visual pendente.
+- Mantidas capacidades das etapas 1–6, alterações no índice e cinco serviços
+  parados. Relatório: `docs/evals/recuperacao-motion-r1-r5-2026-11-11.md`.
+
+## 2026-11-11 — plano de recuperação e evolução de peças
+
+- Criado `docs/design/plano-recuperacao-e-evolucao-motion-2026-11-11.md`, com
+  R1–R5, dependências, entregas, verificações, aceites e critérios de interrupção.
+  Reaproveita diagnóstico/artefatos e mantém as capacidades das etapas 1–6.
+- Distingue base histórica, referências criativas e candidata da correção;
+  inclui uso verificável de skills/acervo/kits/motion-sources, materiais antes
+  do código e referência efetivamente enviada pelo montador real.
+- Define recuperação do piso versus evolução, avaliação estática versus temporal
+  e proteção técnica versus qualidade. R1–R4 sem gerar peça; execução R5 somente
+  com autorização/orçamento novos e aprovação do storyboard antes do MP4.
+- Apenas documentação: fontes locais e links conferidos, `git diff --check`;
+  sem código de produção, teste de banco, CI, serviço, chamada paga ou render.
+  Implementação dos passos e comprovação visual permanecem pendentes.
+
+## 2026-11-11 — recuperação preserva os aprendizados implementados
+
+- Registrada exigência do titular: conservar capacidades das etapas 1–6 e do
+  aprendizado do YouTube; referências antigas servem como piso de resultado,
+  sem rollback de arquitetura ou desativação silenciosa de melhorias.
+- Esclarecido que a rubrica já existia; falta aplicá-la como condição efetiva
+  de conclusão/seleção, com evidência comparativa, capacidades ativas no fluxo
+  real e aceite visual. Regressão ou evidência ausente não promove nova referência.
+- Atualização documental, verificada com `git diff --check`; nenhuma proteção
+  nova implementada, chamada paga, geração, render ou alteração de serviços/banco.
+
+## 2026-11-11 — motion: causa da regressão contra as duas bases indicadas
+
+- Identificadas as peças “Anterior / Nova — quatro melhorias” da comparação de
+  11/11 como referências de qualidade confirmadas pelo titular. Galeria local
+  compara MP4s existentes com os 18 quadros atuais, sem produzir outra peça.
+- Rastreada retirada de sete elementos até a direção da etapa 1; composição
+  anterior ausente dos payloads reais apesar de anexada ao export. Validadores
+  confirmam que a direção reduzida é obrigatória; proteção da etapa 6 não compara
+  com a base histórica. Documentada a diferença entre integridade e preservação
+  das funções visuais, corrigindo a afirmação ampla de “base preservada”.
+- Corrigidas hipóteses: preenchimento já ausente na base fotográfica aceita;
+  espera pelo objeto era 2,56 s e agora é 2,52 s; áudio original igual nas três.
+  Piora confirmada na continuidade e composição, sem atribuir causalidade isolada
+  ao modelo ou renderer. Detalhes: `docs/evals/diagnostico-regressao-motion-2026-11-11.md`.
+- Verificação local de schemas, validadores, hashes/links, JavaScript e diff.
+  Sem CI integral, código de produção, banco, serviços, chamada paga ou render.
+  Correções de produto pendentes; etapa 7 reprovada visualmente, sem avançar.
+
+## 2026-11-11 — motion, etapa 7: reprovação visual e diagnóstico
+
+- Registrado retorno do titular: sequência de vídeo/texto/cartela/xícara sem
+  relação visual compreensível. Plano prevê cerca de 2,52 s entre saída da
+  gravação e entrada do objeto; descrições de coordenação não garantiram execução
+  expressiva. Problema de concepção precede ajustes de sombra e acabamento.
+- Etapa 7 permanece aberta; não avançar ao MP4. Reformulação do plano não cabe
+  na correção delimitada existente. Sem chamada paga, render, alteração de código,
+  serviço ou decisão terminal pela API. Verificação documental: git diff --check.
+  Diagnóstico: `docs/evals/comparacao-qualidade-motion-etapa7-2026-11-11.md`.
+
+## 2026-11-11 — motion, etapa 7: execução até o storyboard
+
+- Titular autorizou reserva nova máxima de US$ 6,75, uma imagem e até uma correção
+  delimitada com crítica, mantendo decisão sobre storyboard antes do MP4.
+- Executor por digest passou em amostra sintética; admissão no ambiente existente
+  confirmou fonte/kit/voz, perfil e contratos. Pedido admitido por API e enviado
+  pelo outbox ao Temporal com fila exclusiva, sem reutilizar reservas anteriores.
+- Plano, uma imagem e implementação concluídos; galeria real com 18 quadros.
+  Entradas executadas reproduzidas por hash, ASR novo igual à proposta. Reserva
+  US$ 3,00; estimativa US$ 0,372465, sem confirmação de fatura.
+- Storyboard aguardando decisão, sem MP4 novo, crítica paga ou correção; worker
+  dedicado encerrado. Sombra difusa e quadro só de fundo no retorno são ressalvas.
+  Etapa 7 e qualidade visual pendentes. Sem migração, teste destrutivo, novo
+  serviço ou reinício dos serviços interrompidos. CI integral não executado.
+  Evidências: `docs/evals/comparacao-qualidade-motion-etapa7-2026-11-11.md`.
+
+## 2026-11-11 — motion, etapa 7: preparação da comparação
+
+- Novo comando de preparação reaproveita montador/exportador do produto, verifica
+  fonte/voz/kit/base e registra payload disponível, schemas e dependências futuras.
+- Direção proposta com xícara conceitual fotográfica; áudio original por escolha
+  do titular. Reserva nova até US$ 6,75 proposta, não autorizada; rubrica não avaliada.
+- Imagem do executor reconstruída sem rede com dependências locais, sem deploy
+  ou qualificação em runtime. Sem banco, chamadas pagas, assets gerados ou peça.
+- 24 testes dirigidos, Ruff e Mypy passaram; CI integral pendente. Etapa 7 aberta
+  para execução autorizada e aceite humano; não existe etapa 8 definida. Detalhes:
+  `docs/design/motion-etapa-7-preparacao-comparacao-2026-11-11.md`.
+
+## 2026-11-11 — motion, etapa 6: correção delimitada
+
+- Montador captura contrato de correção por evidência/cena/elementos/intervalo,
+  com margens explícitas. Plano/direção/áudio/metadados permanecem imutáveis.
+- Runner registra todos os hashes de raster; comparação exata fora da janela
+  verifica ambiente e vizinhanças. Resultado usa efeito de revisão local com
+  reserva zero; falha conserva artefatos anteriores e bloqueia seleção/crítica.
+- Fixture sintética, montador/payload e orquestrador verificados localmente.
+  Passaram 253 testes Python dirigidos, 73 Node, Ruff e Mypy em nove módulos.
+  CI integral e cobertura de 100% não verificados nesta rodada.
+  Comparação anterior a H.264, sem garantia integral sobre MP4 final ou qualidade.
+  Imagem do executor, CI e comparação real pendentes; etapa 7 aguarda OK.
+  Detalhes: `docs/design/motion-etapa-6-correcao-delimitada-2026-11-11.md`.
+
+## 2026-11-11 — motion, etapa 5: som e voz protegida
+
+- Seleção explícita de materiais existentes, com confirmação de direitos e de
+  não duplicação, vinculada ao pedido e ao render; original separado e imutável.
+- Mixer existente com fades, ducking exclusivo da música e medição da saída;
+  sinais sintéticos, testes dirigidos, Ruff e Mypy validam o caminho local.
+- Sem escuta, A/B, material real, nova peça ou CI integral. Imagem do executor
+  precisa ser reconstruída e fixada; etapa 6 aguarda OK. Limites e evidências em
+  `docs/design/motion-etapa-5-som-e-voz-2026-11-11.md`.
+
+## 2026-11-11 — motion, etapa 4: espaço e coreografia
+
+- Skill v13 fornece exemplo opcional para coordenar gravação, fundo, objeto,
+  sombra e texto por preparação, revelação, repouso e retorno, sem novo runtime.
+- DOM sintético e movement-v3 verificam seeks repetidos/reversos, apoio relativo,
+  retorno e preservação do nó de vídeo; fixture de página não exige xícara.
+- Entrada montada offline pelo produto; sem chamada paga, asset gerado ou render.
+  14 testes Node, 133 Python, Ruff e Mypy do loader passaram; CI não executado.
+  Qualidade visual e etapa 5 aguardam avaliação/OK do titular. Detalhes:
+  `docs/design/motion-etapa-4-espaco-coreografia-2026-11-11.md`.
+
+## 2026-11-11 — motion, etapa 3: materiais antes do código
+
+- Contrato v4 resolve ilustrações após plano validado e envia previews, hashes,
+  dimensões e transparência antes da implementação. Contratos antigos preservados.
+- Falha de material impede implementação; plano inviável pode pedir revisão sem
+  código ou repetição automática. Exportador reproduz a montagem offline.
+- Recuperação do storyboard v2 passa a reconstruir janelas e IDs capturados.
+- Verificações locais sem gastos ou render; qualidade visual, reúso da xícara e
+  retomada parcial continuam pendentes. Etapa 4 aguarda OK. Detalhes:
+  `docs/design/motion-etapa-3-assets-antes-do-codigo-2026-11-11.md`.
+
+## 2026-11-11 — motion, etapa 2: revisão representativa
+
+- Política v2 distribui janelas entre passagens e ação, declara omissões e recusa
+  pass temporal quando faltam passagens/cenas. Limite de 20 quadros e v1 preservados.
+- Storyboard amplia a galeria com sequências estáticas e associa aprovação à
+  composição, direção, materiais e bibliotecas; continua após o código.
+- Reproduzida offline a seleção da peça anterior: duas passagens e entrada da
+  xícara, 46 dos 49 eventos omitidos. Não houve extração nem crítica nova.
+- Testes dirigidos, Ruff e Mypy aprovados; sem CI integral ou validação criativa.
+  Sem gasto, banco, geração ou render. Etapa 3 aguarda OK do titular. Detalhes:
+  `docs/design/motion-etapa-2-revisao-representativa-2026-11-11.md`.
+
+## 2026-11-11 — etapa 1: direção verificável e repertório aplicado
+
+- Direção e brief revisados para Café Pausa, matriz com instantes e regiões da
+  fonte identificadas manualmente; preservados voz, gravação e kit da base.
+- Skill v12 e repertório opcional `business-reel-v2` com fichas e imagens
+  rastreáveis; versões anteriores preservadas. Montador real exportou entrada
+  offline em `.local/exports/motion-qualidade-etapa1-final-20261111/`: fonte, kit,
+  áudio e transcrição iguais à base, seis quadros da fonte e cinco referências.
+  O pacote preliminar foi superado após correção de seu README, que informava
+  quantidade de imagens incorreta e uma aprovação anterior.
+- Restaurados por autorização do titular os contratos removidos no commit posterior
+  `4adb596`: plano de construção, direção, repertório, tempos de fala e validação
+  de proveniência. A seleção v2 foi acrescentada ao contrato.
+- Verificações dirigidas: 96 Python, 62 skill/contexto e 7 Node (grupos com
+  sobreposição); Ruff e Mypy em quatro módulos aprovados. CI integral não executado. Verificação dos cinco
+  contêineres bloqueada por socket; estado atual não confirmado.
+- Nenhum gasto, asset gerado ou render. A qualidade visual aguarda peça e aceite
+  humano; etapas 2–7 permanecem pendentes e a próxima requer OK do titular.
+  Detalhes: `docs/design/motion-etapa-1-direcao-verificavel-2026-11-11.md`.
+
 ## 2026-11-11 — contrato da próxima evolução de qualidade de motion
 
 - Consolidado plano em sete etapas, da direção/repertório ao aceite comparativo,

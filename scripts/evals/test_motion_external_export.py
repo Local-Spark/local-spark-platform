@@ -10,8 +10,11 @@ import pytest
 from app.adapters.motion_ai import request_bytes
 from app.schemas.brand_kits import BrandKitVersion
 from app.services.motion_elements import runtime_bytes
+from app.tests.conftest import settings  # noqa: F401
 from app.tests.unit.test_motion_ai import frame
 from app.tests.unit.test_motion_direction_input import kit
+from app.tests.unit.test_motion_generation import compact_wire
+from app.tests.unit.test_motion_illustrations import art_case  # noqa: F401
 from app.tests.unit.test_motion_plan import direction_data
 from scripts.evals import motion_external_export as export
 
@@ -96,8 +99,10 @@ def test_second_stage_export_binds_complete_plan_and_keeps_schema_order(recorded
     assert json.loads(files["manifest.json"])["construction_stage"] == "implementation"
     assert list(json.loads(files["output-contract.json"])["schema"]["properties"]) == [
         "plan_sha256",
+        "status",
         "html",
         "scene_init",
+        "revision_reason",
     ]
     assert json.loads(files["construction-plan.json"])["scene_direction"] == job.context["request"]["scene_direction"]
     assert len(json.loads(files["input/order.json"])) == 12
@@ -132,7 +137,7 @@ def test_exact_product_payload_and_every_attachment_are_exported_without_secrets
     assert b"old briefing must not appear" not in b"".join(files.values())
     assert "illustration_generation" not in job.context
     assert job.context["review_contract"]["version"] == "motion-review-v3"
-    assert job.context["skill"]["id"] == "instagram-reel-v11"
+    assert job.context["skill"]["id"] == "instagram-reel-v13"
     assert job.context["creative_contract"]["version"] == "reel-creative-v7"
     assert files["execution/assets/source.mp4"] == recorded_case[1].read_bytes()
     assert files["execution/libraries/elements-v1.js"] == runtime_bytes()
@@ -191,6 +196,78 @@ def test_changed_or_unsupported_inputs_stop_before_export(recorded_case, change)
     prior.write_text(json.dumps(document))
     with pytest.raises(ValueError, match="EXPORT_"):
         export.prepare_case(*recorded_case)
+
+
+def test_recorded_asr_and_new_repertoire_use_product_builders(recorded_case):
+    from app.services.motion_speech import speech_context
+
+    prior, source, direction, brief = recorded_case
+    document = json.loads(prior.read_bytes())
+    blocks = document["input"][0]["content"]
+    data = json.loads(blocks[0]["text"])
+    context = data["authorized_context"]
+    context["source"]["has_audio"] = True
+    result = {
+        "version": "motion-speech-v1",
+        "source_sha256": context["source"]["sha256"],
+        "provenance": "local_asr_unreviewed",
+        "alignment": "word",
+        "cues": [{"id": "cue-1", "text": "Olá", "start_ms": 0, "end_ms": 200, "confidence": 0.9}],
+        "focus_cue_ids": [],
+    }
+    context["transcript"] = speech_context({"speech_result": result}, context["source"])
+    blocks[0]["text"] = json.dumps(data)
+    prior.write_text(json.dumps(document))
+    job, provenance = export.prepare_case(prior, source, direction, brief, repertoire_id="business-reel-v2")
+    files = export.assemble_files(job, provenance)
+    assert job.context["speech_result"] == result
+    assert job.context["transcript"] == context["transcript"]
+    images = json.loads(files["input/order.json"])
+    assert sum(item["role"] == "finish_reference_only" for item in images) == 5
+    assert "11 imagens" in files["LEIA-ME.md"].decode()
+    assert job.context["repertoire"]["id"] == "business-reel-v2"
+    context["transcript"]["text"] = "modified"
+    blocks[0]["text"] = json.dumps(data)
+    prior.write_text(json.dumps(document))
+    with pytest.raises(ValueError, match="EXPORT_SPEECH_CONTEXT_CHANGED"):
+        export.prepare_case(prior, source, direction, brief, repertoire_id="business-reel-v2")
+
+
+def test_export_v4_resolved_synthetic_image_reproduces_product_payload(recorded_case, art_case, tmp_path):  # noqa: F811
+    from app.services.motion_generation import construction_plan_hash
+
+    c = art_case
+    prior, source, direction, brief = recorded_case
+    direction.write_text(c.composition.scene_direction.model_dump_json())
+    policy_path = tmp_path / "explicit-policy.json"
+    policy_path.write_text(json.dumps(c.prepared.context["illustration_generation"]))
+    policy = export.read_illustration_policy(policy_path)
+    job, provenance = export.prepare_case(prior, source, direction, brief, illustration_generation=policy)
+    data = c.composition.model_dump(mode="json", exclude={"html", "scene_init", "scene_direction"})
+    data["motion_plan"]["style_id"] = None
+    for scene in data["motion_plan"]["scenes"]:
+        scene["keyframe_ms"] = (scene["start_ms"] + scene["end_ms"]) // 2
+    output = json.dumps(compact_wire(data))
+    with pytest.raises(ValueError, match="RESOLVED_MATERIALS_REQUIRED"):
+        export.implementation_job(job, output)
+    image = c.provider.generate.return_value
+    image_path = tmp_path / "existing.png"
+    image_path.write_bytes(image.content)
+    material_path = tmp_path / "materials.json"
+    material_path.write_text(json.dumps([{"asset_id": c.composition.illustrations[0].asset_id,
+                                         "path": str(image_path), "sha256": image.sha256}]))
+    built = export.implementation_job(job, output, export.read_resolved_materials(material_path))
+    files = export.assemble_files(built, provenance)
+    payload = export.offline_provider(provenance["model"], provenance["max_output_tokens"]).build_request(built)
+    assert files["generation-request.json"] == request_bytes(payload)
+    assert json.loads(files["manifest.json"])["construction_stage"] == "implementation"
+    sent = json.loads(payload["input"][0]["content"][0]["text"])
+    assert sent["plan_sha256"] == construction_plan_hash(built.construction_plan)
+    assert sent["authorized_context"]["implementation_materials"][0]["sha256"] == image.sha256
+    assert any(item["role"] == "material" for item in json.loads(files["input/order.json"]))
+    policy_path.write_text(json.dumps({**policy, "api_key": "forbidden"}))
+    with pytest.raises(ValueError, match="POLICY_INVALID"):
+        export.read_illustration_policy(policy_path)
 
 
 @pytest.mark.parametrize("change", ["bytes", "extra_file", "symlink", "image_mapping"])

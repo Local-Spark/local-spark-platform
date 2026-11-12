@@ -10,8 +10,16 @@ from app.services.auth import AuthError
 from app.services.motion_movement import movement_contract, movement_v2_contract
 
 ROOT = Path(__file__).resolve().parents[1] / "assets/motion_repertoire"
-PACKS = {"business-reel-v1": "b83896b2411d763c47073c4efe14c89b66f719bc74c35d6ceb395566bcbbd620"}
-CAPTURE_HASHES = {"business-reel-v1": "b9d69fe4e23c13caf7b04000e864b53bdfcf8ca8061c03a25ff2d0cb080f8635"}
+PACKS = {
+    "business-reel-v3": "1e2b6f9dc8cd332e2c0b1f30954c4618646aef69e26e5f4c1b2a3f927c4c44fc",
+    "business-reel-v1": "b83896b2411d763c47073c4efe14c89b66f719bc74c35d6ceb395566bcbbd620",
+    "business-reel-v2": "2fbcc52870d0e2a788873f2aebb49c916161fcc6c7f0975d6b19f60522eaf9d6",
+}
+CAPTURE_HASHES = {
+    "business-reel-v3": "825594ff7be6fb0d264ba2f60518d7afea1b841a3ffa4eb70be786cf00b067ae",
+    "business-reel-v1": "b9d69fe4e23c13caf7b04000e864b53bdfcf8ca8061c03a25ff2d0cb080f8635",
+    "business-reel-v2": "70453201e41fc933483bdc77c13854868ffebc61f329476cfc55b30b54ce4953",
+}
 MAX_TEXT_BYTES = 64 * 1024
 MAX_IMAGE_BYTES = 1024 * 1024
 MAX_IMAGES = 8

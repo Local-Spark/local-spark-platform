@@ -1,5 +1,6 @@
 """No paid IO: split output, immutable joins, durable boundaries and bounded failures."""
 
+import base64
 import hashlib
 import json
 from copy import deepcopy
@@ -14,13 +15,19 @@ import pytest
 from app.adapters.motion_ai import MotionAIError, request_bytes
 from app.schemas.motion_production import MotionConstructionPlan, MotionReview
 from app.services.auth import AuthError
-from app.services.motion_construction import construct_motion
+from app.services.motion_construction import construct_motion, construct_motion_with_assets
 from app.services.motion_context import digest
-from app.services.motion_generation import STAGED_GENERATION_CONTRACT, construction_plan_hash, decode_construction_plan
+from app.services.motion_generation import (
+    ASSET_INFORMED_GENERATION_CONTRACT,
+    STAGED_GENERATION_CONTRACT,
+    construction_plan_hash,
+    decode_construction_plan,
+)
 from app.services.motion_protocols import MotionModelResult
 from app.tests.unit.test_motion_ai import frame, provider, request, response_data, review_data
 from app.tests.unit.test_motion_effects import setup
 from app.tests.unit.test_motion_generation import compact_wire, wire_data
+from app.tests.unit.test_motion_illustrations import art_case  # noqa: F401
 from app.tests.unit.test_motion_orchestrator import unit_case  # noqa: F401
 from app.tests.unit.test_motion_plan import planned
 from app.tests.unit.test_motion_visual_direction import provided_context
@@ -172,6 +179,111 @@ async def test_orchestration_uses_separate_effect_ids_and_validates_before_secon
     ]
     assert jobs[0].construction_plan is None and jobs[1].construction_plan == plan()
     assert [call.args[-1] for call in c.runner.effects.capacity.await_args_list] == [300, 200]
+
+
+@pytest.mark.parametrize("fail_image", [False, True])
+async def test_v4_material_precedes_implementation_and_is_not_generated_twice(art_case, fail_image):  # noqa: F811
+    c = art_case
+    raw = c.composition.model_dump(mode="json", exclude={"html", "scene_init"})
+    original_plan = MotionConstructionPlan.model_validate(raw)
+    ctx = staged_context()
+    ctx["generation_contract"] = deepcopy(ASSET_INFORMED_GENERATION_CONTRACT)
+    ctx["illustration_generation"] = c.prepared.context["illustration_generation"]
+    ctx["request"]["scene_direction"] = c.composition.scene_direction.model_dump(mode="json")
+    prepared = replace(c.prepared, context=ctx)
+    sequence = []
+    requests = []
+
+    async def model(*args):
+        job = args[-1]
+        requests.append(job)
+        if job.construction_plan is None:
+            sequence.append("plan")
+            return MotionModelResult(construction_plan=original_plan)
+        sequence.append("implementation")
+        payload = provider().build_request(job)
+        content = payload["input"][0]["content"]
+        metadata = json.loads(content[0]["text"])
+        assert metadata["plan_sha256"] == construction_plan_hash(original_plan)
+        assert metadata["validated_plan"] == raw
+        assert metadata["authorized_context"]["implementation_materials"][0]["width"] == 1024
+        assert metadata["authorized_context"]["implementation_materials"][0]["transparency"] == "has_transparency"
+        position = next(i for i, block in enumerate(content) if "material_asset_id" in block.get("text", ""))
+        sent_png = base64.b64decode(content[position + 1]["image_url"].split(",", 1)[1])
+        assert sent_png == job.asset_previews[0][1].png
+        return MotionModelResult(composition=c.composition)
+
+    async def generate(*_):
+        sequence.append("image")
+        if fail_image:
+            raise RuntimeError("synthetic failure")
+        from app.tests.unit.test_motion_illustrations import image_result
+
+        return image_result()
+
+    c.effects.model = AsyncMock(side_effect=model)
+    c.provider.generate.side_effect = generate
+    if fail_image:
+        with pytest.raises(RuntimeError, match="synthetic failure"):
+            await construct_motion_with_assets(c.effects, provider(), c.row, c.token, prepared, c.service)
+        assert sequence == ["plan", "image"] and len(requests) == 1
+    else:
+        built, composition = await construct_motion_with_assets(
+            c.effects, provider(), c.row, c.token, prepared, c.service
+        )
+        assert sequence == ["plan", "image", "implementation"]
+        assert composition == c.composition and built.assets[0].sha256 == c.provider.generate.return_value.sha256
+        assert requests[1].construction_plan == original_plan
+        c.provider.generate.assert_awaited_once()
+
+
+async def test_v4_export_requires_resolved_image_and_rejects_changed_preview(art_case):  # noqa: F811
+    from app.adapters.motion_html_renderer import RenderAsset
+    from scripts.evals.motion_external_export import assemble_files, implementation_job
+
+    c = art_case
+    ctx = staged_context()
+    ctx["generation_contract"] = deepcopy(ASSET_INFORMED_GENERATION_CONTRACT)
+    ctx["illustration_generation"] = c.prepared.context["illustration_generation"]
+    ctx["request"]["scene_direction"] = c.composition.scene_direction.model_dump(mode="json")
+    job = replace(request(), context=ctx, assets=())
+    original = c.composition.model_dump(mode="json", exclude={"html", "scene_init", "scene_direction"})
+    output = json.dumps(compact_wire(original))
+    with pytest.raises(ValueError, match="RESOLVED_MATERIALS_REQUIRED"):
+        implementation_job(job, output)
+    image = c.provider.generate.return_value
+    asset = RenderAsset(c.composition.illustrations[0].asset_id, "image/png", image.content, image.sha256)
+    built = implementation_job(job, output, (asset,))
+    payload = provider().build_request(built)
+    manifest = json.loads(payload["input"][0]["content"][0]["text"])
+    assert manifest["plan_sha256"] == construction_plan_hash(built.construction_plan)
+    assert manifest["authorized_context"]["implementation_materials"][0]["sha256"] == image.sha256
+    files = assemble_files(built, {"model": "synthetic", "max_output_tokens": 64000})
+    assert any(item["role"] == "material" for item in json.loads(files["input/order.json"]))
+    bad = replace(built, asset_previews=((asset.id, frame()),))
+    with pytest.raises(AuthError, match="MATERIAL_CHANGED"):
+        provider().build_request(bad)
+    bad = replace(built, assets=(replace(asset, data=b"changed"),))
+    with pytest.raises(AuthError, match="MATERIAL_INVALID"):
+        provider().build_request(bad)
+    with pytest.raises(AuthError, match="MATERIAL_INVALID"):
+        provider().build_request(replace(built, assets=()))
+
+    complete = {"plan_sha256": manifest["plan_sha256"], "status": "implemented", "html": c.composition.html,
+                "scene_init": c.composition.scene_init, "revision_reason": None}
+    client = provider(lambda _: httpx.Response(200, json=response_data(complete)))
+    result = await client.submit(built, client.build_request(built))
+    assert result.composition.model_dump(mode="json") == c.composition.model_dump(mode="json")
+    revision = {"plan_sha256": manifest["plan_sha256"], "status": "requires_plan_revision",
+                "html": None, "scene_init": None, "revision_reason": "Fixture requires another angle"}
+    client = provider(lambda _: httpx.Response(200, json=response_data(revision), headers={"x-request-id": "test"}))
+    with pytest.raises(MotionAIError, match="MOTION_PLAN_REVISION_REQUIRED") as exc:
+        await client.submit(built, client.build_request(built))
+    assert exc.value.raw_response and exc.value.estimated_usd_micros is not None
+    revision["html"] = "<div>unsafe</div>"
+    client = provider(lambda _: httpx.Response(200, json=response_data(revision)))
+    with pytest.raises(MotionAIError, match="MOTION_AI_RESPONSE_INVALID"):
+        await client.submit(built, client.build_request(built))
 
 
 @pytest.mark.parametrize("when", ["before_plan", "before_implementation"])

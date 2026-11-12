@@ -125,7 +125,9 @@ async def test_response_is_private_durable_before_ledger_and_transport_is_outsid
     assert case.session.execute.await_args_list[0].args[1]["payload"] == "ciphertext"
 
 
-@pytest.mark.parametrize("code", ["MOTION_AI_OUTPUT_LIMIT", "MOTION_AI_RESPONSE_INVALID"])
+@pytest.mark.parametrize(
+    "code", ["MOTION_AI_OUTPUT_LIMIT", "MOTION_AI_RESPONSE_INVALID", "MOTION_PLAN_REVISION_REQUIRED"]
+)
 async def test_invalid_response_keeps_usage_private_and_hold_pending_without_another_submission(code):
     case = setup()
     case.provider.submit.side_effect = MotionAIError(

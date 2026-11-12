@@ -4,7 +4,7 @@ from typing import Any
 
 from app.services.motion_elements import elements_contract
 from app.services.motion_movement import movement_contract
-from app.services.motion_temporal import POLICY
+from app.services.motion_temporal import POLICY, POLICY_V2
 
 CREATIVE_CONTRACT_VERSION = "reel-creative-v4"
 PROVIDED_DIRECTION_CONTRACT_VERSION = "reel-creative-v5"
@@ -185,6 +185,7 @@ MEDIA_VISIBILITY_POLICY = (
 def alternating_creative_contract(*, provided: bool = False) -> dict[str, Any]:
     """New captures only; legacy v4/v5 contracts remain reproducible."""
     contract = provided_direction_contract() if provided else motion_creative_contract()
+    contract["temporal_review"] = dict(POLICY_V2)
     contract["version"] = "reel-creative-v7" if provided else "reel-creative-v6"
     contract["movement_runtime"] = movement_contract()
     contract["media_visibility_policy"] = MEDIA_VISIBILITY_POLICY

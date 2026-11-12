@@ -8,6 +8,21 @@ const vm = require('node:vm');
 const renderer = require('../../assets/motion_html_renderer/runner.cjs');
 const { environment, origin, sha } = require('../fixtures/motion_html_environment.cjs');
 
+test('optional correction evidence binds every captured raster and its environment', async () => {
+  const env = environment({configure: cfg => { cfg.fingerprint_frames = true; }});
+  await env.run();
+  const header = JSON.parse(env.stdout[0].toString());
+  assert.deepEqual(header.diagnostics.frame_fingerprints, [sha('jpeg'), sha('jpeg'), sha('jpeg')]);
+  assert.match(header.diagnostics.fingerprint_environment, /^[a-f0-9]{64}$/);
+  assert.equal(env.window.times.length, 3);
+  for (const value of [false, 'true', 1]) {
+    const bad = environment({configure: cfg => { cfg.fingerprint_frames = value; }});
+    await assert.rejects(bad.run(), /PROFILE_INVALID/);
+  }
+  const board = environment({configure: cfg => { cfg.version = 2; cfg.fingerprint_frames = true; }});
+  await assert.rejects(board.run(), /PROFILE_INVALID/);
+});
+
 test('bounded immutable inputs reject symlinks, large files and changed hashes', t => {
   const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'motion-runner-test-'));
   t.after(() => fs.rmSync(folder, { recursive: true, force: true }));

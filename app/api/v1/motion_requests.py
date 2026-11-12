@@ -1,11 +1,13 @@
-"""Owner request and status; material paths and provider payloads are server-only."""
+"""Owner requests, status and private inspection of exact checkpoint evidence."""
 
+from typing import Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Request, Response
 from fastapi.responses import HTMLResponse
 
 from app.api.deps import Actor
+from app.schemas.motion_preparation import MotionCheckpointDecision
 from app.schemas.motion_production import MotionRequest, MotionRequestRead
 from app.schemas.motion_storyboards import StoryboardDecision, StoryboardRead
 from app.services.motion_requests import MotionRequestService
@@ -52,6 +54,45 @@ def boards(request: Request) -> MotionStoryboards:
 
     settings = request.app.state.settings
     return MotionStoryboards(MotionRequestService(settings, request.app.state.database), MaterialStore(settings))
+
+
+@motion_router.get("/{request_id}/checkpoints/{stage}")
+async def read_checkpoint(
+    tenant_id: UUID,
+    business_id: UUID,
+    request_id: UUID,
+    stage: Literal["plan", "render"],
+    request: Request,
+    response: Response,
+    actor: Actor,
+) -> dict[str, Any]:
+    from app.services.motion_checkpoints import MotionCheckpoints
+
+    service = boards(request)
+    response.headers["Cache-Control"] = "no-store"
+    return await MotionCheckpoints(service.requests, service.store).present(
+        tenant_id, business_id, actor, request_id, stage
+    )
+
+
+@motion_router.post("/{request_id}/checkpoints/{stage}/decisions")
+async def decide_checkpoint(
+    tenant_id: UUID,
+    business_id: UUID,
+    request_id: UUID,
+    stage: Literal["plan", "render"],
+    body: MotionCheckpointDecision,
+    request: Request,
+    response: Response,
+    actor: Actor,
+) -> dict[str, str]:
+    from app.services.motion_checkpoints import MotionCheckpoints
+
+    service = boards(request)
+    response.headers["Cache-Control"] = "no-store"
+    return await MotionCheckpoints(service.requests, service.store).decide(
+        tenant_id, business_id, actor, request_id, stage, body
+    )
 
 
 @motion_router.get("/{request_id}/storyboard", response_model=StoryboardRead)

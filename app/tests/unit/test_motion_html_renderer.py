@@ -311,7 +311,9 @@ def test_configuration_requires_immutable_image_explicit_local_socket_and_deadli
         motion.IsolatedMotionRenderer(**{**config, **changes})
 
 
-@pytest.mark.parametrize("kind", ["success", "bad_container", "render_failure", "bad_output", "create_failure"])
+@pytest.mark.parametrize(
+    "kind", ["success", "fingerprints", "bad_container", "render_failure", "bad_output", "create_failure"]
+)
 @pytest.mark.parametrize("shared", [False, True])
 async def test_container_flags_credentials_and_cleanup(monkeypatch, tmp_path, kind, shared):
     calls = []
@@ -355,7 +357,11 @@ async def test_container_flags_credentials_and_cleanup(monkeypatch, tmp_path, ki
             mount = next(arg for arg in calls[0] if arg.startswith("type=bind,"))
             input_path = Path(mount.split(",src=", 1)[1].split(",dst=", 1)[0])
             config = json.loads((input_path / "config.json").read_text())
-            return packed(*output(config))
+            header, data = output(config)
+            if kind == "fingerprints":
+                assert config["fingerprint_frames"] is True
+                header["diagnostics"].update(frame_fingerprints=["a" * 64] * 30, fingerprint_environment="b" * 64)
+            return packed(header, data)
         assert args[-3:] == ["rm", "--force", "a" * 64]
         return b"a" * 64 + b"\n"
 
@@ -366,9 +372,12 @@ async def test_container_flags_credentials_and_cleanup(monkeypatch, tmp_path, ki
         docker_socket=Path("/run/docker.sock"),
         scratch_directory=tmp_path if shared else None,
     )
-    if kind == "success":
-        result = await renderer.render(bundle(), operation_id=uuid4())
+    if kind in {"success", "fingerprints"}:
+        result = await renderer.render(bundle(fingerprint_frames=kind == "fingerprints"), operation_id=uuid4())
         assert result.evidence[-1].ms == 967
+        if kind == "fingerprints":
+            assert result.diagnostics["executor_image"] == renderer.image
+            assert len(result.diagnostics["frame_fingerprints"]) == 30
     else:
         with pytest.raises(motion.MotionRenderError):
             await renderer.render(bundle(), operation_id=uuid4())

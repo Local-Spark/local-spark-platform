@@ -161,3 +161,27 @@ alegações de precisão e mantém preservação do áudio. Contexto/validação
 são implementados nos serviços; skill sozinha não transcreve. Backend local
 opcional baseado na abordagem Clipador Viral; modelo não instalado/executado.
 Ver docs/design/motion-fala-alinhada-2026-11-10.md para prova e ativação futura.
+
+
+## Direção verificável — v12 (11/11/2026)
+
+Novas capturas HTML usam `instagram-reel-v12.md`, SHA-256
+`9924e20bf34c8ee4c1de5ff4fab6e33370bbb5f60b3c29c05187158e0d32b8ec`.
+Momentos relevantes articulam intenção, preparação, acento, consequência e
+passagem, nos campos e tempos existentes. Moldura é opcional; objeto realista,
+fundo e alternância são escolhas da direção, não exigências cumulativas. As
+receitas de xícara específicas foram removidas; exemplos executáveis continuam
+como mecanismos opcionais. V1–v11 permanecem imutáveis para recapturas. Esta
+instrução não constitui prova de execução ou de qualidade visual.
+
+## Espaço e coreografia — v13 (11/11/2026)
+
+Novas capturas HTML usam `instagram-reel-v13.md`, SHA-256
+`6d5ae9e0478756b1ef006f3babf6591c6c0bbe243d8cc6aee4a2d8f5dd754822`.
+O exemplo opcional `makeGroundedPassage` coordena fundo, wrapper da gravação,
+objeto, sombra e texto com preparação, chegada, repouso e retorno. Os tempos e
+estados das tracks são expostos para correspondência com o plano; o vídeo e o
+áudio continuam sob o seek existente. O código é transmitido na skill, não é uma
+biblioteca instalada nem uma receita para todos os negócios. V1–v12 permanecem
+imutáveis. Testes com DOM sintético e o runtime v3 verificam seeks diretos,
+reversos e preservação da gravação; não comprovam acabamento visual ou áudio.
