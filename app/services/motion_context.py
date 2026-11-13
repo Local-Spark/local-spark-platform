@@ -179,7 +179,7 @@ def capture_motion_guidance(
     )
     if staging and previous is None:
         creative = {**cast(dict[str, Any], creative), "temporal_review": dict(POLICY_V4)}
-    if request.structural_floor and isinstance(creative, dict):
+    if previous is None and request.structural_floor and isinstance(creative, dict):
         creative = dict(creative)
         creative["motion_plan_rules"] = (
             creative.get("motion_plan_rules", "")

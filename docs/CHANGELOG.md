@@ -1,6 +1,9 @@
 # Registro de mudanças
 
-## 2026-11-13 — o executor nativo não exige mais o CI inteiro
+## 2026-11-13 — o piso v3 não altera mais o contexto lacrado
+
+A regra estrutural entra só na primeira captura. Na execução, o contexto já lacrado permanece igual. Sem isso, a admissão recusava com `MOTION_CONTEXT_CHANGED`.
+
 
 `scripts/evals/execute_native.py` não lê mais `validation.json`. Orçamento, operação e o hash do pedido continuam obrigatórios. O `make ci` segue sendo a prova do produto, não a trava desta geração.
 

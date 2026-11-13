@@ -299,6 +299,8 @@ def test_structural_floor_rejects_a_thin_plan_only_when_selected():
     captured = capture_motion_guidance(body)
     assert captured["structural_floor"] == "motion-production-quality-v3"
     assert "Piso estrutural v3" in captured["creative_contract"]["motion_plan_rules"]
+    again = capture_motion_guidance(body, previous=captured)
+    assert again["creative_contract"]["motion_plan_rules"].count("Piso estrutural v3") == 1
     plain = MotionRequest(operation_id=uuid4(), source_asset_id=uuid4(), instruction="Café")
     assert "structural_floor" not in plain.model_dump(mode="json")
 
