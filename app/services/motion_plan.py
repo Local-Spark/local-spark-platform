@@ -15,7 +15,11 @@ from app.services.motion_quality import validate_quality_plan
 from app.services.motion_sound_library import validate_sound_design
 from app.services.motion_speech import validate_speech_plan
 from app.services.motion_staging import validate_staging
-from app.services.motion_structural_floor import StructuralFloorRejected, enforce_structural_floor
+from app.services.motion_structural_floor import (
+    StructuralFloorRejected,
+    enforce_structural_floor,
+    validate_structural_execution,
+)
 from app.services.motion_visual_direction import validate_direction_fidelity
 
 
@@ -114,6 +118,7 @@ def validate_motion_plan(
     validate_staging(composition, context)
     try:
         enforce_structural_floor(composition.motion_plan, context)
+        validate_structural_execution(composition, context)
     except StructuralFloorRejected:
         raise AuthError("MOTION_STRUCTURAL_FLOOR_REJECTED", 409) from None
     plan = composition.motion_plan

@@ -286,3 +286,55 @@ def test_real_plan_is_rejected_or_admitted_before_render():
     else:
         raise AssertionError("expected rejection")
 
+
+def test_execution_requires_stage_and_declared_mechanism():
+    from types import SimpleNamespace
+
+    from app.services.motion_structural_floor import (
+        StructuralFloorRejected,
+        structural_sample_points,
+        structural_storyboard,
+        uses_structural_runtime,
+        validate_structural_execution,
+    )
+
+    assert uses_structural_runtime("window.seek=async(ms)=>{}") is False
+    assert uses_structural_runtime("window.seek=async(ms)=>{StructuralFloorV1.apply(ms)}") is True
+    assert structural_sample_points(SimpleNamespace(start_ms=0, end_ms=0)) == (("start", 0), ("mid", 0), ("end", 0))
+    scene = SimpleNamespace(id="s", message="m", start_ms=0, end_ms=1000)
+    moments = ({"frame_index": 0, "scene_id": "s"},)
+    assert structural_storyboard(moments, SimpleNamespace(scenes=(scene,)), {}) == moments
+    sampled = structural_storyboard(moments, SimpleNamespace(scenes=(scene,)), {"structural_floor": FLOOR_VERSION})
+    assert any(item.get("kind") == "structural_mid" for item in sampled)
+    assert structural_storyboard(moments, None, {"structural_floor": FLOOR_VERSION}) == moments
+
+    element = SimpleNamespace(mechanism_ids=("ellipse_to_glyph",), text_outside_media=False)
+    plan = SimpleNamespace(scenes=(SimpleNamespace(elements=(element,)),))
+    html = '<div data-stage="media"><p data-mechanism="ellipse_to_glyph"></p></div>'
+    code = "window.seek=async(ms)=>{StructuralFloorV1.apply(ms)}"
+    composition = SimpleNamespace(html=html, scene_init=code, motion_plan=plan)
+    validate_structural_execution(composition, {})
+    validate_structural_execution(composition, {"structural_floor": FLOOR_VERSION})
+    validate_structural_execution(
+        SimpleNamespace(html=None, scene_init=None, motion_plan=None), {"structural_floor": FLOOR_VERSION}
+    )
+
+    def fails(**kwargs):
+        try:
+            validate_structural_execution(SimpleNamespace(**kwargs), {"structural_floor": FLOOR_VERSION})
+        except StructuralFloorRejected:
+            return
+        raise AssertionError("execution should fail")
+
+    fails(html="<div></div>", scene_init=code, motion_plan=plan)
+    fails(html=html, scene_init="window.seek=async(ms)=>{}", motion_plan=plan)
+    outside = SimpleNamespace(mechanism_ids=("ellipse_to_glyph",), text_outside_media=True)
+    fails(html=html, scene_init=code, motion_plan=SimpleNamespace(scenes=(SimpleNamespace(elements=(outside,)),)))
+    empty = SimpleNamespace(mechanism_ids=(), text_outside_media=False)
+    fails(html=html, scene_init=code, motion_plan=SimpleNamespace(scenes=(SimpleNamespace(elements=(empty,)),)))
+    unknown = SimpleNamespace(mechanism_ids=("not-real",), text_outside_media=False)
+    fails(html=html, scene_init=code, motion_plan=SimpleNamespace(scenes=(SimpleNamespace(elements=(unknown,)),)))
+    missing = SimpleNamespace(mechanism_ids=("plate_cta",), text_outside_media=False)
+    fails(html=html, scene_init=code, motion_plan=SimpleNamespace(scenes=(SimpleNamespace(elements=(missing,)),)))
+
+

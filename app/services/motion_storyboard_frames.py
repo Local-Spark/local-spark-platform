@@ -4,6 +4,7 @@ from typing import Any, NotRequired, TypedDict
 
 from app.schemas.motion_production import HTMLMotionComposition, MotionConstructionPlan
 from app.services.auth import AuthError
+from app.services.motion_structural_floor import structural_storyboard
 from app.services.motion_temporal import POLICY_V2, POLICY_V3, POLICY_V4, events, sample_times
 
 
@@ -40,7 +41,7 @@ def storyboard_moments(
         result.append({"scene_id": scene.id, "message": scene.message, "requested_ms": ms, "frame_index": index})
     policy = ((context or {}).get("creative_contract") or {}).get("temporal_review")
     if policy not in (POLICY_V2, POLICY_V3, POLICY_V4) or not isinstance(composition, HTMLMotionComposition):
-        return tuple(result)
+        return structural_storyboard(tuple(result), plan, context)
     selected, _ = events(composition, policy)
     by_index: dict[int, StoryboardMoment] = {}
     messages = {scene.id: scene.message for scene in plan.scenes}
@@ -77,4 +78,4 @@ def storyboard_moments(
         if len(by_index) >= policy["max_frames"]:
             break
         by_index.setdefault(moment["frame_index"], moment)
-    return tuple(by_index[index] for index in sorted(by_index))
+    return structural_storyboard(tuple(by_index[index] for index in sorted(by_index)), plan, context)

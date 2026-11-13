@@ -18,6 +18,7 @@ from uuid import UUID
 from app.services.auth import AuthError
 from app.services.motion_elements import runtime_bytes as element_runtime_bytes
 from app.services.motion_movement import movement_bytes
+from app.services.motion_structural_floor import MECHANISM_RUNTIME, uses_structural_runtime
 
 MAX_INPUT_BYTES = 256 * 1024 * 1024
 MAX_VIDEO_BYTES = 128 * 1024 * 1024
@@ -242,6 +243,8 @@ def _prepare(bundle: RenderBundle, directory: Path) -> RenderConfig:
         except AuthError as exc:
             raise MotionRenderError("MOTION_RENDER_MOVEMENT_VERSION_UNAVAILABLE") from exc
         scene = runtime + b"\n;\n" + scene
+    if uses_structural_runtime(bundle.scene_init):
+        scene = MECHANISM_RUNTIME.encode() + b"\n;\n" + scene
     if bundle.element_runtime_sha256 is not None:
         elements = element_runtime_bytes()
         if hashlib.sha256(elements).hexdigest() != bundle.element_runtime_sha256:

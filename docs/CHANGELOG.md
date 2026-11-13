@@ -1,8 +1,8 @@
 # Registro de mudanças
 
-## 2026-11-13 — piso estrutural v3 na admissão, só se o pedido pedir
+## 2026-11-13 — mecanismos do piso v3 no HTML, só se o pedido pedir
 
-`MotionRequest.structural_floor` opcional. Quando vale `motion-production-quality-v3`, `validate_motion_plan` recusa o plano antes do render. Pedido sem o campo segue no v2. Não mede pixel nem gera MP4 sozinho.
+`StructuralFloorV1.apply` cobre máscara, glifo, eixo e placa. O render só injeta esse runtime se o `scene_init` chamar a função. HTML sem `data-stage="media"` ou sem o `data-mechanism` declarado é recusado. Amostras de início, meio e fim entram no storyboard desse pedido. Sem o campo, nada muda. Sem MP4 novo.
 
 ## 2026-11-13 — registrar reprovação da peça final e novo pedido de estudo
 

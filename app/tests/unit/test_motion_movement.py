@@ -80,3 +80,17 @@ def test_v2_snapshot_still_resolves_and_can_use_the_registered_repertoire(tmp_pa
     _prepare(replace(bundle(), movement_runtime_sha256=prior["sha256"]), tmp_path)
     assert (tmp_path / "scene.js").read_bytes().startswith(V2_SOURCE.read_bytes())
     assert movement_contract()["version"] == "motion-movement-v3"
+
+
+def test_structural_runtime_is_prepended_only_when_the_scene_calls_it(tmp_path):
+    from app.services.motion_structural_floor import MECHANISM_RUNTIME
+
+    original = bundle()
+    plain = _prepare(original, tmp_path / "plain")
+    assert MECHANISM_RUNTIME.encode() not in (tmp_path / "plain/scene.js").read_bytes()
+    marked = replace(original, scene_init=original.scene_init + "\nStructuralFloorV1.apply(ms);")
+    _prepare(marked, tmp_path / "marked")
+    packed = (tmp_path / "marked/scene.js").read_bytes()
+    assert packed.startswith(MECHANISM_RUNTIME.encode())
+    assert plain["scene_sha256"] != hashlib.sha256(packed).hexdigest()
+

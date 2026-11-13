@@ -1,10 +1,8 @@
 # Piso estrutural v3 — proposto na geração, implementado como avaliador
 
-**Estado: ligado na admissão do plano quando o pedido traz `structural_floor: motion-production-quality-v3`. A geração sem esse campo continua no v2.**
+**Estado: o pedido v3 recusa plano fino e HTML sem os mecanismos. O runtime entra no render só se o `scene_init` chama `StructuralFloorV1.apply`. Não há MP4 novo.**
 
-`validate_motion_plan` chama `enforce_structural_floor`. Plano de uma cena, sem escalas distintas, texto sem âncora ou CTA sem `plate_cta`, é recusado com `MOTION_STRUCTURAL_FLOOR_REJECTED` antes do render. O contexto de geração recebe a regra no `motion_plan_rules`.
-
-Isto ainda não desenha o HTML. O modelo precisa preencher `structural_scale`, `structural_role`, `mechanism_ids`, `hero_height_ratio` e `contrast_ratio`. A crítica de pixel do quadro renderizado continua fora. Sem o campo no pedido, nada muda.
+O HTML tem de ter um `data-stage="media"` e um `data-mechanism` para cada id declarado (`ellipse_to_glyph`, `axis_type_in`, `mask_open_from_point`, `plate_cta`). O storyboard, quando o pedido pede o v3, acrescenta amostra no início, meio e fim de cada cena. Isso não mede pixel: contraste e âncora no quadro continuam por declarar no plano. Sem o campo `structural_floor`, a geração segue no v2.
 
 ## O que entrou
 

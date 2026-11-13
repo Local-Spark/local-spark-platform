@@ -164,7 +164,96 @@ def view_from_plan(plan: Any) -> dict[str, Any]:
 
 
 class StructuralFloorRejected(Exception):
-    """Plan failed the opt-in structural floor. The caller maps this to an API error."""
+    """Plan or HTML failed the opt-in structural floor. The caller maps this to an API error."""
+
+
+MECHANISM_RUNTIME = """
+window.StructuralFloorV1 = {
+  apply(ms) {
+    var nodes = document.querySelectorAll("[data-mechanism]");
+    for (var i = 0; i < nodes.length; i++) {
+      var node = nodes[i];
+      var name = node.getAttribute("data-mechanism");
+      var start = Number(node.getAttribute("data-start") || 0);
+      var end = Number(node.getAttribute("data-end") || start);
+      var t = end <= start ? 1 : Math.min(1, Math.max(0, (ms - start) / (end - start)));
+      if (name === "mask_open_from_point") {
+        node.style.clipPath = "circle(" + (8 + t * 140) + "% at 50% 62%)";
+      } else if (name === "ellipse_to_glyph") {
+        node.style.transformOrigin = "50% 70%";
+        node.style.transform = "scale(" + (0.2 + t * 0.8) + ")";
+        node.style.opacity = String(Math.min(1, t * 1.4));
+      } else if (name === "axis_type_in") {
+        node.style.transform = "translateY(" + ((1 - t) * 48) + "px)";
+        node.style.opacity = String(t);
+      } else if (name === "plate_cta") {
+        node.style.transform = "translateY(" + ((1 - t) * 72) + "px)";
+        node.style.opacity = String(t);
+      }
+    }
+  }
+};
+""".strip()
+
+
+def uses_structural_runtime(scene_init: str) -> bool:
+    return "StructuralFloorV1.apply" in scene_init
+
+
+def validate_structural_execution(composition: Any, context: dict[str, Any]) -> None:
+    """When v3 is selected and code exists, the HTML must execute the declared mechanisms."""
+    if not structural_floor_enabled(context.get("structural_floor")):
+        return
+    html = getattr(composition, "html", None)
+    scene_init = getattr(composition, "scene_init", None)
+    plan = getattr(composition, "motion_plan", None)
+    if not html or not scene_init or plan is None:
+        return
+    if 'data-stage="media"' not in html or not uses_structural_runtime(scene_init):
+        raise StructuralFloorRejected()
+    declared: list[str] = []
+    for scene in plan.scenes:
+        for element in scene.elements:
+            declared.extend(element.mechanism_ids)
+            if element.text_outside_media:
+                raise StructuralFloorRejected()
+    if not declared:
+        raise StructuralFloorRejected()
+    for mechanism in declared:
+        if mechanism not in MECHANISM_IDS or f'data-mechanism="{mechanism}"' not in html:
+            raise StructuralFloorRejected()
+
+
+def structural_sample_points(scene: Any) -> tuple[tuple[str, int], ...]:
+    start, end = int(scene.start_ms), int(scene.end_ms)
+    mid = start + max((end - start) // 2, 0)
+    last = end - 1 if end > start else start
+    return (("start", start), ("mid", mid), ("end", last))
+
+
+def structural_storyboard(moments: tuple[Any, ...], plan: Any, context: dict[str, Any] | None) -> tuple[Any, ...]:
+    """Append start, mid and end samples per scene. No-op unless v3 was selected."""
+    if not structural_floor_enabled((context or {}).get("structural_floor")) or plan is None:
+        return moments
+    seen = {moment["frame_index"] for moment in moments}
+    extra: list[dict[str, Any]] = []
+    messages = {scene.id: scene.message for scene in plan.scenes}
+    for scene in plan.scenes:
+        for label, ms in structural_sample_points(scene):
+            index = ms * 30 // 1000
+            if index in seen:
+                continue
+            seen.add(index)
+            extra.append(
+                {
+                    "scene_id": scene.id,
+                    "message": messages[scene.id],
+                    "requested_ms": ms,
+                    "frame_index": index,
+                    "kind": f"structural_{label}",
+                }
+            )
+    return tuple(moments) + tuple(extra)
 
 
 def enforce_structural_floor(plan: Any, context: dict[str, Any]) -> None:
