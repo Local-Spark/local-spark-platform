@@ -1,5 +1,18 @@
 # Preparação verificável e revisão antes do render — fases 1–3
 
+> **Escopo histórico — esclarecido em 13/11/2026.** Estados, versões selecionadas,
+> orçamentos e ordens de parada abaixo descrevem a entrega desta data; não são
+> automaticamente instruções para uma rodada nova. Contratos capturados continuam
+> preservados. Consulte a [orientação vigente](motion-orientacao-vigente-2026-11-13.md)
+> para diferenças entre geração nova/evolução, estado operacional e próximo roteiro.
+
+**Continuação de 12/11:** o [modo de planejamento audiovisual proposto](motion-planejamento-audiovisual-revisavel-2026-11-12.md)
+permite mensagem simples sem direção fixa, com piso funcional e catálogo sonoro
+real local. Reutiliza as duas pausas descritas aqui e mantém seus hashes/garantias;
+o caminho com direção fornecida continua disponível. Repertório v4 retira os oito
+prints somente da próxima seleção. Preparação v4 montada, ainda sem chamada paga,
+plano/código novos ou render; qualidade continua pendente.
+
 **Inspeção posterior:** o [ensaio acompanhado](../evals/ensaio-acompanhado-motion-2026-11-12.md)
 montou a entrada real sem chamada paga e identificou direção herdada restritiva,
 seleção sonora ausente e a fronteira de interpretação natural ainda não exercitada.

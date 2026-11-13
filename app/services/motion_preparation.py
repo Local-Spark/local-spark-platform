@@ -24,6 +24,23 @@ PREPARATION_RULES = {
     ),
 }
 
+PROPOSED_PREPARATION_RULES = {
+    "version": "motion-preparation-v2",
+    "rules": PREPARATION_RULES["rules"].replace(
+        "A direção fornecida continua vinculante nesta execução;",
+        "A direção será proposta no plano a partir da mensagem e contexto, sem cenas pré-fixadas; "
+        "após aprovação exata, plano/direção/som ficam imutáveis na implementação;",
+    ),
+}
+
+PRODUCTION_PREPARATION_RULES = {
+    "version": "motion-preparation-v3",
+    "rules": PROPOSED_PREPARATION_RULES["rules"].replace(
+        "Preserve funções da base ou explique as substituições;",
+        "Atenda aos critérios do produto e fundamente decisões no pedido/contexto/material atuais;",
+    ),
+}
+
 
 def preparation(context: dict[str, Any]) -> MotionPreparation | None:
     raw = context.get("request", {}).get("preparation")
@@ -42,7 +59,14 @@ def evidence_bindings(job: "MotionModelRequest") -> list[dict[str, Any]]:
     value = preparation(job.context)
     if value is None:
         return []
-    if job.context.get("preparation_contract") != PREPARATION_RULES:
+    expected = (
+        PRODUCTION_PREPARATION_RULES
+        if job.context.get("quality_contract") is not None
+        else PROPOSED_PREPARATION_RULES
+        if job.context.get("request", {}).get("propose_direction")
+        else PREPARATION_RULES
+    )
+    if job.context.get("preparation_contract") != expected:
         raise AuthError("MOTION_PREPARATION_CONTRACT_CHANGED", 409)
     bound = []
     for item in value.evidence:
@@ -60,6 +84,29 @@ def evidence_bindings(job: "MotionModelRequest") -> list[dict[str, Any]]:
                 if image is None or hashlib.sha256(image.data).hexdigest() != image.sha256:
                     raise AuthError("MOTION_PREPARATION_EVIDENCE_MISSING", 409)
                 refs.append({"reference_id": identifier, "sha256": image.sha256})
+        elif item.kind == "audio":
+            asset = next((a for a in job.assets if a.id == item.asset_id), None)
+            if (
+                asset is None
+                or asset.mime_type not in {"video/mp4", "audio/mpeg", "audio/wav", "audio/ogg"}
+                or asset.sha256 != item.asset_sha256
+                or hashlib.sha256(asset.data).hexdigest() != asset.sha256
+                or (
+                    asset.mime_type == "video/mp4"
+                    and (
+                        asset.id != job.context.get("source", {}).get("asset_id")
+                        or job.context.get("source", {}).get("has_audio") is not True
+                    )
+                )
+            ):
+                raise AuthError("MOTION_PREPARATION_AUDIO_EVIDENCE_CHANGED", 409)
+            refs.append(
+                {
+                    "asset_id": asset.id,
+                    "sha256": asset.sha256,
+                    "scope": "Human listening report bound to bytes; not server listening or mix approval.",
+                }
+            )
         else:
             asset = next((a for a in job.assets if a.id == item.asset_id), None)
             preview = next((p for key, p in job.asset_previews if key == item.asset_id), None)

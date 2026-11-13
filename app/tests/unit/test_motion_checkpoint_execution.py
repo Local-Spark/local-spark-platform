@@ -43,6 +43,8 @@ def prepared():
         "output",
         "creative_contract",
         "preparation_contract",
+        "audio_analysis_contract",
+        "audio_assessment",
         "frames",
     ],
 )

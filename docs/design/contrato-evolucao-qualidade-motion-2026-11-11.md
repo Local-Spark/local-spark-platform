@@ -1,5 +1,11 @@
 # Contrato de evolução da qualidade de motion
 
+> **Escopo histórico — esclarecido em 13/11/2026.** Estados, versões selecionadas,
+> orçamentos e ordens de parada abaixo descrevem a entrega desta data; não são
+> automaticamente instruções para uma rodada nova. Contratos capturados continuam
+> preservados. Consulte a [orientação vigente](motion-orientacao-vigente-2026-11-13.md)
+> para diferenças entre geração nova/evolução, estado operacional e próximo roteiro.
+
 **Entrega posterior — 12/11/2026:** [fases 1–3 da preparação acompanhada](motion-preparacao-e-revisao-fases-1-3-2026-11-12.md)
 implementam origem das decisões, evidência no builder e pausas antes de código e
 render. Não reiniciam este contrato nem demonstram qualidade visual. Sem nova peça

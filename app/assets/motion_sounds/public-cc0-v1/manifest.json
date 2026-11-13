@@ -1,0 +1,50 @@
+{
+  "id": "public-cc0-v1",
+  "version": 1,
+  "items": [
+    {
+      "id": "coffee-pour",
+      "title": "Steaming coffee being poured into a cup.",
+      "author": "Maajora",
+      "source_url": "https://freesound.org/people/Maajora/sounds/432775/",
+      "download_url": "https://cdn.freesound.org/previews/432/432775_2731617-hq.mp3",
+      "download_kind": "provider_hq_mp3_preview_not_original",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_checked_on": "2026-11-12",
+      "license_evidence_sha256": "d3915e3487dd8e6c1df897c30cc299b7389aa20b20ee8acdd307dcc4d6a74ed1",
+      "file": "coffee-pour.mp3",
+      "sha256": "b13a4244351ac5a1479add64b9a0e75187a4f882653e86f9366ca4db15284d26",
+      "size_bytes": 128025,
+      "mime_type": "audio/mpeg",
+      "duration_ms": 5093,
+      "sample_rate_hz": 44100,
+      "channels": 1,
+      "selection_use": "Somente para ação de servir prevista por necessidade narrativa.",
+      "listening_status": "unreviewed",
+      "limitations": "Descrição do autor; sem escuta. Conferir adequação, ruído, trecho, duplicação da fonte e inteligibilidade da voz antes de render autorizado."
+    },
+    {
+      "id": "cup-contact",
+      "title": "China teacup being set down on a ceramic saucer.",
+      "author": "TheHiraHira",
+      "source_url": "https://freesound.org/people/TheHiraHira/sounds/460242/",
+      "download_url": "https://cdn.freesound.org/previews/460/460242_9117851-hq.mp3",
+      "download_kind": "provider_hq_mp3_preview_not_original",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_checked_on": "2026-11-12",
+      "license_evidence_sha256": "e31d3abc4468dbe39e6201babf9efd3311decc7cd3f1928862f0477338e4574f",
+      "file": "cup-contact.mp3",
+      "sha256": "6d6c7e0432895fd83f1b4a5198d9bc168a7541dc1a3c987610be15a39434e4ce",
+      "size_bytes": 119291,
+      "mime_type": "audio/mpeg",
+      "duration_ms": 5120,
+      "sample_rate_hz": 44100,
+      "channels": 2,
+      "selection_use": "Somente para contato/apoio previsto pelo plano.",
+      "listening_status": "unreviewed",
+      "limitations": "Descrição do autor; sem escuta. Conferir adequação, ruído, trecho, duplicação da fonte e inteligibilidade da voz antes de render autorizado."
+    }
+  ]
+}

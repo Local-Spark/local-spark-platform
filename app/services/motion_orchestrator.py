@@ -116,6 +116,10 @@ class MotionOrchestrator:
             return await MotionStoryboardRecapture(self).run(event)
         if UUID(event.event_id) == uuid5(operation, "motion.storyboard_approved"):
             return await self.resume(event)
+        if UUID(event.event_id) != uuid5(operation, "motion.requested") and await MotionCheckpoints(
+            self.requests, self.store
+        ).is_recovery(event):
+            return await resume_checkpoint(self, event, "plan")
         started = await self.requests.begin(tenant, business, actor, operation, UUID(event.event_id))
         if started is None:
             return "already_claimed"

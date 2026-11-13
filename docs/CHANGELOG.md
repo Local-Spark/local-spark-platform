@@ -1,5 +1,244 @@
 # Registro de mudanças
 
+**Leitura das instruções de motion — 13/11/2026.**
+A auditoria documental identificou gates históricos, versões, custos e estados
+operacionais descritos como “atuais” em registros antigos. Para a próxima rodada,
+consultar `docs/design/motion-orientacao-vigente-2026-11-13.md` e o roteiro de 13/11.
+Relatos abaixo permanecem históricos no escopo de cada entrega; não renovam
+orçamento, não repetem migração e não substituem instruções atuais do titular.
+Correção somente documental; capacidades propostas ainda não implementadas.
+
+**Roteiro técnico até uma nova peça completa — 13/11/2026.**
+Análise convertida em sete etapas com entregáveis e critérios de avanço:
+baseline, mecanismos executados, planejamento/material, ciclo de revisão,
+validação/orçamento, geração completa e avaliação do resultado. Roteiro em
+`docs/design/motion-roteiro-melhoria-peca-completa-2026-11-13.md`.
+Estado: proposto, ainda não implementado. Esta alteração é documental;
+nenhuma nova chamada paga, migração, render ou mudança de produção. A próxima
+execução deve entregar MP4 pelo processo melhorado, distinguindo prova técnica,
+melhora visual e aceite do titular. Orçamento novo exige autorização explícita.
+
+## 2026-11-12 — analisar referências completas e registrar reprovação visual
+
+**Prévia reprovada visualmente; 41 referências analisadas — 12/11/2026.**
+Titular considera a peça abaixo do mínimo em cenas/conteúdo/transições/impacto;
+áudio é avanço pontual, sem aprovação global da mistura. Não é falta de exemplos
+nem escolha obrigatória de um estilo. Analisados 16 links e 26 Shorts do canal
+PropagandaIA (um em comum): 41 vídeos, 542,586 s, 2.166 amostras em toda a duração,
+87 amostras adicionais de quatro passagens e notas individuais/galeria privada.
+Sem escuta perceptiva ou auditoria de ferramentas dos autores. Diagnóstico:
+conteúdo/material, encenação e inspeção executada são insuficientes na rodada;
+fidelidade ao plano e cobertura declarada não garantiram elaboração visual.
+Capacidade de imagem disponível no produto estava desabilitada; vídeo gerado/3D
+não podem ser presumidos. Parte importante das referências é motion por código.
+Mudança proposta: material/direção factíveis, construção por partes, revisão da
+peça completa e aceite calibrado; sem impor 100 quadros ou quantidade de cenas.
+Nenhum código de produção, chamada paga, render novo, migração ou serviço
+iniciado nesta análise. Estudo e 41 fichas:
+`docs/evals/analise-41-referencias-motion-2026-11-12.md`.
+Relatos anteriores de avanço técnico não representam aceite visual do titular.
+
+## 2026-11-12 — entregar prévia audiovisual completa autorizada
+
+**Prévia audiovisual completa entregue — 12/11/2026.** Titular autorizou gerar
+a peça. MP4 local de 11,2 s, 720 × 1280 a 30 fps, H.264/AAC, 336 quadros,
+voz + servir conforme plano, sem outra chamada paga. Código exato conferido no
+checkpoint/owner/RLS e materiais restaurados pelo serviço existente; execução
+Temporal de tentativa única com renderer isolado, sem alterar código de produção.
+Quadros decodificados mostram xícara → U de PAUSA, campo móvel e convite; avaliação
+de fluidez/integração tipográfica/escuta ainda cabe à reprodução da peça.
+Prévia supervisionada privada, sem fabricar aprovação artística, publicação ou
+conclusão nativa: checkpoint nativo render autoriza storyboard e produção posterior
+exige revisão paga; pedido nativo permanece no checkpoint, sem alterar decisões.
+Workflow da prévia COMPLETED, MP4/35 evidências privados em render-preview-v1.
+Saída validada/decodificada, -15,3 LUFS e pico amostral -3,6 dBFS; métricas não
+substituem escuta. Global disabled/execução false, cinco serviços exited, nenhum
+banco migrado; custo pago acumulado estimado continua US$ 0,774901. CI global
+mantém os gates anteriores. Resultado e limites:
+`docs/evals/previa-motion-completa-2026-11-12.md`.
+Registros anteriores de ausência de render descrevem o estado antes desta autorização.
+
+## 2026-11-12 — implementar plano aprovado e parar antes do render
+
+**Código do plano aprovado gerado e revisado — 12/11/2026.** Titular autorizou
+avançar para implementação com parada antes do render. Aprovação exata persistida;
+uma chamada de código pelo fluxo real, composição recebida e awaiting_render.
+Metadados idênticos ao plano, um vídeo contínuo e áudio original + servir previsto.
+Sintaxe/bundle sem execução passaram; fórmulas da trajetória em arco evitam a
+janela do vídeo em 10.001 amostras por passagem. Sem prévia/escuta ou certificação
+artística. Guarda privada inicial confundiu ordem de chaves JSON; falhou antes
+de claim/contagem/reserva/submissão. Corrigida e criada continuação interna
+explícita, auditada/idempotente, somente sem efeito de código/upload iniciado;
+aprovação e falha preservadas. Sem retry pago, endpoint ou migração novos.
+1.657 testes motion (dois skipped), casos PostgreSQL de checkpoints e 40 unitários
+do orquestrador passaram; checkpoints 100% linhas/branches. Ruff/formato/Mypy e
+diff --check aprovados; CI global ainda pendente nos gates anteriores.
+Código US$ 0,332548 estimados, reserva US$ 1,25 uncertain mantida; três chamadas
+da sequência somam US$ 0,774901 estimados, sem fatura conciliada. Workflow
+COMPLETED, pedido running/token liberado, checkpoint de render sem decisão.
+Nenhum render/quadro/asset de IA, migração ou serviço iniciado; global disabled,
+cinco serviços restritos exited. Escopo, revisão, custos e pendências:
+`docs/evals/implementacao-motion-plano-aprovado-2026-11-12.md`.
+Registros de awaiting_plan/código não autorizado abaixo são históricos.
+
+## 2026-11-12 — corrigir ação filmada e revisar plano substituto autorizado
+
+Após autorização de uma
+chamada substituta até US$ 1,25, encerrada a rodada anterior pelo checkpoint com
+feedback e histórico preservados. Correções: piso v2 exige desenvolvimento visual
+no pedido simples; entrada separa escuta por fase; guard permite ação dentro do
+vídeo-fonte com layout em hold, sem liberar outro vídeo/grafismo parado. Entrada
+final v9 (v8 superada antes de envio), ASR novo e fluxo real até awaiting_plan.
+Novo plano transforma xícara no U de PAUSA e apoio em campo de leitura; propõe
+servir em 1.900–3.680 ms ligado ao vídeo parado e omite contato sem ação observada.
+Validadores e compilação de soundtrack em memória passaram; raw e plano iguais.
+Pontos anteriores tratados na proposta escrita; metamorfose, proteção da fonte,
+leitura e som/mistura ainda exigem execução/prévia/escuta. Sem aprovação artística
+ou decisão de implementar. Estimativa desta chamada US$ 0,228198, reserva US$ 1,25
+uncertain mantida; duas chamadas somam US$ 0,442353 estimados, sem fatura.
+1.657 testes motion (dois skipped), 24 integrações e 100 dirigidos passaram;
+qualidade/catálogo com 100% de linhas/branches, lint/formato/Mypy aprovados.
+CI global continua pendente. Nenhuma nova migração, código, asset de IA, render
+ou serviço iniciado; global disabled e cinco serviços restritos exited. Resultado:
+`docs/evals/plano-audiovisual-corrigido-2026-11-12.md`.
+Os estados anteriores de entrada v8/espera de orçamento/ausência de plano são históricos.
+
+## 2026-11-12 — corrigir piso visual e separar avaliação sonora por fase
+
+Pedido posterior
+mandou encontrar o problema e ajustar. Identificadas lacunas verificáveis:
+desenvolvimento visual aparecia em orientações condicionais, mas não como critério
+próprio do piso; escuta humana e pendência da mistura não eram sintetizadas por
+fase na entrada. Perfil novo motion-production-quality-v2 exige oitavo critério
+visual_development no pedido simples e explicita a escolha composicional;
+planning_input agrupa disponibilidade/relato humano/hash/revisão futura de som,
+sem exigir efeitos ou apagar limitações. Snapshots v1 preservados na recaptura;
+plano/checkpoint original intactos, payload anterior reproduzido byte a byte.
+Pacote v8 montado com ASR local novo e conferido, sem nova geração paga/admissão/
+render. 1.652 testes motion (dois skipped), 23 integrações e 26 dirigidos passaram;
+100% linhas/branches em motion_quality, lint/formato e Mypy 334 + oito scripts
+aprovados. CI global segue pendente. A correção da entrada não demonstra melhora
+artística; novo plano precisa ser gerado/revisado. Chamada anterior consumida;
+nova proposta de uma chamada até US$ 1,25 ainda não autorizada. Detalhes:
+`docs/design/motion-correcao-planejamento-2026-11-12.md`.
+Estados de sete critérios e preparação v7 abaixo descrevem o histórico.
+
+## 2026-11-12 — plano real gerado, revisão antes do código
+
+Titular autorizou
+explicitamente somente a migração 0118 e uma chamada de plano até US$ 1,25.
+Backup privado verificado; dev 0117 → 0118, sem tabela nova ou dados removidos.
+Admissão/owner/RLS → Temporal/ASR novo → contagem/reserva → plano → checkpoint
+real awaiting_plan. Payload exato v7, 15 quadros da fonte/zero de peça anterior;
+nenhum código, asset de IA, render ou aprovação automática. Workflow completado;
+pedido running com execution_token liberado, aguardando decisão. Retorno/entrada/
+raw e custo preservados. Estimativa US$ 0,214155 (39.898 tokens entrada/11.441 saída),
+sem fatura; reserva US$ 1,25 uncertain mantida no ledger. Direção propõe três
+momentos tipográficos com vídeo contínuo e omite ambos os efeitos. Validadores
+passaram; revisão do assistente recomenda desenvolver composição além de títulos/
+barras/reposicionamento e melhorar motivo da omissão de servir café; omissão de
+contato tem base na fonte. Não é reprovação de vídeo ainda não renderizado nem
+exigência de usar som. Plano original/checkpoint não foram alterados ou aprovados.
+Configuração paga só no processo já encerrado; global disabled, cinco serviços
+restritos exited. CI integral permanece pendente. Resultado, revisão e limites:
+`docs/evals/plano-audiovisual-motion-2026-11-12.md`.
+Os estados anteriores de espera de autorização/ausência de plano são históricos.
+
+## 2026-11-12 — execução de plano solicitada, aguardando autorização específica de migração
+
+- Titular autorizou
+  somente gerar/revisar plano, até US$ 1,25 da proposta nova; código/render seguem
+  sem autorização. Corrigida formatação dos 13 arquivos com AST idêntico, sem
+  alterar lógica. Lint, formato de 905 arquivos e Mypy (334 módulos app + oito
+  scripts) passaram; 1.646 testes motion (dois skipped) e 23 integrações de motion/
+  checkpoints passaram. CI integral continua pendente: cobertura Node abaixo de
+  100%; backend ampliado interrompido após 108 aprovados/sete falhas de geocodificação,
+  incluindo policy_id ausente no _test. Sem corrigir schema implicitamente.
+  Execução privada preparada com admissão/RLS, ledger/Temporal e limite de uma
+  chamada, payload v7 exato, sem aprovação automática ou renderer. Dev confirmado
+  0117: aplicar 0118 para persistir checkpoint depende da autorização específica
+  solicitada, conforme restrição original contra migração implícita. Credenciais
+  presentes/Temporal saudável; backup compatível preparado, ainda não executado.
+  Sem migração, admissão ou chamada paga nesta rodada; plano ainda não existe.
+  Registro: `docs/evals/plano-motion-solicitado-2026-11-12.md`.
+  Os estados anteriores de 13 arquivos pendentes de formato foram superados.
+
+## 2026-11-12 — ASR novo, escuta vinculada e orçamento revisado
+
+- Configurado somente ASR local no ambiente ignorado, com modelo já existente,
+  hash fixado e demais settings preservadas. Exportador executa o mesmo serviço/
+  adapter real, claim/recibo exclusivos por operação; sem admissão ou ASR antigo.
+- Contrato/análise PCM local no loader: duração, RMS/pico e atividade sem inferir
+  escuta. Retomada compara evidências; corte sonoro respeita duração decodificada.
+- Evidência audio exige arquivo/hash/bytes no builder. Respostas reais do titular
+  sobre fonte e ambos os candidatos entraram no pacote v7, sem transformar
+  adequação isolada em aprovação de eventos/mistura ou revisão da transcrição.
+- Entrada v7/manifesto/ASR verificados: 15 quadros da fonte, zero de peça anterior,
+  30 palavras e uma de confiança baixa. Relatórios privados atualizados com
+  histórico preservado. Proposta US$ 2,50 para plano/código, não autorizada.
+- 1.646 testes motion/exportadores (dois skipped), quatro integrações e 128
+  dirigidos passaram (grupos sobrepostos); 100% de linhas/branches em análise e
+  catálogo. Ruff lint/Mypy 334 aprovados. CI integral bloqueado por 13 arquivos
+  de formatação preexistente; nenhuma exclusão de produção.
+- Sem migração, admissão, gasto, assets de IA, render ou serviço iniciado. Dev
+  0117/runtime disabled, cinco serviços exited. Detalhes/limites/gates em
+  `docs/design/motion-asr-avaliacao-sonora-orcamento-2026-11-12.md`.
+
+## 2026-11-12 — piso de qualidade sem peça anterior no contexto de criação
+
+- Incorporada correção do titular: peças dos ensaios apoiam avaliação do produto;
+  não são exemplo obrigatório ou dependência para gerar peça nova de cliente.
+- Perfil automático/versionado no novo percurso acompanhado exige cobertura dos
+  critérios de qualidade no plano, sem fixar cenas/objetos/layout ou número de
+  elementos. Histórico indevidamente anexado à geração nova é rejeitado; versões
+  de revisão/comparação explícita permanecem disponíveis.
+- Removidos da nova preparação as sugestões herdadas de chegada do objeto e
+  retorno da gravação, base/composição anterior, quadros de comparação e PNG
+  recuperado de render. Bibliotecas, fonte, kit, repertório e checkpoints mantidos.
+- Exportador recusa injeção de ASR arquivado no modo novo. Falta de fala preparada
+  ou pendência essencial interrompe o planejamento antes de reserva/chamada.
+- Pacote real v5 montado por leitura RLS: 15 quadros da fonte, zero da base,
+  dois sons disponíveis sem escuta e nenhum plano/código/render novo. Estado de
+  inspeção com lacuna `MOTION_QUALITY_SPEECH_REQUIRED`; não está liberado para envio.
+- 1.605 testes motion/exportadores (dois skipped), 67 dirigidos e quatro integrações
+  passaram; grupos sobrepostos. Novo módulo com 100% de linhas/branches; Ruff e
+  Mypy 333 aprovados. CI/cobertura integral pendentes por formatação preexistente
+  em 14 arquivos. Sem exclusão de produção, migração, banco/tabela/serviço novo.
+- Decisão, limites e pendências em
+  `docs/design/motion-piso-qualidade-independente-2026-11-12.md`.
+
+## 2026-11-12 — preparação audiovisual, piso funcional e catálogo sonoro
+
+- Inspecionados HEAD `096b95e`, working tree limpo, documentação, artefatos e
+  repositórios/skill/extratos de origem. Preservados mudanças e pacotes históricos.
+- Modo proposto deriva direção no planejamento a partir da mensagem/contexto,
+  com schema separado de código. Fidelidade integral/hash após aprovação e
+  checkpoints duráveis existentes preservados; capacidade por próxima etapa.
+- Piso v2 vincula funções e evidência da base real, permite novas representações
+  e rejeita cobertura/alvos/evidência ausentes, sem medir qualidade por contagem.
+- Catálogo público local com dois previews MP3 CC0 reais, origem/licença/hash e
+  metadados medidos. Plano justifica seleção/omissão e vincula som à ação;
+  original protegido no mixer e retomadas. Escuta/duplicação/inteligibilidade pendentes.
+- Repertório v4 retira oito prints somente da próxima seleção; mantém três
+  exemplos e histórico. Recuperação RLS de até quatro fotos elegíveis no modo
+  proposto; nenhuma foto disponível no negócio desta preparação.
+- Exportador aceita ausência de direção fornecida. Novo comando de preparação
+  captura contexto e monta pacote real privado v4, com manifesto verificado:
+  15 quadros da fonte, 20 da base registrada, um preview, dois sons disponíveis,
+  zero prints externos. Sem nova admissão, modelo, asset de IA ou render de peça.
+- Validação: 1.584 testes motion/exportadores (dois skipped), 47 dirigidos finais,
+  55 integrações aprovadas; uma falha de conexão Temporal passou no endereço da
+  instância CI já ativa. Grupos sobrepostos. Dois módulos novos com 100% de linhas
+  e branches; Ruff/Mypy aprovados, CI/cobertura integral pendentes por formatação
+  preexistente em 14 arquivos. Sem exclusão de produção para elevar cobertura.
+- Sem migração/banco novo/dev alterado, tabela/dependência/serviço novo ou gasto.
+  `_test` existente 0118 com logins restritos; dev 0117/runtime disabled;
+  cinco contêineres indicados permanecem parados. Sem versão/aprovação fictícia
+  da prévia favorável. Entrada/orçamento/configuração aguardam revisão antes da
+  primeira chamada paga; plano e código ainda não existem nesta rodada.
+- Escopo, evidências, fontes e pendências em
+  `docs/design/motion-planejamento-audiovisual-revisavel-2026-11-12.md`.
+
 ## 2026-11-12 — decisão sobre prints e uso das fontes de motion
 
 - Registrado feedback após o titular examinar os oito prints: seleção genérica,

@@ -23,6 +23,7 @@ from app.workflows.contracts import BusinessEvent
 
 Stage = Literal["plan", "render"]
 APPROVED: dict[Stage, str] = {"plan": "motion.plan_approved", "render": "motion.render_approved"}
+RECOVERY_SCHEMA = "motion-checkpoint-before-implementation-v1"
 
 
 def checkpoint_id(operation: UUID, stage: Stage) -> UUID:
@@ -246,11 +247,103 @@ class MotionCheckpoints:
             await apply_pending_script_changes(self.requests.settings, self.requests.database, tenant, business, actor)
         return {"decision": body.decision, "stage": stage}
 
+    async def is_recovery(self, event: BusinessEvent) -> bool:
+        async with self.requests.database.transaction(UUID(event.tenant_id), UUID(event.actor_id)) as session:
+            return bool(
+                await session.scalar(
+                    text("""SELECT 1 FROM motion_effects
+                WHERE tenant_id=:tenant AND business_id=:business AND request_id=:request
+                AND operation_id=:recovery AND kind='review'"""),
+                    {
+                        "tenant": UUID(event.tenant_id),
+                        "business": UUID(event.business_id),
+                        "request": uuid5(
+                            UUID(event.operation_id), f"motion-request:{event.tenant_id}:{event.business_id}"
+                        ),
+                        "recovery": uuid5(UUID(event.event_id), "checkpoint-recovery"),
+                    },
+                )
+            )
+
+    async def recover_before_submission(
+        self, tenant: UUID, business: UUID, actor: UUID, request: UUID, body: MotionCheckpointDecision
+    ) -> dict[str, str]:
+        """Explicitly resume an approved, failed stage only when no code effect ever started."""
+        row, checkpoint, _, packet = await self.load(tenant, business, actor, request, "plan")
+        if body.decision != "approve" or body.content_sha256 != checkpoint["request_hash"]:
+            raise AuthError("MOTION_CHECKPOINT_RECOVERY_INVALID", 409)
+        event_id = uuid5(body.operation_id, APPROVED["plan"])
+        recovery_id = uuid5(event_id, "checkpoint-recovery")
+        payload = {
+            "version": RECOVERY_SCHEMA,
+            "event_id": str(event_id),
+            "parent_operation_id": str(row["operation_id"]),
+            "checkpoint_sha256": body.content_sha256,
+            "decision": body.model_dump(mode="json"),
+        }
+        async with self.requests.database.transaction(tenant, actor) as session:
+            await self.requests.gate._lock(session, tenant, business, actor)
+            current = await self.requests.row(session, tenant, business, request)
+            existing = await self.effect(session, row, recovery_id)
+            if existing:
+                if existing["request_hash"] != digest(payload):
+                    raise AuthError("MOTION_CHECKPOINT_RECOVERY_CONFLICT", 409)
+                return {"event_id": str(event_id), "stage": "plan"}
+            approved = await self.effect(session, row, uuid5(checkpoint_id(row["operation_id"], "plan"), "decision"))
+            approval = self.requests.context.open(approved["request_ciphertext"]) if approved else {}
+            code = uuid5(row["operation_id"], "generate:0")
+            started = await session.scalar(
+                text("""SELECT 1 FROM motion_effects WHERE tenant_id=:tenant
+                AND request_id=:request AND operation_id IN (:code,:upload) LIMIT 1"""),
+                {"tenant": tenant, "request": request, "code": code, "upload": uuid5(code, "payload:request")},
+            )
+            if (
+                current["state"] != "failed"
+                or current["actor_id"] != actor
+                or approved is None
+                or approved["state"] != "received"
+                or approved["request_hash"] != digest(approval)
+                or approval.get("decision") != "approve"
+                or approval.get("content_sha256") != body.content_sha256
+                or packet["artifact"]["illustrations"]
+                or started
+            ):
+                raise AuthError("MOTION_CHECKPOINT_RECOVERY_NOT_SAFE", 409)
+            await self.requests._admission(session, tenant, business)
+            await self.requests.current(session, current)
+            await session.execute(
+                text("""INSERT INTO motion_effects
+                (tenant_id,business_id,request_id,operation_id,kind,state,request_hash,request_ciphertext)
+                VALUES(:tenant,:business,:request,:recovery,'review','claimed',:hash,:payload)"""),
+                {
+                    "tenant": tenant,
+                    "business": business,
+                    "request": request,
+                    "recovery": recovery_id,
+                    "hash": digest(payload),
+                    "payload": self.requests.context.seal(payload),
+                },
+            )
+            await session.execute(
+                text("""UPDATE motion_requests SET state='running',execution_token=NULL,
+                failure_code=NULL,finished_at=NULL
+                WHERE tenant_id=:tenant AND business_id=:business AND id=:request"""),
+                {"tenant": tenant, "business": business, "request": request},
+            )
+            await session.execute(
+                text("""INSERT INTO audit_events(tenant_id,actor_id,operation_id,action,resource_id)
+                VALUES(:tenant,:actor,:operation,'motion.checkpoint_recovery_requested',:business)"""),
+                {"tenant": tenant, "actor": actor, "operation": body.operation_id, "business": business},
+            )
+            await _event(session, tenant, business, actor, row["operation_id"], APPROVED["plan"], event_id=event_id)
+        return {"event_id": str(event_id), "stage": "plan"}
+
     async def begin(self, event: BusinessEvent, stage: Stage) -> tuple[dict[str, Any], UUID, dict[str, Any]] | None:
         tenant, business, actor, operation = map(
             UUID, (event.tenant_id, event.business_id, event.actor_id, event.operation_id)
         )
-        if UUID(event.event_id) != uuid5(operation, APPROVED[stage]):
+        recovering = UUID(event.event_id) != uuid5(operation, APPROVED[stage])
+        if recovering and (stage != "plan" or not await self.is_recovery(event)):
             raise AuthError("MOTION_EVENT_MISMATCH", 409)
         request = uuid5(operation, f"motion-request:{tenant}:{business}")
         row, _, decision, packet = await self.load(tenant, business, actor, request, stage)
@@ -259,6 +352,8 @@ class MotionCheckpoints:
             await self.requests.gate._lock(session, tenant, business, actor)
             current = await self.requests.row(session, tenant, business, request)
             decision = await self.effect(session, row, decision_id)
+            recovery_id = uuid5(UUID(event.event_id), "checkpoint-recovery")
+            recovery = await self.effect(session, row, recovery_id) if recovering else None
             valid = await session.scalar(
                 text("""SELECT 1 FROM outbox_events WHERE tenant_id=:tenant AND id=:event
                 AND event_type=:kind AND payload->>'business_id'=:business AND payload->>'actor_id'=:actor
@@ -274,6 +369,20 @@ class MotionCheckpoints:
             )
             if not valid or decision is None:
                 raise AuthError("MOTION_CHECKPOINT_APPROVAL_REQUIRED", 409)
+            if recovering:
+                assert recovery is not None
+                value = self.requests.context.open(recovery["request_ciphertext"])
+                if (
+                    recovery["state"] not in {"claimed", "received"}
+                    or digest(value) != recovery["request_hash"]
+                    or value.get("version") != RECOVERY_SCHEMA
+                    or value.get("parent_operation_id") != str(operation)
+                    or value.get("event_id") != event.event_id
+                    or value.get("checkpoint_sha256") != digest(packet)
+                ):
+                    raise AuthError("MOTION_CHECKPOINT_RECOVERY_INVALID", 409)
+                if recovery["state"] == "received":
+                    return None
             approved = self.requests.context.open(decision["request_ciphertext"])
             if (
                 digest(approved) != decision["request_hash"]
@@ -283,7 +392,7 @@ class MotionCheckpoints:
                 or approved["content_sha256"] != digest(packet)
             ):
                 raise AuthError("MOTION_CHECKPOINT_APPROVAL_REQUIRED", 409)
-            if decision["state"] == "received":
+            if decision["state"] == "received" and not recovering:
                 return None
             if current["state"] != "running" or current["execution_token"] is not None:
                 raise AuthError("MOTION_CHECKPOINT_NOT_WAITING", 409)
@@ -299,11 +408,16 @@ class MotionCheckpoints:
             await session.execute(
                 text("""UPDATE motion_effects SET state='received',finished_at=clock_timestamp()
                 WHERE tenant_id=:tenant AND operation_id=:operation"""),
-                {"tenant": tenant, "operation": decision_id},
+                {"tenant": tenant, "operation": recovery_id if recovering else decision_id},
             )
             await session.execute(
                 text("""INSERT INTO audit_events(tenant_id,actor_id,operation_id,action,resource_id)
                 VALUES(:tenant,:actor,:operation,'motion.checkpoint_resumed',:business)"""),
-                {"tenant": tenant, "actor": actor, "operation": decision_id, "business": business},
+                {
+                    "tenant": tenant,
+                    "actor": actor,
+                    "operation": recovery_id if recovering else decision_id,
+                    "business": business,
+                },
             )
         return row, token, packet

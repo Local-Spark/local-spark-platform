@@ -21,8 +21,12 @@ def compile_soundtrack(
         originals: list[dict[str, Any]] = []
     elif original.get("mode") == "mix" and len(original.get("tracks", [])) == 1:
         source = original["tracks"][0]
-        if (source.get("asset_id") != "assets/source.mp4" or source.get("volume") != 1
-                or source.get("offset_ms") != 0 or source.get("trim_start_ms") != 0):
+        if (
+            source.get("asset_id") != "assets/source.mp4"
+            or source.get("volume") != 1
+            or source.get("offset_ms") != 0
+            or source.get("trim_start_ms") != 0
+        ):
             raise AuthError("MOTION_ORIGINAL_AUDIO_CHANGED", 409)
         originals = [{**source, "role": "original", "fade_in_ms": 0, "fade_out_ms": 0}]
     else:
@@ -34,14 +38,24 @@ def compile_soundtrack(
         material = materials.get(str(event.asset_id))
         if material is None or event.offset_ms + event.trim_end_ms - event.trim_start_ms > duration_ms:
             raise AuthError("MOTION_AUDIO_MATERIAL_UNAVAILABLE", 409)
-        tracks.append({
-            "asset_id": material["asset_id"], "offset_ms": event.offset_ms,
-            "trim_start_ms": event.trim_start_ms, "trim_end_ms": event.trim_end_ms,
-            "volume": event.volume, "role": event.role,
-            "fade_in_ms": event.fade_in_ms, "fade_out_ms": event.fade_out_ms,
-        })
-    result = {"version": "motion-audio-v2", "mode": "mix", "tracks": tracks,
-              "ducking": ducking.model_dump(mode="json") if ducking else None}
+        tracks.append(
+            {
+                "asset_id": material["asset_id"],
+                "offset_ms": event.offset_ms,
+                "trim_start_ms": event.trim_start_ms,
+                "trim_end_ms": event.trim_end_ms,
+                "volume": event.volume,
+                "role": event.role,
+                "fade_in_ms": event.fade_in_ms,
+                "fade_out_ms": event.fade_out_ms,
+            }
+        )
+    result = {
+        "version": "motion-audio-v2",
+        "mode": "mix",
+        "tracks": tracks,
+        "ducking": ducking.model_dump(mode="json") if ducking else None,
+    }
     validate_original_branch(result, original)
     return result
 

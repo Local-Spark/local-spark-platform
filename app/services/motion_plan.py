@@ -11,6 +11,8 @@ from app.services.motion_creative import (
 )
 from app.services.motion_elements import elements_hash
 from app.services.motion_evolution import validate_evolution_plan
+from app.services.motion_quality import validate_quality_plan
+from app.services.motion_sound_library import validate_sound_design
 from app.services.motion_speech import validate_speech_plan
 from app.services.motion_visual_direction import validate_direction_fidelity
 
@@ -30,6 +32,8 @@ def requires_motion_plan(context: dict[str, Any]) -> bool:
             PROVIDED_DIRECTION_CONTRACT_VERSION,
             "reel-creative-v6",
             "reel-creative-v7",
+            "reel-creative-v8",
+            "reel-creative-v9",
         }
     )
 
@@ -44,6 +48,8 @@ def requires_scene_direction(context: dict[str, Any]) -> bool:
             PROVIDED_DIRECTION_CONTRACT_VERSION,
             "reel-creative-v6",
             "reel-creative-v7",
+            "reel-creative-v8",
+            "reel-creative-v9",
         }
     )
 
@@ -101,6 +107,8 @@ def validate_motion_plan(
     required = requires_motion_plan(context)
     validate_direction_fidelity(composition, context)
     validate_evolution_plan(composition, context)
+    validate_sound_design(composition, context)
+    validate_quality_plan(composition, context)
     plan = composition.motion_plan
     if plan is None:
         if required:

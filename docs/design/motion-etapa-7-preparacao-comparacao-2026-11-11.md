@@ -1,5 +1,11 @@
 # Etapa 7 — preparação da comparação controlada
 
+> **Escopo histórico — esclarecido em 13/11/2026.** Estados, versões selecionadas,
+> orçamentos e ordens de parada abaixo descrevem a entrega desta data; não são
+> automaticamente instruções para uma rodada nova. Contratos capturados continuam
+> preservados. Consulte a [orientação vigente](motion-orientacao-vigente-2026-11-13.md)
+> para diferenças entre geração nova/evolução, estado operacional e próximo roteiro.
+
 **Atualização posterior:** titular autorizou a proposta com reserva nova máxima
 US$ 6,75 e aprovação do storyboard antes do MP4. Executor qualificado; plano,
 uma imagem, implementação e storyboard de 18 quadros concluídos via API/Temporal.

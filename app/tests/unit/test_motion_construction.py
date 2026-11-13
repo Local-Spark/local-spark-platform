@@ -269,13 +269,23 @@ async def test_v4_export_requires_resolved_image_and_rejects_changed_preview(art
     with pytest.raises(AuthError, match="MATERIAL_INVALID"):
         provider().build_request(replace(built, assets=()))
 
-    complete = {"plan_sha256": manifest["plan_sha256"], "status": "implemented", "html": c.composition.html,
-                "scene_init": c.composition.scene_init, "revision_reason": None}
+    complete = {
+        "plan_sha256": manifest["plan_sha256"],
+        "status": "implemented",
+        "html": c.composition.html,
+        "scene_init": c.composition.scene_init,
+        "revision_reason": None,
+    }
     client = provider(lambda _: httpx.Response(200, json=response_data(complete)))
     result = await client.submit(built, client.build_request(built))
     assert result.composition.model_dump(mode="json") == c.composition.model_dump(mode="json")
-    revision = {"plan_sha256": manifest["plan_sha256"], "status": "requires_plan_revision",
-                "html": None, "scene_init": None, "revision_reason": "Fixture requires another angle"}
+    revision = {
+        "plan_sha256": manifest["plan_sha256"],
+        "status": "requires_plan_revision",
+        "html": None,
+        "scene_init": None,
+        "revision_reason": "Fixture requires another angle",
+    }
     client = provider(lambda _: httpx.Response(200, json=response_data(revision), headers={"x-request-id": "test"}))
     with pytest.raises(MotionAIError, match="MOTION_PLAN_REVISION_REQUIRED") as exc:
         await client.submit(built, client.build_request(built))

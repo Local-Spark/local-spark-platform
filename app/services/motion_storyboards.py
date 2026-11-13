@@ -464,6 +464,10 @@ class MotionStoryboards:
             preview = verified_preview(VisualResult(data, "image/png", art["sha256"], 1024, 1024, None, None))
             assets.append(RenderAsset(art["asset_id"], "image/png", data, art["sha256"]))
             previews.append((art["asset_id"], preview))
-        return replace(
-            prepared, context=payload["context"], assets=tuple(assets), asset_previews=tuple(previews)
-        ), composition
+        from app.services.motion_sound_library import apply_planned_sound
+
+        restored = replace(prepared, context=payload["context"], assets=tuple(assets), asset_previews=tuple(previews))
+        restored = apply_planned_sound(restored, composition)
+        if restored.context.get("authorized_soundtrack") != payload["context"].get("authorized_soundtrack"):
+            raise AuthError("MOTION_STORYBOARD_BYTES_CHANGED", 409)
+        return restored, composition

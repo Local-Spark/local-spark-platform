@@ -46,8 +46,15 @@ from app.tests.unit.test_motion_review_wire import compact_data
 
 
 def region(**changes):
-    return {"scene_id": "hook", "element_ids": ["title"], "start_ms": 200, "end_ms": 400,
-            "margin_before_ms": 33, "margin_after_ms": 33, **changes}
+    return {
+        "scene_id": "hook",
+        "element_ids": ["title"],
+        "start_ms": 200,
+        "end_ms": 400,
+        "margin_before_ms": 33,
+        "margin_after_ms": 33,
+        **changes,
+    }
 
 
 def critique():
@@ -69,11 +76,21 @@ def rasters(*, fixed=False, leak=None):
         out = io.BytesIO()
         image.save(out, "JPEG", quality=95)
         hashes.append(hashlib.sha256(out.getvalue()).hexdigest())
-    return RenderedMotion(b"synthetic", fingerprint("synthetic"), (frame(300),), {
-        "frame_count": 30, "width": 64, "height": 64, "fps": 30, "duration_ms": 1000,
-        "executor_image": "sha256:" + "1" * 64, "fingerprint_environment": fingerprint("synthetic-pillow"),
-        "frame_fingerprints": hashes,
-    })
+    return RenderedMotion(
+        b"synthetic",
+        fingerprint("synthetic"),
+        (frame(300),),
+        {
+            "frame_count": 30,
+            "width": 64,
+            "height": 64,
+            "fps": 30,
+            "duration_ms": 1000,
+            "executor_image": "sha256:" + "1" * 64,
+            "fingerprint_environment": fingerprint("synthetic-pillow"),
+            "frame_fingerprints": hashes,
+        },
+    )
 
 
 def test_scope_is_grounded_and_all_noncode_metadata_stays_immutable():
@@ -82,19 +99,34 @@ def test_scope_is_grounded_and_all_noncode_metadata_stays_immutable():
     assert scope["region"] == region() and scope["expected_result"] == "Reposicionar título"
     assert scope["base_composition_sha256"] == fingerprint(base.model_dump(mode="json"))
     validate_candidate(base, base.model_copy(update={"scene_init": "window.seek=()=>{}; // fixed"}))
-    for change in ({"concept": "Changed"}, {"motion_plan": None}, {"scene_direction": None},
-                   {"source_usage": "Changed"}, {"audio": base.audio.model_copy(update={"mode": "mix"})}):
+    for change in (
+        {"concept": "Changed"},
+        {"motion_plan": None},
+        {"scene_direction": None},
+        {"source_usage": "Changed"},
+        {"audio": base.audio.model_copy(update={"mode": "mix"})},
+    ):
         with pytest.raises(AuthError, match="PROTECTED_PLAN_CHANGED"):
             validate_candidate(base, base.model_copy(update=change))
-    for change in ({"scene_id": "missing"}, {"element_ids": ["answer"]}, {"start_ms": 301},
-                   {"end_ms": 601}, {"margin_after_ms": 700}):
+    for change in (
+        {"scene_id": "missing"},
+        {"element_ids": ["answer"]},
+        {"start_ms": 301},
+        {"end_ms": 601},
+        {"margin_after_ms": 700},
+    ):
         issue = critique().issues[0].model_copy(update={"localization": MotionCorrectionRegion(**region(**change))})
         with pytest.raises(AuthError, match="LOCATION_INVALID"):
             validate_location(base, issue)
     with pytest.raises(AuthError, match="LOCATION_REQUIRED"):
         validate_location(base, critique().issues[0].model_copy(update={"localization": None}))
-    for change in ({"start_ms": 400}, {"element_ids": ["title", "title"]},
-                   {"margin_before_ms": 201}, {"margin_after_ms": 1001}, {"start_ms": True}):
+    for change in (
+        {"start_ms": 400},
+        {"element_ids": ["title", "title"]},
+        {"margin_before_ms": 201},
+        {"margin_after_ms": 1001},
+        {"start_ms": True},
+    ):
         with pytest.raises(ValidationError):
             MotionCorrectionRegion(**region(**change))
 
@@ -110,8 +142,12 @@ def test_local_fixture_is_corrected_but_every_protected_frame_including_neighbor
         result = compare_frames(base, rasters(fixed=True, leak=index), scope)
         assert not result["accepted"] and result["regression_frame_indices"] == [index]
     assert compare_frames(base, rasters(fixed=True, leak=12), scope)["accepted"]
-    for key, value in (("executor_image", "sha256:" + "2" * 64), ("width", 128),
-                       ("fingerprint_environment", "f" * 64), ("fps", 25)):
+    for key, value in (
+        ("executor_image", "sha256:" + "2" * 64),
+        ("width", 128),
+        ("fingerprint_environment", "f" * 64),
+        ("fps", 25),
+    ):
         changed = replace(fixed, diagnostics={**fixed.diagnostics, key: value})
         with pytest.raises(AuthError, match="ENVIRONMENT_CHANGED"):
             compare_frames(base, changed, scope)
@@ -192,7 +228,9 @@ def test_full_minute_fingerprint_protocol_has_bounded_header_capacity(tmp_path):
     config = _prepare(replace(bundle(duration_ms=60000), fingerprint_frames=True), tmp_path / "full-minute")
     header, data = output(config)
     header["diagnostics"].update(
-        frame_count=1800, frame_fingerprints=["a" * 64] * 1800, fingerprint_environment="b" * 64,
+        frame_count=1800,
+        frame_fingerprints=["a" * 64] * 1800,
+        fingerprint_environment="b" * 64,
     )
     assert 65536 < len(json.dumps(header).encode()) < 262144
     assert len(_decode(packed(header, data), config).diagnostics["frame_fingerprints"]) == 1800
@@ -219,7 +257,8 @@ async def test_orchestrator_records_local_gate_and_never_reviews_or_selects_reje
     c.runner.complete = AsyncMock()
     prepared = replace(c.prepared, context={"correction_contract": CORRECTION_POLICY})
     c.runner.effects.model.side_effect = [
-        MotionModelResult(review=critique()), MotionModelResult(composition=fixed),
+        MotionModelResult(review=critique()),
+        MotionModelResult(composition=fixed),
         MotionModelResult(review=MotionReview.model_validate(review_data(current=frame(300), previous=frame(300)))),
     ]
     if failure:

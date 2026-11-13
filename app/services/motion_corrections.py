@@ -55,24 +55,32 @@ def validate_location(composition: HTMLMotionComposition, issue: MotionIssue) ->
         raise AuthError("MOTION_CORRECTION_LOCATION_REQUIRED", 409)
     scene = next((item for item in plan.scenes if item.id == region.scene_id), None)
     start, end = region.window
-    if (scene is None or not scene.start_ms <= region.start_ms <= issue.at_ms < region.end_ms <= scene.end_ms
-            or end > plan.duration_ms or not set(region.element_ids) <= {item.id for item in scene.elements}
-            or (start == 0 and end >= plan.duration_ms)):
+    if (
+        scene is None
+        or not scene.start_ms <= region.start_ms <= issue.at_ms < region.end_ms <= scene.end_ms
+        or end > plan.duration_ms
+        or not set(region.element_ids) <= {item.id for item in scene.elements}
+        or (start == 0 and end >= plan.duration_ms)
+    ):
         raise AuthError("MOTION_CORRECTION_LOCATION_INVALID", 409)
     return region
 
 
 def correction_scope(composition: HTMLMotionComposition, review: MotionReview) -> dict[str, Any]:
-    index, issue = next((i, item) for i, item in enumerate(review.issues)
-                        if item.actionable and item.severity in {"blocking", "major"})
+    index, issue = next(
+        (i, item) for i, item in enumerate(review.issues) if item.actionable and item.severity in {"blocking", "major"}
+    )
     region = validate_location(composition, issue)
     return {
-        "version": "motion-correction-scope-v1", "issue_index": index,
-        "region": region.model_dump(mode="json"), "expected_result": issue.correction,
+        "version": "motion-correction-scope-v1",
+        "issue_index": index,
+        "region": region.model_dump(mode="json"),
+        "expected_result": issue.correction,
         "evidence": {"at_ms": issue.at_ms, "sha256": issue.evidence_sha256},
         "base_composition_sha256": fingerprint(composition.model_dump(mode="json")),
-        "deferred_issue_indices": [i for i, item in enumerate(review.issues)
-                                   if i != index and item.actionable and item.severity != "minor"],
+        "deferred_issue_indices": [
+            i for i, item in enumerate(review.issues) if i != index and item.actionable and item.severity != "minor"
+        ],
     }
 
 
@@ -88,19 +96,28 @@ def compare_frames(base: RenderedMotion, candidate: RenderedMotion, scope: dict[
     region = MotionCorrectionRegion.model_validate(scope["region"])
     a, b = base.diagnostics, candidate.diagnostics
     keys = ("executor_image", "fingerprint_environment", "width", "height", "fps", "duration_ms", "frame_count")
-    if (any(a.get(key) is None or a.get(key) != b.get(key) for key in keys)
-            or not re.fullmatch(r"(?:[a-zA-Z0-9./:_-]+@)?sha256:[a-f0-9]{64}", str(a.get("executor_image")))
-            or not re.fullmatch(r"[a-f0-9]{64}", str(a.get("fingerprint_environment")))
-            or a.get("fps") != 30 or type(a.get("duration_ms")) is not int):
+    if (
+        any(a.get(key) is None or a.get(key) != b.get(key) for key in keys)
+        or not re.fullmatch(r"(?:[a-zA-Z0-9./:_-]+@)?sha256:[a-f0-9]{64}", str(a.get("executor_image")))
+        or not re.fullmatch(r"[a-f0-9]{64}", str(a.get("fingerprint_environment")))
+        or a.get("fps") != 30
+        or type(a.get("duration_ms")) is not int
+    ):
         raise AuthError("MOTION_CORRECTION_ENVIRONMENT_CHANGED", 409)
     duration = a["duration_ms"]
     assert isinstance(duration, int)
     count = (duration * 30 + 999) // 1000
     left, right = a.get("frame_fingerprints"), b.get("frame_fingerprints")
-    if (not 1 <= count <= 1800 or a["frame_count"] != count
-            or any(not isinstance(seq, list) or len(seq) != count
-                   or any(not isinstance(h, str) or re.fullmatch(r"[a-f0-9]{64}", h) is None for h in seq)
-                   for seq in (left, right))):
+    if (
+        not 1 <= count <= 1800
+        or a["frame_count"] != count
+        or any(
+            not isinstance(seq, list)
+            or len(seq) != count
+            or any(not isinstance(h, str) or re.fullmatch(r"[a-f0-9]{64}", h) is None for h in seq)
+            for seq in (left, right)
+        )
+    ):
         raise AuthError("MOTION_CORRECTION_EVIDENCE_INCOMPLETE", 409)
     start, end = region.window
     protected = [i for i in range(count) if not start * 30 <= i * 1000 < end * 30]
@@ -110,13 +127,19 @@ def compare_frames(base: RenderedMotion, candidate: RenderedMotion, scope: dict[
     changed = [i for i in range(count) if left[i] != right[i]]
     regressions = sorted(set(protected).intersection(changed))
     return {
-        "version": "motion-correction-check-v1", "accepted": not regressions and bool(changed),
-        "reason": ("outside_interval_changed" if regressions
-                   else "no_visible_change" if not changed else "bounded_change"),
-        "basis": "preencode-jpeg-sha256", "protected_frames": len(protected),
-        "changed_frame_indices": changed, "regression_frame_indices": regressions,
-        "base_frames_sha256": fingerprint(left), "candidate_frames_sha256": fingerprint(right),
-        "scope_sha256": fingerprint(scope), "executor_image": a["executor_image"],
+        "version": "motion-correction-check-v1",
+        "accepted": not regressions and bool(changed),
+        "reason": (
+            "outside_interval_changed" if regressions else "no_visible_change" if not changed else "bounded_change"
+        ),
+        "basis": "preencode-jpeg-sha256",
+        "protected_frames": len(protected),
+        "changed_frame_indices": changed,
+        "regression_frame_indices": regressions,
+        "base_frames_sha256": fingerprint(left),
+        "candidate_frames_sha256": fingerprint(right),
+        "scope_sha256": fingerprint(scope),
+        "executor_image": a["executor_image"],
         "fingerprint_environment": a["fingerprint_environment"],
         "quality_validated": False,
     }

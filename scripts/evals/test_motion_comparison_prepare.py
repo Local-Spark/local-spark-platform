@@ -22,8 +22,12 @@ def comparison_case(recorded_case, tmp_path):  # noqa: F811
     video.write_bytes(b"\x00\x00\x00\x20ftyp-synthetic-not-a-render")
     composition = tmp_path / "baseline-composition.json"
     composition.write_text(planned().model_dump_json())
-    args = {"prior_payload": prior, "baseline_video": video, "baseline_sha256": export.sha(video.read_bytes()),
-            "baseline_composition": composition}
+    args = {
+        "prior_payload": prior,
+        "baseline_video": video,
+        "baseline_sha256": export.sha(video.read_bytes()),
+        "baseline_composition": composition,
+    }
     return job, provenance, args
 
 
@@ -60,8 +64,9 @@ def test_changed_baseline_context_video_or_unprepared_sound_stops_export(compari
         with pytest.raises(ValueError, match="BASELINE_CONTEXT_CHANGED"):
             compare.comparison_files(changed, provenance, **args)
     with pytest.raises(ValueError, match="AUDIO_MATERIALS"):
-        compare.comparison_files(replace(job, context={**job.context, "authorized_soundtrack": {"mode": "mix"}}),
-                                 provenance, **args)
+        compare.comparison_files(
+            replace(job, context={**job.context, "authorized_soundtrack": {"mode": "mix"}}), provenance, **args
+        )
     with pytest.raises(ValueError, match="CURRENT_PLANNING"):
         compare.comparison_files(replace(job, context={}), provenance, **args)
 

@@ -1,5 +1,11 @@
 # Motion — etapa 2: revisão e prévias representativas
 
+> **Escopo histórico — esclarecido em 13/11/2026.** Estados, versões selecionadas,
+> orçamentos e ordens de parada abaixo descrevem a entrega desta data; não são
+> automaticamente instruções para uma rodada nova. Contratos capturados continuam
+> preservados. Consulte a [orientação vigente](motion-orientacao-vigente-2026-11-13.md)
+> para diferenças entre geração nova/evolução, estado operacional e próximo roteiro.
+
 Data: 11/11/2026. Implementação técnica da seleção e do storyboard; nenhuma
 peça foi produzida, revisada por modelo ou aprovada nesta etapa. A decisão humana
 do storyboard continua após a construção do código, antes do MP4 final.

@@ -475,13 +475,22 @@ async def test_construction_skill_reaches_the_exact_counted_request(context_case
     if kind == "correct":
         localized = review_data(revise=True)
         localized["issues"][0]["localization"] = {
-            "scene_id": "hook", "element_ids": ["title"], "start_ms": 0, "end_ms": 300,
-            "margin_before_ms": 0, "margin_after_ms": 0,
+            "scene_id": "hook",
+            "element_ids": ["title"],
+            "start_ms": 0,
+            "end_ms": 300,
+            "margin_before_ms": 0,
+            "margin_after_ms": 0,
         }
         review = MotionReview.model_validate(localized)
-        job = replace(job, review=review, context={
-            **captured, "correction_scope": correction_scope(job.composition, review),
-        })
+        job = replace(
+            job,
+            review=review,
+            context={
+                **captured,
+                "correction_scope": correction_scope(job.composition, review),
+            },
+        )
     payload = model.build_request(job)
     authorized = json.loads(payload["input"][0]["content"][0]["text"])["authorized_context"]
     assert authorized == job.context

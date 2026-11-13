@@ -1,5 +1,11 @@
 # Motion — etapa 3: materiais antes do código
 
+> **Escopo histórico — esclarecido em 13/11/2026.** Estados, versões selecionadas,
+> orçamentos e ordens de parada abaixo descrevem a entrega desta data; não são
+> automaticamente instruções para uma rodada nova. Contratos capturados continuam
+> preservados. Consulte a [orientação vigente](motion-orientacao-vigente-2026-11-13.md)
+> para diferenças entre geração nova/evolução, estado operacional e próximo roteiro.
+
 Data: 11/11/2026. Esta entrega altera a ordem técnica das novas capturas com
 direção fornecida. Não executa geração de imagens, chamada paga ou renderização.
 A qualidade visual continua sem validação; uma imagem plana não é um modelo 3D.

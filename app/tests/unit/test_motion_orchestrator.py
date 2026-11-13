@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from dataclasses import replace
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
-from uuid import uuid4
+from uuid import uuid4, uuid5
 
 import pytest
 
@@ -64,7 +64,11 @@ def unit_case(settings):
         quarantine=AsyncMock(),
     )
     event = BusinessEvent(
-        str(uuid4()), str(row["tenant_id"]), str(row["business_id"]), str(row["actor_id"]), str(row["operation_id"])
+        str(uuid5(row["operation_id"], "motion.requested")),
+        str(row["tenant_id"]),
+        str(row["business_id"]),
+        str(row["actor_id"]),
+        str(row["operation_id"]),
     )
     return SimpleNamespace(
         runner=runner, row=row, token=token, session=session, rendered=rendered, prepared=prepared, event=event

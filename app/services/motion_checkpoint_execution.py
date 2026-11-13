@@ -14,6 +14,7 @@ from app.services.motion_checkpoints import MotionCheckpoints, Stage, input_mani
 from app.services.motion_construction import implement_motion
 from app.services.motion_illustrations import MotionIllustrations
 from app.services.motion_materials import prepare_implementation_materials
+from app.services.motion_sound_library import apply_planned_sound
 from app.services.motion_storyboards import MotionStoryboards
 from app.workflows.contracts import BusinessEvent
 
@@ -23,7 +24,22 @@ if TYPE_CHECKING:
 
 def restore_input(prepared: PreparedMotionInput, packet: dict[str, Any]) -> PreparedMotionInput:
     context = packet["context"]
-    for key in ("source", "kit", "request", "authorized_audio", "output", "creative_contract", "preparation_contract"):
+    for key in (
+        "source",
+        "kit",
+        "request",
+        "authorized_audio",
+        "output",
+        "creative_contract",
+        "preparation_contract",
+        "generation_contract",
+        "sound_library",
+        "evolution",
+        "repertoire",
+        "quality_contract",
+        "audio_analysis_contract",
+        "audio_assessment",
+    ):
         if prepared.context.get(key) != context.get(key):
             raise AuthError("MOTION_CHECKPOINT_INPUT_CHANGED", 409)
     assets = list(prepared.assets)
@@ -46,6 +62,9 @@ def restore_input(prepared: PreparedMotionInput, packet: dict[str, Any]) -> Prep
         plan_data = composition.model_dump(mode="json", exclude={"html", "scene_init"})
         plan_data.setdefault("illustrations", [])
         prepared = prepare_implementation_materials(MotionConstructionPlan.model_validate(plan_data), prepared)
+        prepared = apply_planned_sound(prepared, composition)
+        if prepared.context.get("authorized_soundtrack") != context.get("authorized_soundtrack"):
+            raise AuthError("MOTION_CHECKPOINT_INPUT_CHANGED", 409)
     else:
         prepared = replace(prepared, context=context)
     if input_manifest(prepared) != packet["inputs"]:

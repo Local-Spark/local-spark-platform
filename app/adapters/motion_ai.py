@@ -14,7 +14,12 @@ import httpx
 from pydantic import BaseModel, ValidationError
 
 from app.adapters.motion_inputs import PreparedMotionInput
-from app.schemas.motion_generation import MotionImplementationOutput, MotionImplementationOutputV4, MotionPlanningOutput
+from app.schemas.motion_generation import (
+    MotionAudiovisualPlanningOutput,
+    MotionImplementationOutput,
+    MotionImplementationOutputV4,
+    MotionPlanningOutput,
+)
 from app.schemas.motion_production import (
     DirectedHTMLMotionComposition,
     HTMLMotionComposition,
@@ -31,6 +36,7 @@ from app.services.motion_generation import (
     decode_implementation,
     decode_provided_output,
     generation_wire_model,
+    proposed_generation_enabled,
     provided_output_enabled,
     staged_generation_enabled,
 )
@@ -225,7 +231,11 @@ class OpenAIMotionProvider:
 
     def build_request(self, request: MotionModelRequest) -> dict[str, Any]:
         from app.services.motion_preparation import evidence_bindings
+        from app.services.motion_quality import planning_input, validate_quality_input
+        from app.services.motion_sound_library import verify_sound_assets
 
+        validate_quality_input(request)
+        verify_sound_assets(request.context, request.assets)
         bindings = evidence_bindings(request)
         validate_speech_input(request.context)
         provided_output = provided_output_enabled(request.context)
@@ -277,6 +287,10 @@ class OpenAIMotionProvider:
         }
         if bindings:
             context["preparation_evidence"] = bindings
+        if staged and stage == "plan":
+            planning = planning_input(request.context, bindings)
+            if planning is not None:
+                context["planning_input"] = planning
         if request.context.get("request", {}).get("evolution") is not None:
             baseline = request.context.get("evolution")
             if not baseline or not request.baseline_frames:
@@ -393,7 +407,7 @@ class OpenAIMotionProvider:
             )
         if requires_scene_direction(request.context):
             instructions += " " + visual_input["rules"]
-        if provided_output and request.kind != "review":
+        if (provided_output or staged) and request.kind != "review":
             contract = (
                 GENERATION_CONTRACT
                 if request.kind == "correct" and staged_generation_enabled(request.context)
@@ -469,7 +483,9 @@ class OpenAIMotionProvider:
             "store": False,
             "text": {
                 "format": _format(
-                    MotionPlanningOutput
+                    MotionAudiovisualPlanningOutput
+                    if staged and stage == "plan" and proposed_generation_enabled(request.context)
+                    else MotionPlanningOutput
                     if staged and stage == "plan"
                     else MotionImplementationOutputV4
                     if staged and asset_informed_enabled(request.context)

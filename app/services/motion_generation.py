@@ -6,6 +6,7 @@ from typing import Any
 
 from app.schemas.motion_generation import (
     CompactProvidedDirectionOutput,
+    MotionAudiovisualPlanningOutput,
     MotionImplementationOutput,
     MotionPlanningOutput,
     ProvidedDirectionOutput,
@@ -77,14 +78,64 @@ ASSET_INFORMED_GENERATION_CONTRACT = {
     ),
 }
 
+PROPOSED_GENERATION_CONTRACT = {
+    "version": "proposed-audiovisual-output-v1",
+    "direction_source": "model_plan_then_exact_checkpoint_approval",
+    "response_rules": (
+        "Interprete request.preparation.client_message com negócio, kit, fatos, fonte e materiais disponíveis. "
+        "Na etapa plan proponha scene_direction, motion_plan, audiovisual e demais campos do schema, sem código. "
+        "Não há número de cenas, objetos, bordas ou transições herdado obrigatório. A base informa funções "
+        "a preservar; suas restrições estéticas/sonoras e escolhas de composição descrevem aquela execução. "
+        "Para cada função selecionada vincule alvos, justifique preservação/substituição, "
+        "e declare como verificar e seus limites. audiovisual.interpretation explica a leitura da mensagem. "
+        "O servidor preserva a fonte e a voz: audio deve ser exatamente authorized_audio. "
+        "Selecione sons somente do sound_library capturado, com hash, trecho, ganho/fades e vínculo a uma ação "
+        "não estática de um elemento/cena nos tempos do plano. Não crie ação porque há som, nem som por palavra. "
+        "Registre em omitted_sounds a razão para cada candidato não usado. Sem escuta, todos os eventos "
+        "mantêm pendentes suitability, source_duplication e voice_intelligibility; não invente atestados. "
+        "O servidor compila complementos separadamente, sem alterar a faixa original. "
+        "Na implementation, validated_plan e plan_sha256 são imutáveis: execute a direção e os tempos aprovados "
+        "usando materiais/previews resolvidos. Entregue status implemented e código completo ou "
+        "requires_plan_revision com razão e sem código. Nenhuma revisão implícita, imagem nova ou render. "
+        "Uma aprovação de plano permite apenas implementar, e o checkpoint seguinte antecede qualquer render."
+    ),
+    "plan_rules": STAGED_GENERATION_CONTRACT["plan_rules"],
+}
+
+PRODUCTION_GENERATION_CONTRACT = {
+    **PROPOSED_GENERATION_CONTRACT,
+    "version": "proposed-audiovisual-output-v2",
+    "response_rules": PROPOSED_GENERATION_CONTRACT["response_rules"].replace(
+        "A base informa funções a preservar; suas restrições estéticas/sonoras e escolhas de composição "
+        "descrevem aquela execução. Para cada função selecionada vincule alvos, justifique preservação/substituição, "
+        "e declare como verificar e seus limites.",
+        "quality_contract define os requisitos do produto independentemente de peças anteriores do cliente. "
+        "Vincule cada requisito a alvos próprios, justifique como o atende e declare verificação e limites. "
+        "Não existe base histórica nesta geração; não invente comparação, preservação ou substituição de outra peça.",
+    ),
+}
+
+
+def proposed_generation_enabled(context: dict[str, Any]) -> bool:
+    return context.get("generation_contract") in (PROPOSED_GENERATION_CONTRACT, PRODUCTION_GENERATION_CONTRACT)
+
 
 def asset_informed_enabled(context: dict[str, Any]) -> bool:
-    return context.get("generation_contract") == ASSET_INFORMED_GENERATION_CONTRACT
+    return context.get("generation_contract") in (
+        ASSET_INFORMED_GENERATION_CONTRACT,
+        PROPOSED_GENERATION_CONTRACT,
+        PRODUCTION_GENERATION_CONTRACT,
+    )
 
 
 def staged_generation_enabled(context: dict[str, Any]) -> bool:
     provided_output_enabled(context)
-    return context.get("generation_contract") in (STAGED_GENERATION_CONTRACT, ASSET_INFORMED_GENERATION_CONTRACT)
+    return context.get("generation_contract") in (
+        STAGED_GENERATION_CONTRACT,
+        ASSET_INFORMED_GENERATION_CONTRACT,
+        PROPOSED_GENERATION_CONTRACT,
+        PRODUCTION_GENERATION_CONTRACT,
+    )
 
 
 def construction_plan_hash(plan: MotionConstructionPlan) -> str:
@@ -93,6 +144,9 @@ def construction_plan_hash(plan: MotionConstructionPlan) -> str:
 
 
 def decode_construction_plan(text: str, context: dict[str, Any]) -> MotionConstructionPlan:
+    if proposed_generation_enabled(context):
+        data = MotionAudiovisualPlanningOutput.model_validate_json(text).model_dump(mode="json")
+        return MotionConstructionPlan.model_validate(expand_compact_output(data))
     data = expand_compact_output(MotionPlanningOutput.model_validate_json(text).model_dump(mode="json"))
     return MotionConstructionPlan.model_validate({**data, "scene_direction": supplied_direction(context)})
 
@@ -144,8 +198,27 @@ def provided_output_enabled(context: dict[str, Any]) -> bool:
     contract = context.get("generation_contract")
     if contract is None:
         return False
-    if contract not in (LEGACY_GENERATION_CONTRACT, GENERATION_CONTRACT, STAGED_GENERATION_CONTRACT,
-                        ASSET_INFORMED_GENERATION_CONTRACT):
+    if contract in (PROPOSED_GENERATION_CONTRACT, PRODUCTION_GENERATION_CONTRACT):
+        request = context.get("request", {})
+        if (
+            not request.get("propose_direction")
+            or not request.get("review_checkpoints")
+            or request.get("scene_direction") is not None
+            or not request.get("preparation")
+        ):
+            raise AuthError("MOTION_PROPOSED_DIRECTION_CONTEXT_REQUIRED", 409)
+        if contract == PRODUCTION_GENERATION_CONTRACT:
+            from app.services.motion_quality import validate_quality_context
+
+            if not validate_quality_context(context):
+                raise AuthError("MOTION_QUALITY_CONTRACT_REQUIRED", 409)
+        return False
+    if contract not in (
+        LEGACY_GENERATION_CONTRACT,
+        GENERATION_CONTRACT,
+        STAGED_GENERATION_CONTRACT,
+        ASSET_INFORMED_GENERATION_CONTRACT,
+    ):
         raise AuthError("MOTION_GENERATION_CONTRACT_UNKNOWN", 409)
     if supplied_direction(context) is None:
         raise AuthError("MOTION_VISUAL_DIRECTION_REQUIRED", 409)

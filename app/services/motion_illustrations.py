@@ -122,7 +122,8 @@ class MotionIllustrations:
         if amount > policy["budget_usd_micros"] or not await self.effects.capacity(
             row,
             token,
-            amount + (2 if isinstance(composition, MotionConstructionPlan) else 1)
+            amount
+            + (2 if isinstance(composition, MotionConstructionPlan) else 1)
             * self.effects.requests.settings.motion_ai_reservation_usd_micros,
         ):
             raise AuthError("MOTION_ILLUSTRATION_BUDGET_EXCEEDED", 409)

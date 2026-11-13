@@ -77,7 +77,7 @@ def direction_input(context: dict[str, Any], *, review: bool = False) -> dict[st
             else "Sem direção visual fornecida: scene_direction é uma proposta do modelo. "
             "Não anuncie planejamento independente ou aprovação humana inexistentes."
         )
-    if not review and context.get("generation_contract") is not None:
+    if not review and context.get("generation_contract") is not None and direction is not None:
         rules = (
             "Siga a direção fornecida antes do código; tempos e curvas ficam no motion_plan. "
             "O servidor preserva essa direção na composição: não devolva scene_direction. "

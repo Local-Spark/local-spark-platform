@@ -17,6 +17,8 @@ SUPPORTED_CREATIVE_CONTRACTS = frozenset(
         PROVIDED_DIRECTION_CONTRACT_VERSION,
         "reel-creative-v6",
         "reel-creative-v7",
+        "reel-creative-v8",
+        "reel-creative-v9",
     }
 )
 CREATIVE_CRITERIA = {
@@ -189,7 +191,11 @@ def alternating_creative_contract(*, provided: bool = False) -> dict[str, Any]:
     contract["version"] = "reel-creative-v7" if provided else "reel-creative-v6"
     contract["movement_runtime"] = movement_contract()
     contract["media_visibility_policy"] = MEDIA_VISIBILITY_POLICY
-    contract["direction"] = contract["direction"].replace(
-        "Preserve a gravação inteira e seu áudio", "Preserve duração/ordem da fonte e seu áudio integral"
-    ) + " " + MEDIA_VISIBILITY_POLICY
+    contract["direction"] = (
+        contract["direction"].replace(
+            "Preserve a gravação inteira e seu áudio", "Preserve duração/ordem da fonte e seu áudio integral"
+        )
+        + " "
+        + MEDIA_VISIBILITY_POLICY
+    )
     return contract

@@ -31,18 +31,27 @@ def budget_proposal(model: str, output_limit: int, image_policy: dict[str, Any] 
         raise ValueError("COMPARISON_SUPPORTS_ONE_IMAGE")
     image_reserve = image_policy["reservation_usd_micros"] if image_policy else 0
     return {
-        "version": "motion-comparison-budget-proposal-v1", "authorized": False,
+        "version": "motion-comparison-budget-proposal-v1",
+        "authorized": False,
         "source": "New proposal; no prior budget, approval or reservation is reused.",
-        "model": model, "per_model_call_reserve_usd_micros": reserve,
-        "initial_model_calls": 3, "conditional_correction_model_calls": 2,
-        "max_corrections": 1, "max_images": images, "per_image_reserve_usd_micros": image_reserve,
+        "model": model,
+        "per_model_call_reserve_usd_micros": reserve,
+        "initial_model_calls": 3,
+        "conditional_correction_model_calls": 2,
+        "max_corrections": 1,
+        "max_images": images,
+        "per_image_reserve_usd_micros": image_reserve,
         "initial_reserves_usd_micros": 3 * reserve + images * image_reserve,
         "maximum_reserves_usd_micros": 5 * reserve + images * image_reserve,
-        "input_tokens": None, "estimated_cost_usd_micros": None,
+        "input_tokens": None,
+        "estimated_cost_usd_micros": None,
         "rate_basis": "Existing project admission policy, not independently refreshed supplier pricing.",
-        "input_usd_micros_per_million": input_rate, "output_usd_micros_per_million": output_rate,
-        "construction_output_limit": output_limit, "review_output_limit": min(8000, output_limit),
-        "qualified_input_limit": MAX_INPUT_TOKENS, "construction_bound_at_input_limit": ceiling,
+        "input_usd_micros_per_million": input_rate,
+        "output_usd_micros_per_million": output_rate,
+        "construction_output_limit": output_limit,
+        "review_output_limit": min(8000, output_limit),
+        "qualified_input_limit": MAX_INPUT_TOKENS,
+        "construction_bound_at_input_limit": ceiling,
         "local_work": ["ASR if needed", "storyboard", "up to two complete renders", "local correction guard"],
         "conditions": [
             "New explicit owner authorization and configured per-request/monthly/global balances.",
@@ -55,8 +64,13 @@ def budget_proposal(model: str, output_limit: int, image_policy: dict[str, Any] 
 
 
 def comparison_files(
-    job: MotionModelRequest, provenance: dict[str, Any], *,
-    prior_payload: Path, baseline_video: Path, baseline_sha256: str, baseline_composition: Path,
+    job: MotionModelRequest,
+    provenance: dict[str, Any],
+    *,
+    prior_payload: Path,
+    baseline_video: Path,
+    baseline_sha256: str,
+    baseline_composition: Path,
     executor_image: str | None = None,
 ) -> dict[str, bytes]:
     if not asset_informed_enabled(job.context) or not correction_enabled(job.context) or job.construction_plan:
@@ -71,8 +85,9 @@ def comparison_files(
     archived = json.loads(prior_payload.read_bytes())
     old = json.loads(archived["input"][0]["content"][0]["text"])["authorized_context"]
     base = HTMLMotionComposition.model_validate_json(baseline_composition.read_bytes())
-    preserved = {key: old[key] == job.context[key] for key in
-                 ("source", "kit", "authorized_audio", "output", "transcript")}
+    preserved = {
+        key: old[key] == job.context[key] for key in ("source", "kit", "authorized_audio", "output", "transcript")
+    }
     preserved["baseline_composition_audio"] = base.audio.model_dump(mode="json") == job.context["authorized_audio"]
     preserved["model"] = archived["model"] == provenance["model"]
     preserved["max_output_tokens"] = archived["max_output_tokens"] == provenance["max_output_tokens"]
@@ -92,47 +107,70 @@ def comparison_files(
         {"stage": "correction", "state": "conditional_on_authorization_and_localized_issue", "exact_payload": None},
         {"stage": "correction_review", "state": "conditional_on_local_regression_guard", "exact_payload": None},
     ]
-    files.update({
-        "baseline/video.mp4": video,
-        "baseline/composition.json": export.pretty(base.model_dump(mode="json")),
-        "pipeline.json": export.pretty(pipeline),
-        "budget-proposal.json": export.pretty(budget),
-        "contracts/implementation.json": export.pretty(_format(MotionImplementationOutputV4)),
-        "contracts/review.json": export.pretty(_format(review_wire_model(job.context))),
-        "contracts/correction.json": export.pretty(_format(CompactProvidedDirectionOutput)),
-        "rubric.json": export.pretty({"owner_acceptance": None, "dimensions": [
-            {"name": name, "verdict": "not_evaluated", "reason": "No new piece exists.", "evidence": []}
-            for name in DIMENSIONS
-        ]}),
-        "comparison.json": export.pretty({
-            "version": "motion-comparison-preparation-v1", "execution_ready": False,
-            "executor_image": executor_image, "executor_qualified": False,
-            "baseline_video_sha256": baseline_sha256, "preserved": preserved,
-            "source_sha256": job.context["source"]["sha256"],
-            "source_samples": len(job.source_frames), "finish_references": len(job.reference_images),
-            "source_duration_ms": job.context["source"]["duration_ms"],
-            "audio": "Original recording only; supplemental-audio A/B not available in this preparation.",
-            "differences": [
-                "Brief and direction revised; skill/repertoire/temporal/material/correction contracts updated.",
-                "Storyboard is an owner gate before MP4; baseline ran without that gate.",
-                "One conditional bounded correction proposed; baseline ran without corrections.",
-                "Cup pixels from baseline are not included; current representation follows scene-direction.json.",
-            ],
-            "blockers": [
-                "Explicit owner authorization and new budget absent.",
-                ("Rebuilt executor digest supplied; runtime qualification still pending."
-                 if executor_image else "Executor image must contain stage 5/6 changes and pass qualification."),
-                "Fresh API/Temporal admission and asset availability have not been checked against dev.",
-                "ASR is archived and unreviewed; actual run must record its source/timing and any differences.",
-                "Later exact prompts depend on actual responses; no synthetic response is substituted.",
-            ],
-            "causal_claim": "Comparison of the combined changes; not an isolated experiment per feature.",
-            "visual_quality_validated": False, "network_calls": 0, "rendered": False,
-        }),
-        "manual-interventions.json": export.pretty({
-            "preparation": provenance["changes"], "generated_code_edits": [], "new_piece": None,
-        }),
-    })
+    files.update(
+        {
+            "baseline/video.mp4": video,
+            "baseline/composition.json": export.pretty(base.model_dump(mode="json")),
+            "pipeline.json": export.pretty(pipeline),
+            "budget-proposal.json": export.pretty(budget),
+            "contracts/implementation.json": export.pretty(_format(MotionImplementationOutputV4)),
+            "contracts/review.json": export.pretty(_format(review_wire_model(job.context))),
+            "contracts/correction.json": export.pretty(_format(CompactProvidedDirectionOutput)),
+            "rubric.json": export.pretty(
+                {
+                    "owner_acceptance": None,
+                    "dimensions": [
+                        {"name": name, "verdict": "not_evaluated", "reason": "No new piece exists.", "evidence": []}
+                        for name in DIMENSIONS
+                    ],
+                }
+            ),
+            "comparison.json": export.pretty(
+                {
+                    "version": "motion-comparison-preparation-v1",
+                    "execution_ready": False,
+                    "executor_image": executor_image,
+                    "executor_qualified": False,
+                    "baseline_video_sha256": baseline_sha256,
+                    "preserved": preserved,
+                    "source_sha256": job.context["source"]["sha256"],
+                    "source_samples": len(job.source_frames),
+                    "finish_references": len(job.reference_images),
+                    "source_duration_ms": job.context["source"]["duration_ms"],
+                    "audio": "Original recording only; supplemental-audio A/B not available in this preparation.",
+                    "differences": [
+                        "Brief and direction revised; skill/repertoire/temporal/material/correction contracts updated.",
+                        "Storyboard is an owner gate before MP4; baseline ran without that gate.",
+                        "One conditional bounded correction proposed; baseline ran without corrections.",
+                        "Cup pixels from baseline are not included; "
+                        "current representation follows scene-direction.json.",
+                    ],
+                    "blockers": [
+                        "Explicit owner authorization and new budget absent.",
+                        (
+                            "Rebuilt executor digest supplied; runtime qualification still pending."
+                            if executor_image
+                            else "Executor image must contain stage 5/6 changes and pass qualification."
+                        ),
+                        "Fresh API/Temporal admission and asset availability have not been checked against dev.",
+                        "ASR is archived and unreviewed; actual run must record its source/timing and any differences.",
+                        "Later exact prompts depend on actual responses; no synthetic response is substituted.",
+                    ],
+                    "causal_claim": "Comparison of the combined changes; not an isolated experiment per feature.",
+                    "visual_quality_validated": False,
+                    "network_calls": 0,
+                    "rendered": False,
+                }
+            ),
+            "manual-interventions.json": export.pretty(
+                {
+                    "preparation": provenance["changes"],
+                    "generated_code_edits": [],
+                    "new_piece": None,
+                }
+            ),
+        }
+    )
     files["LEIA-ME.md"] = (
         "# Comparação de qualidade motion — preparação\n\n"
         "Entrada de plano montada pelo produto; nenhuma chamada, peça ou aprovação nova. "
@@ -168,15 +206,34 @@ def main() -> None:
     args = parser.parse_args()
     policy = export.read_illustration_policy(args.illustration_policy) if args.illustration_policy else None
     job, provenance = export.prepare_case(
-        args.prior_payload, args.source, args.direction, args.brief,
-        repertoire_id="business-reel-v2", illustration_generation=policy,
+        args.prior_payload,
+        args.source,
+        args.direction,
+        args.brief,
+        repertoire_id="business-reel-v2",
+        illustration_generation=policy,
     )
-    files = comparison_files(job, provenance, prior_payload=args.prior_payload, baseline_video=args.baseline_video,
-                             baseline_sha256=args.baseline_sha256, baseline_composition=args.baseline_composition,
-                             executor_image=args.executor_image)
+    files = comparison_files(
+        job,
+        provenance,
+        prior_payload=args.prior_payload,
+        baseline_video=args.baseline_video,
+        baseline_sha256=args.baseline_sha256,
+        baseline_composition=args.baseline_composition,
+        executor_image=args.executor_image,
+    )
     archive = export.write_export(args.output, files)
-    print(json.dumps({"folder": str(args.output), "archive": str(archive), "network_calls": 0,
-                      "execution_ready": False, "manifest_sha256": export.sha(files["manifest.json"])}))
+    print(
+        json.dumps(
+            {
+                "folder": str(args.output),
+                "archive": str(archive),
+                "network_calls": 0,
+                "execution_ready": False,
+                "manifest_sha256": export.sha(files["manifest.json"]),
+            }
+        )
+    )
 
 
 if __name__ == "__main__":

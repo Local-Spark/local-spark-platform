@@ -4,8 +4,10 @@ from typing import Literal, Self
 
 from pydantic import Field, model_validator
 
+from app.schemas.motion_audiovisual import MotionAudiovisualDesign
 from app.schemas.motion_plan import Description, Identifier, Moment, MotionCurve, MotionPlan
 from app.schemas.motion_production import MotionAudio, MotionIllustration, MotionModel
+from app.schemas.motion_scene_direction import MotionSceneDirection
 
 
 class ProvidedDirectionOutput(MotionModel):
@@ -81,6 +83,13 @@ class MotionPlanningOutput(MotionModel):
     audio: MotionAudio
     illustrations: tuple[MotionIllustration, ...] = Field(max_length=2)
     motion_plan: CompactMotionPlan
+
+
+class MotionAudiovisualPlanningOutput(MotionPlanningOutput):
+    """Direction is proposed once; approval then freezes the entire planning artifact."""
+
+    scene_direction: MotionSceneDirection
+    audiovisual: MotionAudiovisualDesign
 
 
 class MotionImplementationOutput(MotionModel):

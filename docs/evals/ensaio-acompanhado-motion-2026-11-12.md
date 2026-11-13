@@ -1,5 +1,13 @@
 # Ensaio acompanhado — preparação e lacunas antes do modelo
 
+**Continuação implementada em 12/11:** proposta de direção no plano a partir da
+mensagem/contexto, piso funcional independente dos alvos anteriores, catálogo
+sonoro real local e repertório v4 sem os oito prints. Pacote real privado v4
+montado sem envio, com fonte/base/materiais preservados. Ainda não há plano/código
+novos, orçamento autorizado, render ou qualidade aprovada. Detalhes, validação e
+limites em [Preparação audiovisual revisável](../design/motion-planejamento-audiovisual-revisavel-2026-11-12.md).
+As afirmações abaixo sobre funcionalidades ausentes descrevem a inspeção anterior.
+
 Data: 12/11/2026. Continuação das fases 1–3 de preparação/revisão. Nenhuma
 chamada paga, nova geração de asset, render, criação de pedido ou alteração de
 banco nesta inspeção. Na captura inicial, HEAD era `4adb596`; alterações staged

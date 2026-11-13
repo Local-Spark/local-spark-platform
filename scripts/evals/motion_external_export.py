@@ -191,9 +191,11 @@ def prepare_case(
             "Briefing e direção fornecidos para esta preparação; sem alegação de aceite dos quadros/vídeo.",
             "Contratos, skill e repertório montados nas versões atuais pelo mesmo assembler do produto.",
             "IDs operacionais substituídos por identificadores locais sem vínculo de execução no banco.",
-            ("Política de ilustração explicitamente fornecida para exportação offline; não autoriza gasto."
-             if illustration_generation is not None else
-             "Geração de ilustrações desabilitada nesta entrada; nenhum orçamento anterior reutilizado."),
+            (
+                "Política de ilustração explicitamente fornecida para exportação offline; não autoriza gasto."
+                if illustration_generation is not None
+                else "Geração de ilustrações desabilitada nesta entrada; nenhum orçamento anterior reutilizado."
+            ),
             "Vídeo, fontes, metadados e seis amostras preservados por hash; sem extração ou render novos.",
         ],
     }
@@ -221,22 +223,42 @@ def implementation_job(
         raise ValueError("EXPORT_ORIGINAL_AUDIO_CHANGED")
     if asset_informed_enabled(job.context):
         declared = {item.asset_id for item in plan.illustrations}
-        if ({asset.id for asset in resolved_assets} != declared or len(resolved_assets) != len(declared)
-                or any(asset.mime_type != "image/png" or sha(asset.data) != asset.sha256 for asset in resolved_assets)):
+        if (
+            {asset.id for asset in resolved_assets} != declared
+            or len(resolved_assets) != len(declared)
+            or any(asset.mime_type != "image/png" or sha(asset.data) != asset.sha256 for asset in resolved_assets)
+        ):
             raise ValueError("EXPORT_RESOLVED_MATERIALS_REQUIRED")
-        prepared = replace(prepared, assets=prepared.assets + resolved_assets,
-                           context={**prepared.context, "available_materials": [
-                               *prepared.context.get("available_materials", []),
-                               *[{"asset_id": asset.id, "sha256": asset.sha256,
-                                  "role": "offline_supplied_illustration",
-                                  "identity_rule": "Proveniência fornecida offline; não é foto documental."}
-                                 for asset in resolved_assets],
-                           ]})
+        prepared = replace(
+            prepared,
+            assets=prepared.assets + resolved_assets,
+            context={
+                **prepared.context,
+                "available_materials": [
+                    *prepared.context.get("available_materials", []),
+                    *[
+                        {
+                            "asset_id": asset.id,
+                            "sha256": asset.sha256,
+                            "role": "offline_supplied_illustration",
+                            "identity_rule": "Proveniência fornecida offline; não é foto documental.",
+                        }
+                        for asset in resolved_assets
+                    ],
+                ],
+            },
+        )
         prepared = prepare_implementation_materials(plan, prepared)
     elif resolved_assets:
         raise ValueError("EXPORT_RESOLVED_MATERIALS_UNEXPECTED")
-    return replace(job, operation_id=uuid5(job.operation_id, "implementation"), construction_plan=plan,
-                   context=prepared.context, assets=prepared.assets, asset_previews=prepared.asset_previews)
+    return replace(
+        job,
+        operation_id=uuid5(job.operation_id, "implementation"),
+        construction_plan=plan,
+        context=prepared.context,
+        assets=prepared.assets,
+        asset_previews=prepared.asset_previews,
+    )
 
 
 def read_resolved_materials(path: Path) -> tuple[RenderAsset, ...]:
@@ -261,17 +283,37 @@ def read_resolved_materials(path: Path) -> tuple[RenderAsset, ...]:
 def read_illustration_policy(path: Path) -> dict[str, Any]:
     """Explicit offline policy only; reject extra fields that could carry credentials."""
     policy = json.loads(path.read_bytes())
-    fields = {"version", "model", "quality", "size", "output_format", "background", "max_images",
-              "reservation_usd_micros", "budget_usd_micros", "cost_policy", "rules"}
-    if (not isinstance(policy, dict) or set(policy) != fields
-            or policy.get("version") != "motion-illustrations-v1"
-            or policy.get("output_format") != "png" or policy.get("background") != "transparent"
-            or type(policy.get("max_images")) is not int or not 1 <= policy["max_images"] <= 2
-            or any(type(policy.get(key)) is not int or policy[key] <= 0
-                   for key in ("reservation_usd_micros", "budget_usd_micros"))
-            or policy["reservation_usd_micros"] > policy["budget_usd_micros"]
-            or any(not isinstance(policy.get(key), str) or not 0 < len(policy[key]) <= 4000
-                   for key in ("model", "quality", "size", "cost_policy", "rules"))):
+    fields = {
+        "version",
+        "model",
+        "quality",
+        "size",
+        "output_format",
+        "background",
+        "max_images",
+        "reservation_usd_micros",
+        "budget_usd_micros",
+        "cost_policy",
+        "rules",
+    }
+    if (
+        not isinstance(policy, dict)
+        or set(policy) != fields
+        or policy.get("version") != "motion-illustrations-v1"
+        or policy.get("output_format") != "png"
+        or policy.get("background") != "transparent"
+        or type(policy.get("max_images")) is not int
+        or not 1 <= policy["max_images"] <= 2
+        or any(
+            type(policy.get(key)) is not int or policy[key] <= 0
+            for key in ("reservation_usd_micros", "budget_usd_micros")
+        )
+        or policy["reservation_usd_micros"] > policy["budget_usd_micros"]
+        or any(
+            not isinstance(policy.get(key), str) or not 0 < len(policy[key]) <= 4000
+            for key in ("model", "quality", "size", "cost_policy", "rules")
+        )
+    ):
         raise ValueError("EXPORT_ILLUSTRATION_POLICY_INVALID")
     return policy
 
@@ -286,8 +328,9 @@ def assemble_files(job: MotionModelRequest, provenance: dict[str, Any]) -> dict[
         "motion-request.json": pretty(job.context["request"]),
         "output-contract.json": pretty(payload["text"]["format"], sort_keys=False),
         "parameters.json": pretty({k: v for k, v in payload.items() if k not in {"input", "instructions", "text"}}),
-        "scene-direction.json": pretty(job.context["request"]["scene_direction"]),
     }
+    if job.context["request"].get("scene_direction") is not None:
+        files["scene-direction.json"] = pretty(job.context["request"]["scene_direction"])
     prompt = ["# Entrada integral — projeção legível do payload\n", "## instructions\n", payload["instructions"]]
     images: list[dict[str, Any]] = []
     metadata: dict[str, Any] = {}
@@ -302,8 +345,10 @@ def assemble_files(job: MotionModelRequest, provenance: dict[str, Any]) -> dict[
             name = f"input/image-{len(images) + 1:02d}.{ext}"
             files[name] = data
             role = (
-                "finish_reference_only" if "finish_reference" in metadata
-                else "material" if "material_asset_id" in metadata
+                "finish_reference_only"
+                if "finish_reference" in metadata
+                else "material"
+                if "material_asset_id" in metadata
                 else metadata["version"]
             )
             images.append(
@@ -546,7 +591,12 @@ def main() -> None:
         return
     illustration_policy = read_illustration_policy(args.illustration_policy) if args.illustration_policy else None
     job, provenance = prepare_case(
-        args.prior_payload, args.source, args.direction, args.brief, args.speech_timing, args.repertoire,
+        args.prior_payload,
+        args.source,
+        args.direction,
+        args.brief,
+        args.speech_timing,
+        args.repertoire,
         illustration_policy,
     )
     if args.resolved_materials and not args.plan_output:

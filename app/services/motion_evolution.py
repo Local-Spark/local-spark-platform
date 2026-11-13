@@ -43,6 +43,17 @@ def sha(value: object) -> str:
 
 
 def validate_obligations(body: MotionEvolutionRequest, base: HTMLMotionComposition, direction: Any) -> None:
+    if body.version == "motion-evolution-v2":
+        if base.motion_plan is None:
+            raise AuthError("MOTION_EVOLUTION_DIRECTION_REQUIRED", 409)
+        base_ids = {e.id for s in base.motion_plan.scenes for e in s.elements}
+        if any(
+            not set(f.baseline_element_ids) <= base_ids
+            or any(ms >= base.motion_plan.duration_ms for ms in f.evidence_at_ms)
+            for f in body.functions
+        ):
+            raise AuthError("MOTION_QUALITY_FUNCTION_EVIDENCE_INVALID", 409)
+        return
     if base.motion_plan is None or direction is None:
         raise AuthError("MOTION_EVOLUTION_DIRECTION_REQUIRED", 409)
     base_ids = {e.id for s in base.motion_plan.scenes for e in s.elements}
@@ -130,7 +141,15 @@ async def capture_evolution(
         "evidence_ciphertext": record["evidence_ciphertext"],
         "row": {"tenant_id": str(tenant), "business_id": str(business), "id": str(selection.baseline_request_id)},
         "materials": sorted(materials, key=lambda m: m["asset_id"]),
-        "rules": EVOLUTION_RULES,
+        "rules": EVOLUTION_RULES
+        + (
+            " Nesta seleção v2, functions é o piso funcional: não congele representação, quantidade de cenas, "
+            "IDs-alvo, objetos, bordas ou transições. Proponha alvos no plano e justifique substituições com "
+            "evidência da base selecionada e verificação futura. Nenhuma função pode desaparecer silenciosamente. "
+            "A matriz v1 não se aplica. A prévia não registrada não é uma versão aprovada deste banco."
+            if selection.version == "motion-evolution-v2"
+            else ""
+        ),
     }
 
 
@@ -146,6 +165,18 @@ def validate_evolution_plan(
     base = HTMLMotionComposition.model_validate(baseline["composition"])
     if sha(base.model_dump(mode="json")) != baseline["composition_sha256"]:
         raise AuthError("MOTION_EVOLUTION_BASELINE_CHANGED", 409)
-    validate_obligations(MotionEvolutionRequest.model_validate(body), base, composition.scene_direction)
+    selection = MotionEvolutionRequest.model_validate(body)
+    validate_obligations(selection, base, composition.scene_direction)
+    if selection.version == "motion-evolution-v2":
+        design, plan = composition.audiovisual, composition.motion_plan
+        if design is None or plan is None:
+            raise AuthError("MOTION_QUALITY_FUNCTION_COVERAGE_REQUIRED", 409)
+        targets = {e.id for s in plan.scenes for e in s.elements}
+        if (
+            len(design.functions) != len(selection.functions)
+            or {f.function_id for f in design.functions} != {f.id for f in selection.functions}
+            or any(not set(f.target_element_ids) <= targets for f in design.functions)
+        ):
+            raise AuthError("MOTION_QUALITY_FUNCTION_TARGET_MISSING", 409)
     if composition.audio != base.audio:
         raise AuthError("MOTION_EVOLUTION_ORIGINAL_AUDIO_CHANGED", 409)

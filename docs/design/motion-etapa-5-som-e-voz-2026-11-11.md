@@ -1,5 +1,12 @@
 # Etapa 5 — som com função e voz protegida
 
+**Continuação de 12/11:** [planejamento audiovisual revisável](motion-planejamento-audiovisual-revisavel-2026-11-12.md)
+integra dois candidatos públicos CC0 locais e seleção/omissão estruturada pelo
+plano, com vínculo à ação e compilação para o mixer existente. O caminho manual
+abaixo permanece; suas declarações de direitos/não duplicação não são fabricadas
+no modo proposto. Sem escuta, adequação/duplicação/inteligibilidade continuam
+pendentes. Sem geração paga ou nova peça nesta continuação.
+
 Data: 11/11/2026. Implementação técnica local; escuta e aceite pendentes.
 
 ## Contrato e decisões

@@ -11,11 +11,13 @@ from app.services.motion_movement import movement_contract, movement_v2_contract
 
 ROOT = Path(__file__).resolve().parents[1] / "assets/motion_repertoire"
 PACKS = {
+    "business-reel-v4": "cb39608607f8f14cca36667e8d50a1e41cc9f5d0bd6c7e273433588d198cd848",
     "business-reel-v3": "1e2b6f9dc8cd332e2c0b1f30954c4618646aef69e26e5f4c1b2a3f927c4c44fc",
     "business-reel-v1": "b83896b2411d763c47073c4efe14c89b66f719bc74c35d6ceb395566bcbbd620",
     "business-reel-v2": "2fbcc52870d0e2a788873f2aebb49c916161fcc6c7f0975d6b19f60522eaf9d6",
 }
 CAPTURE_HASHES = {
+    "business-reel-v4": "70b73b5ae604b7759bfa1f31d95c38bb9fe49865ce154c165e0030a3766c3065",
     "business-reel-v3": "825594ff7be6fb0d264ba2f60518d7afea1b841a3ffa4eb70be786cf00b067ae",
     "business-reel-v1": "b9d69fe4e23c13caf7b04000e864b53bdfcf8ca8061c03a25ff2d0cb080f8635",
     "business-reel-v2": "70453201e41fc933483bdc77c13854868ffebc61f329476cfc55b30b54ce4953",
@@ -118,7 +120,7 @@ def validate_repertoire_images(
         raise AuthError("MOTION_REPERTOIRE_CHANGED", 409)
     expected: list[dict[str, Any]] = descriptor["reference_images"]
     if (
-        not 0 < len(images) <= MAX_IMAGES
+        not 0 <= len(images) <= MAX_IMAGES
         or len(images) != len(expected)
         or len({image.id for image in images}) != len(images)
         or sum(len(image.data) for image in images) > MAX_IMAGE_TOTAL_BYTES

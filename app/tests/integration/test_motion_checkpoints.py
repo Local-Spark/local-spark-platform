@@ -4,7 +4,7 @@ import asyncio
 from dataclasses import replace
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
-from uuid import uuid4, uuid5
+from uuid import UUID, uuid4, uuid5
 
 import pytest
 from sqlalchemy import text
@@ -348,3 +348,190 @@ async def test_relay_claims_approvals_but_not_unapproved_ready_notifications(che
         "motion.render_approved",
     }
     c.renderer.render.assert_not_awaited()
+
+
+async def failed_before_code(c):
+    await c.runner.run(c.event)
+    await decide(c, "plan", await decision(c, "plan"))
+    build = c.provider.build_request
+
+    def preflight_failure(job):
+        if job.construction_plan is not None:
+            raise RuntimeError("Synthetic local preflight failure before claim")
+        return build(job)
+
+    c.provider.build_request = preflight_failure
+    with pytest.raises(RuntimeError):
+        await c.runner.run(event(c, "plan"))
+    c.provider.build_request = build
+    assert (await c.requests.get(c.tenant, c.business, c.actor, c.requested.id)).state == "failed"
+    assert c.provider.calls == ["plan"]
+    return await decision(c, "plan")
+
+
+async def test_explicit_pre_submission_recovery_preserves_approval_and_runs_only_code_once(checkpoint_case):
+    c = checkpoint_case
+    approval = await failed_before_code(c)
+    args = (c.tenant, c.business, c.actor, c.requested.id, approval)
+    first, second = await asyncio.gather(
+        c.checkpoints.recover_before_submission(*args), c.checkpoints.recover_before_submission(*args)
+    )
+    assert first == second
+    with pytest.raises(AuthError, match="RECOVERY_CONFLICT"):
+        await c.checkpoints.recover_before_submission(*args[:-1], approval.model_copy(update={"note": "Changed"}))
+    assert await c.runner.run(event(c, "plan")) == "already_claimed"
+    recovered = replace(event(c, "plan"), event_id=first["event_id"])
+    assert await c.runner.run(recovered) == "awaiting_render"
+    assert await c.runner.run(recovered) == "already_claimed"
+    assert c.provider.calls == ["plan", "implementation"]
+    c.renderer.render.assert_not_awaited()
+    assert (await inspect(c, "plan"))["decision"]["decision"] == "approve"
+    assert (await inspect(c, "render"))["decision"] is None
+    with pytest.raises(AuthError, match="EVENT_MISMATCH"):
+        await c.checkpoints.begin(recovered, "render")
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        "hash",
+        "reject",
+        "state",
+        "approval_missing",
+        "approval_unconsumed",
+        "approval_hash",
+        "approval_rejected",
+        "code_claim",
+        "payload_upload",
+        "source",
+        "illustrations",
+    ],
+)
+async def test_recovery_refuses_uncertain_or_started_work_and_changed_inputs(checkpoint_case, admin, change):
+    from app.services.motion_context import digest
+
+    c = checkpoint_case
+    approval = await failed_before_code(c)
+    op = uuid5(checkpoint_id(c.body.operation_id, "plan"), "decision")
+    if change == "hash":
+        approval = approval.model_copy(update={"content_sha256": "0" * 64})
+    elif change == "reject":
+        approval = approval.model_copy(update={"decision": "reject"})
+    elif change == "illustrations":
+        original = c.checkpoints.load
+
+        async def with_images(*args):
+            row, checkpoint, decision_row, packet = await original(*args)
+            packet["artifact"]["illustrations"] = ["Synthetic declared image"]
+            return row, checkpoint, decision_row, packet
+
+        c.checkpoints.load = with_images
+    else:
+        async with admin.begin() as conn:
+            if change == "state":
+                await conn.execute(
+                    text("UPDATE motion_requests SET state='uncertain' WHERE id=:id"), {"id": c.requested.id}
+                )
+            elif change == "approval_missing":
+                await conn.execute(text("DELETE FROM motion_effects WHERE operation_id=:op"), {"op": op})
+            elif change == "approval_unconsumed":
+                await conn.execute(text("UPDATE motion_effects SET state='claimed' WHERE operation_id=:op"), {"op": op})
+            elif change == "approval_hash":
+                await conn.execute(
+                    text("UPDATE motion_effects SET request_hash=:hash WHERE operation_id=:op"),
+                    {"op": op, "hash": "0" * 64},
+                )
+            elif change == "approval_rejected":
+                view = await inspect(c, "plan")
+                value = {**view["decision"], "decision": "reject"}
+                await conn.execute(
+                    text(
+                        "UPDATE motion_effects SET request_hash=:hash,request_ciphertext=:payload "
+                        "WHERE operation_id=:op"
+                    ),
+                    {"op": op, "hash": digest(value), "payload": c.requests.context.seal(value)},
+                )
+            elif change == "source":
+                await conn.execute(
+                    text("UPDATE whatsapp_material_assets SET sha256=:sha WHERE id=:source"),
+                    {"source": c.source, "sha": "b" * 64},
+                )
+            else:
+                code = uuid5(c.body.operation_id, "generate:0")
+                operation = code if change == "code_claim" else uuid5(code, "payload:request")
+                await conn.execute(
+                    text("""INSERT INTO motion_effects(tenant_id,business_id,request_id,operation_id,
+                    kind,state,request_hash,request_ciphertext) VALUES(:tenant,:business,:request,:op,:kind,
+                    'claimed',:hash,:payload)"""),
+                    {
+                        "tenant": c.tenant,
+                        "business": c.business,
+                        "request": c.requested.id,
+                        "op": operation,
+                        "kind": "generate" if change == "code_claim" else "upload",
+                        "hash": "a" * 64,
+                        "payload": c.requests.context.seal({"synthetic": True}),
+                    },
+                )
+    with pytest.raises(AuthError, match="(RECOVERY_|CONTEXT_CHANGED)"):
+        await c.checkpoints.recover_before_submission(c.tenant, c.business, c.actor, c.requested.id, approval)
+    assert c.provider.calls == ["plan"]
+    c.renderer.render.assert_not_awaited()
+
+
+@pytest.mark.parametrize("change", ["marker_hash", "marker_version", "marker_state", "outbox_missing"])
+async def test_recovery_event_requires_its_bound_receipt_and_outbox(checkpoint_case, admin, change):
+    from app.services.motion_context import digest
+
+    c = checkpoint_case
+    approval = await failed_before_code(c)
+    result = await c.checkpoints.recover_before_submission(c.tenant, c.business, c.actor, c.requested.id, approval)
+    recovered = replace(event(c, "plan"), event_id=result["event_id"])
+    recovery_id = uuid5(UUID(result["event_id"]), "checkpoint-recovery")
+    async with admin.begin() as conn:
+        if change == "outbox_missing":
+            await conn.execute(text("DELETE FROM outbox_events WHERE id=:id"), {"id": UUID(result["event_id"])})
+        elif change == "marker_hash":
+            await conn.execute(
+                text("UPDATE motion_effects SET request_hash=:hash WHERE operation_id=:op"),
+                {"op": recovery_id, "hash": "0" * 64},
+            )
+        elif change == "marker_state":
+            await conn.execute(
+                text("UPDATE motion_effects SET state='submitted' WHERE operation_id=:op"), {"op": recovery_id}
+            )
+        else:
+            ciphertext = await conn.scalar(
+                text("SELECT request_ciphertext FROM motion_effects WHERE operation_id=:op"), {"op": recovery_id}
+            )
+            value = c.requests.context.open(ciphertext)
+            value["version"] = "forged"
+            await conn.execute(
+                text("UPDATE motion_effects SET request_hash=:hash,request_ciphertext=:payload WHERE operation_id=:op"),
+                {"op": recovery_id, "hash": digest(value), "payload": c.requests.context.seal(value)},
+            )
+    with pytest.raises(AuthError, match="(RECOVERY_INVALID|APPROVAL_REQUIRED)"):
+        await c.runner.run(recovered)
+    assert c.provider.calls == ["plan"]
+    c.renderer.render.assert_not_awaited()
+
+
+@pytest.mark.parametrize("change", ["missing", "not_received", "input_payload"])
+async def test_present_never_exposes_checkpoint_without_its_model_receipt(checkpoint_case, admin, change):
+    c = checkpoint_case
+    await c.runner.run(c.event)
+    operation = uuid5(c.body.operation_id, "generate:plan:0")
+    async with admin.begin() as conn:
+        if change == "missing":
+            await conn.execute(text("DELETE FROM motion_effects WHERE operation_id=:op"), {"op": operation})
+        elif change == "not_received":
+            await conn.execute(
+                text("UPDATE motion_effects SET state='claimed' WHERE operation_id=:op"), {"op": operation}
+            )
+        else:
+            await conn.execute(
+                text("UPDATE motion_effects SET request_ciphertext=:payload WHERE operation_id=:op"),
+                {"op": operation, "payload": c.requests.context.seal({"tampered": "synthetic input"})},
+            )
+    with pytest.raises(AuthError, match="MOTION_CHECKPOINT_CHANGED"):
+        await inspect(c, "plan")

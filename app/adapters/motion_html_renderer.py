@@ -172,7 +172,14 @@ def _audio_v2(plan: dict[str, object], assets: dict[str, RenderAsset], duration:
     plain = []
     for track in tracks:
         if not isinstance(track, dict) or set(track) != {
-            "asset_id", "offset_ms", "trim_start_ms", "trim_end_ms", "volume", "role", "fade_in_ms", "fade_out_ms"
+            "asset_id",
+            "offset_ms",
+            "trim_start_ms",
+            "trim_end_ms",
+            "volume",
+            "role",
+            "fade_in_ms",
+            "fade_out_ms",
         }:
             raise MotionRenderError("MOTION_RENDER_INVALID_INPUT")
         if not isinstance(track["role"], str) or track["role"] not in {"original", "music", "effect"}:
@@ -184,8 +191,14 @@ def _audio_v2(plan: dict[str, object], assets: dict[str, RenderAsset], duration:
         if fade_in + fade_out > end - start:
             raise MotionRenderError("MOTION_RENDER_INVALID_INPUT")
         if track["role"] == "original":
-            if (track["asset_id"] != "assets/source.mp4" or track["offset_ms"] != 0 or start != 0
-                    or track["volume"] != 1 or fade_in or fade_out):
+            if (
+                track["asset_id"] != "assets/source.mp4"
+                or track["offset_ms"] != 0
+                or start != 0
+                or track["volume"] != 1
+                or fade_in
+                or fade_out
+            ):
                 raise MotionRenderError("MOTION_RENDER_INVALID_INPUT")
         elif track["asset_id"] == "assets/source.mp4":
             raise MotionRenderError("MOTION_RENDER_INVALID_INPUT")
@@ -196,8 +209,12 @@ def _audio_v2(plan: dict[str, object], assets: dict[str, RenderAsset], duration:
         raise MotionRenderError("MOTION_RENDER_INVALID_INPUT")
     duck = plan["ducking"]
     if duck is not None:
-        if (not isinstance(duck, dict) or set(duck) != {"threshold", "ratio", "attack_ms", "release_ms"}
-                or originals != 1 or not any(track["role"] == "music" for track in tracks)):
+        if (
+            not isinstance(duck, dict)
+            or set(duck) != {"threshold", "ratio", "attack_ms", "release_ms"}
+            or originals != 1
+            or not any(track["role"] == "music" for track in tracks)
+        ):
             raise MotionRenderError("MOTION_RENDER_INVALID_INPUT")
         for key, low, high in (("threshold", 0.00097563, 1), ("ratio", 1, 20)):
             value = duck[key]
@@ -335,9 +352,13 @@ def _decode(data: bytes, expected: RenderConfig) -> RenderedMotion:
         if expected.get("fingerprint_frames"):
             hashes = diagnostics.get("frame_fingerprints")
             environment = diagnostics.get("fingerprint_environment")
-            if (not isinstance(hashes, list) or len(hashes) != diagnostics["frame_count"]
-                    or any(not isinstance(item, str) or not SHA256.fullmatch(item) for item in hashes)
-                    or not isinstance(environment, str) or not SHA256.fullmatch(environment)):
+            if (
+                not isinstance(hashes, list)
+                or len(hashes) != diagnostics["frame_count"]
+                or any(not isinstance(item, str) or not SHA256.fullmatch(item) for item in hashes)
+                or not isinstance(environment, str)
+                or not SHA256.fullmatch(environment)
+            ):
                 raise ValueError
         own_filters, renderer_filters = (
             diagnostics.get("host_seccomp_filters"),
@@ -358,13 +379,17 @@ def _decode(data: bytes, expected: RenderConfig) -> RenderedMotion:
             if (
                 not isinstance(metrics, dict)
                 or set(metrics) != {"integrated_lufs", "sample_peak_dbfs", "peak_kind", "source"}
-                or metrics["peak_kind"] != "sample" or metrics["source"] != "decoded_output"
+                or metrics["peak_kind"] != "sample"
+                or metrics["source"] != "decoded_output"
                 or type(metrics["integrated_lufs"]) not in (int, float)
                 or not math.isfinite(metrics["integrated_lufs"])
-                or (metrics["sample_peak_dbfs"] is not None and (
-                    type(metrics["sample_peak_dbfs"]) not in (int, float)
-                    or not math.isfinite(metrics["sample_peak_dbfs"])
-                ))
+                or (
+                    metrics["sample_peak_dbfs"] is not None
+                    and (
+                        type(metrics["sample_peak_dbfs"]) not in (int, float)
+                        or not math.isfinite(metrics["sample_peak_dbfs"])
+                    )
+                )
             ):
                 raise ValueError
         size = video["size"]

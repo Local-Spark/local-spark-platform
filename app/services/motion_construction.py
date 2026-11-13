@@ -12,6 +12,8 @@ from app.services.motion_generation import asset_informed_enabled, staged_genera
 from app.services.motion_illustrations import MotionIllustrations, validate_declarations
 from app.services.motion_materials import prepare_implementation_materials
 from app.services.motion_protocols import MotionModelProvider, MotionModelRequest
+from app.services.motion_quality import require_quality_readiness
+from app.services.motion_sound_library import apply_planned_sound
 
 
 async def construct_motion(
@@ -88,8 +90,10 @@ async def plan_motion(
 ) -> MotionConstructionPlan:
     if not staged_generation_enabled(prepared.context):
         raise AuthError("MOTION_CHECKPOINT_STAGED_REQUIRED", 409)
+    require_quality_readiness(prepared.context)
     reserve = effects.requests.settings.motion_ai_reservation_usd_micros
-    if not await effects.capacity(row, token, 3 * reserve):
+    required = reserve if prepared.context.get("request", {}).get("review_checkpoints") else 3 * reserve
+    if not await effects.capacity(row, token, required):
         raise AuthError("MOTION_CONSTRUCTION_BUDGET_REQUIRED", 409)
     job = replace(construction_job(row, prepared), operation_id=uuid5(row["operation_id"], "generate:plan:0"))
     planned = await effects.model(row, token, provider, job)
@@ -114,9 +118,11 @@ async def implement_motion(
     validate_declarations(plan, prepared)
     if plan.audio.model_dump(mode="json") != prepared.audio:
         raise AuthError("MOTION_ORIGINAL_AUDIO_CHANGED", 409)
+    prepared = apply_planned_sound(prepared, plan)
     reserve = effects.requests.settings.motion_ai_reservation_usd_micros
     image_reserve = (prepared.context.get("illustration_generation") or {}).get("reservation_usd_micros", 0)
-    if not await effects.capacity(row, token, 2 * reserve + len(plan.illustrations) * image_reserve):
+    calls = 1 if prepared.context.get("request", {}).get("review_checkpoints") else 2
+    if not await effects.capacity(row, token, calls * reserve + len(plan.illustrations) * image_reserve):
         raise AuthError("MOTION_CONSTRUCTION_BUDGET_REQUIRED", 409)
     if asset_informed_enabled(prepared.context):
         if illustrations is None:

@@ -5,6 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.schemas.motion_audiovisual import MotionAudiovisualDesign
 from app.schemas.motion_correction import MotionCorrectionRegion
 from app.schemas.motion_evolution import MotionEvolutionRequest
 from app.schemas.motion_plan import MotionPlan
@@ -64,8 +65,8 @@ class MotionRequest(MotionModel):
     format: Literal["reel"] = "reel"
     storyboard: bool = Field(default=False, exclude_if=lambda value: not value)
     collection_photo_ids: tuple[UUID, ...] = Field(default=(), max_length=4, exclude_if=lambda value: not value)
-    repertoire_id: Literal["business-reel-v1", "business-reel-v2", "business-reel-v3"] | None = Field(
-        default=None, exclude_if=lambda value: value is None
+    repertoire_id: Literal["business-reel-v1", "business-reel-v2", "business-reel-v3", "business-reel-v4"] | None = (
+        Field(default=None, exclude_if=lambda value: value is None)
     )
     scene_direction: MotionSceneDirection | None = Field(
         default=None,
@@ -79,24 +80,47 @@ class MotionRequest(MotionModel):
     evolution: MotionEvolutionRequest | None = Field(default=None, exclude_if=lambda value: value is None)
     preparation: MotionPreparation | None = Field(default=None, exclude_if=lambda value: value is None, repr=False)
     review_checkpoints: bool = Field(default=False, strict=True, exclude_if=lambda value: not value)
+    propose_direction: bool = Field(default=False, strict=True, exclude_if=lambda value: not value)
+    sound_library_id: Literal["public-cc0-v1"] | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @model_validator(mode="after")
     def unique_photos(self) -> Self:
         if self.review_checkpoints and (
-            self.preparation is None or self.scene_direction is None or not self.storyboard
+            self.preparation is None
+            or (self.scene_direction is None and not self.propose_direction)
+            or not self.storyboard
         ):
             raise ValueError("Checkpoints require preparation, supplied direction and storyboard")
+        if self.propose_direction and (
+            not self.review_checkpoints
+            or self.scene_direction is not None
+            or self.preparation is None
+            or self.instruction != self.preparation.client_message
+            or self.sound_events
+            or self.music_ducking is not None
+        ):
+            raise ValueError(
+                "Proposed direction requires the exact client message and checkpoints without fixed choices"
+            )
+        if self.sound_library_id is not None and not self.propose_direction:
+            raise ValueError("Sound library selection belongs to proposed audiovisual planning")
         if self.preparation is not None:
-            if self.scene_direction is None:
+            if self.scene_direction is None and not self.propose_direction:
                 raise ValueError("Preparation requires a direction to bind its decisions")
-            scenes = {scene.scene_id for scene in self.scene_direction.scenes}
+            if self.scene_direction is not None and any(not item.scene_ids for item in self.preparation.evidence):
+                raise ValueError("Supplied-direction evidence requires scene identifiers")
+            scenes = {scene.scene_id for scene in self.scene_direction.scenes} if self.scene_direction else set()
             mentioned = {scene for item in self.preparation.decisions for scene in item.scene_ids}
             mentioned |= {scene for evidence in self.preparation.evidence for scene in evidence.scene_ids}
             if not mentioned <= scenes:
                 raise ValueError("Preparation refers to an unknown scene")
             if {scene for item in self.preparation.decisions for scene in item.scene_ids} != scenes:
                 raise ValueError("Every scene requires an explicit decision basis")
-        if self.evolution is not None and (self.scene_direction is None or not self.storyboard):
+        if self.evolution is not None and (
+            not self.storyboard
+            or (self.evolution.version == "motion-evolution-v1" and self.scene_direction is None)
+            or (self.evolution.version == "motion-evolution-v2" and not self.propose_direction)
+        ):
             raise ValueError("Evolution requires supplied direction and storyboard")
         if self.speech_timing is not None and self.speech_timing.provenance != "owner_reviewed":
             raise ValueError("Only reviewed timing may be supplied by the caller")
@@ -147,6 +171,7 @@ class MotionConstructionPlan(MotionModel):
     motion_plan: MotionPlan
     illustrations: tuple[MotionIllustration, ...] = Field(max_length=2)
     scene_direction: MotionSceneDirection
+    audiovisual: MotionAudiovisualDesign | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class HTMLMotionComposition(MotionModel):
@@ -159,6 +184,7 @@ class HTMLMotionComposition(MotionModel):
     motion_plan: MotionPlan | None = None
     illustrations: tuple[MotionIllustration, ...] = Field(default=(), max_length=2, exclude_if=lambda v: not v)
     scene_direction: MotionSceneDirection | None = Field(default=None, exclude_if=lambda value: value is None)
+    audiovisual: MotionAudiovisualDesign | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class PlannedHTMLMotionComposition(HTMLMotionComposition):

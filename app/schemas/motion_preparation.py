@@ -32,11 +32,12 @@ class MotionDecisionBasis(PreparationModel):
 
 class MotionEvidenceSelection(PreparationModel):
     id: Identifier
-    kind: Literal["source", "baseline", "reference", "material"]
+    kind: Literal["source", "baseline", "reference", "material", "audio"]
     at_ms: tuple[Annotated[int, Field(strict=True, ge=0, lt=60000)], ...] = Field(default=(), max_length=12)
     reference_ids: tuple[Identifier, ...] = Field(default=(), max_length=8)
     asset_id: str | None = Field(default=None, pattern=r"^assets/[A-Za-z0-9_.-]{1,80}$")
-    scene_ids: tuple[Identifier, ...] = Field(min_length=1, max_length=12)
+    asset_sha256: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$", exclude_if=lambda value: value is None)
+    scene_ids: tuple[Identifier, ...] = Field(default=(), max_length=12)
     observation: str = Field(min_length=1, max_length=1000)
     intended_use: str = Field(min_length=1, max_length=1000)
     limitations: str = Field(min_length=1, max_length=1000)
@@ -46,7 +47,8 @@ class MotionEvidenceSelection(PreparationModel):
         if (
             bool(self.at_ms) != (self.kind in {"source", "baseline"})
             or bool(self.reference_ids) != (self.kind == "reference")
-            or (self.asset_id is not None) != (self.kind == "material")
+            or (self.asset_id is not None) != (self.kind in {"material", "audio"})
+            or (self.asset_sha256 is not None) != (self.kind == "audio")
             or any(type(ms) is not int or not 0 <= ms < 60000 for ms in self.at_ms)
             or len(set(self.at_ms)) != len(self.at_ms)
             or len(set(self.reference_ids)) != len(self.reference_ids)

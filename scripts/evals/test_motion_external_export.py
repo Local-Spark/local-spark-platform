@@ -254,8 +254,11 @@ def test_export_v4_resolved_synthetic_image_reproduces_product_payload(recorded_
     image_path = tmp_path / "existing.png"
     image_path.write_bytes(image.content)
     material_path = tmp_path / "materials.json"
-    material_path.write_text(json.dumps([{"asset_id": c.composition.illustrations[0].asset_id,
-                                         "path": str(image_path), "sha256": image.sha256}]))
+    material_path.write_text(
+        json.dumps(
+            [{"asset_id": c.composition.illustrations[0].asset_id, "path": str(image_path), "sha256": image.sha256}]
+        )
+    )
     built = export.implementation_job(job, output, export.read_resolved_materials(material_path))
     files = export.assemble_files(built, provenance)
     payload = export.offline_provider(provenance["model"], provenance["max_output_tokens"]).build_request(built)

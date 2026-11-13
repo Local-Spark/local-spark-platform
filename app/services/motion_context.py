@@ -18,12 +18,20 @@ from app.services.editorial_context import EditorialContextService
 from app.services.motion_corrections import CORRECTION_POLICY, correction_enabled
 from app.services.motion_creative import MEDIA_VISIBILITY_POLICY, alternating_creative_contract
 from app.services.motion_evolution import capture_evolution
-from app.services.motion_generation import ASSET_INFORMED_GENERATION_CONTRACT, provided_output_enabled
+from app.services.motion_generation import (
+    ASSET_INFORMED_GENERATION_CONTRACT,
+    PRODUCTION_GENERATION_CONTRACT,
+    PROPOSED_GENERATION_CONTRACT,
+    provided_output_enabled,
+)
 from app.services.motion_illustration_policy import illustration_policy
-from app.services.motion_preparation import PREPARATION_RULES
+from app.services.motion_preparation import PREPARATION_RULES, PRODUCTION_PREPARATION_RULES, PROPOSED_PREPARATION_RULES
+from app.services.motion_quality import QUALITY_CONTRACT
 from app.services.motion_repertoire import capture_repertoire
 from app.services.motion_review import compact_review_enabled, review_contract
 from app.services.motion_skills import load_motion_skill, resolve_html_motion_skill, resolve_motion_skill
+from app.services.motion_sound_analysis import ANALYSIS_CONTRACT
+from app.services.motion_sound_library import capture_sound_library
 from app.services.motion_speech_policy import speech_policy
 from app.services.motion_styles import html_style_card, list_motion_styles
 from app.services.motion_temporal import POLICY_V3
@@ -70,13 +78,17 @@ def capture_motion_guidance(
     generation = (
         previous.get("generation_contract")
         if previous is not None
+        else dict(PRODUCTION_GENERATION_CONTRACT)
+        if request.propose_direction and request.evolution is None
+        else dict(PROPOSED_GENERATION_CONTRACT)
+        if request.propose_direction
         else dict(ASSET_INFORMED_GENERATION_CONTRACT)
         if request.scene_direction is not None
         else None
     )
     if request.evolution is not None and previous is None:
         creative = {**cast(dict[str, Any], creative), "temporal_review": dict(POLICY_V3)}
-    if generation is not None and previous is None:
+    if generation is not None and previous is None and not request.propose_direction:
         creative = dict(cast(dict[str, Any], creative))
         creative["scene_direction_rules"] = creative["scene_direction_rules"].replace(
             "Devolva scene_direction com os mesmos campos, valores e IDs fornecidos. Isso registra fidelidade "
@@ -84,8 +96,38 @@ def capture_motion_guidance(
             "O servidor preserva a direção fornecida integralmente; não a repita na saída. "
             "Isso não significa aprovação humana.",
         )
+    if request.propose_direction and previous is None:
+        creative = dict(cast(dict[str, Any], creative))
+        creative["version"] = "reel-creative-v8"
+        for field in ("scene_direction_rules", "motion_plan_rules", "direction"):
+            creative[field] = (
+                creative[field]
+                .replace(
+                    "na mesma resposta que motion_plan e HTML/scene_init, sem chamada extra",
+                    "na etapa plan, junto ao motion_plan; código somente depois da aprovação exata",
+                )
+                .replace(
+                    "Entregue motion_plan junto com HTML/scene_init na mesma geração.",
+                    "Entregue motion_plan na etapa plan, sem código.",
+                )
+                .replace(
+                    "Implemente esse plano no HTML/scene_init.",
+                    "Somente após aprovação exata, implemente esse plano no HTML/scene_init.",
+                )
+            )
+    quality = (
+        {"quality_contract": QUALITY_CONTRACT if previous is None else previous.get("quality_contract")}
+        if generation == PRODUCTION_GENERATION_CONTRACT
+        else {}
+    )
+    if quality and previous is None:
+        creative = dict(cast(dict[str, Any], creative))
+        creative["version"] = "reel-creative-v9"
+        for key in ("calibration", "counterexample", "reference_scope"):
+            creative.pop(key, None)
     provided_output_enabled(
         {
+            **quality,
             "generation_contract": generation,
             "creative_contract": creative,
             "request": request.model_dump(mode="json"),
@@ -128,7 +170,26 @@ def capture_motion_guidance(
             }
         )
     return {
-        **({"preparation_contract": PREPARATION_RULES} if request.preparation is not None else {}),
+        **quality,
+        **(
+            {"audio_analysis_contract": ANALYSIS_CONTRACT}
+            if quality and previous is None
+            else {"audio_analysis_contract": previous["audio_analysis_contract"]}
+            if previous is not None and "audio_analysis_contract" in previous
+            else {}
+        ),
+        **(
+            {
+                "preparation_contract": PRODUCTION_PREPARATION_RULES
+                if quality
+                else PROPOSED_PREPARATION_RULES
+                if request.propose_direction
+                else PREPARATION_RULES
+            }
+            if request.preparation is not None
+            else {}
+        ),
+        **({"sound_library": capture_sound_library(request.sound_library_id)} if request.sound_library_id else {}),
         **(
             {
                 "executor_contract": previous["executor_contract"]
@@ -238,7 +299,20 @@ class MotionContext:
             if policy is not None:
                 guidance["speech_recognition"] = policy
         photos = []
-        for photo_id in request.collection_photo_ids:
+        photo_ids = request.collection_photo_ids
+        if request.propose_direction and not photo_ids:
+            photo_ids = tuple(
+                (
+                    await session.scalars(
+                        text("""SELECT id FROM business_collection_photos
+                WHERE tenant_id=:tenant AND business_id=:business AND state='ready' AND status='active'
+                AND rights_scope='business_collection_confirmed' AND delete_owner IS NULL
+                AND delete_lease_until IS NULL ORDER BY id LIMIT 4 FOR SHARE"""),
+                        params,
+                    )
+                ).all()
+            )
+        for photo_id in photo_ids:
             photo = (
                 (
                     await session.execute(

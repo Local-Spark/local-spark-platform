@@ -150,22 +150,39 @@ def _parse_probe(raw: bytes) -> MotionVideoInfo:
 
 async def inspect_supplemental_audio(media: FetchedMedia) -> float:
     """Probe a bounded, previously authorized audio file before any model or render effect."""
-    if (not media.data or len(media.data) > 16 * 1024 * 1024
-            or media.mime_type not in {"audio/ogg", "audio/mpeg", "audio/wav"}
-            or hashlib.sha256(media.data).hexdigest() != media.sha256):
+    if (
+        not media.data
+        or len(media.data) > 16 * 1024 * 1024
+        or media.mime_type not in {"audio/ogg", "audio/mpeg", "audio/wav"}
+        or hashlib.sha256(media.data).hexdigest() != media.sha256
+    ):
         raise MaterialError("MOTION_MEDIA_INVALID")
     with tempfile.TemporaryDirectory(prefix="motion-audio-") as folder:
         path = Path(folder) / "input"
         path.write_bytes(media.data)
         raw = await _command(
-            "ffprobe", "-v", "error", "-protocol_whitelist", "file,pipe", "-show_entries",
-            "format=duration:stream=codec_type,codec_name", "-of", "json", str(path), output_limit=MAX_PROBE_BYTES,
+            "ffprobe",
+            "-v",
+            "error",
+            "-protocol_whitelist",
+            "file,pipe",
+            "-show_entries",
+            "format=duration:stream=codec_type,codec_name",
+            "-of",
+            "json",
+            str(path),
+            output_limit=MAX_PROBE_BYTES,
         )
     try:
         data = json.loads(raw)
         streams = data["streams"]
-        if (not isinstance(streams, list) or len(streams) != 1 or not isinstance(streams[0], dict)
-                or streams[0].get("codec_type") != "audio" or not streams[0].get("codec_name")):
+        if (
+            not isinstance(streams, list)
+            or len(streams) != 1
+            or not isinstance(streams[0], dict)
+            or streams[0].get("codec_type") != "audio"
+            or not streams[0].get("codec_name")
+        ):
             raise ValueError
         return _positive_number(data["format"]["duration"])
     except (TypeError, ValueError, KeyError, UnicodeDecodeError) as exc:
@@ -242,3 +259,46 @@ async def inspect_and_extract_motion_audio(
         if not audio:
             raise MaterialError("MOTION_MEDIA_INVALID")
         return info, audio
+
+
+async def decode_analysis_pcm(media: FetchedMedia) -> bytes:
+    """Decode supplied audio/video locally for measurements, never mix or render a piece."""
+    formats = {"video/mp4": "mov", "audio/mpeg": "mp3", "audio/wav": "wav", "audio/ogg": "ogg"}
+    if (
+        media.mime_type not in formats
+        or not 0 < len(media.data) <= MAX_INPUT_BYTES
+        or hashlib.sha256(media.data).hexdigest() != media.sha256
+    ):
+        raise MaterialError("MOTION_AUDIO_ANALYSIS_INPUT_INVALID")
+    with tempfile.TemporaryDirectory(prefix="motion-audio-analysis-") as folder:
+        path = Path(folder) / "input"
+        path.write_bytes(media.data)
+        pcm = await _command(
+            "ffmpeg",
+            "-nostdin",
+            "-v",
+            "error",
+            "-xerror",
+            "-protocol_whitelist",
+            "file,pipe",
+            "-f",
+            formats[media.mime_type],
+            "-i",
+            str(path),
+            "-map",
+            "0:a:0",
+            "-vn",
+            "-ac",
+            "1",
+            "-ar",
+            "16000",
+            "-c:a",
+            "pcm_s16le",
+            "-f",
+            "s16le",
+            "pipe:1",
+            output_limit=60 * 16000 * 2,
+        )
+        if not pcm or len(pcm) % 2:
+            raise MaterialError("MOTION_AUDIO_ANALYSIS_PCM_INVALID")
+        return pcm

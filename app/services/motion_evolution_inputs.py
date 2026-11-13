@@ -59,6 +59,10 @@ async def load_evolution(
         frames = list(
             await baseline_video_frames(data, sample_times(base, {"creative_contract": {"temporal_review": POLICY_V3}}))
         )
+    if captured["version"] == "motion-evolution-v2" and not {
+        ms for function in captured["selection"]["functions"] for ms in function["evidence_at_ms"]
+    } <= {f.ms for f in frames}:
+        raise AuthError("MOTION_QUALITY_FUNCTION_EVIDENCE_INVALID", 409)
     assets, previews = list(prepared.assets), list(prepared.asset_previews)
     materials = list(prepared.context.get("available_materials", []))
     for item in captured["materials"]:

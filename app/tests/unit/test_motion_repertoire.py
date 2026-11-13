@@ -41,7 +41,8 @@ def test_v2_reference_cards_and_pixels_reach_product_payload_with_explicit_prove
     assert serialized == descriptor
     assert len(images) == 5
     assert {card["id"] for card in serialized["reference_cards"]} == {
-        "maestros-acao-com-consequencia", "lucas-hierarquia-espacial"
+        "maestros-acao-com-consequencia",
+        "lucas-hierarquia-espacial",
     }
     assert all(
         card["before"] and card["action"] and card["after"] and card["adaptation"]

@@ -1,5 +1,6 @@
 """Intent provenance survives serialization and evidence cannot be claimed without attachments."""
 
+import hashlib
 import json
 from dataclasses import replace
 from unittest.mock import AsyncMock
@@ -186,6 +187,58 @@ def test_historical_requests_keep_their_serialized_shape():
     assert "preparation" not in value.model_dump() and "review_checkpoints" not in value.model_dump()
     assert evidence_bindings(request()) == [] and additional_source_times({}, 1000) == ()
     assert "preparation_contract" not in capture_motion_guidance(value)
+    assert "asset_sha256" not in MotionPreparation.model_validate(preparation_data()).evidence[0].model_dump()
+
+
+@pytest.mark.parametrize("mime", ["video/mp4", "audio/mpeg", "audio/wav", "audio/ogg"])
+def test_human_listening_is_bound_to_actual_source_or_candidate_bytes(mime):
+    ctx = prepared_context()
+    data = b"synthetic listened file"
+    digest = hashlib.sha256(data).hexdigest()
+    item = ctx["request"]["preparation"]["evidence"][0]
+    item.update(kind="audio", at_ms=[], asset_id="assets/source.mp4", asset_sha256=digest)
+    ctx["source"] = {"asset_id": item["asset_id"], "has_audio": True}
+    job = replace(request(), context=ctx, assets=(RenderAsset(item["asset_id"], mime, data, digest),))
+    result = evidence_bindings(job)[0]
+    assert result["observation"] == item["observation"]
+    assert result["attachments"][0]["sha256"] == digest
+    assert "not server listening or mix approval" in result["attachments"][0]["scope"]
+
+
+@pytest.mark.parametrize("change", ["missing", "mime", "claim", "bytes", "source_id", "no_audio"])
+def test_changed_listened_file_stops_real_builder_before_provider_io(change):
+    ctx = prepared_context()
+    data = b"synthetic listened file"
+    digest = hashlib.sha256(data).hexdigest()
+    item = ctx["request"]["preparation"]["evidence"][0]
+    item.update(kind="audio", at_ms=[], asset_id="assets/source.mp4", asset_sha256=digest)
+    ctx["source"] = {"asset_id": item["asset_id"], "has_audio": True}
+    asset = RenderAsset(item["asset_id"], "video/mp4", data, digest)
+    if change == "mime":
+        asset = replace(asset, mime_type="image/png")
+    elif change == "claim":
+        item["asset_sha256"] = "0" * 64
+    elif change == "bytes":
+        asset = replace(asset, data=b"changed")
+    elif change == "source_id":
+        ctx["source"]["asset_id"] = "assets/other.mp4"
+    elif change == "no_audio":
+        ctx["source"]["has_audio"] = False
+    with pytest.raises(AuthError, match="MOTION_PREPARATION_AUDIO_EVIDENCE_CHANGED"):
+        provider().build_request(replace(request(), context=ctx, assets=() if change == "missing" else (asset,)))
+
+
+@pytest.mark.parametrize("change", ["missing_hash", "extra_hash", "missing_asset"])
+def test_audio_observation_requires_exact_asset_and_hash(change):
+    raw = preparation_data()
+    item = raw["evidence"][0]
+    if change == "extra_hash":
+        item["asset_sha256"] = "0" * 64
+    else:
+        item.update(kind="audio", at_ms=[], asset_sha256="0" * 64, asset_id="assets/source.mp4")
+        item.pop("asset_sha256" if change == "missing_hash" else "asset_id")
+    with pytest.raises(ValidationError):
+        MotionPreparation.model_validate(raw)
 
 
 async def test_selected_source_instants_are_actually_decoded_without_replacing_global_samples(monkeypatch):

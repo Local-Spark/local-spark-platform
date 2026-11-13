@@ -18,6 +18,8 @@ from app.services.auth import AuthError
 from app.services.motion_audio import compile_soundtrack
 from app.services.motion_preparation import additional_source_times
 from app.services.motion_repertoire import RepertoireImage, load_repertoire_images
+from app.services.motion_sound_analysis import prepare_sound_assessment
+from app.services.motion_sound_library import load_sound_library
 from app.services.motion_speech import speech_context
 
 if TYPE_CHECKING:
@@ -146,6 +148,7 @@ class MotionInputLoader:
         if duration_ms > 60000:
             raise AuthError("MOTION_SOURCE_TOO_LONG", 409)
         assets = [_asset("assets/source.mp4", "video/mp4", data)]
+        assets.extend(load_sound_library(snapshot))
         audio: dict[str, Any] = {"mode": "silent", "tracks": []}
         if info.audio_codec is not None:
             audio = {
@@ -291,6 +294,7 @@ class MotionInputLoader:
         prepared = PreparedMotionInput(
             context, tuple(assets), frames, duration_ms, audio, tuple(previews), reference_images, soundtrack
         )
+        prepared = await prepare_sound_assessment(prepared)
         if snapshot.get("evolution") is not None:
             from app.services.motion_evolution_inputs import load_evolution
 

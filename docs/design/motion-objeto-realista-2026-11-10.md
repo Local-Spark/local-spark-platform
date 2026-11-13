@@ -1,5 +1,11 @@
 # Etapa visual 3 — objeto realista em camadas
 
+> **Escopo histórico — esclarecido em 13/11/2026.** Estados, versões selecionadas,
+> orçamentos e ordens de parada abaixo descrevem a entrega desta data; não são
+> automaticamente instruções para uma rodada nova. Contratos capturados continuam
+> preservados. Consulte a [orientação vigente](motion-orientacao-vigente-2026-11-13.md)
+> para diferenças entre geração nova/evolução, estado operacional e próximo roteiro.
+
 Data: 10/11/2026. Etapa 3 autorizada pelo titular; parar antes da etapa 4.
 Implementação e testes concluídos. Nenhuma imagem ou peça nova foi gerada.
 
