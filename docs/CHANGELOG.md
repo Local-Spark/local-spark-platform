@@ -1,6 +1,9 @@
 # Registro de mudanças
 
-## 2026-11-13 — o palco v3 é do renderer, não do modelo
+## 2026-11-13 — fala, caixa medida, ducking e prova no PNG
+
+No piso v3, a palavra do Whisper marca o corte, a caixa sai do quadro da fonte, a música abaixa na fala e o storyboard recusa a batida se o PNG não mudou. Sem o campo, nada muda. Sem MP4.
+
 
 Com o piso v3, storyboard e render descartam o HTML do modelo e montam a foto em cover, a palavra dentro dela e um dos quatro mecanismos. A prova de pixel existe e não está ligada ao Chromium. Sem o campo, nada muda. Sem MP4.
 

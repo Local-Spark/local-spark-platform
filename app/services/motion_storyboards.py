@@ -27,7 +27,7 @@ from app.services.motion_plan import validate_motion_plan
 from app.services.motion_protocols import MotionRenderer
 from app.services.motion_requests import MotionRequestService
 from app.services.motion_storyboard_frames import StoryboardMoment, storyboard_moments, storyboard_upload_name
-from app.services.motion_structural_stage import stage_if_structural
+from app.services.motion_structural_stage import duck_for_speech, prove_storyboard_frames, stage_if_structural
 from app.services.motion_temporal import evidence_manifest
 from app.services.visual_pending_changes import VisualPendingChanges
 from app.services.visual_pending_scripts import apply_pending_script_changes
@@ -51,7 +51,7 @@ class MotionStoryboards:
         *,
         capture_id: UUID | None = None,
     ) -> None:
-        composition = stage_if_structural(composition, prepared.context, prepared.assets)
+        composition = stage_if_structural(composition, prepared.context, prepared.assets, prepared.source_frames)
         moments = storyboard_moments(composition, prepared.context)
         assert composition.motion_plan is not None
         validate_motion_plan(
@@ -67,7 +67,7 @@ class MotionStoryboards:
             composition.html,
             composition.scene_init,
             prepared.assets,
-            prepared.audio,
+            duck_for_speech(prepared.audio, prepared.context),
             720,
             1280,
             30,
@@ -215,6 +215,10 @@ class MotionStoryboards:
                 or total > 32 * 1024 * 1024
             ):
                 raise AuthError("MOTION_STORYBOARD_FRAMES_INVALID", 409)
+        try:
+            prove_storyboard_frames(moments, rendered.evidence)
+        except ValueError as exc:
+            raise AuthError("MOTION_STRUCTURAL_FLOOR_REJECTED", 409) from exc
 
     @staticmethod
     async def board(session: Any, tenant: UUID, business: UUID, request_id: UUID) -> Any:

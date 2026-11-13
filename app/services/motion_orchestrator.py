@@ -37,7 +37,7 @@ from app.services.motion_requests import MotionRequestService
 from app.services.motion_review import validate_review
 from app.services.motion_speech_recognition import MotionSpeechRecognition, SpeechRecognizer
 from app.services.motion_storyboards import MotionStoryboards
-from app.services.motion_structural_stage import stage_if_structural
+from app.services.motion_structural_stage import duck_for_speech, stage_if_structural
 from app.services.motion_temporal import evidence_manifest, sample_times, temporal_enabled
 from app.services.visual_pending_changes import VisualPendingChanges
 from app.services.visual_pending_scripts import apply_pending_script_changes
@@ -330,7 +330,7 @@ class MotionOrchestrator:
         number: int,
         composition: HTMLMotionComposition,
     ) -> Candidate:
-        composition = stage_if_structural(composition, prepared.context, prepared.assets)
+        composition = stage_if_structural(composition, prepared.context, prepared.assets, prepared.source_frames)
         validate_motion_plan(
             composition,
             prepared.context,
@@ -342,6 +342,7 @@ class MotionOrchestrator:
         runtime_hash = movement_hash(prepared.context)
         element_hash = elements_hash(prepared.context)
         output_audio = prepared.soundtrack if prepared.soundtrack is not None else prepared.audio
+        output_audio = duck_for_speech(output_audio, prepared.context)
         if prepared.soundtrack is not None and prepared.context.get("authorized_soundtrack") != prepared.soundtrack:
             raise AuthError("MOTION_AUDIO_CONTEXT_CHANGED", 409)
         if prepared.soundtrack is not None:

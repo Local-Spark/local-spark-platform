@@ -465,6 +465,17 @@ def test_storyboard_frame_guard_rejects_mp4_and_unbound_frame_identity():
             MotionStoryboards.validate_frames(invalid, moments)
 
 
+def test_structural_storyboard_rejects_an_unproven_beat():
+    rendered = board_output(boarded())
+    png = b"\x89PNG\r\n\x1a\n" + b"x" * 16
+    frame = replace(rendered.evidence[0], png=png, sha256=hashlib.sha256(png).hexdigest(), frame_index=0, ms=0)
+    with pytest.raises(AuthError, match="MOTION_STRUCTURAL_FLOOR_REJECTED"):
+        MotionStoryboards.validate_frames(
+            replace(rendered, evidence=(frame,)),
+            ({"scene_id": "s", "kind": "structural_start", "frame_index": 0},),
+        )
+
+
 async def test_storyboard_lookup_load_and_approval_fail_closed_on_missing_or_changed_state(board_case):
     c = board_case
     c.session.execute.return_value = SimpleNamespace(mappings=lambda: SimpleNamespace(one_or_none=lambda: None))
