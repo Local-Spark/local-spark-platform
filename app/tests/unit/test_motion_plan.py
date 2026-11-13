@@ -280,6 +280,9 @@ def test_scene_end_cannot_exceed_the_declared_output_duration():
 
 
 def test_structural_floor_rejects_a_thin_plan_only_when_selected():
+    from uuid import uuid4
+
+    from app.schemas.motion_production import MotionRequest
     from app.services.motion_context import capture_motion_guidance
 
     validate_motion_plan(planned(), context(), duration_ms=1000, asset_ids=set())
@@ -287,10 +290,17 @@ def test_structural_floor_rejects_a_thin_plan_only_when_selected():
     selected["structural_floor"] = "motion-production-quality-v3"
     with pytest.raises(AuthError, match="MOTION_STRUCTURAL_FLOOR_REJECTED"):
         validate_motion_plan(planned(), selected, duration_ms=1000, asset_ids=set())
-    captured = capture_motion_guidance(replace(request(), structural_floor="motion-production-quality-v3"))
+    body = MotionRequest(
+        operation_id=uuid4(),
+        source_asset_id=uuid4(),
+        instruction="Café",
+        structural_floor="motion-production-quality-v3",
+    )
+    captured = capture_motion_guidance(body)
     assert captured["structural_floor"] == "motion-production-quality-v3"
     assert "Piso estrutural v3" in captured["creative_contract"]["motion_plan_rules"]
-    assert "structural_floor" not in request().model_dump(mode="json")
+    plain = MotionRequest(operation_id=uuid4(), source_asset_id=uuid4(), instruction="Café")
+    assert "structural_floor" not in plain.model_dump(mode="json")
 
 
 def test_direction_cannot_claim_an_undeclared_generated_material():
