@@ -396,3 +396,39 @@ async def test_large_effect_payload_is_claimed_before_upload_and_never_retried(u
     else:
         assert await c.effects.persist_payload(*args) == "encrypted-pointer"
         assert order == ["claim", "upload", "receipt"]
+
+
+async def test_stage_entrypoints_refuse_missing_material_resolver_and_wrong_generation_mode(construction_case):
+    from app.services.motion_construction import implement_motion, plan_motion
+
+    c = construction_case
+    asset_prepared = replace(
+        c.prepared, context={**staged_context(), "generation_contract": ASSET_INFORMED_GENERATION_CONTRACT}
+    )
+    with pytest.raises(AuthError, match="MATERIAL_RESOLVER_REQUIRED"):
+        await construct_motion(c.runner.effects, c.runner.provider, c.row, c.token, asset_prepared)
+    with pytest.raises(AuthError, match="MATERIAL_RESOLVER_REQUIRED"):
+        await implement_motion(c.runner.effects, c.runner.provider, c.row, c.token, asset_prepared, plan(), None)
+    with pytest.raises(AuthError, match="CHECKPOINT_STAGED_REQUIRED"):
+        await plan_motion(c.runner.effects, c.runner.provider, c.row, c.token, replace(c.prepared, context={}))
+    c.runner.effects.model.assert_not_awaited()
+
+
+async def test_implementation_checks_original_audio_and_empty_model_result(construction_case):
+    from app.services.motion_construction import implement_motion
+
+    c = construction_case
+    with pytest.raises(AuthError, match="ORIGINAL_AUDIO_CHANGED"):
+        await implement_motion(
+            c.runner.effects,
+            c.runner.provider,
+            c.row,
+            c.token,
+            replace(c.prepared, audio={"mode": "mix", "tracks": []}),
+            plan(),
+            None,
+        )
+    c.runner.effects.model.assert_not_awaited()
+    c.runner.effects.model.side_effect = [MotionModelResult()]
+    with pytest.raises(AuthError, match="GENERATION_RESULT_INVALID"):
+        await implement_motion(c.runner.effects, c.runner.provider, c.row, c.token, c.prepared, plan(), None)

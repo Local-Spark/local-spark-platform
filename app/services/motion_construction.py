@@ -14,6 +14,7 @@ from app.services.motion_materials import prepare_implementation_materials
 from app.services.motion_protocols import MotionModelProvider, MotionModelRequest
 from app.services.motion_quality import require_quality_readiness
 from app.services.motion_sound_library import apply_planned_sound
+from app.services.motion_staging import require_staging_materials
 
 
 async def construct_motion(
@@ -118,6 +119,7 @@ async def implement_motion(
     validate_declarations(plan, prepared)
     if plan.audio.model_dump(mode="json") != prepared.audio:
         raise AuthError("MOTION_ORIGINAL_AUDIO_CHANGED", 409)
+    require_staging_materials(plan, prepared.context)
     prepared = apply_planned_sound(prepared, plan)
     reserve = effects.requests.settings.motion_ai_reservation_usd_micros
     image_reserve = (prepared.context.get("illustration_generation") or {}).get("reservation_usd_micros", 0)

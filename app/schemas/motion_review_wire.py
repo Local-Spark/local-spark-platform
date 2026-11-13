@@ -76,6 +76,20 @@ class LocalizedMotionReview(LinkedMotionReview):
     issues: tuple[LocalizedIssue, ...] = Field(max_length=6)
 
 
+class StagedIssue(LocalizedIssue):
+    repair_kind: Literal["implementation", "direction", "material", "uncertain"]
+
+
+class StagedTemporalCheck(CompactTemporalCheck):
+    event_ids: tuple[str, ...] = Field(max_length=16)
+    evidence: tuple[EvidenceID, ...] = Field(max_length=48)
+
+
+class StagedMotionReview(LocalizedMotionReview):
+    issues: tuple[StagedIssue, ...] = Field(max_length=6)
+    temporal_checks: tuple[StagedTemporalCheck, ...] = Field(max_length=4)
+
+
 class CompactBaselineCheck(MotionModel):
     dimension: Literal["meaning", "recording", "space", "rhythm", "identity"]
     result: Literal["improved", "equivalent", "regressed", "uncertain"]

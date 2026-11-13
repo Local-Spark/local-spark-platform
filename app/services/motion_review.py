@@ -9,11 +9,13 @@ from app.schemas.motion_review_wire import (
     EvolutionMotionReview,
     LinkedMotionReview,
     LocalizedMotionReview,
+    StagedMotionReview,
 )
 from app.services.auth import AuthError
 from app.services.motion_corrections import correction_enabled, validate_location
 from app.services.motion_creative import CREATIVE_CRITERIA, SUPPORTED_CREATIVE_CONTRACTS
 from app.services.motion_protocols import MotionModelRequest
+from app.services.motion_staging import staging_enabled
 from app.services.motion_temporal import TEMPORAL_CRITERIA, temporal_payload
 
 
@@ -95,6 +97,8 @@ def review_contract() -> dict[str, Any]:
 
 
 def review_wire_model(context: dict[str, Any]) -> type[CompactMotionReview]:
+    if staging_enabled(context):
+        return StagedMotionReview
     if context.get("evolution") is not None:
         return EvolutionMotionReview
     if correction_enabled(context):
@@ -179,6 +183,13 @@ def decode_review(request: MotionModelRequest, raw: str) -> MotionReview:
 
 def validate_review(request: MotionModelRequest, review: MotionReview) -> None:
     compact = compact_review_enabled(request.context)
+    if staging_enabled(request.context):
+        for issue in review.issues:
+            if issue.repair_kind is None or (issue.actionable and issue.repair_kind != "implementation"):
+                raise MotionReviewError("MOTION_REPAIR_KIND_INVALID")
+        if any(i.repair_kind in {"direction", "material"} and i.severity != "minor" for i in review.issues):
+            if review.verdict != "reject":
+                raise MotionReviewError("MOTION_PLAN_REVISION_REQUIRED")
     if correction_enabled(request.context):
         for issue in review.issues:
             if issue.actionable and issue.severity != "minor":
@@ -294,6 +305,12 @@ def validate_temporal_review(request: MotionModelRequest, review: MotionReview) 
         )
 
     for check in review.temporal_checks:
+        if (
+            check.status == "pass"
+            and manifest["current"]["policy"]["version"] == "motion-temporal-v4"
+            and not manifest["current"]["coverage_complete"]
+        ):
+            raise MotionReviewError("MOTION_TEMPORAL_COVERAGE_REQUIRED")
         ids = set(check.event_ids)
         if len(ids) != len(check.event_ids) or not ids <= windows.keys():
             raise MotionReviewError("MOTION_TEMPORAL_EVENT_UNKNOWN")
@@ -305,7 +322,8 @@ def validate_temporal_review(request: MotionModelRequest, review: MotionReview) 
                 raise MotionReviewError("MOTION_TEMPORAL_COVERAGE_REQUIRED")
             if (
                 check.status == "pass"
-                and manifest["current"]["policy"]["version"] in {"motion-temporal-v2", "motion-temporal-v3"}
+                and manifest["current"]["policy"]["version"]
+                in {"motion-temporal-v2", "motion-temporal-v3", "motion-temporal-v4"}
                 and (manifest["current"]["omitted_transitions"] or manifest["current"]["uncovered_scene_ids"])
             ):
                 raise MotionReviewError("MOTION_TEMPORAL_COVERAGE_REQUIRED")

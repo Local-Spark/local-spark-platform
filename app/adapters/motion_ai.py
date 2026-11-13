@@ -19,6 +19,7 @@ from app.schemas.motion_generation import (
     MotionImplementationOutput,
     MotionImplementationOutputV4,
     MotionPlanningOutput,
+    MotionStagedPlanningOutput,
 )
 from app.schemas.motion_production import (
     DirectedHTMLMotionComposition,
@@ -52,6 +53,7 @@ from app.services.motion_review import (
     validate_review,
 )
 from app.services.motion_speech import validate_speech_input
+from app.services.motion_staging import staging_enabled, staging_input
 from app.services.motion_temporal import temporal_enabled, temporal_payload
 from app.services.motion_visual_direction import direction_input, validate_direction_fidelity
 
@@ -291,6 +293,9 @@ class OpenAIMotionProvider:
             planning = planning_input(request.context, bindings)
             if planning is not None:
                 context["planning_input"] = planning
+            inventory = staging_input(request)
+            if inventory is not None:
+                context["material_inventory"] = inventory
         if request.context.get("request", {}).get("evolution") is not None:
             baseline = request.context.get("evolution")
             if not baseline or not request.baseline_frames:
@@ -370,7 +375,11 @@ class OpenAIMotionProvider:
         ):
             if len(frames) > 64:
                 raise MotionAIError("MOTION_AI_EVIDENCE_TOO_LARGE")
-            if version != "source" and temporal_enabled(request.context) and len(frames) > 20:
+            if (
+                version != "source"
+                and temporal_enabled(request.context)
+                and len(frames) > request.context["creative_contract"]["temporal_review"]["max_frames"]
+            ):
                 raise MotionAIError("MOTION_AI_EVIDENCE_TOO_LARGE")
             for frame in frames:
                 if (
@@ -392,6 +401,8 @@ class OpenAIMotionProvider:
                     ]
                 )
         instructions = REVIEW_RULES if request.kind == "review" else CREATIVE_RULES
+        if staging_enabled(request.context):
+            instructions += " " + request.context["staging_contract"]["rules"]
         if request.context.get("authorized_soundtrack") is not None:
             instructions += (
                 " A trilha complementar foi escolhida pelo titular e será mixada pelo servidor. "
@@ -440,6 +451,7 @@ class OpenAIMotionProvider:
             if request.context["creative_contract"]["temporal_review"]["version"] in {
                 "motion-temporal-v2",
                 "motion-temporal-v3",
+                "motion-temporal-v4",
             }:
                 instructions += (
                     " No manifesto v2, se houver passagens omitidas ou cenas sem cobertura, os checks temporais "
@@ -483,7 +495,9 @@ class OpenAIMotionProvider:
             "store": False,
             "text": {
                 "format": _format(
-                    MotionAudiovisualPlanningOutput
+                    MotionStagedPlanningOutput
+                    if staged and stage == "plan" and staging_enabled(request.context)
+                    else MotionAudiovisualPlanningOutput
                     if staged and stage == "plan" and proposed_generation_enabled(request.context)
                     else MotionPlanningOutput
                     if staged and stage == "plan"

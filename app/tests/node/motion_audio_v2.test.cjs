@@ -17,6 +17,28 @@ const effect = base('assets/effect.wav','effect',0,120,600,0.2,10,10);
 const ducking = {threshold:0.02, ratio:8, attack_ms:10, release_ms:80};
 const plan = {version:'motion-audio-v2',mode:'mix',tracks:[source,music,effect],ducking};
 
+test('audio measurements reject missing or nonfinite data and retain a measured silent peak', () => {
+  const summary=(loud,peak)=>`Summary:\nIntegrated loudness:\nI: ${loud} LUFS\nSample peak:\nPeak: ${peak} dBFS`;
+  assert.equal(parseAudioMetrics(summary('-70','-inf')).sample_peak_dbfs,null);
+  for(const value of [null,'none','Summary:',summary('9'.repeat(400),'-2'),summary('-16','9'.repeat(400))])
+    assert.throws(()=>parseAudioMetrics(value));
+  assert.throws(()=>buildAudioArgs({mode:'silent',tracks:[{}]},new Map(),100));
+});
+
+test('mix validation rejects altered source, unbounded fades and invalid sidechain controls', () => {
+  const assets=new Map([['assets/source.mp4','/source.wav'],['assets/music.wav','/music.wav'],['assets/effect.wav','/effect.wav']]);
+  for(const update of [{asset_id:'assets/music.wav'},{trim_start_ms:1},{offset_ms:1},{fade_in_ms:1},{fade_out_ms:1}])
+    assert.throws(()=>buildAudioArgs({...plan,tracks:[{...source,...update},music]},assets,4000));
+  for(const tracks of [null,[],[music,source],[{...music,role:'unknown'}],[{...music,trim_end_ms:0}]])
+    assert.throws(()=>buildAudioArgs({...plan,tracks},assets,4000));
+  assert.throws(()=>buildAudioArgs({...plan,mode:'silent'},assets,4000));
+  assert.throws(()=>buildAudioArgs({...plan,tracks:[source,effect]},assets,4000));
+  for(const [key, values] of Object.entries({threshold:['x',0,2],ratio:['x',NaN,0],attack_ms:[1.2,0,2001],release_ms:[1.2,0,9001]}))
+    for(const value of values) assert.throws(()=>buildAudioArgs({...plan,ducking:{...ducking,[key]:value}},assets,4000));
+  const standalone=buildAudioArgs({...plan,tracks:[effect],ducking:null},assets,4000);
+  assert.ok(!standalone.filter.includes('sidechaincompress'));
+});
+
 test('v2 uses fades and sidechain only on music while retaining an unmodified original branch', () => {
   const assets = new Map([['assets/source.mp4','/fixtures/source.wav'],['assets/music.wav','/fixtures/music.wav'],
     ['assets/effect.wav','/fixtures/effect.wav']]);

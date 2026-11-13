@@ -9,6 +9,7 @@ from pydantic import SecretStr
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
+from app.adapters.visual_ai import VisualRequest
 from app.db.session import Database
 from app.services.auth import AuthError
 from app.services.visual_attempts import VisualAttemptService
@@ -37,7 +38,7 @@ async def test_encrypted_visual_trace_is_atomic_owner_scoped_and_bound_to_attemp
         }
     )
     worker, owner = Database(cfg, correlator=True), Database(cfg)
-    request = SimpleNamespace(
+    request = VisualRequest(
         prompt="Mensagem fictícia privada da peça",
         model="synthetic",
         quality="medium",

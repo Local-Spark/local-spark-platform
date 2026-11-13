@@ -185,6 +185,35 @@ class MotionRequestService:
                 return dict(row), token
         raise failure
 
+    async def recover_admission(self, tenant: UUID, business: UUID, actor: UUID, request: UUID) -> MotionRequestRead:
+        """Explicit new identity after a context refusal, only when no effect ever began."""
+        async with self.database.transaction(tenant, actor) as session:
+            await self.gate._lock(session, tenant, business, actor)
+            row = await self.row(session, tenant, business, request)
+            started = await session.scalar(
+                text("""SELECT EXISTS(SELECT 1 FROM motion_effects WHERE tenant_id=:t AND request_id=:r)
+                OR EXISTS(SELECT 1 FROM motion_render_versions WHERE tenant_id=:t AND request_id=:r)"""),
+                {"t": tenant, "r": request},
+            )
+            if (
+                row["actor_id"] != actor
+                or row["state"] != "failed"
+                or row["failure_code"] != "MOTION_CONTEXT_CHANGED"
+                or row["admitted_at"] is not None
+                or row["piece_id"] is not None
+                or started
+            ):
+                raise AuthError("MOTION_ADMISSION_RECOVERY_INELIGIBLE", 409)
+            await self._admission(session, tenant, business)
+            await self.current(session, row)
+            body = MotionRequest.model_validate(self.context.open(row["snapshot_ciphertext"])["request"])
+            body = body.model_copy(update={"operation_id": uuid5(body.operation_id, "admission-recovery:1")})
+            budget = row["budget_usd_micros"]
+        # Existing admission persists the new identity, snapshot, audit and outbox.
+        # The failed request/event remain untouched; repeating this call returns the same child.
+        settings = self.settings.model_copy(update={"motion_request_budget_usd_micros": budget})
+        return await MotionRequestService(settings, self.database).create(tenant, business, actor, body)
+
     async def current(self, session: AsyncSession, row: Any) -> None:
         self.context.require_qualification(row["business_id"], row["source_asset_id"])
         snapshot = self.context.open(row["snapshot_ciphertext"])
@@ -195,6 +224,14 @@ class MotionRequestService:
             MotionRequest.model_validate(snapshot["request"]),
             previous=snapshot,
         )
+        # A continuation can have a smaller immutable cap than the worker default.
+        # Never increase that cap or bypass a newly lowered configured ceiling.
+        if (
+            snapshot["execution"]["request_budget"] != row["budget_usd_micros"]
+            or row["budget_usd_micros"] > self.settings.motion_request_budget_usd_micros
+        ):
+            raise AuthError("MOTION_CONTEXT_CHANGED", 409)
+        current["execution"]["request_budget"] = row["budget_usd_micros"]
         if self.context.fingerprint(current) != row["source_fingerprint"]:
             raise AuthError("MOTION_CONTEXT_CHANGED", 409)
         blocked = await session.scalar(

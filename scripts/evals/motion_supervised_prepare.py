@@ -128,7 +128,9 @@ async def prepare(args):
                 "Revisar por cena o plano recebido antes de aprovar implementação.",
                 "Eventos, cortes, ganhos e inteligibilidade da mistura dependem do plano e de escuta futura.",
                 *([] if listening_reports else ["Adequação dos arquivos sonoros ainda depende de escuta."]),
-                "Parar no checkpoint de código, antes de qualquer render, inclusive storyboard.",
+                "Revisar os checkpoints exatos antes de avançar; execução e crítica nativas dependem do novo teto."
+                if prepared.context.get("staging_contract")
+                else "Parar no checkpoint de código, antes de qualquer render, inclusive storyboard.",
                 *body.preparation.unresolved,
                 *([readiness_issue] if readiness_issue else []),
             ],
@@ -151,8 +153,8 @@ async def prepare(args):
             "Eventuais lacunas de fala "
             "ou preparação são explícitas no relatório e impedem gastar com o plano.\n\n"
             "Revisar por cena fala, gravação, objeto, fundo, texto, transição e som nos tempos do plano. "
-            "Aprovação exata de plan permite gerar código. Parar em awaiting_render: não aprovar render "
-            "nem storyboard nesta rodada. Nenhum orçamento anterior autoriza envio.\n"
+            "Aprovação exata de plan permite gerar código. Render/storyboard e produção nativa com crítica "
+            "exigem escopo e teto autorizados na sessão vigente. Nenhum orçamento anterior autoriza envio.\n"
         ).encode()
         manifest = json.loads(files.pop("manifest.json"))
         manifest.update(

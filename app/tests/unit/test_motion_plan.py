@@ -270,3 +270,19 @@ async def test_local_synthetic_provider_remains_usable_with_new_contract():
     result = await client.submit(job, client.build_request(job))
     validate_motion_plan(result.composition, context(), duration_ms=1000, asset_ids={"assets/source.mp4"})
     assert result.estimated_usd_micros == 0
+
+
+def test_scene_end_cannot_exceed_the_declared_output_duration():
+    data = plan_data()
+    data["duration_ms"] = data["scenes"][-1]["end_ms"] - 1
+    with pytest.raises(ValidationError, match="Scene outside output timeline"):
+        planned(data)
+
+
+def test_direction_cannot_claim_an_undeclared_generated_material():
+    from app.services.motion_plan import validate_scene_direction
+    from app.tests.unit.test_motion_illustrations import composition_with_art
+
+    composition = composition_with_art().model_copy(update={"illustrations": ()})
+    with pytest.raises(AuthError, match="ILLUSTRATION_UNDECLARED"):
+        validate_scene_direction(composition, context())

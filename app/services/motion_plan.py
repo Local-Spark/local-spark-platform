@@ -14,6 +14,7 @@ from app.services.motion_evolution import validate_evolution_plan
 from app.services.motion_quality import validate_quality_plan
 from app.services.motion_sound_library import validate_sound_design
 from app.services.motion_speech import validate_speech_plan
+from app.services.motion_staging import validate_staging
 from app.services.motion_visual_direction import validate_direction_fidelity
 
 
@@ -109,6 +110,7 @@ def validate_motion_plan(
     validate_evolution_plan(composition, context)
     validate_sound_design(composition, context)
     validate_quality_plan(composition, context)
+    validate_staging(composition, context)
     plan = composition.motion_plan
     if plan is None:
         if required:

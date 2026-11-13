@@ -477,3 +477,9 @@ async def test_output_overflow_reaps_child_with_more_than_a_pipe_buffer():
             ),
             timeout=5,
         )
+
+
+@pytest.mark.parametrize("changes", [{"fingerprint_frames": 1}, {"fingerprint_frames": True, "frames_only": True}])
+def test_fingerprints_require_full_decoded_video_not_storyboard_or_truthy_flags(tmp_path, changes):
+    with pytest.raises(motion.MotionRenderError, match="INVALID_INPUT"):
+        motion._prepare(bundle(**changes), tmp_path / "invalid-fingerprint")

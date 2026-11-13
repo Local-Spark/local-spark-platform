@@ -284,3 +284,40 @@ async def test_realistic_cutout_uses_existing_image_pipeline_and_retains_concept
     assert value.context["available_materials"][0]["role"] == "generated_illustration"
     assert "não foto real do negócio" in value.context["available_materials"][0]["identity_rule"]
     c.provider.generate.assert_awaited_once()
+
+
+def test_malformed_usage_details_are_unknown_cost_and_encoded_image_dimensions_are_verified():
+    assert image_estimate({"input_tokens": 1, "output_tokens": 1, "input_tokens_details": []}) is None
+    output = io.BytesIO()
+    Image.new("RGBA", (64, 64), (1, 2, 3, 100)).save(output, "PNG")
+    raw = output.getvalue()
+    result = replace(image_result(), content=raw, sha256=hashlib.sha256(raw).hexdigest())
+    with pytest.raises(AuthError, match="ILLUSTRATION_ALPHA_INVALID"):
+        verified_preview(result)
+
+
+async def test_material_generation_cannot_change_source_audio_before_a_paid_call(art_case):
+    c = art_case
+    prepared = replace(c.prepared, audio={"mode": "mix", "tracks": []})
+    with pytest.raises(AuthError, match="ORIGINAL_AUDIO_CHANGED"):
+        await c.service.prepare(c.row, c.token, prepared, c.composition)
+    c.provider.generate.assert_not_awaited()
+
+
+@pytest.mark.parametrize("kind", ["duplicate", "jpeg", "transparent", "corrupt"])
+def test_implementation_materials_need_unique_real_nonempty_rasters(kind):
+    from app.adapters.motion_html_renderer import RenderAsset
+    from app.schemas.motion_production import MotionConstructionPlan
+    from app.services.motion_materials import prepare_implementation_materials
+
+    comp = composition_with_art()
+    plan = MotionConstructionPlan.model_validate(comp.model_dump(mode="json", exclude={"html", "scene_init"}))
+    out = io.BytesIO()
+    Image.new("RGBA", (64, 64), (1, 2, 3, 0 if kind == "transparent" else 255)).convert(
+        "RGB" if kind == "jpeg" else "RGBA"
+    ).save(out, "JPEG" if kind == "jpeg" else "PNG")
+    raw = b"not a raster" if kind == "corrupt" else out.getvalue()
+    asset = RenderAsset(comp.illustrations[0].asset_id, "image/png", raw, hashlib.sha256(raw).hexdigest())
+    prepared = PreparedMotionInput({}, (asset, asset) if kind == "duplicate" else (asset,), (), 1000, {})
+    with pytest.raises(AuthError, match="IMPLEMENTATION_MATERIAL_INVALID"):
+        prepare_implementation_materials(plan, prepared)

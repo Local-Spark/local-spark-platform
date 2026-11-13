@@ -275,3 +275,11 @@ async def test_orchestrator_records_local_gate_and_never_reviews_or_selects_reje
     assert claim["kind"] == "local_correction_guard" and claim["scope"]["region"] == region()
     assert c.runner.render.await_count == (1 if failure == "plan" else 2)
     assert value == planned()
+
+
+@pytest.mark.parametrize("start,end", [(0, 1000), (100, 1100)])
+def test_local_correction_cannot_consume_the_whole_piece_or_extend_past_its_end(start, end):
+    scope = correction_scope(planned(), critique())
+    scope["region"].update(start_ms=start, end_ms=end, margin_before_ms=0, margin_after_ms=0)
+    with pytest.raises(AuthError, match="LOCATION_INVALID"):
+        compare_frames(rasters(), rasters(fixed=True), scope)

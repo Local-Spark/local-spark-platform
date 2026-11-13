@@ -183,9 +183,17 @@ async def test_rounding_up_cannot_truncate_or_silently_exceed_duration_cap(monke
         samples.assert_not_awaited()
 
 
-@pytest.mark.parametrize("failure", [None, "changed", "invalid", "limit"])
+@pytest.mark.parametrize("failure", [None, "changed", "invalid", "wrong_format", "limit"])
 async def test_collection_materials_are_verified_and_get_private_key_free_previews(monkeypatch, failure):
     png = frame().png if failure != "invalid" else b"not an image"
+    if failure == "wrong_format":
+        import io
+
+        from PIL import Image
+
+        output = io.BytesIO()
+        Image.open(io.BytesIO(png)).convert("RGB").save(output, "JPEG")
+        png = output.getvalue()
     snapshot = source_snapshot()
     snapshot["collection_photos"] = [
         {
@@ -244,3 +252,22 @@ async def test_reviewed_speech_survives_preparation_without_transcribing_or_chan
     assert prepared.audio["tracks"][0]["volume"] == 1
     assert prepared.audio["tracks"][0]["offset_ms"] == 0
     assert "No transcript" not in prepared.context["limitations"][0]
+
+
+async def test_explicit_evolution_needs_scoped_resolver_and_uses_it_only_when_requested(monkeypatch):
+    from app.services import motion_evolution_inputs
+
+    snapshot = source_snapshot()
+    snapshot["evolution"] = {"synthetic_selection": True}
+    store = AsyncMock()
+    store.get_video.return_value = b"original recording"
+    monkeypatch.setattr(motion_inputs, "inspect_and_extract_motion_audio", AsyncMock(return_value=(video_info(), None)))
+    monkeypatch.setattr(motion_inputs, "source_frames", AsyncMock(return_value=(frame(),)))
+    resolve = AsyncMock(return_value="scoped evolution result")
+    monkeypatch.setattr(motion_evolution_inputs, "load_evolution", resolve)
+    with pytest.raises(AuthError, match="EVOLUTION_RESOLVER_REQUIRED"):
+        await motion_inputs.MotionInputLoader(store).prepare(snapshot)
+    resolve.assert_not_awaited()
+    scoped = object()
+    assert await motion_inputs.MotionInputLoader(store, scoped).prepare(snapshot) == "scoped evolution result"
+    assert resolve.await_args.args[1:] == (snapshot["evolution"], scoped, store)

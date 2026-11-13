@@ -8,6 +8,7 @@ from app.schemas.motion_audiovisual import MotionAudiovisualDesign
 from app.schemas.motion_plan import Description, Identifier, Moment, MotionCurve, MotionPlan
 from app.schemas.motion_production import MotionAudio, MotionIllustration, MotionModel
 from app.schemas.motion_scene_direction import MotionSceneDirection
+from app.schemas.motion_staging import MotionStaging
 
 
 class ProvidedDirectionOutput(MotionModel):
@@ -90,6 +91,10 @@ class MotionAudiovisualPlanningOutput(MotionPlanningOutput):
 
     scene_direction: MotionSceneDirection
     audiovisual: MotionAudiovisualDesign
+
+
+class MotionStagedPlanningOutput(MotionAudiovisualPlanningOutput):
+    staging: MotionStaging
 
 
 class MotionImplementationOutput(MotionModel):

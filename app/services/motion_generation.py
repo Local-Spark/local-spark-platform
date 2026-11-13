@@ -9,10 +9,12 @@ from app.schemas.motion_generation import (
     MotionAudiovisualPlanningOutput,
     MotionImplementationOutput,
     MotionPlanningOutput,
+    MotionStagedPlanningOutput,
     ProvidedDirectionOutput,
 )
 from app.schemas.motion_production import DirectedHTMLMotionComposition, MotionConstructionPlan
 from app.services.auth import AuthError
+from app.services.motion_staging import staging_enabled
 from app.services.motion_visual_direction import supplied_direction
 
 LEGACY_GENERATION_CONTRACT = {
@@ -145,7 +147,8 @@ def construction_plan_hash(plan: MotionConstructionPlan) -> str:
 
 def decode_construction_plan(text: str, context: dict[str, Any]) -> MotionConstructionPlan:
     if proposed_generation_enabled(context):
-        data = MotionAudiovisualPlanningOutput.model_validate_json(text).model_dump(mode="json")
+        wire = MotionStagedPlanningOutput if staging_enabled(context) else MotionAudiovisualPlanningOutput
+        data = wire.model_validate_json(text).model_dump(mode="json")
         return MotionConstructionPlan.model_validate(expand_compact_output(data))
     data = expand_compact_output(MotionPlanningOutput.model_validate_json(text).model_dump(mode="json"))
     return MotionConstructionPlan.model_validate({**data, "scene_direction": supplied_direction(context)})

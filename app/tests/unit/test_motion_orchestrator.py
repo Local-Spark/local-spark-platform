@@ -588,3 +588,55 @@ async def test_speech_is_prepared_before_generation_and_reused_for_render(unit_c
     prepare.assert_awaited_once_with(c.row, c.token, c.prepared)
     assert c.runner.effects.model.await_args_list[0].args[3].context == annotated.context
     assert c.runner.render.await_args.args[2] is annotated
+
+
+@pytest.mark.parametrize("recapture", [True, False])
+async def test_native_recovery_events_route_before_new_generation(unit_case, monkeypatch, recapture):
+    from app.services.motion_checkpoints import MotionCheckpoints
+    from app.services.motion_storyboard_recapture import EVENT, MotionStoryboardRecapture
+
+    c = unit_case
+    event_id = uuid5(c.row["operation_id"], EVENT) if recapture else uuid4()
+    event = BusinessEvent(str(event_id), c.event.tenant_id, c.event.business_id, c.event.actor_id, c.event.operation_id)
+    recover = AsyncMock(return_value="recovered")
+    monkeypatch.setattr(MotionStoryboardRecapture, "run", recover)
+    monkeypatch.setattr(MotionCheckpoints, "is_recovery", AsyncMock(return_value=True))
+    resume = AsyncMock(return_value="resumed_plan")
+    monkeypatch.setattr("app.services.motion_checkpoint_execution.resume_checkpoint", resume)
+    assert await c.runner.run(event) == ("recovered" if recapture else "resumed_plan")
+    c.runner.requests.begin.assert_not_awaited()
+    c.runner.effects.model.assert_not_awaited()
+
+
+async def test_asset_informed_route_resolves_materials_before_producing(unit_case, monkeypatch):
+    from app.services.motion_generation import ASSET_INFORMED_GENERATION_CONTRACT
+    from app.tests.unit.test_motion_visual_direction import provided_context
+
+    c = unit_case
+    prepared = replace(
+        c.prepared, context={**provided_context(), "generation_contract": ASSET_INFORMED_GENERATION_CONTRACT}
+    )
+    c.runner.inputs.prepare.return_value = prepared
+    construct = AsyncMock(return_value=(prepared, composition()))
+    monkeypatch.setattr("app.services.motion_orchestrator.construct_motion_with_assets", construct)
+    c.runner.produce = AsyncMock(return_value="completed")
+    assert await c.runner.run(c.event) == "completed"
+    assert construct.await_args.args[4] is prepared
+
+
+@pytest.mark.parametrize("correct", [False, True])
+async def test_received_candidate_enters_review_without_render_replay(unit_case, correct):
+    c = unit_case
+    stub_render(c)
+    artifact = PieceArtifact(uuid4(), "private", c.rendered.sha256, "video/mp4", len(c.rendered.mp4))
+    candidate = Candidate(0, composition(), c.rendered, artifact)
+    c.runner.effects.model.side_effect = (
+        [review(revise=True), MotionModelResult(composition=composition()), review(previous=True)]
+        if correct
+        else [review()]
+    )
+    assert await c.runner.produce(c.row, c.token, c.prepared, composition(), initial_candidate=candidate) == "completed"
+    assert c.runner.render.await_count == int(correct)
+    first = c.runner.effects.model.await_args_list[0].args[3]
+    assert first.kind == "review" and first.frames == candidate.rendered.evidence
+    c.runner.complete.assert_awaited_once()

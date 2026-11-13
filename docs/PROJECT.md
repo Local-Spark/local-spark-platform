@@ -1,5 +1,72 @@
 # Meu Braço Direito — contexto vigente
 
+**Estado vigente após o feedback do titular — 13/11/2026: entrega REPROVADA.**
+O titular rejeitou o MP4 final desta rodada e apontou repetição visual, perda de
+frases e de encenação com café/xícara, e distância das 41 referências. O objetivo
+de qualidade não foi alcançado. O parecer automático `adequate` e os avanços
+pontuais descritos abaixo não demonstram melhoria artística aceita. A conclusão
+técnica do fluxo permanece válida, separada da reprovação visual.
+
+Após interromper a rodada, o titular solicitou os 336 quadros (exportados com
+manifesto e ZIP em `.local/evals/motion-quality-20261113/`) e depois pediu estudo
+próximo de uma referência, admitindo cópia como exercício. Esse pedido permite
+trabalho local; não renova orçamento pago. Uma reconstrução manual deve ser
+identificada como estudo e não como prova de melhoria do gerador. A avaliação do
+texto externo sobre motion por código confirmou que essa arquitetura já existe
+no produto; trocar renderer, por si só, não tem ganho visual demonstrado.
+
+Atualização documental: sem código de produção, render ou chamada paga novos;
+`git diff --check` é a validação desta atualização. O CI registrado abaixo é da
+implementação anterior. Permanecem a reconstrução comparativa e a demonstração
+de qualidade no processo do produto; não há nova peça aprovada.
+
+**Registro da entrega anterior ao feedback (histórico):**
+
+**Motion — entrega local de 13/11/2026.**
+Peça revisada completa gerada pelo produto e concluída no fluxo nativo, com
+Temporal, checkpoints, render e crítica persistidos. MP4 H.264/AAC, 11,2 s,
+720×1280 a 30 fps; decodificação integral independente aprovada. Entrega privada:
+`.local/evals/motion-quality-20261113/cafe-pausa-final.mp4`, comparação em
+`comparacao.html` e avaliação/custos em `RELATORIO-FINAL.md` no mesmo diretório.
+Hash da entrega: `834fefbcabe842b4e254666ccebb8ee1ee76dc1a7df8b74d69f7b2524e2b9992`.
+
+Avaliação visual amostrada do assistente: ganho na presença do preparo, imagem
+participando das letras em 3,57–3,70 s e transformação de Pausa em Café Pausa
+entre 8,44–9,44 s. CTA maior e estado final mais longo que na primeira candidata
+desta rodada. Limites: uma tomada, composição sóbria, integração tipográfica
+breve; sem afirmar equivalência geral às 41 referências. Sem escuta perceptiva
+do assistente; **aceite visual/sonoro do titular pendente**. Parecer nativo
+`adequate` não substitui esse aceite: a primeira candidata também foi considerada
+adequada pelo modelo e recebeu revisão de direção pela observação do assistente.
+
+Implementados repertório executável v5, encenação consumida na construção e
+inspeção, inventário de materiais reais, amostragem por risco, correção delimitada
+e retorno ao plano por crítica nativa ou observação explícita do operador,
+vinculada ao MP4/quadros. A mensagem simples é mantida, sem baseline obrigatório
+de cliente ou meta de cenas. Plano e código finais foram gerados pelo modelo,
+sem edição manual da composição. A revisão ocorreu no serviço do produto;
+a rodada demonstra melhoria supervisionada, não garantia autônoma de acabamento.
+
+Continuações explícitas preservam planos/MP4 recebidos e histórico de falhas,
+sem replay pago. Orçamento menor do pedido é conservado perante o padrão do
+worker; recuperação de admissão só ocorre após recusa sem efeitos. Auditoria,
+outbox, RLS, idempotência e execução por Temporal mantidos. Executor local
+qualificado com áudio v2/fingerprints; sem migração de dev, publicação, commit,
+habilitação global ou alteração em spotlight-api. Cinco serviços restritos parados.
+
+**Validação vigente:** `make ci` passou com 6.351 testes Python e 100%
+linhas/branches (22.728 statements, 6.602 branches), lint, tipos, 391 testes de
+avaliação e 189 testes Node. Manifesto do código conferido; nenhum gate desse
+comando pendente. Seis chamadas pagas: **US$ 1,286597 estimados**, US$ 7,50 em
+reservas internas, teto autorizado US$ 12,50; materiais novos pagos US$ 0.
+Nenhum efeito pago sem estimativa; fatura não reconciliada.
+
+Pendências: aceite do titular, escuta da mistura e calibração da crítica automática,
+que foi permissiva na primeira candidata. Motion global permanece desabilitado.
+Decisões, validações e histórico no [registro da execução](design/motion-execucao-melhoria-2026-11-13.md).
+
+**Histórico documental anterior à implementação desta sessão:**
+
 **Leitura das instruções de motion — 13/11/2026.**
 A auditoria documental identificou gates históricos, versões, custos e estados
 operacionais descritos como “atuais” em registros antigos. Para a próxima rodada,

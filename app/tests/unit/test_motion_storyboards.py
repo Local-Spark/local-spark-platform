@@ -221,11 +221,22 @@ async def test_gallery_uses_verified_pixels_and_escapes_model_text(board_case):
         await c.service.gallery(c.row["tenant_id"], c.row["business_id"], c.row["actor_id"], c.row["id"])
 
 
-async def test_capture_persists_every_scene_and_provenance_without_mp4(board_case):
+@pytest.mark.parametrize("mode", ["plain", "art", "audio", "store"])
+async def test_capture_persists_every_scene_and_provenance_without_mp4(board_case, mode):
+    from app.adapters.motion_html_renderer import RenderAsset
     from app.adapters.motion_inputs import PreparedMotionInput
+    from app.tests.unit.test_motion_illustrations import composition_with_art, image_result
 
     c = board_case
     composition = boarded()
+    assets = ()
+    if mode == "art":
+        data = composition_with_art().model_dump(mode="json")
+        for scene in data["motion_plan"]["scenes"]:
+            scene["keyframe_ms"] = (scene["start_ms"] + scene["end_ms"]) // 2
+        composition = HTMLMotionComposition.model_validate(data)
+        art = image_result()
+        assets = (RenderAsset(composition.illustrations[0].asset_id, "image/png", art.content, art.sha256),)
     pixels = board_output(composition)
     renderer = SimpleNamespace(render=AsyncMock(return_value=pixels))
     saved = []
@@ -241,10 +252,20 @@ async def test_capture_persists_every_scene_and_provenance_without_mp4(board_cas
         c.store.get_image.return_value = media.data
 
     c.store.put.side_effect = put
-    prepared = PreparedMotionInput(context(), (), (), 1000, {"mode": "silent", "tracks": []})
+    prepared = PreparedMotionInput(context(), assets, (), 1000, {"mode": "silent", "tracks": []})
+    if mode in {"audio", "store"}:
+        if mode == "audio":
+            prepared = replace(prepared, audio={"mode": "mix", "tracks": []})
+        else:
+            c.store.single_attempt_put = False
+        with pytest.raises(AuthError, match="(ORIGINAL_AUDIO_CHANGED|STORAGE_SINGLE_ATTEMPT_REQUIRED)"):
+            await c.service.capture(c.row, c.row["execution_token"], prepared, composition, renderer, effects)
+        c.store.put.assert_not_awaited()
+        return
     await c.service.capture(c.row, c.row["execution_token"], prepared, composition, renderer, effects)
     assert renderer.render.await_args.args[0].frames_only is True
     assert len(saved[0]["frames"]) == 2 and saved[0]["composition"] == composition.model_dump(mode="json")
+    assert bool(saved[0]["illustrations"]) == (mode == "art")
     assert c.store.put.await_count == 2
     assert c.events.await_args.args[-1] == "motion.storyboard_ready"
     assert "awaiting_approval" in str(c.session.execute.await_args.args[0])
@@ -321,6 +342,8 @@ async def test_resume_needs_real_outbox_approval_and_fences_redelivery(board_cas
 
 async def test_restore_approved_art_uses_private_bytes_and_never_calls_a_provider(board_case):
     from app.adapters.motion_inputs import PreparedMotionInput
+    from app.services.motion_elements import elements_hash
+    from app.services.motion_movement import movement_hash
     from app.tests.unit.test_motion_illustrations import composition_with_art, image_result
 
     c = board_case
@@ -330,6 +353,8 @@ async def test_restore_approved_art_uses_private_bytes_and_never_calls_a_provide
         "composition": composition.model_dump(mode="json"),
         "context": context(),
         "source_fingerprint": c.row["source_fingerprint"],
+        "asset_hashes": [{"id": composition.illustrations[0].asset_id, "sha256": art.sha256}],
+        "runtime_hashes": [movement_hash(context()), elements_hash(context())],
         "illustrations": [
             {
                 "asset_id": composition.illustrations[0].asset_id,
@@ -342,7 +367,7 @@ async def test_restore_approved_art_uses_private_bytes_and_never_calls_a_provide
     c.board["content_sha256"] = digest(payload)
     c.service.payloads.open = AsyncMock(return_value=payload)
     c.store.get_image.return_value = art.content
-    prepared = PreparedMotionInput({}, (), (), 1000, {"mode": "silent", "tracks": []})
+    prepared = PreparedMotionInput(context(), (), (), 1000, {"mode": "silent", "tracks": []})
     restored, value = await c.service.restore(c.row, c.board, prepared)
     assert value == composition and restored.assets[0].data == art.content
     assert restored.asset_previews[0][0] == composition.illustrations[0].asset_id
@@ -426,3 +451,65 @@ async def test_storyboard_routes_return_private_gallery_and_exact_decision(board
         and "frame-ancestors" in gallery.headers["content-security-policy"]
     )
     assert await routes.decide_storyboard(*ids, c.body, object(), response, c.row["actor_id"]) == {"state": "approved"}
+
+
+def test_storyboard_frame_guard_rejects_mp4_and_unbound_frame_identity():
+    comp = boarded()
+    moments, rendered = storyboard_moments(comp), board_output(comp)
+    for invalid in (
+        replace(rendered, mp4=b"video"),
+        replace(rendered, evidence=()),
+        replace(rendered, evidence=(replace(rendered.evidence[0], sha256="f" * 64), *rendered.evidence[1:])),
+    ):
+        with pytest.raises(AuthError, match="FRAMES_INVALID"):
+            MotionStoryboards.validate_frames(invalid, moments)
+
+
+async def test_storyboard_lookup_load_and_approval_fail_closed_on_missing_or_changed_state(board_case):
+    c = board_case
+    c.session.execute.return_value = SimpleNamespace(mappings=lambda: SimpleNamespace(one_or_none=lambda: None))
+    with pytest.raises(AuthError, match="STORYBOARD_NOT_FOUND"):
+        await MotionStoryboards.board(c.session, c.row["tenant_id"], c.row["business_id"], c.row["id"])
+    c.service.payloads.open = AsyncMock(return_value={"changed": True})
+    args = (c.row["tenant_id"], c.row["business_id"], c.row["actor_id"], c.row["id"])
+    with pytest.raises(AuthError, match="BYTES_CHANGED"):
+        await c.service.load(*args)
+    c.row["state"] = "failed"
+    with pytest.raises(AuthError, match="EXECUTION_FENCED"):
+        await c.service.decide(*args, c.body)
+    c.events.assert_not_awaited()
+
+
+async def test_gallery_labels_real_baseline_pixels_and_rejects_tampering(board_case):
+    import base64
+
+    c, raster = board_case, frame(100)
+    payload = {
+        "frames": [],
+        "baseline_evidence": [{"ms": 100, "sha256": raster.sha256, "png": base64.b64encode(raster.png).decode()}],
+    }
+    c.service.load = AsyncMock(return_value=(c.row, c.board, payload))
+    args = (c.row["tenant_id"], c.row["business_id"], c.row["actor_id"], c.row["id"])
+    assert "Peça de referência" in await c.service.gallery(*args)
+    payload["baseline_evidence"][0]["sha256"] = "f" * 64
+    with pytest.raises(AuthError, match="EVOLUTION_EVIDENCE_INVALID"):
+        await c.service.gallery(*args)
+
+
+async def test_resume_recompiles_planned_sound_and_refuses_a_different_captured_mix(board_case):
+    from app.tests.unit.test_motion_audiovisual import natural_plan, natural_prepared
+
+    c, prepared = board_case, natural_prepared()
+    composition = HTMLMotionComposition(
+        **natural_plan().model_dump(), html="<div></div>", scene_init="window.seek=()=>{}"
+    )
+    payload = {
+        "composition": composition.model_dump(mode="json"),
+        "context": {**prepared.context, "authorized_soundtrack": {"unapproved_mix": True}},
+        "source_fingerprint": c.row["source_fingerprint"],
+        "illustrations": [],
+    }
+    c.board["content_sha256"] = digest(payload)
+    c.service.payloads.open = AsyncMock(return_value=payload)
+    with pytest.raises(AuthError, match="STORYBOARD_BYTES_CHANGED"):
+        await c.service.restore(c.row, c.board, prepared)

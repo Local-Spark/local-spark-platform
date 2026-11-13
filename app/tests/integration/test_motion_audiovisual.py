@@ -155,3 +155,35 @@ async def test_product_discovers_bounded_scoped_materials_without_client_technic
     assert [UUID(p["id"]) for p in captured["collection_photos"]] == ids[:4]
     assert body.collection_photo_ids == ()
     assert captured["kit"]["overrides"]["brand_name"] == "Synthetic brand"
+
+
+async def test_direct_sound_selection_keeps_its_asset_referenced_by_the_native_request(motion_case, admin):  # noqa: F811
+    from app.schemas.motion_production import MotionSoundEvent
+    from app.tests.integration.test_editorial_proposals import _asset
+    from app.tests.unit.test_motion_audio import event_data
+
+    c = motion_case
+    audio = await _asset(
+        admin, c.tenant, c.business, c.cfg.meta_encryption_key.get_secret_value(), kind="audio", body="synthetic sound"
+    )
+    async with admin.begin() as connection:
+        await connection.execute(
+            text(
+                "UPDATE whatsapp_material_assets SET object_key='synthetic/sound',mime_type='audio/wav',"
+                "size_bytes=10,sha256=:sha WHERE id=:id"
+            ),
+            {"id": audio, "sha": "e" * 64},
+        )
+    body = c.body.model_copy(update={"sound_events": (MotionSoundEvent.model_validate(event_data(audio)),)})
+    created = await c.requests.create(c.tenant, c.business, c.actor, body)
+    async with c.database.transaction(c.tenant, c.actor) as session:
+        linked = set(
+            (
+                await session.scalars(
+                    text("SELECT asset_id FROM motion_request_assets WHERE request_id=:id"), {"id": created.id}
+                )
+            ).all()
+        )
+    assert linked == {c.source, audio}
+    assert await c.requests.create(c.tenant, c.business, c.actor, body) == created
+    assert c.provider.calls == []

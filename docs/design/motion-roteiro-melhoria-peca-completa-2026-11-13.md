@@ -1,8 +1,12 @@
 # Roteiro técnico: melhoria de motion até uma peça completa — 13/11/2026
 
-Estado: roteiro proposto, ainda não implementado. A análise de referências está
-concluída; a prévia anterior foi reprovada visualmente pelo titular. Este documento
-organiza a próxima execução, não autoriza chamadas pagas ou migrações.
+Estado: roteiro executado localmente até entrega de peça completa revisada pelo
+fluxo nativo, comparação, custos e limites. `make ci` aprovado: 6.351 testes,
+100% linhas/branches. Custo estimado US$ 1,286597, seis chamadas sob teto novo
+de US$ 12,50 autorizado. Melhora visual observada pelo assistente, sem declarar
+equivalência geral às referências; aceite visual/sonoro do titular pendente.
+A prévia anterior continua reprovada e separada. Registro: [execução](motion-execucao-melhoria-2026-11-13.md).
+Este roteiro não autoriza por si só novos gastos ou migrações.
 
 ## Objetivo e evidência de partida
 

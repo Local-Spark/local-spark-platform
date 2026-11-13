@@ -8,6 +8,41 @@ const vm = require('node:vm');
 const renderer = require('../../assets/motion_html_renderer/runner.cjs');
 const { environment, origin, sha } = require('../fixtures/motion_html_environment.cjs');
 
+test('decoded audio metrics propagate measured values and reject failed or malformed analysis', () => {
+  const env=environment();
+  assert.equal(env.runner.audioMetrics('/tmp/render/render.mp4').integrated_lufs,-16.2);
+  const command=env.commands.at(-1);
+  assert.ok(command.args.includes('0:a:0'));
+  assert.equal(command.config.timeout,30000);
+  for(const options of [{audioMetricsStatus:1},{audioMetricsError:Error('private failure')},{audioMetricsText:'no summary'}])
+    assert.throws(()=>environment(options).runner.audioMetrics('/tmp/render/render.mp4'),/MOTION_RENDER_AUDIO_INVALID/);
+});
+
+test('v2 sound event cannot exceed decoded material while original EOF and output metrics remain explicit', async () => {
+  function configure(cfg){
+    cfg.assets[1].mime_type='audio/wav';
+    cfg.audio={version:'motion-audio-v2',mode:'mix',ducking:null,tracks:[
+      {asset_id:'assets/source.mp4',role:'original',trim_start_ms:0,trim_end_ms:100,offset_ms:0,volume:1,fade_in_ms:0,fade_out_ms:0},
+      {asset_id:'assets/image.png',role:'effect',trim_start_ms:0,trim_end_ms:100,offset_ms:0,volume:.1,fade_in_ms:0,fade_out_ms:0}]};
+  }
+  const metadata=result=>result.streams.push({codec_type:'audio'});
+  const good=environment({configure,metadata});await good.run();
+  assert.equal(JSON.parse(good.stdout[0]).diagnostics.audio_measurements.integrated_lufs,-16.2);
+  const short=environment({configure,metadata,audioMetadata:result=>{result.format.duration=.05;}});
+  await assert.rejects(short.run(),/AUDIO_INVALID/);
+});
+
+test('storyboard capture enforces deadline, raster bounds and browser violations just like full render', async () => {
+  const configure=cfg=>{cfg.version=2;};
+  for(const [options, code] of [[{expired:true},/DEADLINE/],[{screenshot:Buffer.alloc(8*1024*1024+1)},/EVIDENCE_LIMIT/],
+    [{screenshot:Buffer.alloc(8*1024*1024),configure:cfg=>{cfg.version=2;cfg.duration_ms=200;cfg.sample_frames=[0,1,2,3,4];}},/EVIDENCE_LIMIT/],
+    [{violation:'console'},/BROWSER_VIOLATION/]]) {
+    const env = environment({configure,...options});
+    env.video.decode = async () => {};
+    await assert.rejects(env.run(),code);
+  }
+});
+
 test('optional correction evidence binds every captured raster and its environment', async () => {
   const env = environment({configure: cfg => { cfg.fingerprint_frames = true; }});
   await env.run();

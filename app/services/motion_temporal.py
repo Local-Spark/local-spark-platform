@@ -12,6 +12,7 @@ MAX_FRAMES = 20
 POLICY = {"version": "motion-temporal-v1", "max_frames": MAX_FRAMES, "max_events": MAX_EVENTS}
 POLICY_V2 = {"version": "motion-temporal-v2", "max_frames": MAX_FRAMES, "max_events": MAX_EVENTS}
 POLICY_V3 = {"version": "motion-temporal-v3", "max_frames": MAX_FRAMES, "max_events": MAX_EVENTS}
+POLICY_V4: dict[str, Any] = {"version": "motion-temporal-v4", "max_frames": 48, "max_events": 16}
 TEMPORAL_CRITERIA = {
     "continuity": "motion",
     "overlap": "composition",
@@ -25,7 +26,7 @@ def temporal_enabled(context: dict[str, Any]) -> bool:
     policy = contract.get("temporal_review") if isinstance(contract, dict) else None
     if policy is None:
         return False
-    if policy not in (POLICY, POLICY_V2, POLICY_V3):
+    if policy not in (POLICY, POLICY_V2, POLICY_V3, POLICY_V4):
         raise AuthError("MOTION_TEMPORAL_POLICY_UNAVAILABLE", 409)
     return True
 
@@ -51,16 +52,19 @@ def events(composition: HTMLMotionComposition, policy: dict[str, Any] = POLICY) 
     def add(identifier: str, scene: str, element: str | None, kind: str, start: int, end: int) -> None:
         # Neighbours, boundaries and midpoint, snapped to actual 30-fps frames.
         first, last = start * 30 // 1000, end * 30 // 1000
-        indices = tuple(
-            sorted({max(0, min(count - 1, i)) for i in (first - 1, first, (first + last) // 2, last, last + 1)})
+        points = (
+            (first, (first + last) // 2, last)
+            if policy == POLICY_V4
+            else (first - 1, first, (first + last) // 2, last, last + 1)
         )
+        indices = tuple(sorted({max(0, min(count - 1, i)) for i in points}))
         candidates.append(TemporalEvent(identifier, scene, element, kind, start, end, indices))
 
     for scene_index, scene in enumerate(plan.scenes):
         if scene_index:
             start = max(0, scene.start_ms - 100)
             end = min(plan.duration_ms, max(scene.start_ms + 100, plan.scenes[scene_index - 1].end_ms))
-            if policy == POLICY_V3:
+            if policy in (POLICY_V3, POLICY_V4):
                 # Follow overlapping entry/exit beats through the actual handoff,
                 # including a delayed entry that begins as the outgoing object leaves.
                 handoff = [
@@ -100,6 +104,49 @@ def events(composition: HTMLMotionComposition, policy: dict[str, Any] = POLICY) 
                     add(f"hold-{element.id}-{index}", scene.id, element.id, "hold", beat.end_ms, next_start)
     # Stable distribution across the piece, not only its opening. No inferred beat/audio alignment.
     candidates.sort(key=lambda event: (event.start_ms, event.end_ms, event.id))
+    if policy == POLICY_V4:
+        # Explicit staging intervals are obligations, not an arbitrary frame quota.
+        candidates.clear()
+        if composition.staging is None:
+            raise AuthError("MOTION_STAGING_REQUIRED", 409)
+        for moment in composition.staging.moments:
+            add(
+                f"moment-{moment.scene_id}",
+                moment.scene_id,
+                moment.protagonist_id,
+                "staging",
+                moment.inspect_start_ms,
+                moment.inspect_end_ms,
+            )
+            if moment.transition is not None:
+                transition = moment.transition
+                add(
+                    f"transition-{transition.next_scene_id}",
+                    transition.next_scene_id,
+                    None,
+                    "transition",
+                    transition.start_ms,
+                    transition.end_ms,
+                )
+        # Transitions first, then widest temporal gaps. All omitted IDs remain visible below.
+        ranked = sorted(candidates, key=lambda e: (e.kind != "transition", e.start_ms, e.id))
+        selected: list[TemporalEvent] = []
+        used = {round(i * (count - 1) / 4) for i in range(5)}
+        while ranked and len(selected) < POLICY_V4["max_events"]:
+            best = min(
+                ranked,
+                key=lambda e: (
+                    e.kind != "transition",
+                    -min((abs(e.start_ms - s.start_ms) for s in selected), default=plan.duration_ms),
+                    e.start_ms,
+                    e.id,
+                ),
+            )
+            ranked.remove(best)
+            if len(used | set(best.indices)) <= POLICY_V4["max_frames"]:
+                selected.append(best)
+                used.update(best.indices)
+        return sorted(selected, key=lambda e: (e.start_ms, e.id)), len(candidates)
     total = len(candidates)
     if policy in (POLICY_V2, POLICY_V3):
         transitions = [event for event in candidates if event.kind == "transition"]
@@ -208,7 +255,25 @@ def evidence_manifest(
                 ),
                 "incomplete_events": sum(not item["complete"] for item in windows),
             }
-            if policy in (POLICY_V2, POLICY_V3)
+            if policy in (POLICY_V2, POLICY_V3, POLICY_V4)
+            else {}
+        ),
+        **(
+            {
+                "omitted_event_ids": sorted(
+                    (
+                        {f"moment-{m.scene_id}" for m in composition.staging.moments}
+                        | {
+                            f"transition-{m.transition.next_scene_id}"
+                            for m in composition.staging.moments
+                            if m.transition
+                        }
+                    )
+                    - {e.id for e in selected}
+                ),
+                "coverage_complete": total == len(selected) and all(w["complete"] for w in windows),
+            }
+            if policy == POLICY_V4 and composition.staging is not None
             else {}
         ),
         "scope": "Somente eventos amostrados; plano é intenção. Sem prova de fluidez integral, sincronismo ou áudio.",

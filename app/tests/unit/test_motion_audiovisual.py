@@ -594,3 +594,105 @@ async def test_functional_evidence_must_be_present_in_actual_baseline_attachment
     captured["selection"]["functions"][0]["evidence_at_ms"] = [0]
     loaded = await load_evolution(prepared, captured, SimpleNamespace(open=lambda _: evidence), AsyncMock())
     assert loaded.baseline_frames == frames
+
+
+@pytest.mark.parametrize("update", [{"html": None}, {"scene_init": None}, {"revision_reason": "Direction changed"}])
+def test_implemented_status_cannot_hide_missing_code_or_a_direction_change(update):
+    from app.schemas.motion_generation import MotionImplementationOutputV4
+
+    with pytest.raises(ValidationError, match="Implemented requires code"):
+        MotionImplementationOutputV4.model_validate(
+            {
+                "plan_sha256": "a" * 64,
+                "status": "implemented",
+                "html": "<div></div>",
+                "scene_init": "window.seek=()=>{}",
+                "revision_reason": None,
+                **update,
+            }
+        )
+
+
+async def test_implementation_cannot_claim_a_different_approved_plan_hash():
+    from app.adapters.motion_ai import MotionAIError
+
+    p, plan = natural_prepared(), natural_plan()
+    p = prepare_implementation_materials(plan, library.apply_planned_sound(p, plan))
+    job = replace(request(), context=p.context, assets=p.assets, source_frames=p.source_frames, construction_plan=plan)
+    output = dict(
+        plan_sha256="f" * 64,
+        status="implemented",
+        html=planned().html,
+        scene_init=planned().scene_init,
+        revision_reason=None,
+    )
+    calls = []
+
+    def respond(req):
+        calls.append(req)
+        return httpx.Response(200, json=response_data(output))
+
+    model = provider(respond)
+    with pytest.raises(MotionAIError) as caught:
+        await model.submit(job, model.build_request(job))
+    assert len(calls) == 1 and caught.value.raw_response
+
+
+def test_previous_proposed_direction_contract_remains_supported_without_new_quality_capture():
+    ctx = natural_context()
+    ctx["generation_contract"] = PROPOSED_GENERATION_CONTRACT
+    assert not provided_output_enabled(ctx)
+
+
+def test_supplied_direction_retains_its_implementation_contract_without_acquiring_staging():
+    body = MotionRequest(
+        operation_id=uuid4(),
+        source_asset_id=uuid4(),
+        instruction="Use a direção fornecida",
+        scene_direction=direction_data(),
+    )
+    captured = capture_motion_guidance(body)
+    assert "staging_contract" not in captured
+    assert "não a repita na saída" in captured["creative_contract"]["scene_direction_rules"]
+
+
+@pytest.mark.parametrize(
+    "change, message",
+    [
+        ("unbound_evidence", "Supplied-direction evidence requires scene identifiers"),
+        ("unknown_scene", "Preparation refers to an unknown scene"),
+        ("missing_basis", "Every scene requires an explicit decision basis"),
+    ],
+)
+def test_supplied_preparation_cannot_lose_or_invent_scene_decision_bindings(change, message):
+    data = natural_body().model_dump(mode="json")
+    data.update(propose_direction=False, sound_library_id=None, scene_direction=direction_data())
+    data["preparation"]["decisions"][0]["scope"] = "scene"
+    data["preparation"]["decisions"][0]["scene_ids"] = ["hook", "close"]
+    data["preparation"]["evidence"][0]["scene_ids"] = ["hook"]
+    if change == "unbound_evidence":
+        data["preparation"]["evidence"][0]["scene_ids"] = []
+    elif change == "unknown_scene":
+        data["preparation"]["decisions"][0]["scene_ids"].append("missing")
+    else:
+        data["preparation"]["decisions"][0]["scene_ids"] = ["hook"]
+    with pytest.raises(ValidationError, match=message):
+        MotionRequest.model_validate(data)
+
+
+@pytest.mark.parametrize(
+    "change, message",
+    [
+        ("library", "Sound library selection belongs to proposed audiovisual planning"),
+        ("preparation", "Preparation requires a direction to bind its decisions"),
+    ],
+)
+def test_natural_intake_metadata_is_not_silently_used_by_an_unplanned_request(change, message):
+    data = natural_body().model_dump(mode="json")
+    data.update(propose_direction=False, review_checkpoints=False)
+    if change == "library":
+        data["preparation"] = None
+    else:
+        data["sound_library_id"] = None
+    with pytest.raises(ValidationError, match=message):
+        MotionRequest.model_validate(data)

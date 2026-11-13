@@ -37,6 +37,7 @@ def restore_input(prepared: PreparedMotionInput, packet: dict[str, Any]) -> Prep
         "evolution",
         "repertoire",
         "quality_contract",
+        "staging_contract",
         "audio_analysis_contract",
         "audio_assessment",
     ):

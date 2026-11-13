@@ -205,3 +205,12 @@ def test_motion_http_routes_keep_private_content_out_of_responses(client, settin
         assert response.status_code in {200, 202}
         assert response.headers["Cache-Control"] == "no-store" and "Private instruction" not in response.text
     assert client.get(path).status_code == 401
+
+
+def test_http_board_service_uses_configured_storage_and_scoped_request_database(settings):
+    from app.api.v1.motion_requests import boards
+
+    database = object()
+    request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(settings=settings, database=database)))
+    service = boards(request)
+    assert service.requests.database is database and service.requests.settings is settings

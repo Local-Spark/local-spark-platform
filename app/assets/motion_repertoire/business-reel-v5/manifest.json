@@ -1,0 +1,85 @@
+{
+  "id": "business-reel-v5",
+  "version": 5,
+  "rules": "Exemplos originais qualificados no renderer; escolher somente mecanismos pertinentes, sem copiar composição, identidade ou conteúdo. Não são template obrigatório, assets da peça ou aprovação artística. Referências estudadas informam mecanismos; nenhum dos 41 vídeos é anexado.",
+  "selection": "Dois mecanismos e suas sequências executadas: integração tipográfica da mídia e passagem entre camadas.",
+  "required_runtimes": {
+    "movement_runtime": {
+      "version": "motion-movement-v3",
+      "sha256": "7ad7561bab866543e7dbd9f0210b38ac1c426141219194312851b0914cd07908"
+    }
+  },
+  "licenses": [],
+  "examples": [
+    {
+      "id": "type-portal",
+      "source_id": "platform-original",
+      "file": "examples/type-portal.js",
+      "sha256": "3c47fb70fb3b31b6c5c7d424fe30d385011208f874563c35a2e5c5035f53c8e5",
+      "entrypoint": "makeTypePortal",
+      "mechanism": "Tipografia como abertura para mídia, seguida de revelação radial.",
+      "use_when": "Quando texto e mídia compartilham o mesmo assunto e a ação filmada pode ficar protegida fora da passagem.",
+      "limitations": "Exemplo sintético, sem certificação artística ou áudio. Não cria material, segmentação ou 3D. Adaptar dimensão, kit, conteúdo, ritmo e leitura.",
+      "integration": "Copiar/adaptar a função em scene_init e chamar seu retorno com o tempo absoluto em seek. Função não instalada automaticamente; não alterar o relógio do vídeo."
+    },
+    {
+      "id": "depth-handoff",
+      "source_id": "platform-original",
+      "file": "examples/depth-handoff.js",
+      "sha256": "b0b72efdf62a6b89c0b33c60dca0ab4e2fb4954a261612af7282d658ed0d6dbb",
+      "entrypoint": "makeDepthHandoff",
+      "mechanism": "Camada de origem cruza o quadro; destino e título assentam em profundidades diferentes.",
+      "use_when": "Quando a mudança revela informação nova e a oclusão motiva a passagem.",
+      "limitations": "Exemplo sintético, sem certificação artística ou áudio. Não cria material, segmentação ou 3D. Adaptar dimensão, kit, conteúdo, ritmo e leitura.",
+      "integration": "Copiar/adaptar a função em scene_init e chamar seu retorno com o tempo absoluto em seek. Função não instalada automaticamente; não alterar o relógio do vídeo."
+    }
+  ],
+  "reference_images": [
+    {
+      "id": "type-portal",
+      "file": "images/type-portal.jpg",
+      "sha256": "543bc1380f8b5801114267640d0769d76d78738f8c38d260de2116789a757a30",
+      "source_id": "platform-original",
+      "role": "finish_reference_only",
+      "mechanism": "Tipografia como abertura para mídia, seguida de revelação radial.",
+      "times_ms": [
+        0,
+        700,
+        1000,
+        1233,
+        1500,
+        1800
+      ],
+      "limitations": "Sequência de prova sintética no renderer, não referência comercial nem mídia de cliente."
+    },
+    {
+      "id": "depth-handoff",
+      "file": "images/depth-handoff.jpg",
+      "sha256": "e18e3bb387366d0a22d5b363df51b0526c58208f9e24914f88d854ef59b31402",
+      "source_id": "platform-original",
+      "role": "finish_reference_only",
+      "mechanism": "Camada de origem cruza o quadro; destino e título assentam em profundidades diferentes.",
+      "times_ms": [
+        2300,
+        2500,
+        2800,
+        3100,
+        3300,
+        3967
+      ],
+      "limitations": "Sequência de prova sintética no renderer, não referência comercial nem mídia de cliente."
+    }
+  ],
+  "reference_cards": [],
+  "sources": [
+    {
+      "id": "platform-original",
+      "origin": "Código original da plataforma; estudo seletivo R10/R12/R17 em docs/evals/referencias-motion-2026-11-12/anotacoes.md",
+      "version": "2026-11-13",
+      "permission": "Código e gráficos sintéticos próprios; nenhum pixel ou asset de terceiros copiado.",
+      "renderer_image": "sha256:e9884862762529bf49086fb579676a7be15a108a5ac1bb88c7c0f44496a6bf51",
+      "proof_sha256": "5ead5523a7d7b980906202f2f9ea2aa63518d028e533739b8fc96b466f77c3c2",
+      "inspection": "12 quadros decodificados inspecionados; sem escuta, sem certificação de fluidez integral ou qualidade comercial."
+    }
+  ]
+}

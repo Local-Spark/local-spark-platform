@@ -140,6 +140,10 @@ function environment(options = {}) {
   };
   const spawnSync = (binary, args, config) => {
     commands.push({binary, args, config});
+    if (args.includes('ebur128=peak=sample')) {
+      return {status: options.audioMetricsStatus ?? 0, error: options.audioMetricsError,
+        stderr: Buffer.from(options.audioMetricsText ?? 'Summary:\nIntegrated loudness:\nI: -16.2 LUFS\nSample peak:\nPeak: -1.0 dBFS')};
+    }
     if (options.commandFailure) return {status: 1, stdout: Buffer.alloc(0)};
     const count = Math.ceil(cfg.duration_ms * 30 / 1000);
     let result = {};

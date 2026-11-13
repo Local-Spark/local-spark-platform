@@ -216,3 +216,30 @@ async def test_recapture_rejects_changed_pixels_and_any_mp4(recapture_case):
     renderer.render.return_value = v.pixels
     with pytest.raises(AuthError, match="PIXELS_CHANGED"):
         await checked.render(bundle, operation_id=uuid4())
+
+
+@pytest.mark.parametrize("change", ["missing_receipt", "wrong_purpose"])
+async def test_recovery_requires_all_model_receipts_and_a_real_storyboard_purpose(recapture_case, change):
+    v = recapture_case
+    operation = v.c.row["operation_id"]
+    if change == "missing_receipt":
+        del v.effects[uuid5(operation, "generate:plan:0")]
+    else:
+        version = uuid5(operation, "storyboard:0")
+        key = v.effects[version]["request_ciphertext"]
+        v.receipts[key]["purpose"] = "full_render"
+        v.effects[version]["request_hash"] = digest(v.receipts[key])
+    with pytest.raises(AuthError, match="EVIDENCE_"):
+        await v.service.evidence(v.c.row, v.effects)
+    v.runner.effects.model.assert_not_awaited()
+
+
+async def test_recovery_cannot_accept_an_unrelated_event_identity(recapture_case):
+    v = recapture_case
+    row = v.c.row
+    event = BusinessEvent(
+        str(uuid4()), str(row["tenant_id"]), str(row["business_id"]), str(row["actor_id"]), str(row["operation_id"])
+    )
+    with pytest.raises(AuthError, match="EVENT_MISMATCH"):
+        await v.service.run(event)
+    v.runner.effects.model.assert_not_awaited()

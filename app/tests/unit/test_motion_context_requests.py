@@ -239,14 +239,18 @@ async def test_explicit_financial_revocation_and_run_token_are_revalidated(setti
         "source_asset_id": source,
         "snapshot_ciphertext": "ciphertext",
         "source_fingerprint": "fingerprint",
+        "budget_usd_micros": settings.motion_request_budget_usd_micros,
         "admitted_at": None,
         "id": uuid4(),
     }
     service = MotionRequestService(settings, object())
     service.context = SimpleNamespace(
         require_qualification=lambda *args: None,
-        open=lambda _: {"request": body.model_dump()},
-        capture=AsyncMock(return_value={}),
+        open=lambda _: {
+            "request": body.model_dump(),
+            "execution": {"request_budget": settings.motion_request_budget_usd_micros},
+        },
+        capture=AsyncMock(return_value={"execution": {"request_budget": settings.motion_request_budget_usd_micros}}),
         fingerprint=lambda _: "fingerprint",
     )
     session = AsyncMock()

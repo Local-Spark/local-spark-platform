@@ -330,9 +330,13 @@ async def test_material_capture_accepts_only_received_baseline_uploads_in_its_sc
         "composition": base.model_dump(mode="json"),
         "snapshot": {"source": {"sha256": "b" * 64}, "kit": {}},
         "material": material,
+        "irrelevant": {"provenance": "source_upload"},
     }
     session = AsyncMock()
-    session.execute.side_effect = [result(row), result([{"response_ciphertext": "material"}])]
+    session.execute.side_effect = [
+        result(row),
+        result([{"response_ciphertext": "irrelevant"}, {"response_ciphertext": "material"}]),
+    ]
     captured = await capture_evolution(session, tenant, business, body, values.__getitem__)
     assert captured["materials"] == [material]
     material["object_key"] = "another-business/private.png"
@@ -431,3 +435,74 @@ def test_compact_baseline_review_round_trip_uses_sent_evidence_aliases():
     restored = decode_review(job, json.dumps(wire))
     assert restored == MotionReview.model_validate(data)
     validate_baseline_review(job, restored)
+
+
+def test_evolution_capture_versions_its_policy_and_cannot_relabel_preserved_identity():
+    from app.schemas.motion_evolution import ElementEvolution
+    from app.services.motion_context import capture_motion_guidance
+
+    base, selection, _ = case()
+    body = MotionRequest(
+        operation_id=uuid4(),
+        source_asset_id=uuid4(),
+        instruction="Evolua esta peça",
+        storyboard=True,
+        scene_direction=base.scene_direction,
+        evolution=selection,
+    )
+    assert capture_motion_guidance(body)["creative_contract"]["temporal_review"] == POLICY_V3
+    data = selection.elements[0].model_dump()
+    with pytest.raises(ValidationError, match="Preservation keeps"):
+        ElementEvolution.model_validate({**data, "target_element_ids": ["another"]})
+
+
+def test_evolution_requires_direction_and_cannot_rewrite_original_audio():
+    from app.schemas.motion_production import MotionAudio
+    from app.services.motion_evolution import validate_obligations
+    from app.tests.unit.test_motion_audio import original
+
+    base, selection, ctx = case()
+    with pytest.raises(AuthError, match="DIRECTION_REQUIRED"):
+        validate_obligations(selection, base, None)
+    changed = base.model_copy(update={"audio": MotionAudio.model_validate(original())})
+    with pytest.raises(AuthError, match="ORIGINAL_AUDIO_CHANGED"):
+        validate_evolution_plan(changed, ctx)
+
+
+async def test_baseline_loader_refuses_changed_identity_and_verifies_reused_image_bytes():
+    from app.tests.unit.test_motion_illustrations import image_result
+
+    base, _, ctx = case()
+    ctx.update(source={"sha256": "b" * 64}, kit={}, authorized_audio=base.audio.model_dump(mode="json"))
+    prepared = PreparedMotionInput(ctx, (), (), 1000, ctx["authorized_audio"])
+    frames = (frame(0), frame(500))
+    evidence = {"frames": [{"ms": f.ms, "sha256": f.sha256, "png": base64.b64encode(f.png).decode()} for f in frames]}
+    art = image_result()
+    captured = {
+        **ctx["evolution"],
+        "source_sha256": "b" * 64,
+        "kit": {},
+        "row": {},
+        "evidence_ciphertext": "inline",
+        "materials": [
+            {
+                "asset_id": "assets/illustration-cup.png",
+                "object_key": "private/art",
+                "sha256": art.sha256,
+                "size_bytes": len(art.content),
+            }
+        ],
+    }
+    cipher, store = SimpleNamespace(open=lambda _: evidence), AsyncMock()
+    store.get_image.return_value = art.content
+    with pytest.raises(AuthError, match="BASELINE_CHANGED"):
+        await load_evolution(prepared, {**captured, "source_sha256": "c" * 64}, cipher, store)
+    loaded = await load_evolution(prepared, captured, cipher, store)
+    assert loaded.assets[0].id.startswith("assets/reused-") and loaded.assets[0].data == art.content
+    assert loaded.context["available_materials"][0]["role"] == "reused_illustration"
+    store.get_image.return_value = b"changed"
+    with pytest.raises(AuthError, match="MATERIAL_CHANGED"):
+        await load_evolution(prepared, captured, cipher, store)
+    evidence["frames"] = evidence["frames"][:1]
+    with pytest.raises(AuthError, match="EVIDENCE_REQUIRED"):
+        await load_evolution(prepared, captured, cipher, store)

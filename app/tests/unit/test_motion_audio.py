@@ -246,3 +246,88 @@ def test_decoded_v2_result_requires_bounded_loudness_evidence(tmp_path):
     header["diagnostics"]["audio_measurements"]["sample_peak_dbfs"] = float("nan")
     with pytest.raises(motion_html_renderer.MotionRenderError):
         motion_html_renderer._decode(packed(header, data), config)
+
+
+def test_renderer_v2_ducking_requires_original_voice_music_and_bounded_controls():
+    source = RenderAsset("assets/source.mp4", "video/mp4", b"source", hashlib.sha256(b"source").hexdigest())
+    music = RenderAsset("assets/music.wav", "audio/wav", b"music", hashlib.sha256(b"music").hexdigest())
+    event = MotionSoundEvent.model_validate(event_data())
+    plan = compile_soundtrack(original(), (event,), None, {str(event.asset_id): {"asset_id": music.id}}, 1000)
+    plan["ducking"] = {"threshold": 0.1, "ratio": 4, "attack_ms": 10, "release_ms": 100}
+    assets = {source.id: source, music.id: music}
+    assert motion_html_renderer._audio(plan, assets, 1000) == plan
+    for change in (
+        "mode",
+        "tracks",
+        "track_fields",
+        "role",
+        "source_as_effect",
+        "duck_type",
+        "duck_fields",
+        "without_original",
+        "without_music",
+        "threshold",
+        "ratio",
+        "attack",
+        "release",
+    ):
+        bad = deepcopy(plan)
+        if change == "mode":
+            bad["mode"] = "silent"
+        elif change == "tracks":
+            bad["tracks"] = []
+        elif change == "track_fields":
+            bad["tracks"][1]["unknown"] = True
+        elif change == "role":
+            bad["tracks"][1]["role"] = "unknown"
+        elif change == "source_as_effect":
+            bad["tracks"][0]["role"] = "effect"
+        elif change == "duck_type":
+            bad["ducking"] = []
+        elif change == "duck_fields":
+            bad["ducking"]["unknown"] = 0
+        elif change == "without_original":
+            bad["tracks"] = bad["tracks"][1:]
+        elif change == "without_music":
+            bad["tracks"][1]["role"] = "effect"
+        elif change == "threshold":
+            bad["ducking"]["threshold"] = float("nan")
+        elif change == "ratio":
+            bad["ducking"]["ratio"] = 21
+        elif change == "attack":
+            bad["ducking"]["attack_ms"] = 0
+        else:
+            bad["ducking"]["release_ms"] = 0
+        with pytest.raises(motion_html_renderer.MotionRenderError):
+            motion_html_renderer._audio(bad, assets, 1000)
+
+
+def test_sound_compiler_rejects_invalid_original_and_ducking_without_events():
+    event = MotionSoundEvent.model_validate(event_data())
+    duck = MotionDucking(threshold=0.1, ratio=4, attack_ms=10, release_ms=100)
+    with pytest.raises(AuthError, match="DUCKING_INVALID"):
+        compile_soundtrack(original(), (), duck, {}, 1000)
+    for value in (
+        {"mode": "mix", "tracks": []},
+        {"mode": "mix", "tracks": [{**original()["tracks"][0], "volume": 0.5}]},
+    ):
+        with pytest.raises(AuthError, match="ORIGINAL_AUDIO_CHANGED"):
+            compile_soundtrack(value, (event,), None, {}, 1000)
+    soundtrack = compile_soundtrack(
+        original(), (event,), None, {str(event.asset_id): {"asset_id": "assets/music.wav"}}, 1000
+    )
+    for track, source in (
+        ({}, original()),
+        (soundtrack, {"mode": "silent", "tracks": []}),
+        (soundtrack, {"mode": "mix", "tracks": []}),
+    ):
+        with pytest.raises(AuthError, match="ORIGINAL_AUDIO_CHANGED"):
+            validate_original_branch(track, source)
+
+
+async def test_missing_authorized_sound_material_stops_context_capture(context_case):  # noqa: F811
+    c = context_case
+    event = MotionSoundEvent.model_validate(event_data())
+    c.session.execute.side_effect = [result(c.source), result(None)]
+    with pytest.raises(AuthError, match="AUDIO_MATERIAL_UNAVAILABLE"):
+        await c.service.capture(c.session, c.tenant, c.business, c.body.model_copy(update={"sound_events": (event,)}))

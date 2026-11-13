@@ -30,6 +30,7 @@ def prepared():
             quality="medium",
             size="1024x1280",
             output_format="png",
+            background=None,
             request_id=uuid4(),
             references=(SimpleNamespace(mime_type="image/png"),),
         ),

@@ -12,6 +12,7 @@ from app.schemas.motion_plan import MotionPlan
 from app.schemas.motion_preparation import MotionPreparation
 from app.schemas.motion_scene_direction import MotionSceneDirection
 from app.schemas.motion_speech import MotionSpeechTiming
+from app.schemas.motion_staging import MotionStaging
 
 
 class MotionModel(BaseModel):
@@ -65,9 +66,10 @@ class MotionRequest(MotionModel):
     format: Literal["reel"] = "reel"
     storyboard: bool = Field(default=False, exclude_if=lambda value: not value)
     collection_photo_ids: tuple[UUID, ...] = Field(default=(), max_length=4, exclude_if=lambda value: not value)
-    repertoire_id: Literal["business-reel-v1", "business-reel-v2", "business-reel-v3", "business-reel-v4"] | None = (
-        Field(default=None, exclude_if=lambda value: value is None)
-    )
+    repertoire_id: (
+        Literal["business-reel-v1", "business-reel-v2", "business-reel-v3", "business-reel-v4", "business-reel-v5"]
+        | None
+    ) = Field(default=None, exclude_if=lambda value: value is None)
     scene_direction: MotionSceneDirection | None = Field(
         default=None,
         exclude_if=lambda value: value is None,
@@ -172,6 +174,7 @@ class MotionConstructionPlan(MotionModel):
     illustrations: tuple[MotionIllustration, ...] = Field(max_length=2)
     scene_direction: MotionSceneDirection
     audiovisual: MotionAudiovisualDesign | None = Field(default=None, exclude_if=lambda value: value is None)
+    staging: MotionStaging | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class HTMLMotionComposition(MotionModel):
@@ -185,6 +188,7 @@ class HTMLMotionComposition(MotionModel):
     illustrations: tuple[MotionIllustration, ...] = Field(default=(), max_length=2, exclude_if=lambda v: not v)
     scene_direction: MotionSceneDirection | None = Field(default=None, exclude_if=lambda value: value is None)
     audiovisual: MotionAudiovisualDesign | None = Field(default=None, exclude_if=lambda value: value is None)
+    staging: MotionStaging | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class PlannedHTMLMotionComposition(HTMLMotionComposition):
@@ -229,6 +233,9 @@ class MotionIssue(MotionModel):
     problem: str = Field(min_length=1, max_length=1000)
     correction: str = Field(min_length=1, max_length=1000)
     localization: MotionCorrectionRegion | None = Field(default=None, exclude_if=lambda value: value is None)
+    repair_kind: Literal["implementation", "direction", "material", "uncertain"] | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
 
     @model_validator(mode="after")
     def actionable_audio(self) -> Self:
@@ -249,8 +256,8 @@ class MotionTemporalCheck(MotionModel):
     name: Literal["continuity", "overlap", "reading_time", "coordination"]
     status: Literal["pass", "fail", "uncertain"]
     observation: str = Field(min_length=1, max_length=1500)
-    event_ids: tuple[str, ...] = Field(max_length=3)
-    evidence: tuple[MotionEvidenceReference, ...] = Field(max_length=32)
+    event_ids: tuple[str, ...] = Field(max_length=16)
+    evidence: tuple[MotionEvidenceReference, ...] = Field(max_length=48)
     issue_indices: tuple[int, ...] = Field(max_length=20)
 
 

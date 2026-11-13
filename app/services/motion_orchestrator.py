@@ -103,10 +103,16 @@ class MotionOrchestrator:
     async def run(self, event: BusinessEvent) -> str:
         from app.services.motion_checkpoint_execution import resume_checkpoint
         from app.services.motion_checkpoints import APPROVED, MotionCheckpoints
+        from app.services.motion_render_recovery import MotionRenderRecovery, recovery_event
+        from app.services.motion_review_recovery import MotionReviewRecovery, review_recovery_event
 
         tenant, business, actor, operation = map(
             UUID, (event.tenant_id, event.business_id, event.actor_id, event.operation_id)
         )
+        if UUID(event.event_id) == recovery_event(operation):
+            return await MotionRenderRecovery(self).run(event)
+        if UUID(event.event_id) == review_recovery_event(operation):
+            return await MotionReviewRecovery(self).run(event)
         for stage, kind in APPROVED.items():
             if UUID(event.event_id) == uuid5(operation, kind):
                 return await resume_checkpoint(self, event, stage)
@@ -181,7 +187,13 @@ class MotionOrchestrator:
             raise
 
     async def produce(
-        self, row: dict[str, Any], token: UUID, prepared: PreparedMotionInput, composition: HTMLMotionComposition
+        self,
+        row: dict[str, Any],
+        token: UUID,
+        prepared: PreparedMotionInput,
+        composition: HTMLMotionComposition,
+        *,
+        initial_candidate: Candidate | None = None,
     ) -> str:
         operation = row["operation_id"]
         initial_illustrations = composition.illustrations
@@ -193,7 +205,11 @@ class MotionOrchestrator:
         correction_base: Candidate | None = None
         number = 0
         while True:
-            candidate = await self.render(row, token, prepared, number, composition)
+            candidate = (
+                initial_candidate
+                if number == 0 and initial_candidate is not None
+                else await self.render(row, token, prepared, number, composition)
+            )
             if bounded and correction_base is not None and scope is not None:
                 try:
                     check = compare_frames(correction_base.rendered, candidate.rendered, scope)
@@ -223,6 +239,11 @@ class MotionOrchestrator:
             validate_review(review_request, reviewed.review)
             candidate = Candidate(number, composition, candidate.rendered, candidate.artifact, reviewed.review)
             await self.record_review(row, token, candidate)
+            from app.services.motion_plan_revision import requires_replanning
+
+            if requires_replanning(reviewed.review):
+                # Review and complete rendered candidate are durable before routing back to planning.
+                raise AuthError("MOTION_PLAN_REVISION_REQUIRED", 409)
             candidates.append(candidate)
             incumbent = choose_candidate(incumbent, candidate, evolution=prepared.context.get("evolution") is not None)
             if not needs_correction(reviewed.review) or number == row["max_corrections"]:
@@ -324,7 +345,7 @@ class MotionOrchestrator:
         if prepared.soundtrack is not None:
             validate_original_branch(prepared.soundtrack, prepared.audio)
         samples = sample_times(composition, prepared.context)
-        operation = row["operation_id"]
+        operation = row.get("render_namespace", row["operation_id"])
         render_operation = uuid5(operation, f"render:{number}")
         profile = {"width": 720, "height": 1280, "fps": 30, "duration_ms": prepared.duration_ms}
         await self.effects.claim(

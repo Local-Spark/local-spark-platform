@@ -33,8 +33,9 @@ from app.services.motion_skills import load_motion_skill, resolve_html_motion_sk
 from app.services.motion_sound_analysis import ANALYSIS_CONTRACT
 from app.services.motion_sound_library import capture_sound_library
 from app.services.motion_speech_policy import speech_policy
+from app.services.motion_staging import STAGING_CONTRACT
 from app.services.motion_styles import html_style_card, list_motion_styles
-from app.services.motion_temporal import POLICY_V3
+from app.services.motion_temporal import POLICY_V3, POLICY_V4
 from app.services.motion_visual_direction import supplied_direction
 from app.services.reference_generation_context import capture_generation_context
 
@@ -169,7 +170,18 @@ def capture_motion_guidance(
                 "card": card,
             }
         )
+    staging = (
+        {"staging_contract": STAGING_CONTRACT}
+        if previous is None and quality and request.repertoire_id in (None, "business-reel-v5")
+        else {"staging_contract": previous["staging_contract"]}
+        if previous is not None and "staging_contract" in previous
+        else {}
+    )
+    if staging and previous is None:
+        creative = {**cast(dict[str, Any], creative), "temporal_review": dict(POLICY_V4)}
+    repertoire_id = request.repertoire_id or ("business-reel-v5" if staging else None)
     return {
+        **staging,
         **quality,
         **(
             {"audio_analysis_contract": ANALYSIS_CONTRACT}
@@ -211,7 +223,7 @@ def capture_motion_guidance(
         **({"illustration_generation": illustration_generation} if illustration_generation is not None else {}),
         "skill": {"id": skill_id, "sha256": skill_hash, "instructions": skill_text},
         "styles": styles,
-        **({"repertoire": capture_repertoire(request.repertoire_id)} if request.repertoire_id else {}),
+        **({"repertoire": capture_repertoire(repertoire_id)} if repertoire_id else {}),
     }
 
 
