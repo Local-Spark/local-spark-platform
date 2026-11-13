@@ -20,6 +20,7 @@ homologação externa. Um desenho ou ensaio não comprova capacidade entregue.
 | Identidade visual | [Biblioteca](brand-library.md) | Kit demonstrativo e editor locais; acabamento ligado ao modo simulado; direitos/qualidade comerciais pendentes. |
 | Contexto | [Contexto e geração](business-context-and-generation.md) | Fatos/preferências e acervo versionados; retrieval e Jev opcionais no worker local, sem memória geral. |
 | Qualidade | [Gate criativo](creative-production-quality.md) | BL04.3 precisa medir fidelidade e custo por peça aceita, incluindo refações. |
+| Piso v3 | [Avaliador estrutural](motion-piso-estrutural-v3-2026-11-13.md) | Função pura, desligada. Não substitui o v2 nem prova quadro renderizado. |
 | Sequência | [Roadmap](delivery-roadmap-2026-10-27.md), [cadência](editorial-planning-and-evidence.md) | BL04 → BL05 → homologação, franquias e operação; sem promessa de quantidade antes de medir. |
 | Identidade/autorização | [Auth própria](native-auth.md), [tenancy](v0-tenancy.md) | API/RLS, membership e papéis restritos. |
 | Consistência | [Transações e logs](v0-consistency-observability.md), [resiliência](v0-reliability.md) | Invariantes de implementação; exemplos futuros identificados separadamente. |

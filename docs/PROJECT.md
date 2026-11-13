@@ -1,5 +1,8 @@
 # Meu Braço Direito — contexto vigente
 
+**Piso estrutural v3 (13/11/2026): avaliador puro, não ligado à geração.**
+`motion-production-quality-v3` recusa plano de uma escala com texto na margem, mas só quando um chamador pede essa versão. O perfil ativo continua o v2. Não há MP4 novo nem aceite visual. Ver `docs/design/motion-piso-estrutural-v3-2026-11-13.md`.
+
 **Estado vigente após o feedback do titular — 13/11/2026: entrega REPROVADA.**
 O titular rejeitou o MP4 final desta rodada e apontou repetição visual, perda de
 frases e de encenação com café/xícara, e distância das 41 referências. O objetivo
