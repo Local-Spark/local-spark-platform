@@ -300,6 +300,7 @@ def test_execution_requires_stage_and_declared_mechanism():
 
     assert uses_structural_runtime("window.seek=async(ms)=>{}") is False
     assert uses_structural_runtime("window.seek=async(ms)=>{StructuralFloorV1.apply(ms)}") is True
+    assert uses_structural_runtime("window.seek=async(ms)=>{await MechanismsV1.seek(ms);}") is True
     assert structural_sample_points(SimpleNamespace(start_ms=0, end_ms=0)) == (("start", 0), ("mid", 0), ("end", 0))
     scene = SimpleNamespace(id="s", message="m", start_ms=0, end_ms=1000)
     moments = ({"frame_index": 0, "scene_id": "s"},)

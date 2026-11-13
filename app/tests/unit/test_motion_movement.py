@@ -93,3 +93,11 @@ def test_structural_runtime_is_prepended_only_when_the_scene_calls_it(tmp_path):
     packed = (tmp_path / "marked/scene.js").read_bytes()
     assert packed.startswith(MECHANISM_RUNTIME.encode())
     assert plain["scene_sha256"] != hashlib.sha256(packed).hexdigest()
+
+
+def test_mechanism_runtime_file_is_prepended_for_the_structural_stage(tmp_path):
+    from app.adapters.motion_html_renderer import MECHANISMS_SOURCE
+
+    marked = replace(bundle(), scene_init="window.seek=async(ms)=>{await MechanismsV1.seek(ms);};")
+    _prepare(marked, tmp_path / "stage")
+    assert (tmp_path / "stage/scene.js").read_bytes().startswith(MECHANISMS_SOURCE.read_bytes())

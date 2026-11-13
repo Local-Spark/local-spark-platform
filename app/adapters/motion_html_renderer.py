@@ -20,6 +20,8 @@ from app.services.motion_elements import runtime_bytes as element_runtime_bytes
 from app.services.motion_movement import movement_bytes
 from app.services.motion_structural_floor import MECHANISM_RUNTIME, uses_structural_runtime
 
+MECHANISMS_SOURCE = Path(__file__).resolve().parents[1] / "assets/motion_html_renderer/mechanisms-v1.js"
+
 MAX_INPUT_BYTES = 256 * 1024 * 1024
 MAX_VIDEO_BYTES = 128 * 1024 * 1024
 MAX_EVIDENCE_BYTES = 32 * 1024 * 1024
@@ -243,7 +245,9 @@ def _prepare(bundle: RenderBundle, directory: Path) -> RenderConfig:
         except AuthError as exc:
             raise MotionRenderError("MOTION_RENDER_MOVEMENT_VERSION_UNAVAILABLE") from exc
         scene = runtime + b"\n;\n" + scene
-    if uses_structural_runtime(bundle.scene_init):
+    if "MechanismsV1.seek" in bundle.scene_init:
+        scene = MECHANISMS_SOURCE.read_bytes() + b"\n;\n" + scene
+    elif uses_structural_runtime(bundle.scene_init):
         scene = MECHANISM_RUNTIME.encode() + b"\n;\n" + scene
     if bundle.element_runtime_sha256 is not None:
         elements = element_runtime_bytes()

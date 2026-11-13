@@ -197,7 +197,7 @@ window.StructuralFloorV1 = {
 
 
 def uses_structural_runtime(scene_init: str) -> bool:
-    return "StructuralFloorV1.apply" in scene_init
+    return "StructuralFloorV1.apply" in scene_init or "MechanismsV1.seek" in scene_init
 
 
 def validate_structural_execution(composition: Any, context: dict[str, Any]) -> None:

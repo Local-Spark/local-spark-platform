@@ -1,6 +1,9 @@
 # Registro de mudanças
 
-## 2026-11-13 — preparação supervisionada seleciona o piso v3
+## 2026-11-13 — o palco v3 é do renderer, não do modelo
+
+Com o piso v3, storyboard e render descartam o HTML do modelo e montam a foto em cover, a palavra dentro dela e um dos quatro mecanismos. A prova de pixel existe e não está ligada ao Chromium. Sem o campo, nada muda. Sem MP4.
+
 
 `motion_supervised_prepare` grava `structural_floor: motion-production-quality-v3` no pedido antes de exportar o contexto. O comando continua sem chamar modelo, renderer ou API paga. A geração pela API, sem esse campo, segue no v2.
 

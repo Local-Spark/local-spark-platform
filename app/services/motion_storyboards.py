@@ -27,6 +27,7 @@ from app.services.motion_plan import validate_motion_plan
 from app.services.motion_protocols import MotionRenderer
 from app.services.motion_requests import MotionRequestService
 from app.services.motion_storyboard_frames import StoryboardMoment, storyboard_moments, storyboard_upload_name
+from app.services.motion_structural_stage import stage_if_structural
 from app.services.motion_temporal import evidence_manifest
 from app.services.visual_pending_changes import VisualPendingChanges
 from app.services.visual_pending_scripts import apply_pending_script_changes
@@ -50,6 +51,7 @@ class MotionStoryboards:
         *,
         capture_id: UUID | None = None,
     ) -> None:
+        composition = stage_if_structural(composition, prepared.context, prepared.assets)
         moments = storyboard_moments(composition, prepared.context)
         assert composition.motion_plan is not None
         validate_motion_plan(
