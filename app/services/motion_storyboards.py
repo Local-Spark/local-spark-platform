@@ -27,7 +27,12 @@ from app.services.motion_plan import validate_motion_plan
 from app.services.motion_protocols import MotionRenderer
 from app.services.motion_requests import MotionRequestService
 from app.services.motion_storyboard_frames import StoryboardMoment, storyboard_moments, storyboard_upload_name
-from app.services.motion_structural_stage import duck_for_speech, prove_storyboard_frames, stage_if_structural
+from app.services.motion_structural_stage import (
+    assignment_context,
+    duck_for_speech,
+    prove_storyboard_frames,
+    stage_if_structural,
+)
 from app.services.motion_temporal import evidence_manifest
 from app.services.visual_pending_changes import VisualPendingChanges
 from app.services.visual_pending_scripts import apply_pending_script_changes
@@ -56,7 +61,7 @@ class MotionStoryboards:
         assert composition.motion_plan is not None
         validate_motion_plan(
             composition,
-            prepared.context,
+            assignment_context(prepared.context, composition.motion_plan, prepared.source_frames),
             duration_ms=prepared.duration_ms,
             asset_ids={asset.id for asset in prepared.assets},
         )

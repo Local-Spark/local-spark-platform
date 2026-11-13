@@ -6,9 +6,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.services.motion_structural_floor import FLOOR_VERSION
+from app.services.motion_structural_floor import FLOOR_VERSION, evaluate_structural_floor
 from app.services.motion_structural_stage import (
     _paeth,
+    assign_structure,
+    assignment_context,
     compose_structural_stage,
     decode_png_rgb,
     duck_for_speech,
@@ -112,7 +114,23 @@ def test_stage_replaces_model_html_only_when_v3_is_selected():
     assert "fora" in staged.update["html"]
 
 
-def test_measured_subject_and_speech_ducking():
+def test_structure_is_chosen_from_speech_without_the_model():
+    assigned = assign_structure(2, [{"text": "pausa"}])
+    assert evaluate_structural_floor(assigned) == ()
+    assert [beat["scale"] for beat in assigned["beats"]] == ["macro", "medium", "card"]
+    assert assigned["stage_beats"][0]["text"] == "pausa"
+    plan = SimpleNamespace(duration_ms=9000, scenes=())
+    assert assignment_context({}, plan) is not None and "structural_assignment" not in assignment_context({}, plan)
+    context = {
+        "structural_floor": FLOOR_VERSION,
+        "speech_result": {"cues": [{"text": "pausa", "start_ms": 0, "end_ms": 10}]},
+    }
+    owned = assignment_context(context, plan)
+    assert owned["structural_assignment"]["beats"][0]["role"] == "establish"
+    assert assignment_context(context, None) is context
+    assert assignment_context(context, SimpleNamespace(duration_ms="9000")) is context
+    page, _code = compose_structural_stage(plan, "assets/source.mp4", context["speech_result"]["cues"])
+    assert page.count("data-mechanism=") == 3
     width = height = 20
     pixels = bytearray(width * height * 3)
     for y in range(8, 14):

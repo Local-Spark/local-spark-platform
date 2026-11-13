@@ -1,6 +1,9 @@
 # Registro de mudanças
 
-## 2026-11-13 — fala, caixa medida, ducking e prova no PNG
+## 2026-11-13 — escala, papel e mecanismo deixam de ser escolha do modelo
+
+Com o piso v3, o código divide a peça em três partes e escolhe escala, papel e mecanismo a partir da fala e da caixa medida. O modelo não precisa mais acertar esses três campos. Sem o piso, nada muda. Sem MP4.
+
 
 No piso v3, a palavra do Whisper marca o corte, a caixa sai do quadro da fonte, a música abaixa na fala e o storyboard recusa a batida se o PNG não mudou. Sem o campo, nada muda. Sem MP4.
 

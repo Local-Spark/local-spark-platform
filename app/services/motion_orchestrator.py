@@ -37,7 +37,7 @@ from app.services.motion_requests import MotionRequestService
 from app.services.motion_review import validate_review
 from app.services.motion_speech_recognition import MotionSpeechRecognition, SpeechRecognizer
 from app.services.motion_storyboards import MotionStoryboards
-from app.services.motion_structural_stage import duck_for_speech, stage_if_structural
+from app.services.motion_structural_stage import assignment_context, duck_for_speech, stage_if_structural
 from app.services.motion_temporal import evidence_manifest, sample_times, temporal_enabled
 from app.services.visual_pending_changes import VisualPendingChanges
 from app.services.visual_pending_scripts import apply_pending_script_changes
@@ -333,7 +333,7 @@ class MotionOrchestrator:
         composition = stage_if_structural(composition, prepared.context, prepared.assets, prepared.source_frames)
         validate_motion_plan(
             composition,
-            prepared.context,
+            assignment_context(prepared.context, composition.motion_plan, prepared.source_frames),
             duration_ms=prepared.duration_ms,
             asset_ids={asset.id for asset in prepared.assets},
         )

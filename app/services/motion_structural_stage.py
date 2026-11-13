@@ -8,8 +8,11 @@ from typing import Any
 
 from app.services.motion_structural_floor import structural_floor_enabled
 
-MEDIA_DIFF_MIN = 8.0
+SCALES = ("macro", "medium", "card")
+ROLES = ("establish", "extract", "invite")
+MECHANISMS = ("mask_open_from_point", "ellipse_to_glyph", "plate_cta")
 DEFAULT_RECT = [0.32, 0.42, 0.36, 0.28]
+MEDIA_DIFF_MIN = 8.0
 SPEECH_DUCKING = {"threshold": 0.05, "ratio": 8, "attack_ms": 15, "release_ms": 250}
 
 
@@ -29,6 +32,64 @@ def _snap(beat: dict[str, Any], cues: list[dict[str, Any]]) -> dict[str, Any]:
     if spoken:
         snapped["text"] = spoken
     return snapped
+
+
+def assign_structure(
+    duration_ms: int, cues: list[dict[str, Any]] | None = None, rect: list[float] | None = None
+) -> dict[str, Any]:
+    """Choose scale, role and mechanism in code. The model does not pick them."""
+    words = [str(cue.get("text") or "").strip() for cue in (cues or []) if str(cue.get("text") or "").strip()]
+    phrases = words or ["Café"]
+    box = rect or DEFAULT_RECT
+    cuts = [round(duration_ms * index / 3) for index in range(4)]
+    cuts[-1] = duration_ms
+    beats: list[dict[str, Any]] = []
+    stage: list[dict[str, Any]] = []
+    for index in range(3):
+        start, end = cuts[index], max(cuts[index + 1], cuts[index] + 1)
+        phrase = " ".join(phrases[index::3]) or phrases[min(index, len(phrases) - 1)]
+        last = index == 2
+        beats.append(
+            {
+                "t_in_ms": start,
+                "t_out_ms": end,
+                "role": ROLES[index],
+                "scale": SCALES[index],
+                "protagonist": "cta" if last else "type",
+                "copy": phrase,
+                "anchor": {"kind": "object_edge"},
+                "mechanism": [MECHANISMS[index]],
+                "hold_ms": 1000,
+                "hero_height_ratio": 0.22,
+                "contrast_ratio": 7,
+                "moves_during_hold": False,
+                "crop_changes_inside": True,
+                "text_outside_media": False,
+                "cta_plate": last,
+                "cta_outside_media": False,
+            }
+        )
+        stage.append(
+            {
+                "id": f"structural-{index + 1}",
+                "start_ms": start,
+                "end_ms": end,
+                "scale": SCALES[index],
+                "mechanism": MECHANISMS[index],
+                "mechanisms": [MECHANISMS[index]],
+                "text": phrase,
+                "rect": box,
+            }
+        )
+    return {
+        "duration_ms": duration_ms,
+        "letterbox": "kit_color",
+        "third_party_mark_legible": False,
+        "audio_trimmed": True,
+        "spoken_phrases": [beat["copy"] for beat in beats],
+        "beats": beats,
+        "stage_beats": stage,
+    }
 
 
 def beats_from_plan(
@@ -68,7 +129,11 @@ def compose_structural_stage(
     rect: list[float] | None = None,
 ) -> tuple[str, str]:
     """Return HTML and scene_init. Text lives inside the media stage."""
-    records = beats_from_plan(plan, cues, rect)
+    duration = getattr(plan, "duration_ms", None)
+    if isinstance(duration, int) and duration > 0:
+        records = assign_structure(duration, cues, rect)["stage_beats"]
+    else:
+        records = beats_from_plan(plan, cues, rect)
     declared = "".join(
         f'<i data-mechanism="{html.escape(name)}" hidden></i>' for beat in records for name in beat["mechanisms"]
     )
@@ -204,6 +269,20 @@ def measure_subject_rect(frames: Any) -> list[float] | None:
     right = min(1.0, (max_x + pad_x) / width)
     bottom = min(1.0, (max_y + pad_y) / height)
     return [round(left, 4), round(top, 4), round(max(right - left, 0.12), 4), round(max(bottom - top, 0.12), 4)]
+
+
+def assignment_context(context: dict[str, Any], plan: Any, frames: Any = ()) -> dict[str, Any]:
+    """Attach the code-owned structure. Callers still validate the result."""
+    if (
+        not structural_floor_enabled(context.get("structural_floor"))
+        or plan is None
+        or not isinstance(getattr(plan, "duration_ms", None), int)
+    ):
+        return context
+    return {
+        **context,
+        "structural_assignment": assign_structure(plan.duration_ms, _cues(context), measure_subject_rect(frames)),
+    }
 
 
 def stage_if_structural(composition: Any, context: dict[str, Any], assets: Any, frames: Any = ()) -> Any:

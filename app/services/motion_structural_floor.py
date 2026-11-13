@@ -211,12 +211,17 @@ def validate_structural_execution(composition: Any, context: dict[str, Any]) -> 
         return
     if 'data-stage="media"' not in html or not uses_structural_runtime(scene_init):
         raise StructuralFloorRejected()
+    assigned = context.get("structural_assignment")
     declared: list[str] = []
-    for scene in plan.scenes:
-        for element in scene.elements:
-            declared.extend(element.mechanism_ids)
-            if element.text_outside_media:
-                raise StructuralFloorRejected()
+    if isinstance(assigned, dict):
+        for beat in assigned.get("beats") or []:
+            declared.extend(beat.get("mechanism") or [])
+    else:
+        for scene in plan.scenes:
+            for element in scene.elements:
+                declared.extend(element.mechanism_ids)
+                if element.text_outside_media:
+                    raise StructuralFloorRejected()
     if not declared:
         raise StructuralFloorRejected()
     for mechanism in declared:
@@ -260,5 +265,9 @@ def enforce_structural_floor(plan: Any, context: dict[str, Any]) -> None:
     """Reject a plan before render when the request selected v3. No-op otherwise."""
     if not structural_floor_enabled(context.get("structural_floor")):
         return
-    if plan is None or evaluate_structural_floor(view_from_plan(plan)):
+    if plan is None:
+        raise StructuralFloorRejected()
+    assigned = context.get("structural_assignment")
+    piece = assigned if isinstance(assigned, dict) else view_from_plan(plan)
+    if evaluate_structural_floor(piece):
         raise StructuralFloorRejected()

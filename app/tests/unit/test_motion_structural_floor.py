@@ -337,3 +337,38 @@ def test_execution_requires_stage_and_declared_mechanism():
     fails(html=html, scene_init=code, motion_plan=SimpleNamespace(scenes=(SimpleNamespace(elements=(unknown,)),)))
     missing = SimpleNamespace(mechanism_ids=("plate_cta",), text_outside_media=False)
     fails(html=html, scene_init=code, motion_plan=SimpleNamespace(scenes=(SimpleNamespace(elements=(missing,)),)))
+
+
+def test_code_owned_structure_passes_without_a_model_plan():
+    from types import SimpleNamespace
+
+    import pytest
+
+    from app.services.motion_structural_floor import (
+        MECHANISM_IDS,
+        StructuralFloorRejected,
+        enforce_structural_floor,
+        validate_structural_execution,
+    )
+    from app.services.motion_structural_stage import assign_structure
+
+    assigned = assign_structure(11076, [{"text": "pausa"}, {"text": "agora"}])
+    assert evaluate_structural_floor(assigned) == ()
+    thin = SimpleNamespace(duration_ms=11076, scenes=())
+    enforce_structural_floor(thin, {"structural_floor": FLOOR_VERSION, "structural_assignment": assigned})
+    with pytest.raises(StructuralFloorRejected):
+        enforce_structural_floor(thin, {"structural_floor": FLOOR_VERSION, "structural_assignment": {}})
+    html = '<div data-stage="media"></div>' + "".join(
+        f'<i data-mechanism="{name}" hidden></i>' for name in MECHANISM_IDS
+    )
+    owned = SimpleNamespace(
+        html=html,
+        scene_init="MechanismsV1.seek(ms)",
+        motion_plan=SimpleNamespace(scenes=(SimpleNamespace(elements=()),)),
+    )
+    validate_structural_execution(owned, {"structural_floor": FLOOR_VERSION, "structural_assignment": assigned})
+    with pytest.raises(StructuralFloorRejected):
+        validate_structural_execution(
+            owned,
+            {"structural_floor": FLOOR_VERSION, "structural_assignment": {"beats": [{"mechanism": ["missing"]}]}},
+        )
