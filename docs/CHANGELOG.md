@@ -1,6 +1,9 @@
 # Registro de mudanças
 
-## 2026-11-13 — escala, papel e mecanismo deixam de ser escolha do modelo
+## 2026-11-13 — o executor nativo não exige mais o CI inteiro
+
+`scripts/evals/execute_native.py` não lê mais `validation.json`. Orçamento, operação e o hash do pedido continuam obrigatórios. O `make ci` segue sendo a prova do produto, não a trava desta geração.
+
 
 Com o piso v3, o código divide a peça em três partes e escolhe escala, papel e mecanismo a partir da fala e da caixa medida. O modelo não precisa mais acertar esses três campos. Sem o piso, nada muda. Sem MP4.
 
