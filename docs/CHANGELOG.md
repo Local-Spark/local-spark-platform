@@ -1,6 +1,8 @@
 # Registro de mudanças
 
-## 2026-11-13 — mecanismos do piso v3 no HTML, só se o pedido pedir
+## 2026-11-13 — preparação supervisionada seleciona o piso v3
+
+`motion_supervised_prepare` grava `structural_floor: motion-production-quality-v3` no pedido antes de exportar o contexto. O comando continua sem chamar modelo, renderer ou API paga. A geração pela API, sem esse campo, segue no v2.
 
 `StructuralFloorV1.apply` cobre máscara, glifo, eixo e placa. O render só injeta esse runtime se o `scene_init` chamar a função. HTML sem `data-stage="media"` ou sem o `data-mechanism` declarado é recusado. Amostras de início, meio e fim entram no storyboard desse pedido. Sem o campo, nada muda. Sem MP4 novo.
 

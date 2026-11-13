@@ -25,6 +25,13 @@ from scripts.evals.motion_external_export import assemble_files, pretty, sha, ve
 from scripts.evals.motion_preparation_speech import prepare_speech
 
 
+def with_structural_floor(body: MotionRequest) -> MotionRequest:
+    """Supervised local preparation selects the structural floor. Other API requests do not."""
+    if body.structural_floor == "motion-production-quality-v3":
+        return body
+    return body.model_copy(update={"structural_floor": "motion-production-quality-v3"})
+
+
 def reuse_speech(prepared, timing):
     if prepared.context.get("quality_contract") is not None:
         raise ValueError("PRODUCTION_PREPARATION_ARCHIVED_SPEECH_FORBIDDEN")
@@ -42,7 +49,7 @@ def reuse_speech(prepared, timing):
 
 
 async def prepare(args):
-    body = MotionRequest.model_validate_json(args.request.read_bytes())
+    body = with_structural_floor(MotionRequest.model_validate_json(args.request.read_bytes()))
     if not body.propose_direction or not body.review_checkpoints or body.evolution is not None:
         raise ValueError("SUPERVISED_PROPOSAL_REQUIRED")
     identity = json.loads(args.identity.read_bytes())["ids"]

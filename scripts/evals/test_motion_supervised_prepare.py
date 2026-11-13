@@ -1,12 +1,21 @@
 """Offline evidence propagation and mismatch rejection, without reading customer services."""
 
 from dataclasses import replace
+from uuid import uuid4
 
 import pytest
 
+from app.schemas.motion_production import MotionRequest
 from app.tests.unit.test_motion_audiovisual import natural_prepared
 from app.tests.unit.test_motion_speech import timing_data
-from scripts.evals.motion_supervised_prepare import reuse_speech
+from scripts.evals.motion_supervised_prepare import reuse_speech, with_structural_floor
+
+
+def test_supervised_preparation_selects_the_structural_floor():
+    body = MotionRequest(operation_id=uuid4(), source_asset_id=uuid4(), instruction="Peça")
+    selected = with_structural_floor(body)
+    assert selected.structural_floor == "motion-production-quality-v3"
+    assert with_structural_floor(selected) is selected
 
 
 def test_archived_speech_preserves_provenance_and_rejects_a_different_recording():
