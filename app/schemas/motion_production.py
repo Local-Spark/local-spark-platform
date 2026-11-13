@@ -70,6 +70,11 @@ class MotionRequest(MotionModel):
         Literal["business-reel-v1", "business-reel-v2", "business-reel-v3", "business-reel-v4", "business-reel-v5"]
         | None
     ) = Field(default=None, exclude_if=lambda value: value is None)
+    structural_floor: Literal["motion-production-quality-v3"] | None = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+        description="Opt-in structural rejection. Omitted requests stay on the v2 quality contract.",
+    )
     scene_direction: MotionSceneDirection | None = Field(
         default=None,
         exclude_if=lambda value: value is None,

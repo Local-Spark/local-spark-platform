@@ -1,7 +1,7 @@
 # SDD geral — Meu Braço Direito
 
-**Piso estrutural v3 (13/11/2026): avaliador puro, não ligado à geração.**
-A geração continua no perfil v2. O v3 é uma função à parte, desligada por padrão, descrita em `docs/design/motion-piso-estrutural-v3-2026-11-13.md`. Não altera admissão, render nem aprovação humana.
+**Piso estrutural v3 (13/11/2026): recusa o plano antes do render se o pedido selecionar `motion-production-quality-v3`.**
+Sem esse campo, a geração continua no v2. Ver `docs/design/motion-piso-estrutural-v3-2026-11-13.md`.
 
 **Estado vigente após o feedback do titular — 13/11/2026: entrega REPROVADA.**
 O titular rejeitou o MP4 final desta rodada e apontou repetição visual, perda de

@@ -61,6 +61,10 @@ class MotionElementPlan(PlanModel):
     related_element_ids: tuple[Identifier, ...] = Field(max_length=16)
     coordination: Description
     beats: tuple[MotionBeat, ...] = Field(min_length=1, max_length=12)
+    mechanism_ids: tuple[str, ...] = Field(default=(), max_length=4, exclude_if=lambda value: not value)
+    hero_height_ratio: float | None = Field(default=None, exclude_if=lambda value: value is None)
+    contrast_ratio: float | None = Field(default=None, exclude_if=lambda value: value is None)
+    text_outside_media: bool = Field(default=False, exclude_if=lambda value: value is False)
 
 
 class MotionScenePlan(PlanModel):
@@ -78,6 +82,12 @@ class MotionScenePlan(PlanModel):
     )
     transition_to_next: Description
     elements: tuple[MotionElementPlan, ...] = Field(min_length=1, max_length=16)
+    structural_scale: Literal["macro", "medium", "card"] | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    structural_role: Literal["establish", "extract", "invite"] | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
 
 
 class MotionPlan(PlanModel):

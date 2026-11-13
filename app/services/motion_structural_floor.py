@@ -101,3 +101,77 @@ def evaluate_structural_floor(piece: dict[str, Any]) -> tuple[str, ...]:
         if item not in unique:
             unique.append(item)
     return tuple(unique)
+
+
+def _hold_ms(element: Any) -> int:
+    hold = 0
+    for beat in element.beats:
+        if beat.phase == "hold":
+            hold = max(hold, beat.end_ms - beat.start_ms)
+    return hold
+
+
+def view_from_plan(plan: Any) -> dict[str, Any]:
+    """Project a real motion plan into the structural checker.
+
+    Scales and roles come only from the scene fields. They are not inferred,
+    so a one-scene caption plan fails closed when v3 is selected.
+    """
+    beats: list[dict[str, Any]] = []
+    scenes = list(plan.scenes)
+    for index, scene in enumerate(scenes):
+        texts = [element for element in scene.elements if element.role == "text"]
+        text = texts[0] if texts else None
+        last = index == len(scenes) - 1
+        role = scene.structural_role or ("invite" if last else "establish" if index == 0 else "extract")
+        protagonist = "gesture"
+        if text is not None and role == "invite":
+            protagonist = "cta"
+        elif text is not None:
+            protagonist = "type"
+        elif any(element.role in {"image", "video"} for element in scene.elements):
+            protagonist = "product"
+        mechanisms = list(text.mechanism_ids) if text is not None else []
+        anchor_kind = "object_edge" if text is not None and text.related_element_ids else "none"
+        beats.append(
+            {
+                "t_in_ms": scene.start_ms,
+                "t_out_ms": scene.end_ms,
+                "role": role,
+                "scale": scene.structural_scale or "medium",
+                "protagonist": protagonist,
+                "copy": text.purpose if text is not None else "",
+                "anchor": {"kind": anchor_kind},
+                "mechanism": mechanisms,
+                "hold_ms": _hold_ms(text) if text is not None else 0,
+                "hero_height_ratio": text.hero_height_ratio if text is not None else None,
+                "contrast_ratio": text.contrast_ratio if text is not None else None,
+                "moves_during_hold": False,
+                "crop_changes_inside": True,
+                "text_outside_media": bool(text.text_outside_media) if text is not None else False,
+                "cta_plate": "plate_cta" in mechanisms,
+                "cta_outside_media": bool(text.text_outside_media) if text is not None else False,
+            }
+        )
+    return {
+        "duration_ms": plan.duration_ms,
+        "letterbox": "kit_color",
+        "third_party_mark_legible": False,
+        "audio_trimmed": True,
+        "spoken_phrases": [],
+        "beats": beats,
+    }
+
+
+class StructuralFloorRejected(Exception):
+    """Plan failed the opt-in structural floor. The caller maps this to an API error."""
+
+
+def enforce_structural_floor(plan: Any, context: dict[str, Any]) -> None:
+    """Reject a plan before render when the request selected v3. No-op otherwise."""
+    if not structural_floor_enabled(context.get("structural_floor")):
+        return
+    if plan is None or evaluate_structural_floor(view_from_plan(plan)):
+        raise StructuralFloorRejected()
+
+

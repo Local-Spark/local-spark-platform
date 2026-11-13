@@ -1,8 +1,10 @@
 # Piso estrutural v3 — proposto na geração, implementado como avaliador
 
-**Estado: implementado só como função pura. Não selecionado pela geração.**
+**Estado: ligado na admissão do plano quando o pedido traz `structural_floor: motion-production-quality-v3`. A geração sem esse campo continua no v2.**
 
-O perfil ativo continua `motion-production-quality-v2`. O v2 pede `visual_development` em texto e não impõe quantidade de cenas nem proíbe barra editorial. A peça de 13/11 coube nesse contrato e recebeu `adequate`. O v3 não substitui o v2 e não está em `validate_quality_context`.
+`validate_motion_plan` chama `enforce_structural_floor`. Plano de uma cena, sem escalas distintas, texto sem âncora ou CTA sem `plate_cta`, é recusado com `MOTION_STRUCTURAL_FLOOR_REJECTED` antes do render. O contexto de geração recebe a regra no `motion_plan_rules`.
+
+Isto ainda não desenha o HTML. O modelo precisa preencher `structural_scale`, `structural_role`, `mechanism_ids`, `hero_height_ratio` e `contrast_ratio`. A crítica de pixel do quadro renderizado continua fora. Sem o campo no pedido, nada muda.
 
 ## O que entrou
 

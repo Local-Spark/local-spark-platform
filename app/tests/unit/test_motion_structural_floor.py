@@ -204,3 +204,85 @@ def test_audio_trim_covers_missing_phrases_and_empty_plan_fails_closed():
     piece["audio_trimmed"] = True
     assert evaluate_structural_floor(piece) == ()
     assert "scale_count" in evaluate_structural_floor({})
+
+
+def test_real_plan_is_rejected_or_admitted_before_render():
+    from types import SimpleNamespace
+
+    from app.services.motion_structural_floor import StructuralFloorRejected, enforce_structural_floor, view_from_plan
+
+    def beat(phase: str, start: int, end: int):
+        return SimpleNamespace(phase=phase, start_ms=start, end_ms=end)
+
+    def text(purpose: str, mechanisms: tuple[str, ...]):
+        return SimpleNamespace(
+            role="text",
+            purpose=purpose,
+            related_element_ids=("clip",),
+            mechanism_ids=mechanisms,
+            hero_height_ratio=0.22,
+            contrast_ratio=5.0,
+            text_outside_media=False,
+            beats=(beat("enter", 0, 400), beat("hold", 400, 1600)),
+        )
+
+    def scene(start, end, scale, role, elements):
+        return SimpleNamespace(
+            start_ms=start,
+            end_ms=end,
+            structural_scale=scale,
+            structural_role=role,
+            elements=elements,
+        )
+
+    video = SimpleNamespace(role="video", beats=(beat("hold", 0, 1500),))
+    admitted = SimpleNamespace(
+        duration_ms=8000,
+        scenes=(
+            scene(0, 2000, "macro", None, (SimpleNamespace(role="graphic", beats=()),)),
+            scene(2000, 4000, "medium", None, (video,)),
+            scene(4000, 6000, "medium", "extract", (text("Corte limpo", ("axis_type_in",)),)),
+            scene(6000, 8000, "card", "invite", (text("Saiba mais", ("plate_cta",)),)),
+        ),
+    )
+    assert evaluate_structural_floor(view_from_plan(admitted)) == ()
+    enforce_structural_floor(admitted, {"structural_floor": FLOOR_VERSION})
+    enforce_structural_floor(admitted, {})
+
+    rejected = SimpleNamespace(
+        duration_ms=11200,
+        scenes=(
+            scene(
+                0,
+                11200,
+                None,
+                None,
+                (
+                    SimpleNamespace(
+                        role="text",
+                        purpose="Pausa",
+                        related_element_ids=(),
+                        mechanism_ids=(),
+                        hero_height_ratio=None,
+                        contrast_ratio=None,
+                        text_outside_media=True,
+                        beats=(beat("enter", 0, 11200),),
+                    ),
+                ),
+            ),
+        ),
+    )
+    assert "scale_count" in evaluate_structural_floor(view_from_plan(rejected))
+    try:
+        enforce_structural_floor(rejected, {"structural_floor": FLOOR_VERSION})
+    except StructuralFloorRejected:
+        assert True
+    else:
+        raise AssertionError("expected rejection")
+    try:
+        enforce_structural_floor(None, {"structural_floor": FLOOR_VERSION})
+    except StructuralFloorRejected:
+        assert True
+    else:
+        raise AssertionError("expected rejection")
+

@@ -1,8 +1,8 @@
 # Registro de mudanças
 
-## 2026-11-13 — piso estrutural v3, avaliador puro, geração inalterada
+## 2026-11-13 — piso estrutural v3 na admissão, só se o pedido pedir
 
-Função `evaluate_structural_floor` em `app/services/motion_structural_floor.py`, perfil `motion-production-quality-v3`, desligado por padrão. O contrato ativo segue v2. A função não entra em `validate_quality_context`, não renderiza e não gasta. Teste unitário cobre a forma da peça rejeitada em 13/11 e um plano de outro ramo. Detalhe: `docs/design/motion-piso-estrutural-v3-2026-11-13.md`. Sem aceite visual e sem MP4 novo.
+`MotionRequest.structural_floor` opcional. Quando vale `motion-production-quality-v3`, `validate_motion_plan` recusa o plano antes do render. Pedido sem o campo segue no v2. Não mede pixel nem gera MP4 sozinho.
 
 ## 2026-11-13 — registrar reprovação da peça final e novo pedido de estudo
 

@@ -279,6 +279,21 @@ def test_scene_end_cannot_exceed_the_declared_output_duration():
         planned(data)
 
 
+def test_structural_floor_rejects_a_thin_plan_only_when_selected():
+    from app.services.motion_context import capture_motion_guidance
+
+    validate_motion_plan(planned(), context(), duration_ms=1000, asset_ids=set())
+    selected = context()
+    selected["structural_floor"] = "motion-production-quality-v3"
+    with pytest.raises(AuthError, match="MOTION_STRUCTURAL_FLOOR_REJECTED"):
+        validate_motion_plan(planned(), selected, duration_ms=1000, asset_ids=set())
+    captured = capture_motion_guidance(replace(request(), structural_floor="motion-production-quality-v3"))
+    assert captured["structural_floor"] == "motion-production-quality-v3"
+    assert "Piso estrutural v3" in captured["creative_contract"]["motion_plan_rules"]
+    assert "structural_floor" not in request().model_dump(mode="json")
+
+
+
 def test_direction_cannot_claim_an_undeclared_generated_material():
     from app.services.motion_plan import validate_scene_direction
     from app.tests.unit.test_motion_illustrations import composition_with_art

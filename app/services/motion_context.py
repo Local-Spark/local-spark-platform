@@ -179,6 +179,16 @@ def capture_motion_guidance(
     )
     if staging and previous is None:
         creative = {**cast(dict[str, Any], creative), "temporal_review": dict(POLICY_V4)}
+    if request.structural_floor and isinstance(creative, dict):
+        creative = dict(creative)
+        creative["motion_plan_rules"] = (
+            creative.get("motion_plan_rules", "")
+            + " Piso estrutural v3: pelo menos três cenas com structural_scale distintas "
+            "(macro, medium, card), papéis establish/extract/invite, texto ancorado por "
+            "related_element_ids num asset da cena, hold >= 700 ms, hero_height_ratio >= 0.18, "
+            "contrast_ratio >= 4.5, mechanism_ids dentre ellipse_to_glyph, axis_type_in, "
+            "mask_open_from_point e plate_cta no CTA. Texto fora da mídia é recusado antes do render."
+        )
     repertoire_id = request.repertoire_id or ("business-reel-v5" if staging else None)
     return {
         **staging,
@@ -202,6 +212,7 @@ def capture_motion_guidance(
             else {}
         ),
         **({"sound_library": capture_sound_library(request.sound_library_id)} if request.sound_library_id else {}),
+        **({"structural_floor": request.structural_floor} if request.structural_floor else {}),
         **(
             {
                 "executor_contract": previous["executor_contract"]
