@@ -187,7 +187,7 @@ def capture_motion_guidance(
             "(macro, medium, card), papéis establish/extract/invite, texto ancorado por "
             "related_element_ids num asset da cena, hold >= 700 ms, hero_height_ratio >= 0.18, "
             "contrast_ratio >= 4.5, mechanism_ids dentre ellipse_to_glyph, axis_type_in, "
-            "mask_open_from_point e plate_cta no CTA. HTML com um único data-stage=\"media\"; "
+            'mask_open_from_point e plate_cta no CTA. HTML com um único data-stage="media"; '
             "cada mechanism_id vira data-mechanism, data-start e data-end. scene_init chama "
             "StructuralFloorV1.apply(ms) dentro de window.seek. Texto fora desse stage é recusado."
         )

@@ -336,5 +336,3 @@ def test_execution_requires_stage_and_declared_mechanism():
     fails(html=html, scene_init=code, motion_plan=SimpleNamespace(scenes=(SimpleNamespace(elements=(unknown,)),)))
     missing = SimpleNamespace(mechanism_ids=("plate_cta",), text_outside_media=False)
     fails(html=html, scene_init=code, motion_plan=SimpleNamespace(scenes=(SimpleNamespace(elements=(missing,)),)))
-
-

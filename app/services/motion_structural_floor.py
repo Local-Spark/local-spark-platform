@@ -262,5 +262,3 @@ def enforce_structural_floor(plan: Any, context: dict[str, Any]) -> None:
         return
     if plan is None or evaluate_structural_floor(view_from_plan(plan)):
         raise StructuralFloorRejected()
-
-

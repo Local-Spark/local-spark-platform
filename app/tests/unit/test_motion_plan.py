@@ -293,7 +293,6 @@ def test_structural_floor_rejects_a_thin_plan_only_when_selected():
     assert "structural_floor" not in request().model_dump(mode="json")
 
 
-
 def test_direction_cannot_claim_an_undeclared_generated_material():
     from app.services.motion_plan import validate_scene_direction
     from app.tests.unit.test_motion_illustrations import composition_with_art

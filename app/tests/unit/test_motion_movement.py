@@ -93,4 +93,3 @@ def test_structural_runtime_is_prepended_only_when_the_scene_calls_it(tmp_path):
     packed = (tmp_path / "marked/scene.js").read_bytes()
     assert packed.startswith(MECHANISM_RUNTIME.encode())
     assert plain["scene_sha256"] != hashlib.sha256(packed).hexdigest()
-
