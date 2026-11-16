@@ -43,6 +43,18 @@ class LabCheckpoints:
         await self.execution.event(
             session, self.run_id, uuid5(self.run_id, f"{stage}:ready"), f"checkpoint.{stage}_ready", trace
         )
+        if row["origin"] == "whatsapp" and payload.get("questions"):
+            from app.services.message_creation_delivery import record_product_message
+
+            await record_product_message(
+                session,
+                row,
+                self.requests.context,
+                "\n".join(payload["questions"]),
+                kind="question",
+                sha=digest(payload),
+                stage=stage,
+            )
 
     async def list(self, actor: UUID) -> list[dict[str, Any]]:
         async with self.requests.database.transaction(ZERO, actor) as session:

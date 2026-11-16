@@ -1,5 +1,33 @@
 # Ensaio produtivo pelo front administrativo — 16/11/2026
 
+## 16/11/2026 — retirada da seleção manual de fotos do laboratório
+
+Por decisão do usuário, o ensaio não possui mais uma escolha manual de fotos do
+acervo. Removidos seletor da UI, contrato/endpoint de seleção e cópia de escolhas
+para continuações. O contexto retorna informações do negócio, sem listar fotos
+para escolher. Anexos da mensagem continuam privados e disponíveis.
+
+Posts/stories vinculados a um item recuperam as referências de produto/ambiente
+do `selected_catalog_snapshot` produtivo, depois da confirmação do catálogo, com
+revalidação de versão/hash antes dos efeitos. Sem item associado não se escolhe
+um produto arbitrário: permanecem os anexos e a marca. Reels usam a seleção padrão
+do `MotionContext` produtivo (até quatro fotos elegíveis, ordenadas por id), com
+leitura administrativa sem row-lock de escrita; não é ranking semântico. Anexos
+explícitos têm prioridade dentro do limite. Não foram adicionadas regras de
+seleção visual por IA.
+
+Registros antigos de seleção permanecem apenas para histórico/exportação; novas
+execuções e continuações não os consomem. Ensaios de imagem anteriores com escolhas
+fixadas podem exigir nova tentativa por mudança de contexto, em vez de alterar
+silenciosamente uma execução já iniciada. Nenhuma migração ou alteração no acervo.
+
+Validação: revisão dos caminhos de captura, catálogo, retomada e geração, formatação
+e conferência do diff. Não executados testes automatizados, build, typecheck ou
+gerações pagas, conforme instrução vigente. Reiniciar API e worker do laboratório
+para carregar o backend atualizado. Esta decisão substitui as descrições anteriores
+de seleção manual do acervo.
+
+
 ## 16/11/2026 — respostas, ajustes e teto pela UI
 
 Esta entrada substitui as limitações de continuidade e orçamento das entradas

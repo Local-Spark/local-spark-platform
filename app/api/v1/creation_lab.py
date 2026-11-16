@@ -7,17 +7,16 @@ from typing import Annotated, Any
 from uuid import UUID
 
 import jwt
-from fastapi import APIRouter, Header, Query, Request, Response
+from fastapi import APIRouter, Depends, Header, Query, Request, Response
 from fastapi.responses import StreamingResponse
 
 from app.adapters.material_media import MAX_BYTES
 from app.api.deps import Actor, ActorSession
-from app.schemas.creation_lab import LabCollectionSelection, LabContinuation, LabDraft, LabFeedback, LabStart
+from app.schemas.creation_lab import LabContinuation, LabDraft, LabFeedback, LabStart
 from app.services.auth import AuthError
 from app.services.business import AccessDenied
 from app.services.creation_lab_access import lab_businesses, require_lab_access
 from app.services.creation_lab_attachments import CreationLabAttachments
-from app.services.creation_lab_collection import CreationLabCollection
 from app.services.creation_lab_context import CreationLabContext
 from app.services.creation_lab_drafts import CreationLabDrafts
 from app.services.creation_lab_export import CreationLabExport
@@ -27,7 +26,15 @@ from app.schemas.motion_preparation import MotionCheckpointDecision
 from app.services.creation_lab_motion_requests import LabMotionRequests
 from app.services.creation_lab_checkpoints import LabCheckpoints
 
-creation_lab_router = APIRouter(prefix="/api/v1/admin/creation-lab", tags=["creation-lab"])
+
+async def exclusive_lab_api(request: Request, actor: Actor) -> None:
+    async with request.app.state.database.transaction(UUID(int=0), actor) as session:
+        await require_lab_access(session, request.app.state.settings, actor, "admin.creation_lab.api")
+
+
+creation_lab_router = APIRouter(
+    prefix="/api/v1/admin/creation-lab", tags=["creation-lab"], dependencies=[Depends(exclusive_lab_api)]
+)
 
 
 @creation_lab_router.get("/runs/{run_id}/results")
@@ -123,21 +130,9 @@ def attachments(request: Request) -> CreationLabAttachments:
 
 
 @creation_lab_router.get("/runs/{run_id}/context")
-async def business_context(
-    request: Request, response: Response, actor: Actor, run_id: UUID, after: UUID | None = None
-) -> dict[str, Any]:
+async def business_context(request: Request, response: Response, actor: Actor, run_id: UUID) -> dict[str, Any]:
     response.headers["Cache-Control"] = "no-store"
-    return await CreationLabContext(request.app.state.settings, request.app.state.database).read(actor, run_id, after)
-
-
-@creation_lab_router.put("/runs/{run_id}/collection")
-async def select_collection(
-    request: Request, response: Response, actor: Actor, run_id: UUID, body: LabCollectionSelection
-) -> dict[str, Any]:
-    response.headers["Cache-Control"] = "no-store"
-    return await CreationLabCollection(request.app.state.settings, request.app.state.database).select(
-        actor, run_id, body
-    )
+    return await CreationLabContext(request.app.state.settings, request.app.state.database).read(actor, run_id)
 
 
 @creation_lab_router.get("/runs/{run_id}/attachments")

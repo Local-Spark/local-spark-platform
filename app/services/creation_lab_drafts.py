@@ -47,8 +47,8 @@ class CreationLabDrafts:
                     await session.execute(
                         text("""INSERT INTO creation_lab_runs
                           (id,actor_id,tenant_id,business_id,operation_id,request_hash,format,mode,
-                           instruction_ciphertext,budget_usd_micros)
-                          VALUES(:id,:actor,:tenant,:business,:operation,:hash,:format,:mode,:instruction,:budget)
+                           instruction_ciphertext,budget_usd_micros,flow_version)
+                          VALUES(:id,:actor,:tenant,:business,:operation,:hash,:format,:mode,:instruction,:budget,2)
                           RETURNING *"""),
                         {
                             "id": run_id,
@@ -80,6 +80,7 @@ class CreationLabDrafts:
             "tenant_id",
             "business_id",
             "format",
+            "flow_version",
             "mode",
             "state",
             "budget_usd_micros",
@@ -112,7 +113,7 @@ class CreationLabDrafts:
             rows = (
                 (
                     await session.execute(
-                        text("""SELECT * FROM creation_lab_runs WHERE tenant_id=:tenant AND business_id=:business
+                        text("""SELECT * FROM creation_lab_runs WHERE tenant_id=:tenant AND business_id=:business AND origin='lab'
                           ORDER BY created_at DESC,id DESC LIMIT 50"""),
                         {"tenant": tenant, "business": business},
                     )

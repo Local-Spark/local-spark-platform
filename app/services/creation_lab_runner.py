@@ -10,17 +10,15 @@ from app.db.session import Database
 from app.services.auth import AuthError
 from app.services.creation_lab_drafts import ZERO
 from app.services.creation_lab_images import LabImageRequests, LabImageRunner
-from app.services.creation_lab_motion_requests import LabMotionRequests
 from app.services.creation_lab_motion_output import LabMotionOrchestrator
+from app.services.creation_lab_motion_requests import LabMotionRequests
 from app.services.motion_runtime import build_motion_runner
 from app.workflows.contracts import BusinessEvent
 
 
 class CreationLabRunner:
     def __init__(self, settings: Settings, database: Database):
-        from app.services.creation_lab_settings import lab_settings
-
-        self.settings, self.database = lab_settings(settings), database
+        self.settings, self.database = settings, database
 
     async def run(self, event: BusinessEvent) -> str:
         run, actor = UUID(event.operation_id), UUID(event.actor_id)
@@ -51,6 +49,10 @@ class CreationLabRunner:
             } or UUID(event.event_id) != uuid5(run, kind):
                 raise AuthError("CREATION_LAB_EVENT_MISMATCH", 409)
             format = row["format"]
+        if row["flow_version"] == 2 and kind == "creation_lab.requested":
+            from app.services.message_creation import MessageCreation
+
+            return await MessageCreation(self.settings, self.database, run).execute(event)
         translated = replace(event, event_id=str(uuid5(run, kind.replace("creation_lab.", "motion."))))
         if format in {"photo", "story"}:
             if kind not in {
@@ -70,7 +72,7 @@ class CreationLabRunner:
         }:
             raise AuthError("CREATION_LAB_EVENT_MISMATCH", 409)
         productive = build_motion_runner(
-            self.settings, self.database, self.database, requests=requests, administrative=True
+            requests.settings, self.database, self.database, requests=requests, administrative=True
         )
         return await LabMotionOrchestrator(productive, run).run(translated)
 

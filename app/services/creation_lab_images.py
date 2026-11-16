@@ -6,7 +6,6 @@ import hashlib
 import json
 from dataclasses import asdict
 from datetime import UTC, datetime
-from typing import Any
 from uuid import UUID, uuid5
 
 from sqlalchemy import text
@@ -30,8 +29,8 @@ from app.services.editorial_proposals import (
     EditorialProposalService,
     _catalog_fact,
     _catalog_price_fact,
-    editorial_kit_input,
     editorial_business_facts,
+    editorial_kit_input,
 )
 from app.services.service_agreement_scope import accepted_agreement_sql
 from app.services.visual_brand_finish import _full_piece_prompt
@@ -56,14 +55,12 @@ class LabImageRequests(LabMotionRequests):
         await self.admission_scope(session, tenant, business)
         s = self.settings
         if not (
-            s.environment in {"development", "testing"}
-            and s.visual_ai_execution_enabled
+            s.visual_ai_execution_enabled
             and s.visual_ai_mode == "openai"
             and s.editorial_ai_mode == "openai"
             and s.openai_api_key
             and s.intent_ai_mode == "jev"
             and s.typesafe_api_key
-            and s.creation_lab_execution_enabled
             and s.visual_ai_reservation_usd_micros > 0
             and s.creation_lab_editorial_reservation_usd_micros > 0
             and s.creation_lab_editorial_input_usd_micros_per_million_tokens > 0
@@ -83,7 +80,9 @@ class LabImageRequests(LabMotionRequests):
 
     async def build_snapshot(self, session, row, body):
         tenant, business, actor = row["tenant_id"], row["business_id"], row["actor_id"]
-        message = self.context.open(row["instruction_ciphertext"])["instruction"]
+        from app.services.message_creation import message_text
+
+        message = message_text(self.context, row)
         candidates = await catalog_candidates(session, tenant, business, actor, message, lab_run=self.run_id)
         if candidates["status"] not in {"needs_selection", "not_found"}:
             raise AuthError("CREATION_LAB_CATALOG_" + str(candidates["status"]).upper(), 409)
@@ -103,7 +102,7 @@ class LabImageRequests(LabMotionRequests):
             (
                 await session.execute(
                     text(
-                        "SELECT id,object_key,mime_type,sha256,kind,byte_size FROM creation_lab_attachments WHERE run_id=:run AND state='ready' ORDER BY id"
+                        "SELECT id,object_key,mime_type,sha256,kind,byte_size FROM creation_lab_attachments WHERE run_id=:run AND active AND state='ready' ORDER BY id"
                     ),
                     {"run": self.run_id},
                 )
@@ -112,16 +111,11 @@ class LabImageRequests(LabMotionRequests):
             .all()
         )
         for item in attachments:
+            if row.get("flow_version") == 2 and item["kind"] == "audio" and row.get("normalized_message_ciphertext"):
+                continue
             if item["kind"] != "image":
                 raise AuthError("CREATION_LAB_STATIC_IMAGE_MATERIAL_REQUIRED", 409)
             sources.append(dict(item) | {"role": "source_photo", "version": 1})
-        selected = await session.scalar(
-            text("SELECT selection_ciphertext FROM creation_lab_collection_choices WHERE run_id=:run"),
-            {"run": self.run_id},
-        )
-        for choice in self.context.open(selected)["photos"] if selected else []:
-            photo = await self.context.photo(session, tenant, business, UUID(choice["id"]))
-            sources.append(dict(photo) | {"role": "item_photo" if photo["item_id"] else "space_photo"})
         if kit.overrides.logo_asset_id:
             logo = (
                 (
@@ -198,6 +192,22 @@ class LabImageRequests(LabMotionRequests):
             lab_run=self.run_id,
         )
 
+    async def resolve_sources(self, session, row, snapshot, catalog):
+        """Use photos picked by the productive catalog snapshot, never UI choices."""
+        sources = [item for item in snapshot["sources"] if item["role"] not in {"item_photo", "space_photo"}]
+        if catalog is None:
+            return sources
+        for role in ("item_photo", "space_photo"):
+            reference = catalog.get(role)
+            if reference is None or len(sources) >= 4:
+                continue
+            photo = await self.context.photo(session, row["tenant_id"], row["business_id"], UUID(reference["id"]))
+            if photo["version"] != reference["version"] or photo["sha256"] != reference["sha256"]:
+                raise AuthError("COLLECTION_CONTEXT_CHANGED", 409)
+            if not any(str(item["id"]) == str(photo["id"]) for item in sources):
+                sources.append(dict(photo) | {"role": role})
+        return json.loads(json.dumps(sources, default=str))
+
     async def current(self, session, row):
         await self.scope(session, row)
         await self._admission(session, row["tenant_id"], row["business_id"])
@@ -211,8 +221,15 @@ class LabImageRequests(LabMotionRequests):
           JOIN creation_lab_trace t ON t.id=c.trace_id WHERE c.run_id=:run AND c.stage='catalog'"""),
             {"run": self.run_id},
         )
+        if row.get("flow_version") == 2:
+            value = await session.scalar(
+                text("SELECT payload_ciphertext FROM creation_lab_trace WHERE id=:id AND run_id=:run"),
+                {"id": uuid5(self.run_id, "intent-resolution"), "run": self.run_id},
+            )
+            if not value:
+                raise AuthError("CREATION_LAB_TRACE_EXPIRED", 410)
         if value:
-            selected = self.context.open(value)["value"].get("catalog")
+            selected = self.context.open(value)["value"].get("snapshot" if row.get("flow_version") == 2 else "catalog")
             if selected is None:
                 return
             current = await self.catalog(session, row, UUID(selected["offering"]["id"]))
@@ -232,7 +249,11 @@ class LabImageRunner:
         trace = uuid5(row["id"], f"checkpoint:{stage}")
         await self.execution.evidence(row["actor_id"], row["id"], token, trace, stage, payload)
         async with self.requests.database.transaction(ZERO, row["actor_id"]) as session:
-            await self.requests.locked_running(session, row, token)
+            if row.get("flow_version") == 2 and not row.get("snapshot_trace_id"):
+                fresh = await self.execution.guard(session, row["actor_id"], row["id"], "creation.question")
+                self.execution.fence(fresh, token)
+            else:
+                await self.requests.locked_running(session, row, token)
             await self.checkpoints.pause(session, row, token, stage, trace, payload)
 
     async def submit(self, row, token, operation, kind, payload, reserve, provider, model):
@@ -276,8 +297,11 @@ class LabImageRunner:
 
         return observe
 
-    async def run(self, event: BusinessEvent, stage: str):
-        if stage == "requested":
+    async def run(self, event: BusinessEvent, stage: str, *, prepared=None):
+        if prepared is not None:
+            row, token, packet = prepared
+            stage = "catalog_approved"
+        elif stage == "requested":
             started = await self.requests.begin(
                 UUID(event.tenant_id),
                 UUID(event.business_id),
@@ -297,6 +321,12 @@ class LabImageRunner:
         snapshot = self.requests.context.open(row["snapshot_ciphertext"])
         s = self.requests.settings
         try:
+            if packet is not None:
+                async with self.requests.database.transaction(ZERO, row["actor_id"]) as session:
+                    await self.requests.locked_running(session, row, token)
+                    snapshot["sources"] = await self.requests.resolve_sources(
+                        session, row, snapshot, packet.get("catalog")
+                    )
             if stage == "requested":
                 assert s.typesafe_api_key is not None
                 provider = JevIntentProvider(s.typesafe_api_key, s.intent_ai_model)
@@ -464,7 +494,7 @@ class LabImageRunner:
                     }
                 )
                 packet = {"catalog": catalog, "draft": draft.model_dump(mode="json"), "data": data}
-                if row["mode"] == "accompanied":
+                if row["flow_version"] == 1 and row["mode"] == "accompanied":
                     await self.pause(row, token, "editorial", packet)
                     return "awaiting_editorial"
             await self.generate(row, token, snapshot, packet)

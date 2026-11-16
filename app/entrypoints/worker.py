@@ -199,6 +199,7 @@ async def run_worker() -> None:
             )
             + (
                 [
+                    content_activities.request_message_creation,
                     content_activities.request_candidate_proposal,
                     content_activities.candidate_proposal_state,
                     content_activities.request_candidate_preview,

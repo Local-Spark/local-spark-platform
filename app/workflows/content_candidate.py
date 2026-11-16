@@ -13,6 +13,16 @@ class ContentCandidateWorkflow:
     async def run(self, event_id: str, resume_preview_id: str | None = None) -> str:
         if resume_preview_id is not None:
             return await self._deliver_preview(event_id, resume_preview_id)
+        if workflow.patched("shared-message-creation-v2"):
+            common = await workflow.execute_activity(
+                "request_message_creation",
+                event_id,
+                result_type=str,
+                start_to_close_timeout=timedelta(seconds=30),
+                retry_policy=RetryPolicy(maximum_attempts=3),
+            )
+            if common != "legacy_continuation":
+                return cast(str, common)
         proposal_id = await workflow.execute_activity(
             "request_candidate_proposal",
             event_id,

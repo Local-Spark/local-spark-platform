@@ -34,6 +34,16 @@ async def list_pieces(
     return await service(request).list(tenant_id, business_id, actor)
 
 
+@pieces_router.get("/message-receipts")
+async def message_receipts(tenant_id: UUID, business_id: UUID, request: Request, response: Response, actor: Actor):
+    from app.services.message_creation_delivery import list_product_messages
+
+    response.headers["Cache-Control"] = "no-store"
+    return await list_product_messages(
+        request.app.state.settings, request.app.state.database, tenant_id, business_id, actor
+    )
+
+
 @pieces_router.get("/{piece_id}", response_model=PieceRead)
 async def get_piece(
     tenant_id: UUID, business_id: UUID, piece_id: UUID, request: Request, response: Response, actor: Actor

@@ -327,6 +327,9 @@ class MotionContext:
     async def references(self, session: AsyncSession, business: UUID) -> ReferenceGenerationSnapshot:
         return await capture_generation_context(session, business)
 
+    def lock_default_photos(self) -> bool:
+        return True
+
     def select_default_photos(self) -> bool:
         return True
 
@@ -361,10 +364,13 @@ class MotionContext:
             photo_ids = tuple(
                 (
                     await session.scalars(
-                        text("""SELECT id FROM business_collection_photos
+                        text(
+                            """SELECT id FROM business_collection_photos
                 WHERE tenant_id=:tenant AND business_id=:business AND state='ready' AND status='active'
                 AND rights_scope='business_collection_confirmed' AND delete_owner IS NULL
-                AND delete_lease_until IS NULL ORDER BY id LIMIT 4 FOR SHARE"""),
+                AND delete_lease_until IS NULL ORDER BY id LIMIT 4"""
+                            + (" FOR SHARE" if self.lock_default_photos() else "")
+                        ),
                         params,
                     )
                 ).all()

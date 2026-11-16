@@ -69,6 +69,7 @@ async def resolve_catalog_context(
     interpreter: CatalogInterpreter,
     *,
     interpret_unmatched: bool = False,
+    execution_run: UUID | None = None,
 ) -> CatalogResolution:
     """Resolve for an authorized owner without holding a lock during interpretation.
 
@@ -78,7 +79,7 @@ async def resolve_catalog_context(
     """
     bounded_message = message[:4000]
     async with database.transaction(tenant, actor) as session:
-        result = await catalog_candidates(session, tenant, business, actor, bounded_message)
+        result = await catalog_candidates(session, tenant, business, actor, bounded_message, lab_run=execution_run)
     status = result["status"]
     if status != "needs_selection" and not (interpret_unmatched and status == "not_found"):
         if status not in {"no_text", "not_found", "catalog_too_large", "too_many_matches"}:
@@ -126,6 +127,7 @@ async def resolve_catalog_context(
                 version,
                 datetime.now(UTC),
                 promotion_policy="request_only",
+                lab_run=execution_run,
             )
     except AuthError as exc:
         if exc.code == "COLLECTION_CONTEXT_CHANGED":

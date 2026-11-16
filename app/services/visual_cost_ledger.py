@@ -136,7 +136,7 @@ class VisualCostLedger:
             raise VisualCostError("VISUAL_BUDGET_DISABLED")
         used = await session.scalar(
             text("""SELECT coalesce(sum(CASE WHEN state='completed'
-              THEN actual_usd_micros ELSE reserved_usd_micros END),0) FROM visual_cost_reservations
+              THEN actual_usd_micros ELSE greatest(reserved_usd_micros,coalesce(estimated_usd_micros,0)) END),0) FROM visual_cost_reservations
               WHERE tenant_id=:tenant AND created_at>=date_trunc('month',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'
               AND created_at<(date_trunc('month',now() AT TIME ZONE 'UTC') + interval '1 month') AT TIME ZONE 'UTC'"""),
             {"tenant": tenant},
@@ -222,7 +222,11 @@ class VisualCostLedger:
                       committed_usd_micros=committed_usd_micros+:delta, updated_at=now()
                       WHERE month=date_trunc('month',CAST(:created AS timestamptz) AT TIME ZONE 'UTC')::date
                       RETURNING 1"""),
-                    {"delta": actual_usd_micros - row["reserved_usd_micros"], "created": row["created_at"]},
+                    {
+                        "delta": actual_usd_micros
+                        - max(row["reserved_usd_micros"], row.get("estimated_usd_micros") or 0),
+                        "created": row["created_at"],
+                    },
                 )
                 if changed is None:
                     raise VisualCostError("VISUAL_GLOBAL_BUDGET_INCONSISTENT")

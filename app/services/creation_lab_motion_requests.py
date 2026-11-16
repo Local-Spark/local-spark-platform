@@ -26,10 +26,10 @@ class LabMotionRequests(MotionRequestService):
     def minimum_budget(self) -> int:
         return 2 * self.settings.motion_ai_reservation_usd_micros
 
-    def __init__(self, settings: Settings, database: Database, run: UUID):
+    def __init__(self, settings: Settings, database: Database, run: UUID, *, administrative: bool = True):
         from app.services.creation_lab_settings import lab_settings
 
-        settings = lab_settings(settings)
+        settings = lab_settings(settings) if administrative else settings
         super().__init__(settings, database)
         self.run_id = run
         self.context = LabMotionContext(settings, run)
@@ -54,6 +54,10 @@ class LabMotionRequests(MotionRequestService):
             raise AuthError("CREATION_LAB_RUN_MISMATCH", 409)
         await self.execution.guard(session, row["actor_id"], self.run_id, "admin.creation_lab.execution.admission")
         await self.scope(session, row)
+        if row["flow_version"] == 2:
+            from app.services.message_creation import MessageCreation
+
+            await MessageCreation(self.settings, self.database, self.run_id).authorize(session, row)
         await session.execute(
             text("SELECT pg_advisory_xact_lock(hashtextextended(:key,48))"),
             {"key": f"visual-consent:{tenant}:{business}"},
@@ -66,7 +70,8 @@ class LabMotionRequests(MotionRequestService):
 
     async def _admission(self, session: AsyncSession, tenant: UUID, business: UUID) -> None:
         await self.admission_scope(session, tenant, business)
-        if not self.settings.motion_execution_ready(administrative=True) or not self.settings.motion_storyboard_enabled:
+        origin = await session.scalar(text("SELECT origin FROM creation_lab_runs WHERE id=:run"), {"run": self.run_id})
+        if not self.settings.motion_execution_ready(administrative=origin == "lab"):
             raise AuthError("MOTION_EXECUTION_NOT_CONFIGURED", 409)
         if await self.gate._state(session, tenant, business) != "active":
             raise AuthError("VISUAL_AI_CONSENT_REQUIRED", 409)
@@ -87,6 +92,15 @@ class LabMotionRequests(MotionRequestService):
         }
 
     async def start(self, actor: UUID, body: LabStart) -> dict[str, Any]:
+        from app.services.message_creation import MessageCreation
+
+        async with self.database.transaction(ZERO, actor) as session:
+            current = await self.execution.guard(session, actor, self.run_id, "creation.start")
+            common = current["flow_version"] == 2
+            if not common and current["state"] == "draft":
+                raise AuthError("CREATION_LAB_LEGACY_DRAFT_READ_ONLY", 409)
+        if common:
+            return await MessageCreation(self.settings, self.database, self.run_id).start(actor, body)
         fingerprint = digest(body.model_dump(mode="json"))
         async with self.database.transaction(ZERO, actor) as session:
             row = await self.execution.guard(session, actor, self.run_id, "admin.creation_lab.run.start")
@@ -107,7 +121,9 @@ class LabMotionRequests(MotionRequestService):
                 raise AuthError("CREATION_LAB_ADMIN_BUDGET_EXCEEDED", 409)
             committed = int(
                 await session.scalar(
-                    text("SELECT coalesce(sum(committed_usd_micros),0) FROM creation_lab_runs WHERE actor_id=:actor"),
+                    text(
+                        "SELECT coalesce(sum(committed_usd_micros),0) FROM creation_lab_runs WHERE actor_id=:actor AND origin='lab'"
+                    ),
                     {"actor": actor},
                 )
                 or 0
@@ -147,12 +163,9 @@ class LabMotionRequests(MotionRequestService):
         return await CreationLabDrafts(self.settings, self.database).get(actor, self.run_id)
 
     async def build_snapshot(self, session: AsyncSession, row: Any, body: LabStart) -> dict[str, Any]:
-        message = self.context.open(row["instruction_ciphertext"])["instruction"]
-        choices = await session.scalar(
-            text("SELECT selection_ciphertext FROM creation_lab_collection_choices WHERE run_id=:run"),
-            {"run": self.run_id},
-        )
-        photos = self.context.open(choices)["photos"] if choices else []
+        from app.services.message_creation import message_text
+
+        message = message_text(self.context, row)
         preparation = MotionPreparation.model_validate(
             {
                 "client_message": message,
@@ -187,8 +200,11 @@ class LabMotionRequests(MotionRequestService):
             review_checkpoints=True,
             propose_direction=True,
             preparation=preparation,
-            collection_photo_ids=tuple(UUID(p["id"]) for p in photos),
         )
+        if row.get("flow_version") == 2:
+            request = MotionRequest(
+                operation_id=self.run_id, instruction=message, source_asset_id=body.source_attachment_id
+            )
         snapshot = await self.context.capture(session, row["tenant_id"], row["business_id"], request)
         return snapshot
 

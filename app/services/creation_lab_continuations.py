@@ -17,12 +17,29 @@ class CreationLabContinuations:
         self.execution = CreationLabExecution(settings, database)
         self.drafts = CreationLabDrafts(settings, database)
 
-    async def create(self, actor: UUID, run: UUID, body: LabContinuation):
+    async def create(
+        self,
+        actor: UUID,
+        run: UUID,
+        body: LabContinuation,
+        *,
+        source_event_id: UUID | None = None,
+        replacement_material=None,
+    ):
         fingerprint = self.drafts.cipher.fingerprint(body.model_dump(mode="json"))
         async with self.database.transaction(ZERO, actor) as session:
             parent = await self.execution.guard(session, actor, run, "admin.creation_lab.continue")
+            if parent["origin"] == "whatsapp" and source_event_id is None:
+                raise AuthError("MESSAGE_SOURCE_REQUIRED", 409)
+            child = uuid5(actor, f"creation-lab:{body.operation_id}")
+            await session.execute(text("SELECT set_config('app.creation_lab_run_id',:run,true)"), {"run": str(child)})
             existing = (
-                (await session.execute(text("SELECT * FROM creation_lab_runs WHERE parent_run_id=:run"), {"run": run}))
+                (
+                    await session.execute(
+                        text("SELECT * FROM creation_lab_runs WHERE id=:child AND parent_run_id=:run"),
+                        {"run": run, "child": child},
+                    )
+                )
                 .mappings()
                 .one_or_none()
             )
@@ -30,6 +47,7 @@ class CreationLabContinuations:
                 if existing["continuation_hash"] != fingerprint:
                     raise AuthError("CREATION_LAB_CONTINUATION_CONFLICT", 409)
                 return self.drafts.present(dict(existing))
+            await session.execute(text("SELECT set_config('app.creation_lab_run_id',:run,true)"), {"run": str(run)})
             if parent["attempt_number"] >= 10:
                 raise AuthError("CREATION_LAB_CONTINUATION_LIMIT", 409)
             questions = []
@@ -73,19 +91,32 @@ class CreationLabContinuations:
             remaining = parent["budget_usd_micros"] - parent["committed_usd_micros"]
             if remaining <= 0:
                 raise AuthError("CREATION_LAB_RUN_BUDGET_EXCEEDED", 409)
-            original = self.drafts.cipher.open(parent["instruction_ciphertext"])["instruction"]
+            from app.services.message_creation import message_text
+
+            original = message_text(self.drafts.cipher, parent)
             instruction = continued_instruction(original, body.note, questions=questions)
             child = uuid5(actor, f"creation-lab:{body.operation_id}")
             if await session.scalar(text("SELECT 1 FROM creation_lab_runs WHERE id=:id"), {"id": child}):
                 raise AuthError("CREATION_LAB_OPERATION_CONFLICT", 409)
+            materials = (
+                (
+                    await session.execute(
+                        text("SELECT * FROM creation_lab_attachments WHERE run_id=:run AND active ORDER BY id"),
+                        {"run": run},
+                    )
+                )
+                .mappings()
+                .all()
+            )
+            await session.execute(text("SELECT set_config('app.creation_lab_run_id',:run,true)"), {"run": str(child)})
             row = (
                 (
                     await session.execute(
                         text("""INSERT INTO creation_lab_runs
               (id,actor_id,tenant_id,business_id,operation_id,request_hash,format,mode,instruction_ciphertext,
-               budget_usd_micros,parent_run_id,rehearsal_id,continuation_hash,attempt_number)
+               budget_usd_micros,parent_run_id,rehearsal_id,continuation_hash,attempt_number,origin,flow_version,source_event_id)
               VALUES(:id,:actor,:tenant,:business,:operation,:hash,:format,:mode,:instruction,:budget,
-                     :parent,:root,:hash,:number) RETURNING *"""),
+                     :parent,:root,:hash,:number,:origin,:flow,:source) RETURNING *"""),
                         {
                             "id": child,
                             "actor": actor,
@@ -93,8 +124,11 @@ class CreationLabContinuations:
                             "business": parent["business_id"],
                             "operation": body.operation_id,
                             "hash": fingerprint,
-                            "format": parent["format"],
-                            "mode": parent["mode"],
+                            "format": "auto",
+                            "origin": parent["origin"],
+                            "flow": 2,
+                            "source": source_event_id,
+                            "mode": "automatic",
                             "instruction": self.drafts.cipher.seal({"instruction": instruction}),
                             "budget": remaining,
                             "parent": run,
@@ -106,16 +140,14 @@ class CreationLabContinuations:
                 .mappings()
                 .one()
             )
-            materials = (
-                (
-                    await session.execute(
-                        text("SELECT * FROM creation_lab_attachments WHERE run_id=:run ORDER BY id"), {"run": run}
-                    )
-                )
-                .mappings()
-                .all()
-            )
+            if replacement_material is not None:
+                from app.services.message_creation_whatsapp import copy_material
+
+                await copy_material(session, self.drafts.cipher, child, replacement_material)
+                materials = []
             for material in materials:
+                if material["kind"] == "audio" and parent.get("normalized_message_ciphertext"):
+                    continue
                 await session.execute(
                     text("""INSERT INTO creation_lab_attachments
                   (id,run_id,operation_id,request_hash,name_ciphertext,object_key,kind,mime_type,sha256,byte_size,rights_confirmed,state)
@@ -133,11 +165,6 @@ class CreationLabContinuations:
                         "size": material["byte_size"],
                     },
                 )
-            await session.execute(
-                text("""INSERT INTO creation_lab_collection_choices(run_id,selection_ciphertext)
-              SELECT :child,selection_ciphertext FROM creation_lab_collection_choices WHERE run_id=:run"""),
-                {"child": child, "run": run},
-            )
             await self.execution.event(session, child, uuid5(child, "draft.created"), "draft.created")
             trace = uuid5(child, "continuation")
             await session.execute(
@@ -152,6 +179,7 @@ class CreationLabContinuations:
                 },
             )
             await self.execution.event(session, child, uuid5(child, "continuation.recorded"), "trace.recorded", trace)
+            await session.execute(text("SELECT set_config('app.creation_lab_run_id',:run,true)"), {"run": str(run)})
             if parent["state"] == "awaiting_approval":
                 await self.execution.finish_locked(session, parent, "cancelled", "CREATION_LAB_CONTINUED")
             return self.drafts.present(dict(row))

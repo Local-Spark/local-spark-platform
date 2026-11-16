@@ -31,7 +31,7 @@ class CreationLabAttachments:
             raise AuthError("CREATION_LAB_RUN_NOT_FOUND", 404)
 
     def present(self, row: Any) -> dict[str, Any]:
-        fields = ("id", "run_id", "kind", "mime_type", "sha256", "byte_size", "state", "created_at")
+        fields = ("id", "run_id", "kind", "mime_type", "sha256", "byte_size", "state", "active", "created_at")
         return {key: row[key] for key in fields} | self.cipher.open(row["name_ciphertext"])
 
     @staticmethod
@@ -85,6 +85,11 @@ class CreationLabAttachments:
                 return self.present(existing)
             if state != "draft":
                 raise AuthError("CREATION_LAB_DRAFT_REQUIRED", 409)
+            if await session.scalar(
+                text("SELECT 1 FROM creation_lab_attachments WHERE run_id=:run AND state<>'ready' LIMIT 1"),
+                {"run": run},
+            ):
+                raise AuthError("CREATION_LAB_UPLOAD_UNRESOLVED", 409)
             count, size = (
                 await session.execute(
                     text("SELECT count(*),coalesce(sum(byte_size),0) FROM creation_lab_attachments WHERE run_id=:run"),
@@ -130,6 +135,13 @@ class CreationLabAttachments:
                 .mappings()
                 .one()
             )
+            if outcome == "ready" and await session.scalar(
+                text("SELECT flow_version=2 FROM creation_lab_runs WHERE id=:run"), {"run": run}
+            ):
+                await session.execute(
+                    text("UPDATE creation_lab_attachments SET active=(id=:id) WHERE run_id=:run"),
+                    {"id": identifier, "run": run},
+                )
             await self.event(session, run, identifier, outcome)
             return self.present(row)
 

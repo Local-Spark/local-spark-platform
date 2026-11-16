@@ -31,16 +31,17 @@ class WhatsAppMaterialWorkflow:
                 ),
             )
             if result == "processed":
-                try:
-                    await workflow.execute_activity(
-                        "transcribe_whatsapp_audio",
-                        event_id,
-                        result_type=str,
-                        start_to_close_timeout=timedelta(minutes=3),
-                        retry_policy=RetryPolicy(maximum_attempts=3),
-                    )
-                except Exception:
-                    pass  # The submitted state prevents a second paid call.
+                if not workflow.patched("shared-message-audio-v2"):
+                    try:
+                        await workflow.execute_activity(
+                            "transcribe_whatsapp_audio",
+                            event_id,
+                            result_type=str,
+                            start_to_close_timeout=timedelta(minutes=3),
+                            retry_policy=RetryPolicy(maximum_attempts=3),
+                        )
+                    except Exception:
+                        pass  # The submitted state prevents a second paid call.
                 try:
                     await workflow.execute_child_workflow(
                         ContentCandidateWorkflow.run,

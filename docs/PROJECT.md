@@ -1,5 +1,80 @@
 # Meu Braço Direito — contexto vigente
 
+## 16/11/2026 — entrada comum de criação para laboratório e WhatsApp
+
+Novas mensagens dos dois canais usam `MessageCreation` e o mesmo workflow Temporal
+para interpretar intenção/catálogo/formato, pedir informações, gerar feed/story ou
+encaminhar reel ao orquestrador produtivo. A UI nova remove formato/modo e aprovações
+criativas exclusivas. Respostas/ajustes compartilham composição e saldo restante;
+anexos podem ser substituídos antes do início, com histórico preservado.
+
+Migrações aditivas 0130/0131 aplicadas somente à base local habitual. Origem imutável,
+RLS por execução/proprietário e dependência exclusiva na API mantêm o laboratório
+privado. Produto reserva atomicamente no ledger comercial, com permissões por execução
+e estimativas de exposição separadas de faturas, e mantém plano/consentimento; laboratório
+usa seu teto administrativo. Peças produtivas entram na revisão existente; perguntas
+e resultados têm recibos locais explicitamente simulados. Sem envio externo ou
+publicação. Trace mantém sete dias; arquivos e custos permanecem.
+
+Rascunhos anteriores devem ser copiados como novo pedido. Workflows anteriores e
+continuações produtivas antigas preservam o caminho legado via patches Temporal.
+O teto informado na UI é único por peça: transcrição, interpretação, imagem e vídeo
+consomem o mesmo saldo. A reserva de áudio é calculada internamente pela duração
+e tarifa documentada, sem configuração de um orçamento adicional. Documentado em `docs/design/shared-message-creation-flow.md`.
+
+Validação: revisão, sintaxe, lint de símbolos, formatação, migração local e carga do
+worker dedicado. Testes de encaminhamento/isolamento adicionados, mas **não
+executados**, seguindo a instrução do usuário. Sem build/typecheck, CI ou geração
+paga; qualidade visual e equivalência funcional ainda dependem do aceite manual.
+Limites semanais por formato e melhorias de motion ficam para a próxima etapa.
+
+
+## 16/11/2026 — unificação de mensagens autorizada, em andamento
+
+O usuário exige o mesmo processamento para produto e laboratório e autorizou
+integrar reels à entrada produtiva junto de feed/story. Extraída a coordenação de
+`ContentCandidateActivities` para `ContentCreationService`, mantendo atividades,
+contratos e comportamento atual; publicação permanece no adaptador de saída.
+
+Esta é uma preparação estrutural, não a conclusão da feature: a entrada produtiva
+ainda está limitada a feed/story e o laboratório ainda possui o caminho de imagens
+separado. Faltam entrada normalizada, ligação de reels, coordenador comum, persistência
+privada/financeira, retomadas e UI sem decisões criativas exclusivas. Decisões de
+privacidade, orçamento administrativo e não publicação continuam vigentes.
+
+Revisão de código e formatação somente; sem testes, geração paga, migração ou
+reinício de serviços. Não afirmar equivalência integral enquanto houver esses
+caminhos concorrentes. Evidências e critérios em [fluxo único](design/shared-message-creation-flow.md).
+
+
+## 16/11/2026 — retirada da seleção manual de fotos do laboratório
+
+Por decisão do usuário, o ensaio não possui mais uma escolha manual de fotos do
+acervo. Removidos seletor da UI, contrato/endpoint de seleção e cópia de escolhas
+para continuações. O contexto retorna informações do negócio, sem listar fotos
+para escolher. Anexos da mensagem continuam privados e disponíveis.
+
+Posts/stories vinculados a um item recuperam as referências de produto/ambiente
+do `selected_catalog_snapshot` produtivo, depois da confirmação do catálogo, com
+revalidação de versão/hash antes dos efeitos. Sem item associado não se escolhe
+um produto arbitrário: permanecem os anexos e a marca. Reels usam a seleção padrão
+do `MotionContext` produtivo (até quatro fotos elegíveis, ordenadas por id), com
+leitura administrativa sem row-lock de escrita; não é ranking semântico. Anexos
+explícitos têm prioridade dentro do limite. Não foram adicionadas regras de
+seleção visual por IA.
+
+Registros antigos de seleção permanecem apenas para histórico/exportação; novas
+execuções e continuações não os consomem. Ensaios de imagem anteriores com escolhas
+fixadas podem exigir nova tentativa por mudança de contexto, em vez de alterar
+silenciosamente uma execução já iniciada. Nenhuma migração ou alteração no acervo.
+
+Validação: revisão dos caminhos de captura, catálogo, retomada e geração, formatação
+e conferência do diff. Não executados testes automatizados, build, typecheck ou
+gerações pagas, conforme instrução vigente. Reiniciar API e worker do laboratório
+para carregar o backend atualizado. Esta decisão substitui as descrições anteriores
+de seleção manual do acervo.
+
+
 ## 16/11/2026 — base local com três negócios demonstrativos
 
 Limpeza da base local habitual autorizada sem backup: preservada a conta admin

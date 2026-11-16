@@ -15,7 +15,6 @@ from app.services.brand_kits import BrandKitService
 from app.services.creation_lab_access import require_lab_access
 from app.services.creation_lab_drafts import ZERO
 from app.services.editorial_context import EditorialContextService
-from app.services.motion_context import MotionContext
 from app.services.visual_consent_gate import VisualConsentGate
 
 
@@ -48,7 +47,7 @@ class CreationLabContext:
             )
             yield session, dict(row)
 
-    async def read(self, actor: UUID, run: UUID, after: UUID | None = None) -> dict[str, Any]:
+    async def read(self, actor: UUID, run: UUID) -> dict[str, Any]:
         async with self.scope(actor, run, "admin.creation_lab.context.read") as (session, row):
             tenant, business = row["tenant_id"], row["business_id"]
             kit = await BrandKitService._state(session, tenant, business)
@@ -66,23 +65,6 @@ class CreationLabContext:
                 for item in context.facts
                 if item.valid_until is None or item.valid_until >= today
             ]
-            photos = (
-                (
-                    await session.execute(
-                        text("""SELECT id,version,title,mime_type,size_bytes FROM business_collection_photos
-                  WHERE tenant_id=:tenant AND business_id=:business AND state='ready' AND status='active'
-                    AND rights_scope='business_collection_confirmed' AND delete_owner IS NULL
-                    AND delete_lease_until IS NULL AND (CAST(:after AS uuid) IS NULL OR id>CAST(:after AS uuid)) ORDER BY id LIMIT 51"""),
-                        {"tenant": tenant, "business": business, "after": after},
-                    )
-                )
-                .mappings()
-                .all()
-            )
-            selected = await session.scalar(
-                text("SELECT selection_ciphertext FROM creation_lab_collection_choices WHERE run_id=:run"), {"run": run}
-            )
-            selection = MotionContext(self.settings).open(selected)["photos"] if selected else []
             return {
                 "run_id": run,
                 "business_id": business,
@@ -91,10 +73,5 @@ class CreationLabContext:
                 "preferences": context.preferences.model_dump(mode="json", exclude={"reference_search"}),
                 "confirmed_kit": kit.confirmed.model_dump(mode="json") if kit.confirmed else None,
                 "ai_consent": consent,
-                "collection_photos": [dict(item) for item in photos[:50]],
-                "has_more_photos": len(photos) > 50,
-                "selected_photos": [
-                    {"id": item["id"], "version": item["version"], "title": item["title"]} for item in selection
-                ],
                 "generation_authorized": False,
             }

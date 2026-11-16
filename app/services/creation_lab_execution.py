@@ -23,7 +23,7 @@ class CreationLabExecution:
         self.cipher = MotionContext(settings)
 
     async def guard(self, session: AsyncSession, actor: UUID, run: UUID, action: str) -> Any:
-        await require_lab_access(session, self.settings, actor, action)
+        await session.execute(text("SELECT set_config('app.creation_lab_run_id',:run,true)"), {"run": str(run)})
         await session.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:key,120))"), {"key": str(run)})
         row = (
             (await session.execute(text("SELECT * FROM creation_lab_runs WHERE id=:run"), {"run": run}))
@@ -32,6 +32,15 @@ class CreationLabExecution:
         )
         if row is None:
             raise AuthError("CREATION_LAB_RUN_NOT_FOUND", 404)
+        if row["origin"] == "lab":
+            await require_lab_access(session, self.settings, actor, action)
+        else:
+            from app.services.whatsapp_materials import WhatsAppMaterialsService
+
+            await session.execute(
+                text("SELECT set_config('app.tenant_id',:tenant,true)"), {"tenant": str(row["tenant_id"])}
+            )
+            await WhatsAppMaterialsService._require_owner(session, row["tenant_id"], row["business_id"], actor)
         return row
 
     @staticmethod
@@ -53,7 +62,9 @@ class CreationLabExecution:
             await require_lab_access(session, self.settings, actor, "admin.creation_lab.budget.read")
             committed = int(
                 await session.scalar(
-                    text("SELECT coalesce(sum(committed_usd_micros),0) FROM creation_lab_runs WHERE actor_id=:actor"),
+                    text(
+                        "SELECT coalesce(sum(committed_usd_micros),0) FROM creation_lab_runs WHERE actor_id=:actor AND origin='lab'"
+                    ),
                     {"actor": actor},
                 )
                 or 0
@@ -99,25 +110,67 @@ class CreationLabExecution:
                 raise AuthError("CREATION_LAB_EFFECT_ALREADY_CLAIMED", 409)
             total = int(
                 await session.scalar(
-                    text("SELECT coalesce(sum(committed_usd_micros),0) FROM creation_lab_runs WHERE actor_id=:actor"),
+                    text(
+                        "SELECT coalesce(sum(committed_usd_micros),0) FROM creation_lab_runs WHERE actor_id=:actor AND origin='lab'"
+                    ),
                     {"actor": actor},
                 )
                 or 0
             )
             if row["committed_usd_micros"] + reserve > row["budget_usd_micros"]:
                 raise AuthError("CREATION_LAB_RUN_BUDGET_EXCEEDED", 409)
-            if reserve and not self.settings.creation_lab_execution_enabled:
+            if reserve and row["origin"] == "lab" and not self.settings.creation_lab_execution_enabled:
                 raise AuthError("CREATION_LAB_EXECUTION_DISABLED", 409)
             if (
                 reserve
+                and row["origin"] == "lab"
                 and self.settings.creation_lab_budget_usd_micros
                 and total + reserve > self.settings.creation_lab_budget_usd_micros
             ):
                 raise AuthError("CREATION_LAB_ADMIN_BUDGET_EXCEEDED", 409)
+            commercial = None
+            if row["origin"] == "whatsapp" and reserve:
+                from app.services.message_creation import MessageCreation
+
+                await MessageCreation(self.settings, self.database, run).authorize(session, row)
+                from app.services.visual_cost_ledger import VisualCostLedger
+
+                reservation = await VisualCostLedger(self.settings, self.database).reserve_in_transaction(
+                    session,
+                    row["tenant_id"],
+                    row["business_id"],
+                    actor,
+                    operation,
+                    provider,
+                    model,
+                    fingerprint,
+                    reserve,
+                )
+                if not reservation.created:
+                    raise AuthError("MESSAGE_EFFECT_ALREADY_RESERVED", 409)
+                commercial = reservation.id
+                if provider == "jev":
+                    from app.services.intent_usage import reserve_intent
+
+                    if not await reserve_intent(
+                        session,
+                        tenant=row["tenant_id"],
+                        business=row["business_id"],
+                        actor=actor,
+                        operation=operation,
+                        request_hash=fingerprint,
+                        model=model,
+                        input_rate=self.settings.intent_ai_input_rate_usd_micros,
+                        output_rate=0,
+                        max_input_tokens=64000,
+                        max_output_tokens=0,
+                        daily_limit=self.settings.intent_ai_daily_budget_usd_micros,
+                    ):
+                        raise AuthError("INTENT_ALREADY_SUBMITTED", 409)
             await session.execute(
                 text("""INSERT INTO creation_lab_effects
-              (id,run_id,kind,request_hash,state,provider,model,reserved_usd_micros)
-              VALUES(:id,:run,:kind,:hash,'claimed',:provider,:model,:reserve)"""),
+              (id,run_id,kind,request_hash,state,provider,model,reserved_usd_micros,commercial_reservation_id,commercial_tenant_id)
+              VALUES(:id,:run,:kind,:hash,'claimed',:provider,:model,:reserve,:commercial,:commercial_tenant)"""),
                 {
                     "id": operation,
                     "run": run,
@@ -126,6 +179,8 @@ class CreationLabExecution:
                     "provider": provider,
                     "model": model,
                     "reserve": reserve,
+                    "commercial": commercial,
+                    "commercial_tenant": row["tenant_id"] if commercial else None,
                 },
             )
             await session.execute(
@@ -192,6 +247,59 @@ class CreationLabExecution:
             )
             await self.event(session, run, uuid5(operation, "received"), f"effect.{effect}_received", trace)
 
+            commercial = await session.scalar(
+                text("SELECT commercial_reservation_id FROM creation_lab_effects WHERE id=:id"), {"id": operation}
+            )
+            if commercial:
+                from app.services.visual_cost_ledger import _event as cost_event
+
+                await session.execute(
+                    text("SELECT pg_advisory_xact_lock(hashtextextended(:key,31))"), {"key": str(row["tenant_id"])}
+                )
+                reservation = (
+                    (
+                        await session.execute(
+                            text("SELECT * FROM visual_cost_reservations WHERE id=:id FOR UPDATE"), {"id": commercial}
+                        )
+                    )
+                    .mappings()
+                    .one()
+                )
+                old_hold = max(reservation["reserved_usd_micros"], reservation["estimated_usd_micros"] or 0)
+                new_hold = max(old_hold, estimate or 0)
+                if reservation["provider"] == "openai" and new_hold > old_hold:
+                    await session.execute(
+                        text("""UPDATE visual_global_monthly_budget SET committed_usd_micros=committed_usd_micros+:delta,updated_at=now()
+                      WHERE month=date_trunc('month',CAST(:created AS timestamptz) AT TIME ZONE 'UTC')::date"""),
+                        {"delta": new_hold - old_hold, "created": reservation["created_at"]},
+                    )
+                await session.execute(
+                    text(
+                        "UPDATE visual_cost_reservations SET state='uncertain',estimated_usd_micros=:estimate,updated_at=now() WHERE id=:id"
+                    ),
+                    {"id": commercial, "estimate": estimate},
+                )
+                if new_hold > reservation["reserved_usd_micros"]:
+                    await cost_event(session, row["tenant_id"], actor, commercial, "over_reservation")
+                await cost_event(session, row["tenant_id"], actor, commercial, "uncertain")
+                if isinstance(payload, dict) and effect == "catalog":
+                    from app.services.intent_usage import finish_intent
+
+                    await finish_intent(
+                        session,
+                        tenant=row["tenant_id"],
+                        operation=operation,
+                        input_tokens=payload.get("input_tokens"),
+                        output_tokens=payload.get("output_tokens"),
+                        input_rate=self.settings.intent_ai_input_rate_usd_micros,
+                        output_rate=0,
+                    )
+                if effect == "transcription":
+                    await session.execute(
+                        text("UPDATE audio_transcription_usage SET state='completed' WHERE event_id=:source"),
+                        {"source": row["source_event_id"]},
+                    )
+
     async def trace(self, actor: UUID, run: UUID, identifier: UUID) -> dict[str, Any]:
         async with self.database.transaction(ZERO, actor) as session:
             await self.guard(session, actor, run, "admin.creation_lab.trace.read")
@@ -243,6 +351,10 @@ class CreationLabExecution:
         )
         if unresolved:
             state = "uncertain"
+        if row["origin"] == "whatsapp" and state == "completed":
+            from app.services.message_creation_delivery import persist_product_result
+
+            await persist_product_result(session, row, self.cipher)
         await session.execute(
             text("""UPDATE creation_lab_runs SET state=:state,failure_code=:code,
           finished_at=clock_timestamp(),trace_expires_at=clock_timestamp()+interval '7 days' WHERE id=:run"""),

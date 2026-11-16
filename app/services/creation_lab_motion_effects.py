@@ -120,7 +120,9 @@ class LabMotionEffects(MotionEffects):
             self.execution.fence(current, token)
             total = int(
                 await session.scalar(
-                    text("SELECT coalesce(sum(committed_usd_micros),0) FROM creation_lab_runs WHERE actor_id=:actor"),
+                    text(
+                        "SELECT coalesce(sum(committed_usd_micros),0) FROM creation_lab_runs WHERE actor_id=:actor AND origin='lab'"
+                    ),
                     {"actor": row["actor_id"]},
                 )
                 or 0
@@ -128,7 +130,8 @@ class LabMotionEffects(MotionEffects):
             return bool(
                 current["committed_usd_micros"] + amount <= current["budget_usd_micros"]
                 and (
-                    not self.requests.settings.creation_lab_budget_usd_micros
+                    current["origin"] != "lab"
+                    or not self.requests.settings.creation_lab_budget_usd_micros
                     or total + amount <= self.requests.settings.creation_lab_budget_usd_micros
                 )
             )

@@ -16,5 +16,6 @@ def lab_settings(settings: Settings) -> Settings:
             "intent_ai_mode": "jev",
             "motion_ai_mode": "openai",
             "motion_execution_enabled": True,
+            "audio_transcription_mode": "openai",
         }
     )
