@@ -1,5 +1,20 @@
 # BL04 — contexto seletivo e produção visual com IA
 
+## 16/11/2026 — contagem de linhas no briefing do story
+
+Ensaio 21de1a71-4dea-511f-8300-48ff7d464b1d falhou por números 1 e 2 em
+creative_brief.hierarchy: “legível em 1–2 linhas”. Evidência privada confirmou
+falso positivo tipográfico; formato já era story. Reconhecimento compartilhado
+passa a aceitar contagem/faixa de linhas explicitamente ligada a texto ou
+legibilidade em orientação privada. Números soltos, quantidades comerciais e
+números no texto público continuam sujeitos à comprovação factual.
+
+Alteração em editorial_design_notation, usada pelo fluxo produtivo e laboratório.
+Sem alteração do ensaio encerrado, repetição automática, geração paga ou migração.
+Ruff/formatação e diff conferidos; sem testes ou navegador conforme orientação.
+É necessário recarregar os processos de API/worker antes do próximo ensaio.
+Validação manual de nova geração permanece a cargo do usuário.
+
 ## 16/11/2026 — custos por tentativa e total do laboratório
 
 Histórico exibe estimativa conhecida por tentativa, quantidade de chamadas sem custo
