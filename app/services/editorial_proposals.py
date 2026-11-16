@@ -1197,7 +1197,11 @@ class EditorialProposalService:
             context = ContextContent.model_validate(context_row)
         else:
             context = ContextContent()
+        from app.services.piece_feedback import FEEDBACK_RULE, feedback_context
+
+        taste = await feedback_context(session, self.settings, row["tenant_id"], row["business_id"])
         data: dict[str, object] = {
+            "customer_feedback": {"guidance": FEEDBACK_RULE, "items": taste},
             "confirmed_facts": [],
             "preferences": context.preferences.model_dump(mode="json", exclude={"reference_search"}),
             "material": source,

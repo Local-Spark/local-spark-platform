@@ -80,6 +80,7 @@ async def persist_product_result(session, row, cipher):
                 result["size_bytes"],
             ),
         ),
+        creative_context_ciphertext=result.get("copy_ciphertext"),
     )
     await session.execute(
         text("UPDATE creation_lab_runs SET output_piece_id=:piece WHERE id=:run"), {"piece": piece, "run": row["id"]}
@@ -114,7 +115,23 @@ async def list_product_messages(settings, database, tenant, business, actor):
             .mappings()
             .all()
         )
-    return [
+        invitations = (
+            (
+                await session.execute(
+                    text("""SELECT id,provider_message_id,simulated,created_at,expires_at
+          FROM content_feedback_invitations WHERE tenant_id=:tenant AND business_id=:business AND actor_id=:actor
+          ORDER BY created_at DESC LIMIT 50"""),
+                    {"tenant": tenant, "business": business, "actor": actor},
+                )
+            )
+            .mappings()
+            .all()
+        )
+    from app.services.piece_feedback import FEEDBACK_INVITATION
+
+    result = [
         {k: v for k, v in row.items() if k != "message_ciphertext"} | cipher.open(row["message_ciphertext"])
         for row in rows
     ]
+    result.extend(dict(row) | {"kind": "feedback", "message": FEEDBACK_INVITATION} for row in invitations)
+    return sorted(result, key=lambda item: item["created_at"], reverse=True)[:50]

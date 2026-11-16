@@ -37,6 +37,7 @@ class PieceVersionRead(PieceModel):
 
 
 class PieceRead(PieceModel):
+    original_message: str | None = None
     id: UUID
     simulated: bool = False
     format: PieceFormat

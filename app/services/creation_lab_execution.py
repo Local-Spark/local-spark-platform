@@ -63,14 +63,23 @@ class CreationLabExecution:
             committed = int(
                 await session.scalar(
                     text(
-                        "SELECT coalesce(sum(committed_usd_micros),0) FROM creation_lab_runs WHERE actor_id=:actor AND origin='lab'"
+                        "SELECT coalesce(sum(committed_usd_micros),0) FROM creation_lab_runs "
+                        "WHERE actor_id=:actor AND origin='lab'"
                     ),
                     {"actor": actor},
                 )
                 or 0
             )
+            from app.services.creation_lab_costs import lab_costs
+
+            costs = await lab_costs(session, actor)
+            totals = {
+                key: sum(item[key] for item in costs.values())
+                for key in ("estimated_usd_micros", "unpriced_reserved_usd_micros", "unpriced_calls")
+            }
             ceiling = self.settings.creation_lab_budget_usd_micros
             return {
+                **totals,
                 "ceiling_usd_micros": ceiling,
                 "committed_usd_micros": committed,
                 "available_usd_micros": max(0, ceiling - committed) if ceiling else None,
@@ -111,7 +120,8 @@ class CreationLabExecution:
             total = int(
                 await session.scalar(
                     text(
-                        "SELECT coalesce(sum(committed_usd_micros),0) FROM creation_lab_runs WHERE actor_id=:actor AND origin='lab'"
+                        "SELECT coalesce(sum(committed_usd_micros),0) FROM creation_lab_runs "
+                        "WHERE actor_id=:actor AND origin='lab'"
                     ),
                     {"actor": actor},
                 )
@@ -269,13 +279,15 @@ class CreationLabExecution:
                 new_hold = max(old_hold, estimate or 0)
                 if reservation["provider"] == "openai" and new_hold > old_hold:
                     await session.execute(
-                        text("""UPDATE visual_global_monthly_budget SET committed_usd_micros=committed_usd_micros+:delta,updated_at=now()
+                        text("""UPDATE visual_global_monthly_budget
+                      SET committed_usd_micros=committed_usd_micros+:delta,updated_at=now()
                       WHERE month=date_trunc('month',CAST(:created AS timestamptz) AT TIME ZONE 'UTC')::date"""),
                         {"delta": new_hold - old_hold, "created": reservation["created_at"]},
                     )
                 await session.execute(
                     text(
-                        "UPDATE visual_cost_reservations SET state='uncertain',estimated_usd_micros=:estimate,updated_at=now() WHERE id=:id"
+                        "UPDATE visual_cost_reservations SET state='uncertain',estimated_usd_micros=:estimate,"
+                        "updated_at=now() WHERE id=:id"
                     ),
                     {"id": commercial, "estimate": estimate},
                 )

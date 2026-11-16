@@ -84,6 +84,7 @@ async def write_version(
     source_preview_id: UUID | None = None,
     select_current: bool = True,
     simulated: bool = False,
+    creative_context_ciphertext: str | None = None,
 ) -> UUID:
     """Commit a complete version inside the producer's authorized transaction.
 
@@ -124,6 +125,7 @@ async def write_version(
                 simulated,
                 [asdict(a) for a in artifacts],
             ]
+            + ([creative_context_ciphertext] if creative_context_ciphertext is not None else [])
         ).encode()
     ).hexdigest()
     replay = (
@@ -187,10 +189,10 @@ async def write_version(
         raise AuthError("PIECE_PARENT_INVALID", 409)
     await session.execute(
         text("""INSERT INTO content_piece_versions
-          (tenant_id,business_id,piece_id,id,number,parent_id,operation_id,request_hash)
-          SELECT :tenant,:business,:piece,:version,coalesce(max(number),0)+1,:parent,:operation,:hash
+          (tenant_id,business_id,piece_id,id,number,parent_id,operation_id,request_hash,creative_context_ciphertext)
+          SELECT :tenant,:business,:piece,:version,coalesce(max(number),0)+1,:parent,:operation,:hash,:creative
           FROM content_piece_versions WHERE tenant_id=:tenant AND business_id=:business AND piece_id=:piece"""),
-        {**params, "version": version, "parent": parent_id, "hash": digest},
+        {**params, "version": version, "parent": parent_id, "hash": digest, "creative": creative_context_ciphertext},
     )
     for position, item in enumerate(artifacts):
         await session.execute(
@@ -264,8 +266,7 @@ class ContentPieceService:
             await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
             return await self._read(session, tenant, business, piece)
 
-    @staticmethod
-    async def _read(session: AsyncSession, tenant: UUID, business: UUID, piece: UUID) -> PieceRead:
+    async def _read(self, session: AsyncSession, tenant: UUID, business: UUID, piece: UUID) -> PieceRead:
         params = {"tenant": tenant, "business": business, "piece": piece}
         row = (
             (
@@ -307,7 +308,21 @@ class ContentPieceService:
             .mappings()
             .all()
         )
+        original_ciphertext = await session.scalar(
+            text("""SELECT root.instruction_ciphertext FROM creation_lab_runs r
+              JOIN creation_lab_runs root ON root.id=coalesce(r.rehearsal_id,r.id)
+                AND root.tenant_id=r.tenant_id AND root.business_id=r.business_id AND root.origin='whatsapp'
+              WHERE r.output_piece_id=:piece AND r.tenant_id=:tenant AND r.business_id=:business
+                AND r.origin='whatsapp' LIMIT 1"""),
+            params,
+        )
+        original_message = None
+        if original_ciphertext:
+            from app.services.motion_context import MotionContext
+
+            original_message = MotionContext(self.settings).open(original_ciphertext)["instruction"]
         return PieceRead(
+            original_message=original_message,
             id=piece,
             simulated=row["simulated"],
             format=row["format"],
@@ -431,6 +446,10 @@ class ContentPieceService:
                     "version": body.version_id,
                 },
             )
+            if body.decision == "approve" and not current.simulated:
+                from app.services.piece_feedback import invite_after_approval
+
+                await invite_after_approval(session, tenant, business, actor, piece, body.version_id)
             await _event(session, tenant, business, actor, body.operation_id, "content.piece_decided")
             return self._decision_read(row)
 

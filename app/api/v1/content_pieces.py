@@ -6,6 +6,7 @@ from fastapi import APIRouter, Request, Response
 
 from app.api.deps import Actor
 from app.schemas.content_pieces import PieceDecision, PieceDecisionRead, PieceFromPreview, PieceRead
+from app.schemas.piece_feedback import PieceFeedbackWrite
 from app.services.content_pieces import ContentPieceService
 
 pieces_router = APIRouter(
@@ -79,3 +80,52 @@ async def download_link(
 ) -> dict[str, str]:
     response.headers["Cache-Control"] = "no-store"
     return {"url": await service(request).download(tenant_id, business_id, actor, piece_id, version_id, artifact_id)}
+
+
+@pieces_router.get("/feedback/history")
+async def feedback_history(tenant_id: UUID, business_id: UUID, request: Request, response: Response, actor: Actor):
+    from app.services.piece_feedback import PieceFeedbackService
+
+    response.headers["Cache-Control"] = "no-store"
+    return await PieceFeedbackService(request.app.state.settings, request.app.state.database).list(
+        tenant_id, business_id, actor
+    )
+
+
+@pieces_router.get("/{piece_id}/feedback")
+async def piece_feedback_list(
+    tenant_id: UUID, business_id: UUID, piece_id: UUID, request: Request, response: Response, actor: Actor
+):
+    from app.services.piece_feedback import PieceFeedbackService
+
+    response.headers["Cache-Control"] = "no-store"
+    return await PieceFeedbackService(request.app.state.settings, request.app.state.database).list(
+        tenant_id, business_id, actor, piece_id
+    )
+
+
+@pieces_router.post("/{piece_id}/feedback", status_code=201)
+async def piece_feedback_write(
+    tenant_id: UUID,
+    business_id: UUID,
+    piece_id: UUID,
+    body: PieceFeedbackWrite,
+    request: Request,
+    response: Response,
+    actor: Actor,
+):
+    from app.services.piece_feedback import PieceFeedbackService
+
+    response.headers["Cache-Control"] = "no-store"
+    return await PieceFeedbackService(request.app.state.settings, request.app.state.database).record(
+        tenant_id, business_id, actor, piece_id, body
+    )
+
+
+@pieces_router.delete("/feedback/{feedback_id}", status_code=204)
+async def piece_feedback_remove(tenant_id: UUID, business_id: UUID, feedback_id: UUID, request: Request, actor: Actor):
+    from app.services.piece_feedback import PieceFeedbackService
+
+    await PieceFeedbackService(request.app.state.settings, request.app.state.database).remove(
+        tenant_id, business_id, actor, feedback_id
+    )

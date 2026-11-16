@@ -396,6 +396,9 @@ class MotionContext:
             params,
         )
         references = await self.references(session, business)
+        from app.services.piece_feedback import FEEDBACK_RULE, feedback_context
+
+        taste = await feedback_context(session, self.settings, tenant, business)
         evolution = await capture_evolution(session, tenant, business, request, self.open)
         logo = None
         if kit.overrides.logo_asset_id is not None:
@@ -429,6 +432,7 @@ class MotionContext:
                         **({"audio_materials": audio_materials} if audio_materials else {}),
                         "logo": logo,
                         "kit": kit.model_dump(mode="json"),
+                        "customer_feedback": {"guidance": FEEDBACK_RULE, "items": taste},
                         "context_version": context.version,
                         "preferences": context.preferences.model_dump(mode="json", exclude={"reference_search"}),
                         "confirmed_facts": [

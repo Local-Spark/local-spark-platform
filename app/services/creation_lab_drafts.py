@@ -111,7 +111,8 @@ class CreationLabDrafts:
             if row["failure_code"] == "CREATION_LAB_IMAGE_EXECUTION_FAILED":
                 raw = await session.scalar(
                     text("""SELECT payload_ciphertext FROM creation_lab_trace
-                  WHERE run_id=:run AND id=:trace AND (CAST(:expires AS timestamptz) IS NULL OR CAST(:expires AS timestamptz)>clock_timestamp())"""),
+                  WHERE run_id=:run AND id=:trace AND (CAST(:expires AS timestamptz) IS NULL
+                          OR CAST(:expires AS timestamptz)>clock_timestamp())"""),
                     {
                         "run": run,
                         "trace": uuid5(uuid5(run, "editorial"), "raw-response"),
@@ -134,15 +135,21 @@ class CreationLabDrafts:
             rows = (
                 (
                     await session.execute(
-                        text("""SELECT * FROM creation_lab_runs WHERE tenant_id=:tenant AND business_id=:business AND origin='lab'
-                          ORDER BY created_at DESC,id DESC LIMIT 50"""),
-                        {"tenant": tenant, "business": business},
+                        text("""SELECT r.*,EXISTS(
+                          SELECT 1 FROM creation_lab_approvals a WHERE a.run_id=r.id AND a.actor_id=:actor
+                        ) AS approved FROM creation_lab_runs r
+                          WHERE r.tenant_id=:tenant AND r.business_id=:business AND r.origin='lab'
+                          ORDER BY r.created_at DESC,r.id DESC LIMIT 50"""),
+                        {"tenant": tenant, "business": business, "actor": actor},
                     )
                 )
                 .mappings()
                 .all()
             )
-            return [self.present(dict(row)) for row in rows]
+            from app.services.creation_lab_costs import lab_costs
+
+            costs = await lab_costs(session, actor, [row["id"] for row in rows])
+            return [self.present(dict(row)) | {"approved": row["approved"], "costs": costs[row["id"]]} for row in rows]
 
     async def events(self, actor: UUID, run: UUID, after: int) -> list[dict[str, Any]]:
         async with self.database.transaction(ZERO, actor) as session:
@@ -152,8 +159,11 @@ class CreationLabDrafts:
             rows = (
                 (
                     await session.execute(
-                        text("""SELECT e.sequence,e.event_id,e.kind,e.trace_id,e.created_at,t.stage AS trace_stage,t.effect_id AS operation_id,
-                          CASE WHEN t.slot='partial' AND (r.trace_expires_at IS NULL OR r.trace_expires_at>clock_timestamp()) THEN t.payload_ciphertext END AS partial_ciphertext
+                        text("""SELECT e.sequence,e.event_id,e.kind,e.trace_id,e.created_at,
+                          t.stage AS trace_stage,t.effect_id AS operation_id,
+                          CASE WHEN t.slot='partial'
+                          AND (r.trace_expires_at IS NULL OR r.trace_expires_at>clock_timestamp())
+                          THEN t.payload_ciphertext END AS partial_ciphertext
                           FROM creation_lab_events e JOIN creation_lab_runs r ON r.id=e.run_id
                           LEFT JOIN creation_lab_trace t ON t.id=e.trace_id
                           WHERE e.run_id=:run AND e.sequence>:after ORDER BY e.sequence LIMIT 100"""),

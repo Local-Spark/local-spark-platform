@@ -27,7 +27,9 @@ class CreationLabResults:
                 (
                     await session.execute(
                         text("""SELECT v.id,v.run_id,r.attempt_number,v.number,v.sha256,v.mime_type,v.size_bytes,v.selected,
-              v.review_verdict,v.copy_ciphertext,v.created_at FROM creation_lab_versions v
+              v.review_verdict,v.copy_ciphertext,v.created_at,
+              EXISTS(SELECT 1 FROM creation_lab_approvals a WHERE a.version_id=v.id) AS approved
+              FROM creation_lab_versions v
               JOIN creation_lab_runs r ON r.id=v.run_id
               WHERE coalesce(r.rehearsal_id,r.id)=:root AND r.tenant_id=:tenant AND r.business_id=:business
               ORDER BY r.attempt_number,v.number"""),

@@ -154,6 +154,9 @@ class LabImageRequests(LabMotionRequests):
                 sources.append(dict(photo) | {"role": "space_photo"})
         if len(sources) > 4:
             raise AuthError("CREATION_LAB_IMAGE_REFERENCE_LIMIT", 409)
+        from app.services.piece_feedback import FEEDBACK_RULE, feedback_context
+
+        taste = await feedback_context(session, self.settings, tenant, business)
         skill_id, skill_hash, instructions = resolve_editorial_skill(row["format"])
         snapshot = {
             "request": body.model_dump(mode="json"),
@@ -161,6 +164,7 @@ class LabImageRequests(LabMotionRequests):
             "message": message,
             "catalog_candidates": candidates,
             "kit": kit.model_dump(mode="json"),
+            "customer_feedback": {"guidance": FEEDBACK_RULE, "items": taste},
             "context_version": context.version,
             "preferences": context.preferences.model_dump(mode="json", exclude={"reference_search"}),
             "additional_facts": [
@@ -464,6 +468,7 @@ class LabImageRunner:
                     "requested_format": row["format"],
                     "eligible_formats": [row["format"]],
                     "brand_kit": editorial_kit_input(snapshot["kit"], snapshot["kit"]["version"]),
+                    "customer_feedback": snapshot.get("customer_feedback", {}),
                     "reference_context": snapshot["reference_context"],
                     "editorial_skill": snapshot["editorial_skill"],
                     "available_materials": [editorial_material_reference(item) for item in snapshot["sources"]],
@@ -666,7 +671,14 @@ class LabImageRunner:
                     "mime": result.mime_type,
                     "size": len(result.content),
                     "copy": self.requests.context.seal(
-                        {"art_text": draft.art_text, "caption": draft.caption, "cta": draft.cta}
+                        {
+                            "art_text": draft.art_text,
+                            "caption": draft.caption,
+                            "cta": draft.cta,
+                            "creative_brief": draft.creative_brief.model_dump(mode="json")
+                            if draft.creative_brief
+                            else None,
+                        }
                     ),
                 },
             )

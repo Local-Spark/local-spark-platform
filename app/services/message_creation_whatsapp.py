@@ -41,6 +41,39 @@ async def enqueue_message(settings, database, worker_database, source_id: str) -
     instruction = transport.decrypt(material["ciphertext"].encode()).decode()
     envelope = json.loads(transport.decrypt(material["envelope"].encode()))
     reference = envelope.get("context", {}).get("id") if isinstance(envelope.get("context"), dict) else None
+    if reference:
+        from app.schemas.piece_feedback import PieceFeedbackWrite
+        from app.services.piece_feedback import PieceFeedbackService
+
+        async with database.transaction(tenant, actor) as session:
+            invitation = (
+                (
+                    await session.execute(
+                        text("""SELECT f.piece_id,f.version_id FROM content_feedback_invitations f
+              JOIN whatsapp_channel_links l ON l.tenant_id=f.tenant_id AND l.business_id=f.business_id
+              AND l.actor_id=f.actor_id AND l.sender_hash=f.recipient_hash AND l.active
+              WHERE f.provider_message_id=:ref AND f.tenant_id=:t AND f.business_id=:b AND f.actor_id=:a AND f.expires_at>now()"""),
+                        {"ref": reference, "t": tenant, "b": business, "a": actor},
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+        if invitation:
+            if material["kind"] != "text" or not instruction.strip():
+                return "feedback_text_required"
+            if len(instruction.strip()) > 2000:
+                return "feedback_text_too_long"
+            await PieceFeedbackService(settings, database).record(
+                tenant,
+                business,
+                actor,
+                invitation["piece_id"],
+                PieceFeedbackWrite(
+                    operation_id=uuid5(source, "piece-feedback"), version_id=invitation["version_id"], note=instruction
+                ),
+            )
+            return "feedback_recorded"
     operation = uuid5(source, "message-creation")
     run = uuid5(actor, f"creation-lab:{operation}")
     execution = CreationLabExecution(settings, database)

@@ -1,5 +1,116 @@
 # Registro de mudanças
 
+## 16/11/2026 — custos por tentativa e total do laboratório
+
+Histórico exibe estimativa conhecida por tentativa, quantidade de chamadas sem custo
+apurado, reserva dessas chamadas e total comprometido. Orçamento mostra os mesmos
+agregados para todo o laboratório/ator, não apenas os cinquenta itens do histórico.
+Sumários usam efeitos duráveis, sem ler traces e sem duplicar reservas como despesas.
+Ausência de estimativa não vira custo zero: há aviso de parcialidade e reserva separada.
+Comprometido mantém a regra conservadora existente; não se liberam reservas nesta fatia.
+
+Leitura autenticada local: estimativa conhecida US$ 0,023722, reservas sem apuração
+US$ 2,05 em três chamadas e comprometido US$ 2,474192. Duas imagens recebidas não têm
+estimativa persistida; não há confirmação de fatura. Custo final exato permanece
+indisponível até apuração do provedor. Sem migração ou chamada paga. Ruff, Prettier e
+diff conferidos; sem testes/build/navegador conforme orientação. Validação visual
+manual pendente; reiniciar API local sem reload para carregar os campos.
+
+## 16/11/2026 — mensagem original junto da peça em Conteúdos
+
+Cards das peças aprovadas do laboratório e das peças produtivas passam a mostrar
+“Mensagem original”. APIs leem a instrução cifrada da execução inicial do mesmo
+negócio/origem, preservando o pedido inicial após continuações. Sem vínculo ou texto
+disponível, UI informa ausência; não reconstrói a fala a partir do briefing.
+Acesso administrativo exclusivo do laboratório e autorização/RLS do produto mantidos.
+Sem migração ou geração. Validação: Ruff, Prettier, diff e leitura autenticada das
+peças existentes do Café Aurora. Sem testes, build ou navegador conforme orientação.
+Conferência visual e jornada produtiva manual pendentes. Backend local sem reload
+precisa de reinício pelo operador para disponibilizar os campos novos.
+
+## 16/11/2026 — contraste do botão Ver peça gerada
+
+A regra button-small sobrescrevia o fundo primário sem alterar o texto branco.
+O fundo claro agora se aplica somente aos botões pequenos não primários, preservando
+fundo roxo e texto branco antes do hover. Alteração compartilhada de CSS, sem mudança
+de comportamento. Prettier e diff conferidos; sem testes, build ou navegador conforme
+orientação vigente. Conferência visual manual pendente.
+
+## 16/11/2026 — aprovação ausente não significa pendente
+
+Consulta autenticada confirmou aprovação persistida do último ensaio do Café Aurora.
+API local em debug estava sem reload e precisa de reinício pelo operador para carregar
+o novo campo do histórico. UI passa a distinguir campo ausente de approved=false:
+mostra “aprovação não consultada”, evitando pendência falsa em resposta antiga.
+Prettier e diff conferidos; sem testes ou navegador. API do operador não reiniciada.
+
+## 16/11/2026 — status no histórico de ensaios
+
+“Seus ensaios” identifica rascunho não iniciado, fila, andamento, espera de resposta,
+peça pronta aguardando aprovação, aprovação explícita, erro, resultado incerto e
+cancelamento. Aprovação é consultada por tentativa e ator autorizado, sem inferi-la
+da conclusão da geração. Lista mantém ordem cronológica, com texto, ícone e cor.
+Status recebido pela execução atualiza o cache do histórico; aprovação invalida a
+lista. Sem novo polling, migração ou mudança nas regras de criação/publicação.
+
+Validação estática: Ruff, Prettier e diff. Testes e navegador não executados conforme
+orientação vigente; conferência manual das situações na UI permanece pendente.
+
+## 16/11/2026 — espaçamento e feedback visível nas peças de teste
+
+Prévia e aprovação recebem separação visual entre legenda, chamada, download e
+aceite; Conteúdos exibe cards com padding e data de aprovação. O aviso de revisão
+pendente deixa de aparecer após aceite explícito, sem alterar o parecer original.
+Feedback privado ganha seção identificada no laboratório e na peça aprovada em
+Conteúdos. A listagem administrativa retorna aprovação e comentários da versão,
+com o mesmo controle exclusivo de acesso e sem incluir esses dados nas preferências
+reais. Salvar avaliação invalida a listagem de testes aprovados na UI.
+
+Validação: leitura autenticada na base local confirmou uma peça aprovada e um
+feedback persistido, também retornado pela listagem atualizada. Ruff, sintaxe Python,
+Prettier e diff estáticos conferidos. Sem testes, build, typecheck, navegador ou
+nova geração, conforme orientação vigente. Conferência visual manual pendente.
+Sem migração ou alteração de dados existentes.
+
+## 16/11/2026 — feedback como referência criativa e aprovação privada de testes
+
+Entrevista concluída: comentários livres do cliente devem ser interpretados como
+referências flexíveis, não regras fixas. Aceite de teste exige botão explícito;
+feedback do laboratório permanece separado das referências reais.
+
+Implementados serviços/API/UI para feedback opcional após aprovação de versão real,
+histórico em Preferências de conteúdo, retirada de comentários do contexto e uso
+dos doze mais recentes nos próximos pedidos editoriais/motion. Briefing da versão
+é disponibilizado quando existente; ausência de contexto não autoriza inferências.
+A resposta ao convite WhatsApp tem correlação própria e não inicia ajuste/geração.
+Transporte permanece simulado; feedback por mensagem aceita somente texto nesta
+fatia. Não houve fine-tuning nem classificação paga adicional.
+
+Aprovar peça de teste registra versão/hash e exibe sua prévia em Conteúdos marcada
+Teste, apenas para o administrador autorizado. Sem cópia para tabelas publicáveis,
+sem alteração de preferências do cliente e sem aceite automático de peças antigas.
+Migração aditiva 0132 aplicada à base local habitual. Leituras autenticadas dos três
+negócios e da peça existente confirmadas; worker dedicado recarregado sem execução
+ativa. Sem testes, build, typecheck, browser ou geração paga, conforme orientação.
+Regressões unitárias adicionadas, não executadas. Jornada manual e provas de RLS/
+concorrência permanecem pendentes. Detalhes e limites em
+`docs/design/piece-feedback-and-lab-approval.md`.
+
+## 16/11/2026 — preparação de feedback pós-aprovação e testes em Conteúdos
+
+Usuário autorizou duas frentes: feedback ao final de peças aprovadas e exibição
+das peças aprovadas de laboratório em Conteúdos com identificação de teste.
+Mapeamento e decisões pendentes em docs/design/piece-feedback-and-lab-approval.md.
+Entrevista enviada sobre confirmação das preferências, aceite explícito do teste
+e eventual aplicação administrativa de preferências vindas de teste. Respostas
+não presumidas; implementação dependente aguarda definição.
+
+Aprovação atual é por versão em Conteúdos, separada de publicação. Respostas
+WhatsApp hoje encaminham ajustes, exigindo correlação distinta para feedback.
+Transporte permanece simulado. Flags selected/simulated existentes não comprovam
+aprovação de teste nem isolamento administrativo. Sem alterações de runtime ou
+dados, migração, testes ou chamadas pagas nesta preparação.
+
 ## 16/11/2026 — prévia visível ao concluir a criação
 
 O ensaio b555466c-c497-5d66-89ed-2683dbbb3aa2 concluiu e persistiu uma versão

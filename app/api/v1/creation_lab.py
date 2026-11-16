@@ -14,6 +14,7 @@ from app.adapters.material_media import MAX_BYTES
 from app.api.deps import Actor, ActorSession
 from app.schemas.creation_lab import LabContinuation, LabDraft, LabFeedback, LabStart
 from app.schemas.motion_preparation import MotionCheckpointDecision
+from app.schemas.piece_feedback import LabPieceApproval
 from app.services.auth import AuthError
 from app.services.business import AccessDenied
 from app.services.creation_lab_access import lab_businesses, require_lab_access
@@ -320,4 +321,24 @@ async def continue_run(
     response.headers["Cache-Control"] = "no-store"
     return await CreationLabContinuations(request.app.state.settings, request.app.state.database).create(
         actor, run_id, body
+    )
+
+
+@creation_lab_router.post("/runs/{run_id}/approve-piece")
+async def approve_lab_piece(request: Request, response: Response, actor: Actor, run_id: UUID, body: LabPieceApproval):
+    from app.services.lab_piece_approval import LabPieceApprovalService
+
+    response.headers["Cache-Control"] = "no-store"
+    return await LabPieceApprovalService(request.app.state.settings, request.app.state.database).approve(
+        actor, run_id, body
+    )
+
+
+@creation_lab_router.get("/approved-pieces")
+async def approved_lab_pieces(request: Request, response: Response, actor: Actor, tenant_id: UUID, business_id: UUID):
+    from app.services.lab_piece_approval import LabPieceApprovalService
+
+    response.headers["Cache-Control"] = "no-store"
+    return await LabPieceApprovalService(request.app.state.settings, request.app.state.database).list(
+        actor, tenant_id, business_id
     )
