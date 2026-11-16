@@ -13,18 +13,18 @@ from fastapi.responses import StreamingResponse
 from app.adapters.material_media import MAX_BYTES
 from app.api.deps import Actor, ActorSession
 from app.schemas.creation_lab import LabContinuation, LabDraft, LabFeedback, LabStart
+from app.schemas.motion_preparation import MotionCheckpointDecision
 from app.services.auth import AuthError
 from app.services.business import AccessDenied
 from app.services.creation_lab_access import lab_businesses, require_lab_access
 from app.services.creation_lab_attachments import CreationLabAttachments
+from app.services.creation_lab_checkpoints import LabCheckpoints
 from app.services.creation_lab_context import CreationLabContext
 from app.services.creation_lab_drafts import CreationLabDrafts
-from app.services.creation_lab_export import CreationLabExport
 from app.services.creation_lab_execution import CreationLabExecution
-from app.services.creation_lab_results import CreationLabResults
-from app.schemas.motion_preparation import MotionCheckpointDecision
+from app.services.creation_lab_export import CreationLabExport
 from app.services.creation_lab_motion_requests import LabMotionRequests
-from app.services.creation_lab_checkpoints import LabCheckpoints
+from app.services.creation_lab_results import CreationLabResults
 
 
 async def exclusive_lab_api(request: Request, actor: Actor) -> None:
@@ -229,6 +229,19 @@ async def stream_events(
             for event in pending:
                 cursor = event["sequence"]
                 yield f"id: {cursor}\nevent: stage\ndata: {json.dumps(event, default=str)}\n\n"
+            # Drain the full replay before closing, including events recorded
+            # after the terminal event (for example feedback in an older run).
+            if len(pending) == 100:
+                continue
+            current = await service.get(actor, run_id)
+            if current["state"] in {"completed", "failed", "uncertain", "cancelled"}:
+                # A commit may occur between the event read and the state read.
+                # Check the cursor again so that final output is not skipped.
+                tail = await service.events(actor, run_id, cursor)
+                if tail:
+                    continue
+                yield f"event: stream.finished\ndata: {json.dumps({'state': current['state']})}\n\n"
+                return
             yield ": keep-alive\n\n"
             await asyncio.sleep(5)
 

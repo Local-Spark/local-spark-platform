@@ -25,6 +25,7 @@ from app.services.creation_lab_drafts import ZERO
 from app.services.creation_lab_motion_requests import LabMotionRequests
 from app.services.creative_catalog import catalog_candidates, selected_catalog_snapshot
 from app.services.editorial_context import EditorialContextService
+from app.services.editorial_materials import editorial_material_reference
 from app.services.editorial_proposals import (
     EditorialProposalService,
     _catalog_fact,
@@ -132,6 +133,25 @@ class LabImageRequests(LabMotionRequests):
             if logo is None:
                 raise AuthError("VISUAL_LOGO_CHANGED", 409)
             sources.append(dict(logo) | {"role": "brand_logo", "version": 1})
+        # Institutional requests have no offering, but still have the business acervo.
+        # Capture a deterministic authorized environment reference in the fingerprint.
+        if len(sources) < 4 and not any(item["role"] == "source_photo" for item in sources):
+            identifier = await session.scalar(
+                text("""SELECT id FROM business_collection_photos
+                  WHERE tenant_id=:tenant AND business_id=:business
+                    AND state='ready' AND status='active'
+                    AND rights_scope='business_collection_confirmed'
+                    AND item_id IS NULL AND space_kind IN ('environment','room','counter')
+                    AND delete_owner IS NULL AND delete_lease_until IS NULL
+                  ORDER BY CASE space_kind WHEN 'environment' THEN 0 WHEN 'room' THEN 1 ELSE 2 END,id
+                  LIMIT 1"""),
+                {"tenant": tenant, "business": business},
+            )
+            if identifier:
+                photo = await self.context.photo(session, tenant, business, identifier)
+                if photo is None:
+                    raise AuthError("COLLECTION_CONTEXT_CHANGED", 409)
+                sources.append(dict(photo) | {"role": "space_photo"})
         if len(sources) > 4:
             raise AuthError("CREATION_LAB_IMAGE_REFERENCE_LIMIT", 409)
         skill_id, skill_hash, instructions = resolve_editorial_skill(row["format"])
@@ -194,9 +214,9 @@ class LabImageRequests(LabMotionRequests):
 
     async def resolve_sources(self, session, row, snapshot, catalog):
         """Use photos picked by the productive catalog snapshot, never UI choices."""
-        sources = [item for item in snapshot["sources"] if item["role"] not in {"item_photo", "space_photo"}]
         if catalog is None:
-            return sources
+            return snapshot["sources"]
+        sources = [item for item in snapshot["sources"] if item["role"] not in {"item_photo", "space_photo"}]
         for role in ("item_photo", "space_photo"):
             reference = catalog.get(role)
             if reference is None or len(sources) >= 4:
@@ -276,6 +296,32 @@ class LabImageRunner:
             await self.execution.evidence(
                 row["actor_id"], row["id"], token, uuid5(operation, "raw-response"), "provider_response", body
             )
+            # A terminal, truncated reply is a known failure, not a lost call.
+            # Preserve its usage and full reservation without accepting its draft.
+            if operation == uuid5(row["id"], "editorial") and body.get("status") == "incomplete":
+                usage = body.get("usage")
+                if isinstance(usage, dict) and all(
+                    type(usage.get(k)) is int and usage[k] >= 0 for k in ("input_tokens", "output_tokens")
+                ):
+                    s = self.requests.settings
+                    estimate = (
+                        usage["input_tokens"] * s.creation_lab_editorial_input_usd_micros_per_million_tokens
+                        + usage["output_tokens"] * s.creation_lab_editorial_output_usd_micros_per_million_tokens
+                        + 999999
+                    ) // 1000000
+                    await self.execution.received(
+                        row["actor_id"],
+                        row["id"],
+                        token,
+                        operation,
+                        {
+                            "accepted": False,
+                            "provider_status": "incomplete",
+                            "incomplete_details": body.get("incomplete_details"),
+                            "usage": usage,
+                        },
+                        estimate,
+                    )
 
         return observe
 
@@ -420,6 +466,7 @@ class LabImageRunner:
                     "brand_kit": editorial_kit_input(snapshot["kit"], snapshot["kit"]["version"]),
                     "reference_context": snapshot["reference_context"],
                     "editorial_skill": snapshot["editorial_skill"],
+                    "available_materials": [editorial_material_reference(item) for item in snapshot["sources"]],
                     "catalog_context": {
                         "name": catalog["offering"]["name"],
                         "kind": catalog["offering"]["kind"],
@@ -438,7 +485,7 @@ class LabImageRunner:
                 maximum = (
                     len(json.dumps(payload, ensure_ascii=False).encode())
                     * s.creation_lab_editorial_input_usd_micros_per_million_tokens
-                    + 1200 * s.creation_lab_editorial_output_usd_micros_per_million_tokens
+                    + payload["max_output_tokens"] * s.creation_lab_editorial_output_usd_micros_per_million_tokens
                     + 999999
                 ) // 1000000
                 if maximum > s.creation_lab_editorial_reservation_usd_micros:
@@ -483,10 +530,20 @@ class LabImageRunner:
                         },
                     )
                     return "awaiting_reply"
-                if not EditorialProposalService._safe_generated(
-                    draft, data, {UUID(f["id"]) for f in facts}, full_piece=True
-                ):
-                    raise AuthError("EDITORIAL_RESULT_UNCERTAIN", 409)
+                diagnostics: dict[str, object] = {}
+                rejection = EditorialProposalService._generated_rejection(
+                    draft, data, {UUID(f["id"]) for f in facts}, full_piece=True, diagnostics=diagnostics
+                )
+                if rejection:
+                    await self.execution.evidence(
+                        row["actor_id"],
+                        row["id"],
+                        token,
+                        uuid5(row["id"], "editorial-validation"),
+                        "editorial_validation",
+                        {"code": rejection, **diagnostics},
+                    )
+                    raise AuthError(rejection, 409)
                 draft = EditorialProposalService._ground_generated(draft, data).model_copy(
                     update={
                         "editorial_skill_id": snapshot["editorial_skill"]["id"],

@@ -268,9 +268,9 @@ class MessageCreation:
                 return "awaiting_reply"
             catalog = resolution.snapshot
             kind = materials[0]["kind"] if materials else "text"
-            fmt = {"short_video": "reel"}.get(resolution.format, resolution.format)
-            if fmt is None:
-                fmt = "reel" if kind == "video" else "photo" if kind == "image" else "story"
+            from app.services.message_creation_format import message_format
+
+            fmt = message_format(message, resolution.format, kind)
             if fmt not in MESSAGE_FORMATS:
                 await image_runner.pause(
                     row, token, "catalog", {"questions": ["Você quer um post no feed, um story estático ou um reel?"]}

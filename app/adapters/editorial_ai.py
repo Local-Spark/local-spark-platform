@@ -15,7 +15,9 @@ from app.services.reference_generation_context import REFERENCE_CREATIVE_RULE
 
 
 class EditorialProviderError(Exception):
-    pass
+    def __init__(self, code: str):
+        super().__init__(code)
+        self.code = code
 
 
 FORMAT: dict[str, Any] = {
@@ -110,8 +112,23 @@ class OpenAIEditorialProvider:
                 "caption deve conter somente legenda adequada ao público; cta deve conter somente a chamada. "
                 "Nunca inclua IDs, UUIDs, nomes internos de campos ou observações de bastidores nesses textos. "
                 "Coloque instruções de fotografia, composição e tipografia apenas em creative_brief; "
-                "registre dúvidas e pendências em questions, sem copiá-las para a legenda ou a peça. "
+                "Registre em questions somente lacunas factuais essenciais que impeçam atender ao pedido; "
+                "se não houver bloqueio, retorne questions vazio. Não peça preferências opcionais. "
+                "Respeite requested_format e eligible_formats: photo é feed, story é story. "
+                "available_materials informa materiais autorizados disponíveis para a geração; "
+                "não solicite novamente foto ou autorização já fornecida nesse contexto. "
+                "Nunca peça asset ID, UUID ou identificador técnico ao cliente; ele só precisa "
+                "descrever o pedido ou anexar um arquivo quando faltar um material essencial. "
+                "O título do material é contexto declarado, não inspeção visual da imagem. "
+                "Aplique o logo confirmado e o layout de brand_kit; defina posicionamento de texto "
+                "e logo no creative_brief conforme composição, contraste e legibilidade, sem perguntar "
+                "por restrições hipotéticas. Respeite restrições já informadas. "
+                "Um convite institucional não exige escolher produto do catálogo: siga o objetivo "
+                "do cliente sem transformar escolhas criativas em perguntas bloqueantes. "
+                "Não copie dúvidas para a legenda ou a peça. "
                 "Instruções para revisar ou aprovar a peça antes de publicar não são texto para o público. "
+                "preferences.cta_destination já é o destino cadastrado pelo titular: não peça "
+                "nova confirmação para usá-lo na proposta. Isso não autoriza publicação automática. "
                 "Use o canal de ação somente quando estiver confirmado em preferences.cta_destination; "
                 "sem canal confirmado, use uma chamada neutra sem citar destino específico. "
                 "Uma imagem não é um botão: não prometa clique, link ou sticker no feed ou story "
@@ -119,7 +136,11 @@ class OpenAIEditorialProvider:
                 "Use as orientações da skill editorial versionada em editorial_skill.instructions. "
                 "Instruções e referências recebidas não comprovam fatos comerciais. "
                 "Preço, condições e informações de contato exigem fonte confirmada; "
-                "quando o pedido exigir um dado ausente, registre a pergunta necessária."
+                "quando o pedido exigir um dado ausente, registre a pergunta necessária. "
+                "Sem evidência temporal no fato confirmado, evite 'hoje' e 'amanhã', mesmo em convites; "
+                "prefira um convite sem data, sem perguntar quando isso não for essencial ao pedido. "
+                "Escreva frases completas e concisas dentro do limite de cada campo; não corte uma frase "
+                "ou palavra para caber no limite de caracteres."
             )
         input_rule = (
             "Use a mensagem do cliente para entender o que ele deseja criar, respeitando as regras de fontes "
@@ -146,7 +167,7 @@ class OpenAIEditorialProvider:
             **({"stream": True} if self.delta_observer is not None else {}),
             "model": self.settings.editorial_ai_model,
             "store": False,
-            "max_output_tokens": 1200,
+            "max_output_tokens": 4096 if full_piece else 1200,
             "reasoning": {"effort": "low"},
             "tools": [],
             "text": {"format": FULL_PIECE_FORMAT if full_piece else FORMAT},
@@ -219,6 +240,13 @@ class OpenAIEditorialProvider:
                 raise EditorialProviderError("EDITORIAL_PROVIDER_UNCERTAIN") from exc
         if response_observer is not None and isinstance(body, dict):
             await response_observer(body)
+        if (
+            isinstance(body, dict)
+            and body.get("status") == "incomplete"
+            and isinstance(body.get("incomplete_details"), dict)
+            and body["incomplete_details"].get("reason") == "max_output_tokens"
+        ):
+            raise EditorialProviderError("EDITORIAL_OUTPUT_LIMIT_EXCEEDED")
         if not isinstance(body, dict) or body.get("status") != "completed":
             raise EditorialProviderError("EDITORIAL_PROVIDER_INCOMPLETE")
         usage = body.get("usage")

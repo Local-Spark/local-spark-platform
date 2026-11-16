@@ -1,5 +1,263 @@
 # BL04 — contexto seletivo e produção visual com IA
 
+## 16/11/2026 — prévia visível ao concluir a criação
+
+O ensaio b555466c-c497-5d66-89ed-2683dbbb3aa2 concluiu e persistiu uma versão
+PNG selecionada. Leitura pelo serviço autenticado confirmou a listagem e o arquivo
+(1.710.257 bytes). A UI mantinha a seleção de prévias vazia e mostrava solicitação
+de ajuste antes da imagem, tornando a entrega difícil de encontrar.
+
+A prévia da tentativa atual abre automaticamente uma vez ao disponibilizar a versão,
+priorizando a selecionada pelo produto. Depois disso, escolhas manuais são mantidas.
+A imagem/vídeo e download vêm antes do formulário de ajuste. O evento de conclusão
+oferece “Ver peça gerada”, que leva à seção e pausa a rolagem automática para não
+retirar o operador da peça quando o arquivo carregar. Seleção para avaliação recebe
+a versão atual como padrão. Comparação de até duas versões continua disponível.
+
+Validação: leitura autenticada de resultado e arquivo existente, revisão estática,
+Prettier e diff. Sem testes automatizados, build, typecheck ou navegador, por
+orientação vigente. Sem nova geração, custo de IA, mudança produtiva ou reinício
+do worker. Recarregar a UI e abrir o ensaio concluído; avaliação visual permanece
+pendente. Não é necessário gerar novamente para acessar esta peça.
+
+## 16/11/2026 — margem de segurança e evidência da rejeição numérica
+
+O ensaio `9e6d6c02-277c-5f3d-adfd-df6b4290febb` foi rejeitado por “mínimo 10% de
+espaço livre nas bordas” em creative_brief.photo_use. Era instrução de margem,
+não número comercial. O reconhecimento anterior de dimensões não cobria espaço
+livre/negativo/de respiro ou margem expressa após o percentual. Essas construções
+passam a ser reconhecidas somente na direção privada, com as mesmas restrições
+de percentual; os números do texto público não recebem essa exceção.
+
+Rejeições editoriais no fluxo comum agora gravam uma evidência privada
+editorial_validation antes do encerramento. Para número não confirmado, registra
+campo, números residuais e trecho original (limitado a 700 caracteres por campo),
+usando a mesma normalização da guarda. Identidade durável deriva do run; evidência
+usa a criptografia, autorização e retenção existentes, sem conteúdo nos logs.
+O evento trace.recorded dá acesso pelo botão de dados da etapa na UI existente.
+Sem nova chamada de IA, retry ou alteração do histórico anterior.
+
+Validação: leitura do trace, revisão, Ruff, sintaxe Python e diff; regressões
+adicionadas para margens e diagnóstico por campo, não executadas por orientação
+vigente. Sem suíte, build, typecheck ou geração paga. Worker recarregado após
+confirmar ausência de execução ativa/na fila. A confirmação funcional permanece
+pendente; o reconhecimento é lexical e ainda pode ter limitações de linguagem.
+Sem migração ou alteração das reservas anteriores.
+
+## 16/11/2026 — medidas de layout na pré-validação editorial
+
+O ensaio `10690259-4350-55b7-8b79-dbe7c40a162c` recebeu os novos rótulos sem
+códigos e voltou a falhar por `20–25% da altura` em creative_brief.photo_use.
+Isso especifica a faixa de texto, não um valor comercial. A guarda de números
+continuava estreita para medidas legítimas de composição.
+
+O reconhecimento de direção privada passa a tratar famílias de medidas: intervalos
+com hífen/travessão ou “a”, proporções percentuais explicitamente associadas a
+dimensões visuais, propriedades de layout, pixels, pontos tipográficos, rem e
+canvas com dimensões em pixels. Percentuais visuais são limitados a 0–100 por
+extremo. Percentual isolado, desconto, quantidade de produtos, preço, prazo e
+número desconhecido continuam sujeitos à evidência factual. A exceção nunca se
+aplica ao texto público. A regra permanece lexical, sem promessa de compreensão
+semântica completa ou eliminação de todos os falsos positivos.
+
+Validação: leitura do trace, revisão estática, Ruff, sintaxe e diff. Regressões
+adicionadas para proporção com intervalo, tipografia, dimensões, descontos,
+quantidades, prazos e ausência de exceção no texto público; não executadas por
+orientação vigente. Sem suíte, build, typecheck ou geração paga. Worker dedicado
+recarregado após confirmar ausência de execução ativa/na fila. Nova geração e
+conferência visual permanecem pendentes na UI. Histórico e reservas preservados;
+sem migração, alteração de dados comerciais ou repetição automática de chamada.
+
+## 16/11/2026 — referências de materiais sem códigos no briefing
+
+O trace do ensaio `90f3d486-8da6-54cb-ad76-cdffa49d2fcf` mostra feed, acervo e
+resposta editorial sem perguntas, mas a direção cita `Ambiente ilustrativo de
+referência 2` sem o sufixo de proveniência. A guarda só reconhecia o título
+completo e rejeitou o número 2. A correção anterior ficou incompleta; não havia
+preço, desconto ou quantidade comercial nesse trecho.
+
+Novos briefings usam rótulos de materiais por papel, sem nomes técnicos ou códigos
+numéricos, preservando a declaração de imagem ilustrativa. Os títulos originais,
+proveniência, IDs e hashes permanecem no snapshot privado, e a geração continua
+usando os mesmos arquivos verificados. Ausência da declaração de ilustração não
+comprova autenticidade da foto. O reconhecimento de títulos de snapshots antigos
+aceita o nome exato anterior ao separador de proveniência, com limites de palavra:
+referência 2 não autoriza referência 25, 3 ou o número isolado. Textos públicos
+mantêm a checagem integral; não foi relaxada a validação de dados comerciais.
+
+Validação: inspeção do trace, revisão estática, Ruff, sintaxe Python e diff.
+Regressões acrescentadas para abreviação autorizada, identificadores diferentes
+e preservação do caráter ilustrativo; não executadas conforme pedido vigente.
+Sem testes, build, typecheck ou geração paga. Worker dedicado recarregado após
+conferir ausência de execuções running/queued. A validação funcional continua
+pendente de nova tentativa pela UI. Sem migração ou alteração do ensaio anterior.
+
+## 16/11/2026 — rolagem acompanhando a execução
+
+A UI acompanha automaticamente o final da execução quando chegam eventos, texto,
+perguntas ou resultados, incluindo mudanças de altura após carregar imagens.
+O rascunho ainda não iniciado não desloca a página automaticamente. Subir para
+ler, abrir detalhes/trace ou focar um campo pausa o acompanhamento. Voltar ao final
+rolando para baixo ou usar “Acompanhar atualizações” retoma. Trocar de tentativa
+reinicia o comportamento. A rolagem é imediata, sem animações concorrentes durante
+streaming, e não transfere o foco de teclado para os novos eventos.
+
+Implementação somente no front, usando MutationObserver/ResizeObserver e um frame
+agendado por atualização, com limpeza ao desmontar. Não há polling, endpoint novo,
+mudança de orçamento ou reinício de worker. Validado por revisão, Prettier e diff;
+sem testes automatizados, build, typecheck ou browser conforme orientação vigente.
+Conferência de rolagem e pausa no navegador permanece com o administrador.
+
+## 16/11/2026 — diagnóstico da rejeição editorial e números de direção visual
+
+O ensaio `8fdec608-ab96-5723-a6f9-7f0451d49f48` já usou photo/feed, logo e foto
+de ambiente, sem perguntas editoriais. A resposta completa foi recebida; a geração
+da imagem não iniciou. A guarda lexical rejeitou números do título da foto
+(`referência 2`, `Pexels 31777028`) e `85% opacidade` na direção privada. A legenda
+também continha `hoje`, expressão temporal sem respaldo no único fato citado.
+
+A pré-validação distingue títulos exatos dos materiais autorizados fornecidos pelo
+servidor e notação de opacidade entre 0 e 100% na direção privada. Essas exceções
+não autorizam números no texto público, nem preços, descontos ou datas. Mantém
+restrições de temas, fontes e canais. O prompt orienta convites sem data quando
+não houver evidência temporal, sem transformar essa escolha criativa em pergunta,
+e exige frases completas dentro dos limites dos campos. Não houve corte/reparo
+automático nem aceitação retroativa da resposta anterior.
+
+A guarda passa a devolver causa estável: formato, referência factual, conteúdo
+incompleto, texto interno exposto, tema evitado, CTA não confirmado, número ou
+alegação sem confirmação. O fluxo comum persiste esse código no estado final e a
+UI o explica. O wrapper booleano permanece para chamadas existentes. O ensaio
+histórico mantém EDITORIAL_RESULT_UNCERTAIN; não há reescrita do trace ou ledger.
+A guarda continua lexical e não prova verdade semântica nem qualidade comercial.
+
+Validação: leitura do trace local, revisão estática, Ruff/Prettier, sintaxe e diff.
+Regressões adicionadas para títulos autorizados, opacidade e ausência de autorização
+para números/alegações públicas; não executadas conforme orientação vigente.
+Sem suíte, build, typecheck, browser ou chamadas pagas. Worker dedicado recarregado
+após conferir ausência de execuções running/queued. Nova geração pela UI e avaliação
+visual permanecem com o administrador. Sem migração e sem retry automático.
+
+## 16/11/2026 — acompanhamento contínuo e recarga do worker local
+
+Acompanhamento administrativo passa a mostrar ícones por evento e indicador animado
+somente no último evento de processamento enquanto o estado é running. Fila, espera
+por resposta, interrupção e registro têm indicações distintas; animação respeita
+preferência de movimento reduzido. O trace abre dentro do evento clicado, com botão
+expandir/recolher, sem levar o operador ao final da página. Perguntas e revisões
+ficam na sequência do histórico, e resultados/ajustes vêm depois. Checkpoint SSE
+invalida imediatamente status e perguntas existentes, sem novo temporizador.
+
+A tentativa `92145155-255f-57e9-8ed6-e175e91a670c` ainda foi executada pelo worker
+antigo: trace confirma formato story, apenas logo e ausência de available_materials
+e das instruções novas. O processo anterior estava ativo desde 15h11; foi encerrado
+após leitura confirmar ausência de execuções running/queued. Worker dedicado foi
+reiniciado com o código atual, sem disparar geração. Ensaios anteriores não foram
+reescritos nem retomados automaticamente; a próxima validação exige novo ensaio.
+
+Orientação editorial compartilhada reforça que não se pede asset ID/UUID ao cliente,
+nem reconfirmação do destino já cadastrado pelo titular. O processamento conserva
+as verificações reais de autorização de material; dados cadastrados não autorizam
+publicação automática. Escolhas criativas opcionais não devem bloquear a peça.
+
+Validação: inspeção do trace persistido e processo local, revisão de alterações,
+Prettier, Ruff, sintaxe Python e diff. Sem testes automatizados, build, typecheck,
+validação de navegador ou chamadas pagas, conforme orientação vigente. Qualidade
+da próxima resposta e da UI continua pendente de validação manual pelo administrador.
+Sem migração ou mudança de autorização/orçamento. O laboratório permanece exclusivo
+do administrador; as orientações de criação valem para a entrada comum do produto.
+
+## 16/11/2026 — feed institucional, acervo e perguntas essenciais
+
+Diagnóstico da execução local `297abe95-bf8c-5c24-8727-fdb2170df894`: a mensagem
+pedia explicitamente post pro feed, mas a interpretação retornou formato nulo.
+O fallback de texto assumiu story. Sem produto selecionado, o contexto continha
+somente o logo; a seleção de fotos dependia do catálogo. O editorial perguntou
+por foto, escolha opcional de item e restrições hipotéticas de composição.
+
+No serviço comum de mensagens (WhatsApp e laboratório), uma solicitação textual
+inequívoca de post/foto/imagem para feed recupera uma abstenção do interpretador.
+Negação e menção concorrente a vídeo/story/reel/carrossel não usam essa recuperação.
+Texto sem formato resolvido pede esclarecimento em vez de assumir story. Formatos
+positivamente classificados continuam sujeitos às validações existentes.
+
+O snapshot visual passa a capturar uma foto de ambiente autorizada, ativa e pronta,
+sem exclusão em andamento, quando não há foto anexada e existe espaço no limite.
+Seleção determinística prioriza environment, room e counter; não é ranking visual
+por IA. ID, versão, hash e título integram o snapshot e sua revalidação. Pedidos
+institucionais conservam essa fonte mesmo sem item de catálogo. O editorial recebe
+os papéis/títulos dos materiais disponíveis também nessa situação, sem URLs internas.
+A geração recebe a imagem e verifica o hash. O prompt exige perguntas apenas para
+lacunas factuais essenciais, aplica logo/layout do kit e delega posicionamento ao
+briefing; não exige escolher produto para um convite institucional. Isso não afirma
+que o modelo jamais fará uma pergunta inadequada; qualidade continua sujeita à revisão.
+
+Leitura da base e do armazenamento confirmou os três logos existentes vinculados
+aos kits, prontos/autorizados e com hash íntegro. Cada negócio possui oito fotos
+ativas/prontas, duas de ambiente. Não foi necessário criar ou substituir logos.
+Fotos demonstrativas continuam sendo ilustrativas, conforme cadastro.
+
+Validação: consulta local de diagnóstico, leitura dos três arquivos de logo,
+revisão de código, Ruff, sintaxe e diff. Regressões unitárias adicionadas para feed,
+ambiguidade, ausência de formato e preservação das fontes sem catálogo. Sem executar
+testes, build, typecheck ou geração paga por orientação do usuário. Não há migração
+nem reescrita do ensaio anterior. Reiniciar o worker para carregar os serviços e
+iniciar novo ensaio pela UI; validação funcional permanece com o administrador.
+
+## 16/11/2026 — encerramento das consultas após a execução
+
+Consultas de status/resultados param nos estados completed, failed, uncertain e
+cancelled. Há uma atualização final de resultados, checkpoints, anexos, histórico
+e orçamento para não perder dados confirmados na transação de encerramento.
+Checkpoints param junto do status; histórico/orçamento deixam de ter temporizador.
+Anexos usam uma chave compartilhada entre componentes e só são consultados
+periodicamente enquanto há upload aguardando confirmação. Erros de consulta
+não mantêm intervalos indefinidos; ações explícitas conservam atualização/refetch.
+
+SSE drena o replay antes de emitir stream.finished e encerrar, incluindo a corrida
+em que o estado final é confirmado entre a leitura de eventos e a de status. O
+cliente fecha o leitor, não reconecta após o fim e não reabre a conexão apenas
+porque o token foi renovado. Reabrir uma execução faz uma nova leitura finita.
+Foco/reconexão não reativam as consultas do ensaio concluído. O temporizador de
+acesso foi removido; conferência de acesso na entrada/foco e autorização em cada
+requisição continuam vigentes. Consulta de trace/download e feedback continuam
+acionados pelo usuário; retenção de trace continua independente do SSE.
+
+Validação: revisão de temporizadores, callbacks e fechamento do stream; formatação,
+sintaxe e diff. Adicionado teste de regressão do encerramento SSE para os quatro
+estados finais, não executado. Sem suíte, build, typecheck ou geração paga, conforme
+orientação vigente. Validação na aba Network do navegador permanece manual.
+Sem migração e sem mudança no worker ou no processamento da peça.
+
+
+## 16/11/2026 — acompanhamento explicado e limite da resposta editorial
+
+O primeiro ensaio de feed parou antes da geração da imagem: o trace persistido
+mostra resposta editorial `incomplete`, motivo `max_output_tokens`, com saída de
+1.200 tokens (512 de raciocínio) e JSON interrompido. Não foi falha de geração de
+imagem. O erro genérico escondia a causa.
+
+Pedidos editoriais de peça completa passam a permitir 4.096 tokens; pedidos
+legados simples conservam 1.200. A estimativa anterior à chamada usa o limite do
+próprio payload. Para o pedido observado, o limite calculado de 11.091 USD micros
+cabe na reserva configurada de 50.000, sem mudar teto ou configuração de custo.
+Resposta truncada com uso informado é registrada como retorno recebido, porém
+não aceito, e encerra a execução com `EDITORIAL_OUTPUT_LIMIT_EXCEEDED`. Não há
+retry automático nem uso de JSON parcial. Reservas permanecem conservadas.
+
+A UI explica ação, retorno e próximo passo em cada estágio, destaca a situação
+atual e guarda códigos nos detalhes técnicos. Resposta registrada não significa
+validada. Reserva acumulada não é apresentada como fatura confirmada. Para falha
+histórica genérica, GET pode apresentar diagnóstico específico derivado do trace
+não expirado; estado, efeitos e custos históricos não são reescritos.
+
+Validação: leitura de metadados/uso do trace existente, cálculo local do limite,
+revisão e formatação/sintaxe. Teste de regressão adicionado, não executado. Sem
+suíte, build, typecheck ou novas chamadas pagas, mantendo a orientação do usuário.
+O novo limite precisa de confirmação funcional em uma nova tentativa autorizada
+pela UI; não garante sozinho qualidade editorial ou visual. Sem migração.
+
+
 ## 16/11/2026 — entrada comum de criação para laboratório e WhatsApp
 
 Novas mensagens dos dois canais usam `MessageCreation` e o mesmo workflow Temporal

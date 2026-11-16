@@ -36,6 +36,7 @@ from app.services.auth import AuthError
 from app.services.brand_kits import kit_commercially_available
 from app.services.editorial_copy_quality import public_copy_has_no_internal_artifacts
 from app.services.editorial_cta import public_action_matches_destination
+from app.services.editorial_design_notation import remove_design_measurements
 from app.services.plan_capabilities import INITIAL_PLAN_INTENT_FORMATS
 from app.services.reference_generation_context import (
     capture_generation_context,
@@ -223,6 +224,7 @@ def generated_copy_matches_fact(draft: ProposalDraft, statement: str, avoided_to
 
 def _fact_check_direction(direction: str, format: str) -> str:
     """Remove recognized design notation without granting it factual authority."""
+    direction = remove_design_measurements(direction)
     result = re.sub(r"#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{4}|[0-9a-f]{3})\b", " ", direction, flags=re.IGNORECASE)
     result = re.sub(
         r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b",
@@ -233,12 +235,58 @@ def _fact_check_direction(direction: str, format: str) -> str:
     ratio = r"(?<!\d)9\s*:\s*16(?!\d)" if format == "story" else r"(?<!\d)4\s*:\s*5(?!\d)"
     result = re.sub(ratio, " ", result)
     result = re.sub(r"(?<!\w)\d+\)\s*", " ", result)
-    return re.sub(r"\bmarge(?:m|ns)\s+(?:seguras?\s+)?de\s+\d+(?:[.,]\d+)?\s*%", "margem visual", result)
+    result = re.sub(r"\bmarge(?:m|ns)\s+(?:seguras?\s+)?de\s+\d+(?:[.,]\d+)?\s*%", "margem visual", result)
+    percentage = r"(?:100|[0-9]{1,2}(?:[.,][0-9]+)?)\s*%"
+    # Only bounded opacity notation in private direction; never public discounts.
+    result = re.sub(r"\bopacidade\s*(?:de\s+|[:=]\s*)?" + percentage, "opacidade visual", result)
+    return re.sub(r"(?<![\w.,])" + percentage + r"\s+(?:de\s+)?opacidade\b", "opacidade visual", result)
+
+
+def _checked_material_direction(creative_direction: str, format: str, material_titles: tuple[str, ...]) -> str:
+    for title in material_titles:
+        # Exact server-supplied labels may contain stock-photo IDs. These are not
+        # business facts and grant no permission to publish their numbers.
+        # Older snapshots supplied a title followed by provenance metadata. The
+        # model may refer to that exact title without the suffix. Never exempt
+        # a bare number or a partial match inside another identifier.
+        labels = [title]
+        name, separator, _ = title.partition(" — ")
+        if separator and len(name.strip()) >= 8 and any(char.isalpha() for char in name):
+            labels.append(name.strip())
+        for label in labels:
+            creative_direction = re.sub(
+                r"(?<!\w)" + re.escape(label.casefold()) + r"(?!\w)",
+                "referência autorizada",
+                creative_direction,
+            )
+    return _fact_check_direction(creative_direction, format)
 
 
 def natural_generated_copy_matches_fact(
-    draft: ProposalDraft, statement: str, avoided_topics: list[str], *, destination: str | None = None
+    draft: ProposalDraft,
+    statement: str,
+    avoided_topics: list[str],
+    *,
+    destination: str | None = None,
+    material_titles: tuple[str, ...] = (),
 ) -> bool:
+    return (
+        natural_generated_copy_rejection(
+            draft, statement, avoided_topics, destination=destination, material_titles=material_titles
+        )
+        is None
+    )
+
+
+def natural_generated_copy_rejection(
+    draft: ProposalDraft,
+    statement: str,
+    avoided_topics: list[str],
+    *,
+    destination: str | None = None,
+    material_titles: tuple[str, ...] = (),
+    diagnostics: dict[str, object] | None = None,
+) -> str | None:
     """Check citations, values and known commercial expressions, not semantic truth.
 
     This experimental precheck cannot validate arbitrary factual claims: a human
@@ -253,9 +301,9 @@ def natural_generated_copy_matches_fact(
         or not draft.cta
         or brief is None
     ):
-        return False
+        return "EDITORIAL_CONTENT_INCOMPLETE"
     if not public_copy_has_no_internal_artifacts(draft):
-        return False
+        return "EDITORIAL_INTERNAL_TEXT_EXPOSED"
     values = [draft.title, draft.angle, draft.art_text, draft.caption, draft.cta]
     creative_direction = " ".join(
         (brief.objective, brief.concept, brief.visual_direction, brief.hierarchy, brief.photo_use)
@@ -263,7 +311,7 @@ def natural_generated_copy_matches_fact(
     copy = " ".join(values).casefold() + " " + creative_direction
     evidence = statement.casefold()
     if any(topic.casefold() in copy for topic in avoided_topics):
-        return False
+        return "EDITORIAL_AVOIDED_TOPIC"
     allowed_numbers = set(re.findall(r"\d+(?:[.,]\d+)*", evidence))
     # Technical notation is ignored only in the private direction, never in
     # public copy or the evidence; it cannot authorize a commercial value.
@@ -271,11 +319,50 @@ def natural_generated_copy_matches_fact(
     if destination:
         # Permit the exact owner-configured contact, not its individual numbers.
         public_copy = public_copy.replace(destination.casefold(), " ")
-    number_checked = public_copy + " " + _fact_check_direction(creative_direction, draft.format)
+    checked_direction = _checked_material_direction(creative_direction, draft.format, material_titles)
+    number_checked = public_copy + " " + checked_direction
     if any(number not in allowed_numbers for number in re.findall(r"\d+(?:[.,]\d+)*", number_checked)):
-        return False
+        if diagnostics is not None:
+            findings = []
+            for field in (
+                "title",
+                "angle",
+                "art_text",
+                "caption",
+                "cta",
+                "objective",
+                "concept",
+                "visual_direction",
+                "hierarchy",
+                "photo_use",
+            ):
+                private = field in {"objective", "concept", "visual_direction", "hierarchy", "photo_use"}
+                original = str(getattr(brief if private else draft, field))
+                checked = (
+                    _checked_material_direction(original.casefold(), draft.format, material_titles)
+                    if private
+                    else original.casefold()
+                )
+                if not private and destination:
+                    checked = checked.replace(destination.casefold(), " ")
+                numbers = sorted(set(re.findall(r"\d+(?:[.,]\d+)*", checked)) - allowed_numbers)
+                if numbers:
+                    findings.append(
+                        {
+                            "field": ("creative_brief." if private else "") + field,
+                            "numbers": numbers,
+                            "excerpt": original[:700],
+                        }
+                    )
+            diagnostics["violations"] = findings
+        return "EDITORIAL_UNCONFIRMED_NUMBER"
     allowed_claims = {re.sub(r"\s+", "", match.group()) for match in _COMMERCIAL_CLAIM.finditer(evidence)}
-    return all(re.sub(r"\s+", "", match.group()) in allowed_claims for match in _COMMERCIAL_CLAIM.finditer(copy))
+    if any(
+        re.sub(r"\s+", "", match.group()) not in allowed_claims
+        for match in _COMMERCIAL_CLAIM.finditer(public_copy + " " + checked_direction)
+    ):
+        return "EDITORIAL_UNCONFIRMED_CLAIM"
+    return None
 
 
 async def _audit(session: Any, row: Any, action: str) -> None:
@@ -1333,33 +1420,64 @@ class EditorialProposalService:
     def _safe_generated(
         draft: ProposalDraft, data: dict[str, object], valid_ids: set[UUID], *, full_piece: bool = False
     ) -> bool:
+        return EditorialProposalService._generated_rejection(draft, data, valid_ids, full_piece=full_piece) is None
+
+    @staticmethod
+    def _generated_rejection(
+        draft: ProposalDraft,
+        data: dict[str, object],
+        valid_ids: set[UUID],
+        *,
+        full_piece: bool = False,
+        diagnostics: dict[str, object] | None = None,
+    ) -> str | None:
         if draft.questions:
-            return False
+            return "EDITORIAL_CLARIFICATION_REQUIRED"
         eligible = data.get("eligible_formats")
         if isinstance(eligible, list) and (
             draft.format not in eligible or (data.get("requested_format") and draft.format != data["requested_format"])
         ):
-            return False
+            return "EDITORIAL_FORMAT_MISMATCH"
         if len(draft.fact_ids) != 1 or draft.fact_ids[0] not in valid_ids:
-            return False
+            return "EDITORIAL_FACT_REFERENCE_INVALID"
         facts = data["confirmed_facts"]
         assert isinstance(facts, list)
         fact = next((item for item in facts if str(item["id"]) == str(draft.fact_ids[0])), None)
         if fact is None:
-            return False
+            return "EDITORIAL_FACT_REFERENCE_INVALID"
         preferences = data["preferences"]
         assert isinstance(preferences, dict)
         topics = preferences.get("avoided_topics", [])
         assert isinstance(topics, list)
         if full_piece:
             if not public_action_matches_destination(draft, preferences):
-                return False
+                return "EDITORIAL_CTA_UNCONFIRMED"
             cta_destination = preferences.get("cta_destination")
             destination = cta_destination.get("value") if isinstance(cta_destination, dict) else None
-            return natural_generated_copy_matches_fact(
-                draft, str(fact["statement"]), topics, destination=destination if isinstance(destination, str) else None
+            materials = data.get("available_materials")
+            titles = (
+                tuple(
+                    item["title"]
+                    for item in materials
+                    if isinstance(item, dict)
+                    and item.get("authorized") is True
+                    and isinstance(item.get("title"), str)
+                    and item["title"]
+                )
+                if isinstance(materials, list)
+                else ()
             )
-        return generated_copy_matches_fact(draft, str(fact["statement"]), topics)
+            return natural_generated_copy_rejection(
+                draft,
+                str(fact["statement"]),
+                topics,
+                destination=destination if isinstance(destination, str) else None,
+                material_titles=titles,
+                diagnostics=diagnostics,
+            )
+        return (
+            None if generated_copy_matches_fact(draft, str(fact["statement"]), topics) else "EDITORIAL_RESULT_UNCERTAIN"
+        )
 
     @staticmethod
     def _ground_generated(draft: ProposalDraft, data: dict[str, object]) -> ProposalDraft:

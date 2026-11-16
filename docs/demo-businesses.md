@@ -127,3 +127,12 @@ serviços preservam idempotência e recusam payload divergente.
 
 Não é necessário executar essa ferramenta para testar peças: ela foi usada apenas
 para preparar os cadastros. Os ensaios continuam sendo feitos pela UI.
+
+## Conferência dos logos e do acervo — 16/11/2026
+
+Os três logos originais já estão vinculados aos respectivos kits confirmados.
+Leitura do armazenamento confirmou arquivos disponíveis e hashes íntegros; não
+foram substituídos. Os três negócios mantêm oito fotos prontas/ativas cada, incluindo
+duas de ambiente. O problema do pedido institucional era a passagem do acervo para
+o gerador, não ausência dos arquivos. O fluxo comum passou a incluir uma foto de
+ambiente autorizada mesmo sem produto selecionado.

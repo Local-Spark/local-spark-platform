@@ -105,7 +105,28 @@ class CreationLabDrafts:
             )
             if row is None:
                 raise AuthError("CREATION_LAB_RUN_NOT_FOUND", 404)
-            return self.present(dict(row))
+            result = self.present(dict(row))
+            # Explain historical generic failures from existing evidence only.
+            # Never rewrite their financial state or repeat the provider call.
+            if row["failure_code"] == "CREATION_LAB_IMAGE_EXECUTION_FAILED":
+                raw = await session.scalar(
+                    text("""SELECT payload_ciphertext FROM creation_lab_trace
+                  WHERE run_id=:run AND id=:trace AND (CAST(:expires AS timestamptz) IS NULL OR CAST(:expires AS timestamptz)>clock_timestamp())"""),
+                    {
+                        "run": run,
+                        "trace": uuid5(uuid5(run, "editorial"), "raw-response"),
+                        "expires": row["trace_expires_at"],
+                    },
+                )
+                if raw:
+                    value = self.cipher.open(raw)["value"]
+                    if (
+                        isinstance(value, dict)
+                        and value.get("status") == "incomplete"
+                        and value.get("incomplete_details") == {"reason": "max_output_tokens"}
+                    ):
+                        result["diagnostic_code"] = "EDITORIAL_OUTPUT_LIMIT_EXCEEDED"
+            return result
 
     async def history(self, actor: UUID, tenant: UUID, business: UUID) -> list[dict[str, Any]]:
         async with self.database.transaction(ZERO, actor) as session:
