@@ -1,5 +1,39 @@
 # Decisões vigentes e pendências
 
+## 16/11/2026 — confirmação da base editorial no laboratório
+
+O titular escolheu sugestão pelo modelo a partir da mensagem, seguida de confirmação
+explícita do produto/serviço antes da geração. A seleção lexical apenas fornece
+candidatos; não substitui interpretação nem aprovação. Planejamento vale também
+para vídeos. Retenção de sete dias apaga só trace; peças/anexos e textos da peça
+permanecem. Configuração financeira e validação real não foram executadas.
+
+## 16/11/2026 — laboratório administrativo: acesso e seleção implementados
+
+Requisitos confirmados: todos os formatos já desenvolvidos, modos automático e
+acompanhado, ensaios separados, orçamento administrativo sem franquia do cliente,
+SSE com deltas quando disponíveis, trace por sete dias e download. Apenas o perfil
+admin do titular pode escolher negócios; clientes e outros admins não acessam.
+Testes podem ocorrer sem plano comercial ativo, preservando aceite de IA/material;
+anexos novos ficam privados no laboratório. Primeiro entregar a jornada, depois
+gerar uma peça e melhorar motion a partir do resultado.
+
+Implementados no backend a autorização por identidade configurada e staff ativo,
+busca auditada/paginada e endpoints de descoberta. Front tem entrada exclusiva,
+rota administrativa e seleção real de negócios; geração ainda não disponível.
+Conta conferida e promovida a staff mediante autorização explícita, com auditoria;
+configuração individual somente no ambiente local. MFA existente preservado.
+
+Validação: sete testes unitários/HTTP e uma integração PostgreSQL passaram;
+módulos novos com 100% linhas/branches, lint e mypy aprovados. Web: tipos e
+528 testes/100% nas quatro métricas. CI integral backend e QA/build web em curso.
+Docker iniciado pelo titular; dez consumidores antigos pausados com autorização,
+PostgreSQL/Temporal disponíveis. Nenhuma migração de dev, geração paga ou publicação.
+
+Pendentes: persistência, execução produtiva por formato, orçamento separado,
+anexos, SSE/trace, retenção/exportação e jornada completa. Não é entrega final.
+[Especificação, decisões e evidências](design/admin-production-rehearsal-2026-11-16.md).
+
 ## 09/11/2026 — recorte da integração do Reel qualificado localmente
 
 A implementação autorizada preserva HTML/`scene_init` e o caminho de serviços
@@ -874,3 +908,57 @@ teto de gasto do ensaio. Preparar um plano concreto e consultar o titular em
 entrevista sobre escolhas ainda abertas, preservando autorizações aplicáveis.
 Não repetir as decisões já respondidas da feature de referências. Nenhuma peça
 nova, chamada paga ou avaliação humana foi executada nesta atualização documental.
+
+## 16/11/2026 — respostas, ajustes e teto pela UI
+
+Esta entrada substitui as limitações de continuidade e orçamento das entradas
+anteriores. O teto obrigatório é informado na UI por ensaio. Ajustes e respostas
+usam o saldo do teto original, sem renová-lo. O teto global é opcional: zero em
+`creation_lab_budget_usd_micros` significa ausência desse limite adicional, e não
+execução desabilitada. A habilitação técnica independente é
+`creation_lab_execution_enabled`, falsa por padrão. A identidade administrativa
+exclusiva, consentimentos, reservas antes de efeitos e o limite por ensaio continuam
+obrigatórios. Não altera planos, saldos ou quotas comerciais.
+
+- Perguntas de intenção/editorial suspendem a criação e aparecem na UI; aprovar
+  um checkpoint com perguntas é recusado. Responder prepara uma continuação no
+  mesmo histórico, conservando pedido original, anexos e seleção do acervo.
+- “Preparar ajuste” existe na revisão e na peça concluída. Cada tentativa tem
+  identidade própria, referência à anterior e ao ensaio raiz; não reaproveita a
+  identidade de uma chamada paga. Há uma única continuação por tentativa, no
+  máximo dez tentativas e 4 mil caracteres para o pedido composto. Uma chamada
+  não resolvida impede continuação. O operador revisa e inicia a nova tentativa
+  pela UI; enviar feedback isolado continua sem autorizar geração.
+- Peças de tentativas do mesmo ensaio podem ser comparadas na UI. Downloads e
+  feedback usam a tentativa proprietária. Cada tentativa conserva seu trace,
+  custos e pacote exportável; só o trace expira sete dias depois do seu término.
+- Catálogo deixa de ser obrigatório para imagens. Sem correspondência, um pedido
+  de criação identificado pode usar fatos vigentes e marca confirmada, com regras
+  factuais/CTA compartilhadas. Não cria um item fictício nem transforma texto do
+  modelo em fato. O laboratório apresenta essa base para confirmação; informações
+  essenciais pendentes viram perguntas. No produto, o briefing institucional é
+  recapturado antes de efeitos e respeita a validade dos fatos.
+- A jornada produtiva WhatsApp passa a vincular respostas a uma pergunta citada e
+  `Pedir ajustes: ...` com observação à entrega anterior. O material recebido
+  continua sendo a identidade durável do workflow; ligação, autorização e auditoria
+  são persistidas. Pedido composto e proveniência são compartilhados pelas etapas
+  de briefing, editorial e geração visual. Uma mensagem nova sem referência não
+  é presumida como resposta. O comando sem observação registra a decisão existente,
+  sem inventar um ajuste. A entrega de candidatas continua simulada: isto não
+  conclui a integração externa do WhatsApp nem a publicação real.
+
+Migrações aditivas 0128 e 0129 aplicadas somente ao banco local de desenvolvimento.
+O runtime `app.entrypoints.creation_lab` usa Temporal e o relay existente filtrado
+para eventos do laboratório, em fila exclusiva. `make creation-lab` inicia esse
+serviço persistente; os pedidos são feitos pela UI. Configuração local preparada
+com credenciais existentes e imagem do renderizador já instalada. Worker exclusivo
+iniciado após leitura confirmar zero execuções/etapas aprovadas pendentes; nenhum
+consumidor antigo foi reiniciado por esta alteração. Flags produtivas não são
+habilitadas pelo adaptador administrativo.
+
+Revisão de código e formatação Ruff/Prettier realizadas. **Não executados testes,
+CI, typecheck, build, QA em browser ou geração paga**, conforme pedido do titular.
+A validação ponta a ponta será feita por ele pela UI. Não há alegação de qualidade
+estética validada. Limites semanais por formato e melhorias dos motions permanecem
+na etapa posterior combinada.
+

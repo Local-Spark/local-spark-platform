@@ -1,6 +1,7 @@
 """One-shot structured text generation; no provider response storage or tool access."""
 
 import json
+from collections.abc import Awaitable, Callable
 from copy import deepcopy
 from typing import Any
 from uuid import UUID
@@ -81,8 +82,11 @@ FULL_PIECE_FORMAT["schema"]["required"].append("creative_brief")
 
 
 class OpenAIEditorialProvider:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(
+        self, settings: Settings, *, delta_observer: Callable[[UUID, str], Awaitable[None]] | None = None
+    ) -> None:
         self.settings = settings
+        self.delta_observer = delta_observer
 
     def build_request(self, payload: dict[str, object]) -> dict[str, Any]:
         """Build the exact, secret-free request body before its paid submission."""
@@ -139,6 +143,7 @@ class OpenAIEditorialProvider:
                 "ou layout de terceiros. "
             )
         return {
+            **({"stream": True} if self.delta_observer is not None else {}),
             "model": self.settings.editorial_ai_model,
             "store": False,
             "max_output_tokens": 1200,
@@ -170,7 +175,12 @@ class OpenAIEditorialProvider:
         }
 
     async def propose(
-        self, payload: dict[str, object], proposal_id: UUID, *, prepared_request: dict[str, Any] | None = None
+        self,
+        payload: dict[str, object],
+        proposal_id: UUID,
+        *,
+        prepared_request: dict[str, Any] | None = None,
+        response_observer: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
     ) -> tuple[ProposalDraft, int, int]:
         key = self.settings.openai_api_key
         if self.settings.editorial_ai_mode != "openai" or key is None:
@@ -179,18 +189,36 @@ class OpenAIEditorialProvider:
         full_piece = isinstance(payload.get("editorial_skill"), dict)
         async with httpx.AsyncClient(timeout=45, follow_redirects=False, trust_env=False) as client:
             try:
-                response = await client.post(
-                    "https://api.openai.com/v1/responses",
-                    headers={
-                        "Authorization": f"Bearer {key.get_secret_value()}",
-                        "X-Client-Request-Id": str(proposal_id),
-                    },
-                    json=request,
-                )
-                response.raise_for_status()
-                body = response.json()
+                if self.delta_observer is not None:
+                    from app.adapters.responses_stream import read_responses_stream
+
+                    async with client.stream(
+                        "POST",
+                        "https://api.openai.com/v1/responses",
+                        headers={
+                            "Authorization": f"Bearer {key.get_secret_value()}",
+                            "X-Client-Request-Id": str(proposal_id),
+                        },
+                        json=request,
+                    ) as response:
+                        body = json.loads(
+                            await read_responses_stream(response, lambda delta: self.delta_observer(proposal_id, delta))
+                        )
+                else:
+                    response = await client.post(
+                        "https://api.openai.com/v1/responses",
+                        headers={
+                            "Authorization": f"Bearer {key.get_secret_value()}",
+                            "X-Client-Request-Id": str(proposal_id),
+                        },
+                        json=request,
+                    )
+                    response.raise_for_status()
+                    body = response.json()
             except (httpx.HTTPError, ValueError) as exc:
                 raise EditorialProviderError("EDITORIAL_PROVIDER_UNCERTAIN") from exc
+        if response_observer is not None and isinstance(body, dict):
+            await response_observer(body)
         if not isinstance(body, dict) or body.get("status") != "completed":
             raise EditorialProviderError("EDITORIAL_PROVIDER_INCOMPLETE")
         usage = body.get("usage")

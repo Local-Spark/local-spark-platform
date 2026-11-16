@@ -37,7 +37,7 @@ from app.services.motion_staging import STAGING_CONTRACT
 from app.services.motion_styles import html_style_card, list_motion_styles
 from app.services.motion_temporal import POLICY_V3, POLICY_V4
 from app.services.motion_visual_direction import supplied_direction
-from app.services.reference_generation_context import capture_generation_context
+from app.services.reference_generation_context import ReferenceGenerationSnapshot, capture_generation_context
 
 HTML_EXECUTOR_CONTRACT = {
     "version": "html-motion-executor-v1",
@@ -272,18 +272,8 @@ class MotionContext:
             raise AuthError("MOTION_BUDGET_REQUIRED", 409)
         self.cipher()
 
-    async def capture(
-        self,
-        session: AsyncSession,
-        tenant: UUID,
-        business: UUID,
-        request: MotionRequest,
-        *,
-        previous: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
-        if request.storyboard and not self.settings.motion_storyboard_enabled:
-            raise AuthError("MOTION_STORYBOARD_NOT_CONFIGURED", 409)
-        params = {"tenant": tenant, "business": business, "source": request.source_asset_id}
+    async def source(self, session: AsyncSession, tenant: UUID, business: UUID, identifier: UUID) -> Any:
+        params = {"tenant": tenant, "business": business, "source": identifier}
         source = (
             (
                 await session.execute(
@@ -298,6 +288,61 @@ class MotionContext:
             .mappings()
             .one_or_none()
         )
+        return source
+
+    async def photo(self, session: AsyncSession, tenant: UUID, business: UUID, identifier: UUID) -> Any:
+        photo = (
+            (
+                await session.execute(
+                    text("""SELECT id,version,title,item_id,space_kind,object_key,mime_type,size_bytes,sha256
+                FROM business_collection_photos WHERE tenant_id=:tenant AND business_id=:business AND id=:photo
+                AND state='ready' AND status='active' AND rights_scope='business_collection_confirmed'
+                AND delete_owner IS NULL AND delete_lease_until IS NULL FOR SHARE"""),
+                    {"tenant": tenant, "business": business, "photo": identifier},
+                )
+            )
+            .mappings()
+            .one_or_none()
+        )
+        return photo
+
+    async def audio(self, session: AsyncSession, tenant: UUID, business: UUID, identifier: UUID) -> Any:
+        material = (
+            (
+                await session.execute(
+                    text("""SELECT id,object_key,mime_type,size_bytes,sha256 FROM whatsapp_material_assets
+                      WHERE tenant_id=:tenant AND business_id=:business AND id=:audio AND kind='audio'
+                        AND mime_type IN ('audio/wav','audio/ogg','audio/mpeg')
+                        AND object_key IS NOT NULL AND sha256 IS NOT NULL AND size_bytes>0
+                        AND delete_requested_at IS NULL AND delete_lease_until IS NULL
+                        AND (expires_at IS NULL OR expires_at>clock_timestamp()) FOR SHARE"""),
+                    {"tenant": tenant, "business": business, "audio": identifier},
+                )
+            )
+            .mappings()
+            .one_or_none()
+        )
+        return material
+
+    async def references(self, session: AsyncSession, business: UUID) -> ReferenceGenerationSnapshot:
+        return await capture_generation_context(session, business)
+
+    def select_default_photos(self) -> bool:
+        return True
+
+    async def capture(
+        self,
+        session: AsyncSession,
+        tenant: UUID,
+        business: UUID,
+        request: MotionRequest,
+        *,
+        previous: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        if request.storyboard and not self.settings.motion_storyboard_enabled:
+            raise AuthError("MOTION_STORYBOARD_NOT_CONFIGURED", 409)
+        params = {"tenant": tenant, "business": business, "source": request.source_asset_id}
+        source = await self.source(session, tenant, business, request.source_asset_id)
         if source is None:
             raise AuthError("MOTION_SOURCE_UNAVAILABLE", 409)
         if request.speech_timing is not None and request.speech_timing.source_sha256 != source["sha256"]:
@@ -312,7 +357,7 @@ class MotionContext:
                 guidance["speech_recognition"] = policy
         photos = []
         photo_ids = request.collection_photo_ids
-        if request.propose_direction and not photo_ids:
+        if request.propose_direction and not photo_ids and self.select_default_photos():
             photo_ids = tuple(
                 (
                     await session.scalars(
@@ -325,39 +370,13 @@ class MotionContext:
                 ).all()
             )
         for photo_id in photo_ids:
-            photo = (
-                (
-                    await session.execute(
-                        text("""SELECT id,version,title,item_id,space_kind,object_key,mime_type,size_bytes,sha256
-                    FROM business_collection_photos WHERE tenant_id=:tenant AND business_id=:business AND id=:photo
-                    AND state='ready' AND status='active' AND rights_scope='business_collection_confirmed'
-                    AND delete_owner IS NULL AND delete_lease_until IS NULL FOR SHARE"""),
-                        {"tenant": tenant, "business": business, "photo": photo_id},
-                    )
-                )
-                .mappings()
-                .one_or_none()
-            )
+            photo = await self.photo(session, tenant, business, photo_id)
             if photo is None:
                 raise AuthError("MOTION_COLLECTION_PHOTO_UNAVAILABLE", 409)
             photos.append(dict(photo))
         audio_materials = []
         for audio_id in sorted({event.asset_id for event in request.sound_events}):
-            material = (
-                (
-                    await session.execute(
-                        text("""SELECT id,object_key,mime_type,size_bytes,sha256 FROM whatsapp_material_assets
-                          WHERE tenant_id=:tenant AND business_id=:business AND id=:audio AND kind='audio'
-                            AND mime_type IN ('audio/wav','audio/ogg','audio/mpeg')
-                            AND object_key IS NOT NULL AND sha256 IS NOT NULL AND size_bytes>0
-                            AND delete_requested_at IS NULL AND delete_lease_until IS NULL
-                            AND (expires_at IS NULL OR expires_at>clock_timestamp()) FOR SHARE"""),
-                        {"tenant": tenant, "business": business, "audio": audio_id},
-                    )
-                )
-                .mappings()
-                .one_or_none()
-            )
+            material = await self.audio(session, tenant, business, audio_id)
             if material is None:
                 raise AuthError("MOTION_AUDIO_MATERIAL_UNAVAILABLE", 409)
             audio_materials.append(dict(material))
@@ -370,7 +389,7 @@ class MotionContext:
           FROM businesses WHERE tenant_id=:tenant AND id=:business"""),
             params,
         )
-        references = await capture_generation_context(session, business)
+        references = await self.references(session, business)
         evolution = await capture_evolution(session, tenant, business, request, self.open)
         logo = None
         if kit.overrides.logo_asset_id is not None:

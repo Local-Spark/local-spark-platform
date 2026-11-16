@@ -3,7 +3,7 @@
 import base64
 import hashlib
 from dataclasses import asdict, dataclass
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 from uuid import UUID, uuid5
 
 from sqlalchemy import text
@@ -41,6 +41,10 @@ from app.services.motion_temporal import evidence_manifest, sample_times, tempor
 from app.services.visual_pending_changes import VisualPendingChanges
 from app.services.visual_pending_scripts import apply_pending_script_changes
 from app.workflows.contracts import BusinessEvent
+
+
+if TYPE_CHECKING:
+    from app.services.motion_checkpoints import MotionCheckpoints
 
 
 class MotionInputs(Protocol):
@@ -100,9 +104,17 @@ class MotionOrchestrator:
         self.illustration_provider = illustration_provider
         self.speech_recognizer = speech_recognizer
 
+    def checkpoints(self) -> "MotionCheckpoints":
+        from app.services.motion_checkpoints import MotionCheckpoints
+
+        return MotionCheckpoints(self.requests, self.store)
+
+    def storyboards(self) -> MotionStoryboards:
+        return MotionStoryboards(self.requests, self.store)
+
     async def run(self, event: BusinessEvent) -> str:
         from app.services.motion_checkpoint_execution import resume_checkpoint
-        from app.services.motion_checkpoints import APPROVED, MotionCheckpoints
+        from app.services.motion_checkpoints import APPROVED
         from app.services.motion_render_recovery import MotionRenderRecovery, recovery_event
         from app.services.motion_review_recovery import MotionReviewRecovery, review_recovery_event
 
@@ -122,38 +134,21 @@ class MotionOrchestrator:
             return await MotionStoryboardRecapture(self).run(event)
         if UUID(event.event_id) == uuid5(operation, "motion.storyboard_approved"):
             return await self.resume(event)
-        if UUID(event.event_id) != uuid5(operation, "motion.requested") and await MotionCheckpoints(
-            self.requests, self.store
-        ).is_recovery(event):
+        if UUID(event.event_id) != uuid5(operation, "motion.requested") and await self.checkpoints().is_recovery(event):
             return await resume_checkpoint(self, event, "plan")
         started = await self.requests.begin(tenant, business, actor, operation, UUID(event.event_id))
         if started is None:
             return "already_claimed"
         row, token = started
         try:
-            prepared = await self.inputs.prepare(self.requests.context.open(row["snapshot_ciphertext"]))
-            prepared = await MotionSpeechRecognition(self.effects, self.speech_recognizer).prepare(row, token, prepared)
-            movement_hash(prepared.context)
-            elements_hash(prepared.context)
-            temporal_enabled(prepared.context)
+            prepared = await self.prepare(row, token)
             if prepared.context.get("request", {}).get("review_checkpoints"):
                 plan = await plan_motion(self.effects, self.provider, row, token, prepared)
-                await MotionCheckpoints(self.requests, self.store).capture(
-                    row, token, "plan", prepared, plan, self.effects
-                )
+                await self.checkpoints().capture(row, token, "plan", prepared, plan, self.effects)
                 return "awaiting_plan"
-            illustrations = MotionIllustrations(self.effects, self.store, self.illustration_provider)
-            if asset_informed_enabled(prepared.context):
-                prepared, composition = await construct_motion_with_assets(
-                    self.effects, self.provider, row, token, prepared, illustrations
-                )
-            else:
-                composition = await construct_motion(self.effects, self.provider, row, token, prepared)
-                prepared = await illustrations.prepare(row, token, prepared, composition)
+            prepared, composition = await self.construct(row, token, prepared)
             if prepared.context.get("request", {}).get("storyboard"):
-                await MotionStoryboards(self.requests, self.store).capture(
-                    row, token, prepared, composition, self.renderer, self.effects
-                )
+                await self.storyboards().capture(row, token, prepared, composition, self.renderer, self.effects)
                 return "awaiting_storyboard"
             return await self.produce(row, token, prepared, composition)
         except BaseException as exc:
@@ -163,8 +158,28 @@ class MotionOrchestrator:
                 await self.effects.quarantine(row, token)
             raise
 
+    async def prepare(self, row: dict[str, Any], token: UUID) -> PreparedMotionInput:
+        """Shared source preparation, transcription and creative-contract guards."""
+        prepared = await self.inputs.prepare(self.requests.context.open(row["snapshot_ciphertext"]))
+        prepared = await MotionSpeechRecognition(self.effects, self.speech_recognizer).prepare(row, token, prepared)
+        movement_hash(prepared.context)
+        elements_hash(prepared.context)
+        temporal_enabled(prepared.context)
+        return prepared
+
+    async def construct(
+        self, row: dict[str, Any], token: UUID, prepared: PreparedMotionInput
+    ) -> tuple[PreparedMotionInput, HTMLMotionComposition]:
+        """One creative implementation for both productive and administrative entrypoints."""
+        illustrations = MotionIllustrations(self.effects, self.store, self.illustration_provider)
+        if asset_informed_enabled(prepared.context):
+            return await construct_motion_with_assets(self.effects, self.provider, row, token, prepared, illustrations)
+        composition = await construct_motion(self.effects, self.provider, row, token, prepared)
+        prepared = await illustrations.prepare(row, token, prepared, composition)
+        return prepared, composition
+
     async def resume(self, event: BusinessEvent) -> str:
-        boards = MotionStoryboards(self.requests, self.store)
+        boards = self.storyboards()
         started = await boards.begin_resume(event)
         if started is None:
             return "already_claimed"
@@ -428,6 +443,30 @@ class MotionOrchestrator:
                 ),
             },
         )
+        await self.persist_render(
+            row,
+            token,
+            number,
+            render_operation,
+            artifact,
+            composition_ciphertext,
+            evidence_ciphertext,
+            diagnostics_ciphertext,
+        )
+        return Candidate(number, composition, rendered, artifact)
+
+    async def persist_render(
+        self,
+        row: dict[str, Any],
+        token: UUID,
+        number: int,
+        render_operation: UUID,
+        artifact: PieceArtifact,
+        composition_ciphertext: str,
+        evidence_ciphertext: str,
+        diagnostics_ciphertext: str,
+    ) -> None:
+        """Persistence boundary; rendering, validation and critique stay in this orchestrator."""
         async with self.requests.database.transaction(row["tenant_id"], row["actor_id"]) as session:
             await self.requests.locked_running(session, row, token)
             await session.execute(
@@ -442,14 +481,13 @@ class MotionOrchestrator:
                     "number": number,
                     "operation": render_operation,
                     "composition": composition_ciphertext,
-                    "key": key,
-                    "sha": rendered.sha256,
-                    "size": len(rendered.mp4),
+                    "key": artifact.object_key,
+                    "sha": artifact.sha256,
+                    "size": artifact.size_bytes,
                     "evidence": evidence_ciphertext,
                     "diagnostics": diagnostics_ciphertext,
                 },
             )
-        return Candidate(number, composition, rendered, artifact)
 
     async def record_review(self, row: dict[str, Any], token: UUID, candidate: Candidate) -> None:
         assert candidate.review is not None

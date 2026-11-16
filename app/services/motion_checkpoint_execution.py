@@ -10,12 +10,11 @@ from app.adapters.motion_html_renderer import RenderAsset
 from app.adapters.motion_inputs import PreparedMotionInput
 from app.schemas.motion_production import HTMLMotionComposition, MotionConstructionPlan
 from app.services.auth import AuthError
-from app.services.motion_checkpoints import MotionCheckpoints, Stage, input_manifest
+from app.services.motion_checkpoints import Stage, input_manifest
 from app.services.motion_construction import implement_motion
 from app.services.motion_illustrations import MotionIllustrations
 from app.services.motion_materials import prepare_implementation_materials
 from app.services.motion_sound_library import apply_planned_sound
-from app.services.motion_storyboards import MotionStoryboards
 from app.workflows.contracts import BusinessEvent
 
 if TYPE_CHECKING:
@@ -74,7 +73,7 @@ def restore_input(prepared: PreparedMotionInput, packet: dict[str, Any]) -> Prep
 
 
 async def resume_checkpoint(runner: "MotionOrchestrator", event: BusinessEvent, stage: Stage) -> str:
-    checkpoints = MotionCheckpoints(runner.requests, runner.store)
+    checkpoints = runner.checkpoints()
     started = await checkpoints.begin(event, stage)
     if started is None:
         return "already_claimed"
@@ -94,9 +93,7 @@ async def resume_checkpoint(runner: "MotionOrchestrator", event: BusinessEvent, 
             await checkpoints.capture(row, token, "render", prepared, composition, runner.effects)
             return "awaiting_render"
         composition = HTMLMotionComposition.model_validate(packet["artifact"])
-        await MotionStoryboards(runner.requests, runner.store).capture(
-            row, token, prepared, composition, runner.renderer, runner.effects
-        )
+        await runner.storyboards().capture(row, token, prepared, composition, runner.renderer, runner.effects)
         return "awaiting_storyboard"
     except BaseException as exc:
         failure_event_id = uuid5(UUID(event.event_id), "motion.failed")

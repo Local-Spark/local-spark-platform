@@ -81,7 +81,13 @@ class ContentCandidateActivities:
             if content in {"aprovar", "pedir ajustes", "confirmar", "descartar"} or content.startswith(
                 "pedir ajustes:"
             ):
-                return "skipped"
+                async with self.worker_database.sessions() as session, session.begin():
+                    continued = await session.scalar(
+                        text("SELECT 1 FROM content_source_continuations WHERE source_event_id=:source"),
+                        {"source": event},
+                    )
+                if not continued:
+                    return "skipped"
         briefing_id = None
         if self.interpreter is None and self.settings.intent_ai_mode != "jev":
             # Never downgrade an event that entered the briefing flow when the
@@ -153,7 +159,7 @@ class ContentCandidateActivities:
             row = (
                 (
                     await session.execute(
-                        text("SELECT state,error_code FROM editorial_proposals WHERE id=:id"),
+                        text("SELECT state,error_code,document FROM editorial_proposals WHERE id=:id"),
                         {"id": UUID(proposal_id)},
                     )
                 )
@@ -163,7 +169,7 @@ class ContentCandidateActivities:
         if row is None:
             return "failed"
         if row["state"] == "completed":
-            return "completed"
+            return "needs_fact" if row["document"] and row["document"].get("questions") else "completed"
         if row["error_code"] == "EDITORIAL_FACTS_REQUIRED":
             return "needs_fact"
         if row["state"] in {"rejected", "uncertain", "budget_exceeded"}:

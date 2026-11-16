@@ -35,3 +35,8 @@ up:
 	docker compose up -d postgres temporal mailpit
 migrate:
 	uv run alembic upgrade head
+
+.PHONY: creation-lab
+# Persistent lab-only worker/relay; test requests are submitted through the UI.
+creation-lab:
+	PATH="$(CURDIR)/.local/tools/motion-lab/bin:$(PATH)" .venv/bin/python -m app.entrypoints.creation_lab

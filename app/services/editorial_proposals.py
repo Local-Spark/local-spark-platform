@@ -143,6 +143,38 @@ def _catalog_fact(snapshot: dict[str, object]) -> dict[str, object] | None:
     }
 
 
+def briefing_facts(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
+    """Facts from a server-captured, revalidated catalog or business briefing."""
+    if snapshot.get("basis") == "business":
+        return snapshot["confirmed_facts"]
+    return [fact for fact in (_catalog_fact(snapshot), _catalog_price_fact(snapshot)) if fact]
+
+
+def briefing_subject(snapshot: dict[str, Any]) -> str:
+    return snapshot["brand_name"] if snapshot.get("basis") == "business" else snapshot["offering"]["name"]
+
+
+def editorial_business_facts(
+    facts: list[dict[str, Any]], brand_name: str, business: UUID, kit_version: int
+) -> list[dict[str, Any]]:
+    """An institution can be the subject; an offering is not mandatory evidence.
+
+    Callers pass only current, confirmed context and the confirmed brand kit.
+    User instructions and model hypotheses never become facts through this helper.
+    """
+    result = [dict(fact) for fact in facts]
+    if brand_name.strip() and not _COMMERCIAL_CLAIM.search(brand_name):
+        result.append(
+            {
+                "id": str(uuid5(business, f"brand-name:{kit_version}:{brand_name}")),
+                "kind": "business",
+                "statement": brand_name,
+                "valid_until": None,
+            }
+        )
+    return result
+
+
 def _catalog_price_fact(snapshot: dict[str, object]) -> dict[str, object] | None:
     """Create a price fact only from a previously revalidated catalog snapshot."""
     name_fact = _catalog_fact(snapshot)
@@ -213,7 +245,14 @@ def natural_generated_copy_matches_fact(
     must still review the proposed copy and finished visual before publication.
     """
     brief = draft.creative_brief
-    if len(draft.fact_ids) != 1 or not draft.art_text or not draft.caption or not draft.cta or brief is None:
+    if (
+        draft.questions
+        or len(draft.fact_ids) != 1
+        or not draft.art_text
+        or not draft.caption
+        or not draft.cta
+        or brief is None
+    ):
         return False
     if not public_copy_has_no_internal_artifacts(draft):
         return False
@@ -252,6 +291,23 @@ async def _audit(session: Any, row: Any, action: str) -> None:
             "resource": row["business_id"],
         },
     )
+
+
+def editorial_kit_input(kit_document: dict[str, Any], applied_version: int) -> dict[str, Any]:
+    overrides = BrandKitOverrides.model_validate(kit_document["overrides"])
+    return {
+        "kit_id": kit_document["kit_id"],
+        "kit_version": kit_document["kit_version"],
+        "applied_version": applied_version,
+        "brand_name": overrides.brand_name,
+        "tagline": overrides.tagline,
+        "cta": overrides.cta,
+        "logo_asset_id": str(overrides.logo_asset_id) if overrides.logo_asset_id else None,
+        "palette": overrides.palette.model_dump(),
+        "heading_font": overrides.heading_font,
+        "body_font": overrides.body_font,
+        "formats": overrides.formats.model_dump(),
+    }
 
 
 class EditorialProposalService:
@@ -570,15 +626,16 @@ class EditorialProposalService:
         )
         if status != "prepared" or snapshot is None:
             return proposal.model_copy(update={"briefing": BriefingRead(status=status)})
-        offering = snapshot["offering"]
-        assert isinstance(offering, dict)
+        offering = snapshot.get("offering")
         kit = row.get("brand_kit_document") or {}
         brand_name = kit.get("overrides", {}).get("brand_name")
         return proposal.model_copy(
             update={
                 "briefing": BriefingRead(
                     status="prepared",
-                    offering=BriefingOffering.model_validate({"name": offering["name"], "kind": offering["kind"]}),
+                    offering=BriefingOffering.model_validate({"name": offering["name"], "kind": offering["kind"]})
+                    if offering
+                    else None,
                     brand_name=brand_name,
                     has_item_photo=bool(snapshot.get("item_photo")),
                     has_space_photo=bool(snapshot.get("space_photo")),
@@ -1027,6 +1084,18 @@ class EditorialProposalService:
             if asset is None:
                 return None
             source = self._source(asset)
+            if self.owner_database is not None:
+                async with self.owner_database.transaction(row["tenant_id"], row["actor_id"]) as owner_session:
+                    linked = await owner_session.scalar(
+                        text("SELECT 1 FROM content_source_continuations WHERE source_event_id=:source"),
+                        {"source": row["source_asset_id"]},
+                    )
+                    if linked:
+                        from app.services.editorial_briefings import EditorialBriefingService
+
+                        source = await EditorialBriefingService(self.settings, self.owner_database)._source(
+                            owner_session, row["tenant_id"], row["business_id"], row["actor_id"], row["source_asset_id"]
+                        )
             kind = asset["kind"]
         else:
             source, kind = None, None
@@ -1079,50 +1148,28 @@ class EditorialProposalService:
                 return None
             data["requested_format"] = suggested_format
             data["eligible_formats"] = list(INITIAL_PLAN_INTENT_FORMATS)
-            offering = snapshot["offering"]
-            assert isinstance(offering, dict)
-            price = offering["price"]
-            assert isinstance(price, dict)
-            data["catalog_context"] = {
-                "name": offering["name"],
-                "kind": offering["kind"],
-                "price": price if price.get("status") == "valid" else None,
-                "has_item_photo": bool(snapshot.get("item_photo")),
-                "has_space_photo": bool(snapshot.get("space_photo")),
-            }
-            catalog_fact = _catalog_fact(snapshot)
-            catalog_price = _catalog_price_fact(snapshot)
-            for item in (catalog_fact, catalog_price):
-                if item is None:
-                    continue
-                catalog_id = UUID(str(item["id"]))
-                valid_ids.add(catalog_id)
+            offering = snapshot.get("offering")
+            if isinstance(offering, dict):
+                price = offering["price"]
+                data["catalog_context"] = {
+                    "name": offering["name"],
+                    "kind": offering["kind"],
+                    "price": price if price.get("status") == "valid" else None,
+                    "has_item_photo": bool(snapshot.get("item_photo")),
+                    "has_space_photo": bool(snapshot.get("space_photo")),
+                }
+            for item in briefing_facts(snapshot):
+                valid_ids.add(UUID(str(item["id"])))
                 confirmed = data["confirmed_facts"]
                 assert isinstance(confirmed, list)
-                if item is catalog_fact:
-                    confirmed.insert(0, item)
-                else:
-                    confirmed.append(item)
+                confirmed.append(item)
         if not source and not valid_ids:
             return None
         kit_document = row.get("brand_kit_document")
         if kit_document is not None:
             if self.settings.environment == "production" and not kit_commercially_available():
                 return None
-            overrides = BrandKitOverrides.model_validate(kit_document["overrides"])
-            data["brand_kit"] = {
-                "kit_id": kit_document["kit_id"],
-                "kit_version": kit_document["kit_version"],
-                "applied_version": row["brand_kit_version"],
-                "brand_name": overrides.brand_name,
-                "tagline": overrides.tagline,
-                "cta": overrides.cta,
-                "logo_asset_id": str(overrides.logo_asset_id) if overrides.logo_asset_id else None,
-                "palette": overrides.palette.model_dump(),
-                "heading_font": overrides.heading_font,
-                "body_font": overrides.body_font,
-                "formats": overrides.formats.model_dump(),
-            }
+            data["brand_kit"] = editorial_kit_input(kit_document, row["brand_kit_version"])
         if briefing_id is not None:
             requested = data.get("requested_format")
             if requested is None:
@@ -1286,6 +1333,8 @@ class EditorialProposalService:
     def _safe_generated(
         draft: ProposalDraft, data: dict[str, object], valid_ids: set[UUID], *, full_piece: bool = False
     ) -> bool:
+        if draft.questions:
+            return False
         eligible = data.get("eligible_formats")
         if isinstance(eligible, list) and (
             draft.format not in eligible or (data.get("requested_format") and draft.format != data["requested_format"])
@@ -1498,7 +1547,13 @@ class EditorialProposalService:
                 draft = draft.model_copy(
                     update={"editorial_skill_id": skill["id"], "editorial_skill_sha256": skill["sha256"]}
                 )
-            state = "completed" if safe else "uncertain"
+            needs_reply = bool(
+                draft is not None
+                and draft.questions
+                and fresh_inputs is not None
+                and data.get("editorial_skill") == fresh_inputs[0].get("editorial_skill")
+            )
+            state = "completed" if safe or needs_reply else "uncertain"
             await session.execute(
                 text("""UPDATE editorial_proposals SET state=:state,
               document=CAST(:doc AS jsonb),error_code=:error,input_tokens=:input,
@@ -1506,8 +1561,12 @@ class EditorialProposalService:
                 {
                     "id": proposal_id,
                     "state": state,
-                    "doc": draft.model_dump_json() if safe and draft else None,
-                    "error": None if safe else "EDITORIAL_RESULT_UNCERTAIN",
+                    "doc": draft.model_dump_json() if (safe or needs_reply) and draft else None,
+                    "error": "EDITORIAL_CLARIFICATION_REQUIRED"
+                    if needs_reply
+                    else None
+                    if safe
+                    else "EDITORIAL_RESULT_UNCERTAIN",
                     "input": input_tokens,
                     "output": output_tokens,
                 },

@@ -12,6 +12,7 @@ homologação externa. Um desenho ou ensaio não comprova capacidade entregue.
 
 | Tema | Documento | Estado e finalidade |
 | --- | --- | --- |
+| Ensaio administrativo | [Conversa, SSE e trace](admin-production-rehearsal-2026-11-16.md) | Entrevista respondida em 16/11; UI detalhada, trace por 7 dias; implementação pendente. |
 | Aceite de IA | [IA como parte do serviço](ai-as-core-service.md) | Aceite único implementado em Plano e acesso; tabelas antigas preservadas como histórico. |
 | Conta e cobrança | [Uma organização por negócio](one-business-per-organization.md), [cobrança](billing.md) | Unicidade 0057 e cobrança por tenant; sandbox local não homologa produção. |
 | WhatsApp | [Materiais duráveis](BL04-whatsapp-durable-materials.md) | 0058 aplicada localmente; todos os tipos associados preservados, sem exclusão pelo histórico; troca de número coberta no processamento e entrega simulada. |

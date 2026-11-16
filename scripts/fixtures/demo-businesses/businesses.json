@@ -1,0 +1,327 @@
+[
+  {
+    "slug": "cafe-aurora",
+    "name": "Café Aurora",
+    "email": "cafe.aurora@example.test",
+    "category": "Cafeteria",
+    "color": "#3B3028",
+    "background": "#FFF8EC",
+    "accent": "#C8874B",
+    "tagline": "Uma pausa com sabor de começo",
+    "cta": "Conheça nosso cardápio",
+    "goal": "sales",
+    "tone": "friendly",
+    "street": "Rua Cenário Aurora",
+    "number": "120",
+    "neighborhood": "Vila Madalena",
+    "hours": "Segunda a sábado, das 8h às 19h; domingo, das 9h às 14h.",
+    "description": "Cafeteria fictícia de bairro em São Paulo, com cafés especiais, panificação e mesas para pequenas pausas. Ambiente acolhedor, luz natural, madeira e tons quentes. Dados comerciais e endereço são fictícios; fotos de banco são ilustrativas.",
+    "terms": [
+      "café especial",
+      "espresso",
+      "cappuccino",
+      "croissant",
+      "café da manhã"
+    ],
+    "differentiators": [
+      "Café preparado na hora e cardápio enxuto de bebidas e panificação.",
+      "Mesas internas, balcão de atendimento e opção de retirada no local."
+    ],
+    "avoided": [
+      "promessas de saúde",
+      "descontos não cadastrados",
+      "entrega gratuita"
+    ],
+    "link": "https://cafe-aurora.example.test/cardapio",
+    "linktype": "order_link",
+    "references": [
+      "coffeelab_br",
+      "sternacafe"
+    ],
+    "reference_note": "Referência de apresentação de cafés, bastidores de preparo e linguagem acolhedora. Não copiar identidade ou alegações da marca.",
+    "offerings": [
+      {
+        "key": "espresso",
+        "name": "Espresso da casa",
+        "kind": "product",
+        "price_minor": 900,
+        "description": "Café espresso de 40 ml; torra média. Preço fictício de demonstração.",
+        "photo_id": 10974675,
+        "duration_minutes": null
+      },
+      {
+        "key": "cappuccino",
+        "name": "Cappuccino clássico",
+        "kind": "product",
+        "price_minor": 1600,
+        "description": "Espresso com leite vaporizado, 180 ml. Contém leite. Preço fictício.",
+        "photo_id": 9101746,
+        "duration_minutes": null
+      },
+      {
+        "key": "croissant",
+        "name": "Croissant de manteiga",
+        "kind": "product",
+        "price_minor": 1400,
+        "description": "Unidade de massa folhada com manteiga. Contém glúten e leite. Preço fictício.",
+        "photo_id": 38955384,
+        "duration_minutes": null
+      },
+      {
+        "key": "combo",
+        "name": "Combo Aurora",
+        "kind": "product",
+        "price_minor": 2200,
+        "description": "Um espresso e um croissant de manteiga. Consumo no local ou retirada. Preço fictício.",
+        "photo_id": 38955384,
+        "duration_minutes": null
+      },
+      {
+        "key": "latte",
+        "name": "Latte da casa",
+        "kind": "product",
+        "price_minor": 1700,
+        "description": "Espresso com leite vaporizado, 240 ml. Contém leite. Preço fictício.",
+        "photo_id": 9101746,
+        "duration_minutes": null
+      },
+      {
+        "key": "degustacao",
+        "name": "Degustação guiada de cafés",
+        "kind": "service",
+        "price_minor": 6500,
+        "description": "Experiência demonstrativa com três preparos de café, para uma pessoa. Não inclui curso ou certificação.",
+        "photo_id": 10974675,
+        "duration_minutes": 45
+      }
+    ],
+    "photo_spaces": [
+      {
+        "photo_id": 30948318,
+        "space_kind": "room",
+        "title": "Ambiente ilustrativo de referência 1"
+      },
+      {
+        "photo_id": 31777028,
+        "space_kind": "environment",
+        "title": "Ambiente ilustrativo de referência 2"
+      }
+    ]
+  },
+  {
+    "slug": "lia-nails",
+    "name": "Ateliê Lia Nails",
+    "email": "lia.nails@example.test",
+    "category": "Manicure e nail design",
+    "color": "#612E46",
+    "background": "#FFF5F8",
+    "accent": "#C7859F",
+    "tagline": "Seu tempo de cuidar das mãos",
+    "cta": "Agende seu horário",
+    "goal": "appointments",
+    "tone": "friendly",
+    "street": "Rua Cenário das Flores",
+    "number": "245",
+    "neighborhood": "Moema",
+    "hours": "Terça a sexta, das 9h às 19h; sábado, das 9h às 17h. Atendimento com hora marcada.",
+    "description": "Ateliê fictício de unhas em São Paulo. Atendimento individual com manicure, esmaltação em gel e nail art delicada. Paleta rosada, fundo claro e atenção aos detalhes. Dados comerciais e endereço fictícios; imagens de banco não são portfólio real do ateliê.",
+    "terms": [
+      "manicure",
+      "esmaltação",
+      "nail art",
+      "unhas naturais",
+      "gel"
+    ],
+    "differentiators": [
+      "Atendimento por agendamento, com tempo reservado para cada serviço.",
+      "Cliente escolhe cor e acabamento antes do início do atendimento."
+    ],
+    "avoided": [
+      "promessas médicas",
+      "durabilidade garantida",
+      "antes e depois inventado"
+    ],
+    "link": "https://lia-nails.example.test/agendar",
+    "linktype": "booking_link",
+    "references": [
+      "opibrasil"
+    ],
+    "reference_note": "Referência de composição de mãos, paletas e apresentação de esmaltes. Fotografias são inspiração; não representam trabalhos do ateliê.",
+    "offerings": [
+      {
+        "key": "manicure",
+        "name": "Manicure clássica",
+        "kind": "service",
+        "price_minor": 4500,
+        "description": "Formato, cuidado de cutículas e esmaltação tradicional. Preço fictício.",
+        "photo_id": 6135684,
+        "duration_minutes": 45
+      },
+      {
+        "key": "gel",
+        "name": "Esmaltação em gel",
+        "kind": "service",
+        "price_minor": 9500,
+        "description": "Preparação e esmaltação em gel sobre unhas naturais. Não inclui alongamento. Preço fictício.",
+        "photo_id": 12653042,
+        "duration_minutes": 60
+      },
+      {
+        "key": "nail-art",
+        "name": "Nail art delicada",
+        "kind": "service",
+        "price_minor": 3500,
+        "description": "Decoração em até duas unhas, adicional a um serviço de esmaltação. Preço fictício.",
+        "photo_id": 34835286,
+        "duration_minutes": 20
+      },
+      {
+        "key": "banho-gel",
+        "name": "Banho de gel",
+        "kind": "service",
+        "price_minor": 12000,
+        "description": "Camada de gel sobre unhas naturais, sem extensão. Avaliação prévia no atendimento. Preço fictício.",
+        "photo_id": 14267565,
+        "duration_minutes": 75
+      },
+      {
+        "key": "remocao",
+        "name": "Remoção de gel",
+        "kind": "service",
+        "price_minor": 4000,
+        "description": "Remoção de produto aplicado nas unhas, sem nova esmaltação. Preço fictício.",
+        "photo_id": 6135684,
+        "duration_minutes": 30
+      },
+      {
+        "key": "combo",
+        "name": "Manicure com nail art",
+        "kind": "service",
+        "price_minor": 7000,
+        "description": "Manicure clássica com decoração em até duas unhas. Preço fictício.",
+        "photo_id": 34835286,
+        "duration_minutes": 65
+      }
+    ],
+    "photo_spaces": [
+      {
+        "photo_id": 13068380,
+        "space_kind": "room",
+        "title": "Ambiente ilustrativo de referência 1"
+      },
+      {
+        "photo_id": 36328527,
+        "space_kind": "environment",
+        "title": "Ambiente ilustrativo de referência 2"
+      }
+    ]
+  },
+  {
+    "slug": "vertice-autos",
+    "name": "Vértice Seminovos",
+    "email": "vertice.autos@example.test",
+    "category": "Revenda de veículos",
+    "color": "#172C43",
+    "background": "#F4F7FA",
+    "accent": "#D99C38",
+    "tagline": "Seu próximo carro começa aqui",
+    "cta": "Agende uma visita",
+    "goal": "sales",
+    "tone": "professional",
+    "street": "Avenida Cenário dos Motores",
+    "number": "800",
+    "neighborhood": "Vila Mariana",
+    "hours": "Segunda a sexta, das 9h às 18h; sábado, das 9h às 13h.",
+    "description": "Revenda fictícia de veículos de perfil executivo em São Paulo. Catálogo demonstrativo de sedãs e atendimento consultivo. Preços, estoque e serviços são fictícios. Fotos licenciadas são ilustrativas e não comprovam modelo, ano, quilometragem, laudo ou disponibilidade de um veículo.",
+    "terms": [
+      "seminovos",
+      "sedã",
+      "visita agendada",
+      "avaliação de usado",
+      "estoque"
+    ],
+    "differentiators": [
+      "Atendimento para comparar opções do catálogo e agendar visita.",
+      "Avaliação de usado é realizada presencialmente; nenhuma cotação é garantida antes da vistoria."
+    ],
+    "avoided": [
+      "aprovação de crédito garantida",
+      "taxa zero não cadastrada",
+      "laudo ou garantia inventados"
+    ],
+    "link": "https://vertice-autos.example.test/visita",
+    "linktype": "booking_link",
+    "references": [
+      "webmotors"
+    ],
+    "reference_note": "Referência de apresentação de veículos, enquadramentos de detalhes e conteúdo educativo. Não inferir garantias, financiamento ou laudos para nosso estoque.",
+    "offerings": [
+      {
+        "key": "seda-branco",
+        "name": "Sedã executivo branco — demonstrativo",
+        "kind": "product",
+        "price_minor": 24990000,
+        "description": "Dados inteiramente fictícios de demonstração: Ano 2022; 32.000 km; câmbio automático; gasolina; 4 portas. Unidade sedã executivo branco. Foto de banco ilustrativa, sem vínculo com estoque real. Marca e versão não especificadas. Laudo, garantia e financiamento não cadastrados; perguntar antes de afirmar.",
+        "photo_id": 10358213,
+        "duration_minutes": null
+      },
+      {
+        "key": "seda-preto",
+        "name": "Sedã executivo preto — demonstrativo",
+        "kind": "product",
+        "price_minor": 18990000,
+        "description": "Dados inteiramente fictícios de demonstração: Ano 2021; 45.000 km; câmbio automático; gasolina; 4 portas. Unidade sedã executivo preto. Foto de banco ilustrativa, sem vínculo com estoque real. Marca e versão não especificadas. Laudo, garantia e financiamento não cadastrados; perguntar antes de afirmar.",
+        "photo_id": 18161667,
+        "duration_minutes": null
+      },
+      {
+        "key": "eletrico",
+        "name": "Sedã elétrico branco — demonstrativo",
+        "kind": "product",
+        "price_minor": 21990000,
+        "description": "Dados inteiramente fictícios de demonstração: Ano 2023; 21.000 km; câmbio automático; elétrico; 4 portas. Unidade sedã elétrico branco. Foto de banco ilustrativa, sem vínculo com estoque real. Marca e versão não especificadas. Laudo, garantia e financiamento não cadastrados; perguntar antes de afirmar.",
+        "photo_id": 10029775,
+        "duration_minutes": null
+      },
+      {
+        "key": "visita",
+        "name": "Visita guiada ao showroom",
+        "kind": "service",
+        "price_minor": 0,
+        "description": "Atendimento demonstrativo sem cobrança, com apresentação das opções do catálogo. Não reserva veículo automaticamente.",
+        "photo_id": 30360248,
+        "duration_minutes": 45
+      },
+      {
+        "key": "avaliacao",
+        "name": "Avaliação presencial de usado",
+        "kind": "service",
+        "price_minor": 0,
+        "description": "Avaliação demonstrativa sem cobrança. Necessário agendar e apresentar documentação no atendimento; valor depende de vistoria.",
+        "photo_id": 18161667,
+        "duration_minutes": 60
+      },
+      {
+        "key": "consultoria",
+        "name": "Consulta de escolha de veículo",
+        "kind": "service",
+        "price_minor": 0,
+        "description": "Conversa demonstrativa para entender uso e preferências. Sem promessa de aprovação de crédito ou condições financeiras.",
+        "photo_id": 10358213,
+        "duration_minutes": 30
+      }
+    ],
+    "photo_spaces": [
+      {
+        "photo_id": 30360248,
+        "space_kind": "room",
+        "title": "Ambiente ilustrativo de referência 1"
+      },
+      {
+        "photo_id": 10358213,
+        "space_kind": "environment",
+        "title": "Ambiente ilustrativo de referência 2"
+      }
+    ]
+  }
+]

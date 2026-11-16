@@ -17,7 +17,7 @@ from sqlalchemy import text
 from app.core.config import Settings
 from app.db.session import Database
 from app.services.auth import AuthError
-from app.services.creative_catalog import validate_catalog_snapshot
+from app.services.creative_catalog import business_briefing_snapshot, validate_catalog_snapshot
 from app.services.creative_catalog_resolution import CatalogInterpreter, resolve_catalog_context
 from app.services.editorial_proposals import EditorialProposalService, _access_sql
 from app.services.service_agreement_scope import accepted_agreement_sql
@@ -46,7 +46,10 @@ class EditorialBriefingService:
         *,
         jev: bool | None = None,
         review_preview: UUID | None = None,
+        _continuation_depth: int = 0,
     ) -> str | None:
+        if _continuation_depth >= 10:
+            raise AuthError("CONTENT_CONTINUATION_LIMIT", 409)
         await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
         params = {"tenant": tenant, "business": business, "actor": actor, "source": source}
         if not await session.scalar(text(_access_sql()), {"tenant": tenant, "live": False}):
@@ -91,6 +94,35 @@ class EditorialBriefingService:
         # Audio is usable only after transcription; no guessing from audio bytes.
         if row["kind"] == "audio" and not row["transcript_ciphertext"]:
             return None
+        link = (
+            (
+                await session.execute(
+                    text("""SELECT parent_source_id,note_ciphertext FROM content_source_continuations
+          WHERE source_event_id=:source AND tenant_id=:tenant AND business_id=:business AND actor_id=:actor"""),
+                    params,
+                )
+            )
+            .mappings()
+            .one_or_none()
+        )
+        if link is not None:
+            from app.services.creative_continuation import continued_instruction
+            from app.services.motion_context import MotionContext
+
+            original = await self._source(
+                session,
+                tenant,
+                business,
+                actor,
+                link["parent_source_id"],
+                jev=jev,
+                review_preview=review_preview,
+                _continuation_depth=_continuation_depth + 1,
+            )
+            if original is None:
+                raise AuthError("CONTENT_CONTINUATION_SOURCE_INVALID", 409)
+            value = MotionContext(self.settings).open(link["note_ciphertext"])
+            return continued_instruction(original, value["note"], questions=value["questions"])
         return EditorialProposalService(self.settings, self.database)._source(row)
 
     def _source_digest(self, message: str | None) -> str | None:
@@ -237,6 +269,11 @@ class EditorialBriefingService:
                 if result.status == "resolved" and result.intent in {None, "content_request"}:
                     snapshot = result.snapshot
                     state = "prepared"
+                elif result.status == "none" and result.intent == "content_request":
+                    async with self.database.transaction(tenant, actor) as basis_session:
+                        snapshot = await business_briefing_snapshot(basis_session, tenant, business, actor)
+                    if snapshot is not None:
+                        state = "prepared"
                 elif result.status == "budget_blocked":
                     state = "budget_blocked"
                 elif result.status in {"interpreter_unavailable", "invalid_decision"}:

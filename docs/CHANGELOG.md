@@ -1,5 +1,243 @@
 # Registro de mudanças
 
+## 16/11/2026 — base local com três negócios demonstrativos
+
+Limpeza da base local habitual autorizada sem backup: preservada a conta admin
+com senha/MFA/sessões e substituídos dez negócios antigos por Café Aurora, Ateliê
+Lia Nails e Vértice Seminovos. Há quatro contas, três organizações e um único
+administrador. Cada cenário tem seis itens, uma promoção, oito fotos ilustrativas,
+contexto, endereço, marca própria no kit-base existente, aceite de IA e cortesia.
+Quatro perfis de referência foram indicados; não houve análise paga de feeds.
+
+O admin tem vínculo explícito de proprietário nas três organizações e alterna no
+seletor existente em **Ver meu espaço → Organização**. Catálogo/acervo/referências
+ficam em **Sobre meu negócio**; marca em **Kits visuais**. Nenhuma visão detalhada
+foi adicionada ao laboratório, e clientes continuam sem acesso a ele. Fixtures
+`.test` não receberam senha nem e-mails: o acesso solicitado é pela conta admin.
+
+Carga pelos serviços com RLS/auditoria/outbox, retomável por identidade de operação;
+reset protegido por ambiente, base loopback e revisão de schema. Leituras de sessão,
+laboratório e serviços confirmaram seleção e dados dos três cenários. Sem suíte de
+testes, build, typecheck ou geração paga, conforme pedido. Worker exclusivo do
+laboratório reiniciado; consumidores gerais permaneceram parados.
+
+Limitações documentadas: um kit-base com três personalizações, acervo de fotos
+(vídeo para reels ainda é anexo do pedido), referências sem aprendizagem executada,
+atributos de veículos em texto livre e integrações externas não conectadas. Origem
+das fotos registrada no manifesto; preços/endereços/estoque fictícios. Infraestrutura
+de objetos não foi apagada indiscriminadamente. Ver [cadastros, navegação, evidências
+e manutenção](demo-businesses.md).
+
+
+## 16/11/2026 — respostas, ajustes e teto pela UI
+
+Esta entrada substitui as limitações de continuidade e orçamento das entradas
+anteriores. O teto obrigatório é informado na UI por ensaio. Ajustes e respostas
+usam o saldo do teto original, sem renová-lo. O teto global é opcional: zero em
+`creation_lab_budget_usd_micros` significa ausência desse limite adicional, e não
+execução desabilitada. A habilitação técnica independente é
+`creation_lab_execution_enabled`, falsa por padrão. A identidade administrativa
+exclusiva, consentimentos, reservas antes de efeitos e o limite por ensaio continuam
+obrigatórios. Não altera planos, saldos ou quotas comerciais.
+
+- Perguntas de intenção/editorial suspendem a criação e aparecem na UI; aprovar
+  um checkpoint com perguntas é recusado. Responder prepara uma continuação no
+  mesmo histórico, conservando pedido original, anexos e seleção do acervo.
+- “Preparar ajuste” existe na revisão e na peça concluída. Cada tentativa tem
+  identidade própria, referência à anterior e ao ensaio raiz; não reaproveita a
+  identidade de uma chamada paga. Há uma única continuação por tentativa, no
+  máximo dez tentativas e 4 mil caracteres para o pedido composto. Uma chamada
+  não resolvida impede continuação. O operador revisa e inicia a nova tentativa
+  pela UI; enviar feedback isolado continua sem autorizar geração.
+- Peças de tentativas do mesmo ensaio podem ser comparadas na UI. Downloads e
+  feedback usam a tentativa proprietária. Cada tentativa conserva seu trace,
+  custos e pacote exportável; só o trace expira sete dias depois do seu término.
+- Catálogo deixa de ser obrigatório para imagens. Sem correspondência, um pedido
+  de criação identificado pode usar fatos vigentes e marca confirmada, com regras
+  factuais/CTA compartilhadas. Não cria um item fictício nem transforma texto do
+  modelo em fato. O laboratório apresenta essa base para confirmação; informações
+  essenciais pendentes viram perguntas. No produto, o briefing institucional é
+  recapturado antes de efeitos e respeita a validade dos fatos.
+- A jornada produtiva WhatsApp passa a vincular respostas a uma pergunta citada e
+  `Pedir ajustes: ...` com observação à entrega anterior. O material recebido
+  continua sendo a identidade durável do workflow; ligação, autorização e auditoria
+  são persistidas. Pedido composto e proveniência são compartilhados pelas etapas
+  de briefing, editorial e geração visual. Uma mensagem nova sem referência não
+  é presumida como resposta. O comando sem observação registra a decisão existente,
+  sem inventar um ajuste. A entrega de candidatas continua simulada: isto não
+  conclui a integração externa do WhatsApp nem a publicação real.
+
+Migrações aditivas 0128 e 0129 aplicadas somente ao banco local de desenvolvimento.
+O runtime `app.entrypoints.creation_lab` usa Temporal e o relay existente filtrado
+para eventos do laboratório, em fila exclusiva. `make creation-lab` inicia esse
+serviço persistente; os pedidos são feitos pela UI. Configuração local preparada
+com credenciais existentes e imagem do renderizador já instalada. Worker exclusivo
+iniciado após leitura confirmar zero execuções/etapas aprovadas pendentes; nenhum
+consumidor antigo foi reiniciado por esta alteração. Flags produtivas não são
+habilitadas pelo adaptador administrativo.
+
+Revisão de código e formatação Ruff/Prettier realizadas. **Não executados testes,
+CI, typecheck, build, QA em browser ou geração paga**, conforme pedido do titular.
+A validação ponta a ponta será feita por ele pela UI. Não há alegação de qualidade
+estética validada. Limites semanais por formato e melhorias dos motions permanecem
+na etapa posterior combinada.
+
+## 16/11/2026 — integração da execução privada do laboratório
+
+Implementada a ligação da UI às etapas produtivas: início idempotente, fila via
+outbox/Temporal, confirmação de catálogo, checkpoints, cancelamento, peças privadas,
+comparação/feedback e pacote de execução. Migrações aditivas 0125–0127 aplicadas
+somente ao banco local de desenvolvimento. Esta entrada substitui o estado de
+integração pendente das entradas anteriores, sem declarar validação operacional.
+
+Decisão confirmada nesta continuação: para posts/stories, o modelo sugere o produto
+ou serviço a partir da mensagem e o administrador confirma antes da geração.
+O fluxo reutiliza candidatos/snapshot de catálogo, Jev, provedor editorial, regras
+factuais/CTA, skills, prompt de peça completa e provedor visual do produto. Não
+seleciona automaticamente um item por coincidência textual. Ambiguidade/dúvidas
+interrompem a tentativa com trace disponível; revisão do pedido inicia outro ensaio.
+No acompanhado há revisão editorial adicional; no automático ela avança após as
+validações. A confirmação do catálogo continua obrigatória nos dois modos.
+
+Reels reutilizam MotionOrchestrator e as etapas de preparação, planejamento,
+implementação, storyboard, render, crítica e correção. Adaptadores mudam admissão,
+fontes privadas, financiamento e persistência; preservam o bloqueio de alterações
+visuais pendentes. Não personificam o proprietário nem
+escrevem peças/quota do cliente. Checkpoints obrigatórios do produto permanecem
+obrigatórios, inclusive no modo automático. Entrada: um vídeo MP4 e até quatro
+imagens complementares PNG/JPEG somadas à seleção do acervo. Imagens privadas são
+normalizadas pelo preparador compartilhado, com proveniência de upload; nomes de
+arquivos não se tornam fatos comerciais. Áudio separado/múltiplos vídeos não são
+inferidos como direção de edição e geram impedimento explícito.
+
+Trace guarda entradas/saídas disponíveis e deltas reais dos adapters Responses de
+motion/editorial. SSE reconecta por cursor; expiração normal de token permite
+renovação sem repetir geração. Jev e Images apresentam espera/resposta terminal,
+sem digitação simulada. Parciais não autorizam uso do resultado. Frames de storyboard
+ficam no trace cifrado, evitando objetos de diagnóstico órfãos no armazenamento.
+O trace é apagado sete dias após término; peças, anexos, textos/legendas, feedback,
+auditoria e compromissos de custo permanecem. ZIP inclui o disponível no cursor,
+com expiração explícita, sem credenciais; limites de tamanho recusam em vez de
+truncar silenciosamente. Consulta/download revalidam acesso e integridade.
+
+Claims, tokens de execução e identidade da etapa impedem repetir efeitos pagos e
+impedem uma falha atrasada de finalizar uma etapa mais nova. Cancelar impede novas
+etapas; chamadas já submetidas podem terminar/custar e mantêm reserva quando o
+resultado é incerto. Compromissos administrativos são separados da franquia do
+cliente; estimativa não é fatura confirmada. Teto global padrão zero, sem reset
+semanal implícito. Tarifas/reserva editoriais novas também começam em zero.
+
+Validação realizada: leitura/revisão do código, formatação Ruff/Prettier e aplicação
+das migrações locais. Por orientação do titular, **não** foram executados testes,
+CI, typecheck, build, QA em browser ou geração paga. Não há evidência de sucesso
+ponta a ponta nem de melhoria estética. Ativação depende de configuração explícita
+de fornecedores, orçamento/tarifas, armazenamento/renderizador e worker/relay
+atualizados; consumidores anteriormente pausados não foram reiniciados. Limites
+semanais por formato e melhorias de qualidade dos motions continuam para a etapa
+seguinte, conforme decisão do titular.
+
+## 16/11/2026 — execução administrativa ainda em integração
+
+Infraestrutura adicionada para compromisso de orçamento, efeitos privados,
+trace cifrado e versões/feedback (migrações 0123/0124). Retenção confirmada:
+apagar somente o trace sete dias após término; anexos, peças, auditoria e custos
+permanecem. Há workflow Temporal de limpeza; consumidores locais seguem pausados.
+Teto administrativo padrão zero, sem autorização implícita de geração paga.
+
+Etapas produtivas de motion estão sendo preparadas para reutilização com leitura
+e persistência privadas. Corrigida e formatada a extração dos leitores de materiais.
+Ainda faltam admissão administrativa ligada à geração, retomada das aprovações e
+jornada completa de imagens/vídeos pela UI. O adaptador de motion recusa execução
+até essa ligação existir. Exportação atual é de rascunho, não da execução completa.
+O laboratório ainda não valida o meio inteiro do fluxo produtivo. Sem testes,
+build ou geração paga nesta continuação, conforme orientação do titular.
+
+## 16/11/2026 — organização da UI e seleção privada do acervo
+
+Laboratório reorganizado com seletor de negócios em cards, busca com campo visível,
+cabeçalho compacto após seleção, histórico lateral e editor de pedido. CSS local
+reutiliza cores/componentes existentes e prevê layout móvel, foco por teclado e
+estados vazios/erro. Novo rascunho e reutilização explícita de pedido geram outra
+identidade de operação; a reutilização não copia anexos nem seleção de fotos.
+
+Seleção de até quatro fotos confirmadas do acervo agora é persistida somente no
+laboratório, com versão/hash/título cifrados, autorização exclusiva/RLS, identidade
+idempotente e evento SSE transacional. Migração aditiva 0122 aplicada ao banco local.
+Não modifica o acervo. Material selecionado deve ser revalidado antes de geração.
+ZIP captura mensagem, eventos, uploads e seleção em uma mesma leitura SQL; inclui
+referências do acervo, não seus arquivos. Recusa exportação acima de 10 mil eventos
+em vez de truncar silenciosamente. Sem testes/build/typecheck/QA visual nesta etapa,
+conforme orientação do titular. Revisão do código e formatação apenas.
+
+Permanecem pendentes execução produtiva, aprovações, orçamento administrativo
+efetivo, trace do modelo e retenção/limpeza de sete dias. Redesign não habilita
+geração nem comprova qualidade de motion.
+
+## 16/11/2026 — contexto do negócio no laboratório
+
+- Consulta do kit confirmado, fatos vigentes no fuso do negócio, consentimento de
+  IA e fotos ativas/autorizadas do acervo. Reutiliza as projeções do produto.
+- Migração 0121 adiciona somente políticas SELECT com escopo transacional derivado
+  do ensaio persistido e seu ator administrativo. Sem troca de identidade, bypass
+  de owner ou permissão para modificar o cliente. Aplicada apenas ao banco local.
+- UI exibe a consulta atual e diferencia consulta de autorização para gerar.
+- Revisão de código e formatação; sem testes/build conforme orientação do titular.
+  Planejamento/geração, orçamento efetivo, aprovações e trace terminal continuam
+  pendentes. Não é entrega completa do laboratório.
+
+## 16/11/2026 — anexos privados e pacote do rascunho administrativo
+
+- Upload limitado e inspecionado com identidade idempotente, direitos confirmados,
+  metadados cifrados e evento persistido antes do PUT. Anexos separados do acervo
+  comercial, sob RLS vinculada à execução e autorização exclusiva do titular.
+- Estados reais de envio no SSE; resultado incerto não autoriza repetir upload.
+  Download privado sem URL assinada, com conferência de bytes/hash e nova autorização
+  após IO. ZIP em memória com manifesto, cursor, mensagem e anexos disponíveis.
+- Migração 0120 aplicada ao banco local de desenvolvimento; nenhum dado comercial
+  removido. Armazenamento local iniciado; workers e demais consumidores seguem pausados.
+- Web recebe upload, confirmação de direitos, listagem/estados e download autenticado.
+  Texto diferencia área do laboratório e modos acompanhado/automático.
+- Documentado planejamento também para vídeos; limites semanais por formato adiados
+  pelo titular. Não foram inventados valores nem regras comerciais.
+- Sem execução/correção de testes, build ou chamadas pagas, conforme orientação vigente.
+  Apenas formatação e revisão do código. Geração produtiva e retenção do trace ainda
+  não implementadas; exportação atual é de rascunho, não de execução concluída.
+
+## 16/11/2026 — laboratório administrativo: acesso e seleção implementados
+
+**Continuação vigente, ainda incompleta:** rascunhos privados cifrados,
+histórico e eventos SSE autenticados implementados; migração aditiva 0119
+aplicada ao banco local de desenvolvimento, sem remover dados comerciais.
+Salvar rascunho não gera nem reserva saldo. A pedido do titular, não corrigir
+nem executar testes nesta etapa. O CI anterior foi interrompido por coluna
+`policy_id` ausente no banco de teste antigo; validações abaixo são da fatia
+anterior de acesso/seleção, não da árvore atual. Restam geração por formato,
+anexos, orçamento efetivo, trace do modelo, retenção/download e UI completa.
+
+Requisitos confirmados: todos os formatos já desenvolvidos, modos automático e
+acompanhado, ensaios separados, orçamento administrativo sem franquia do cliente,
+SSE com deltas quando disponíveis, trace por sete dias e download. Apenas o perfil
+admin do titular pode escolher negócios; clientes e outros admins não acessam.
+Testes podem ocorrer sem plano comercial ativo, preservando aceite de IA/material;
+anexos novos ficam privados no laboratório. Primeiro entregar a jornada, depois
+gerar uma peça e melhorar motion a partir do resultado.
+
+Implementados no backend a autorização por identidade configurada e staff ativo,
+busca auditada/paginada e endpoints de descoberta. Front tem entrada exclusiva,
+rota administrativa e seleção real de negócios; geração ainda não disponível.
+Conta conferida e promovida a staff mediante autorização explícita, com auditoria;
+configuração individual somente no ambiente local. MFA existente preservado.
+
+Validação: sete testes unitários/HTTP e uma integração PostgreSQL passaram;
+módulos novos com 100% linhas/branches, lint e mypy aprovados. Web: tipos e
+528 testes/100% nas quatro métricas. QA Chromium em 390/1440 px e build passaram para a fatia anterior; CI backend não concluído.
+Docker iniciado pelo titular; dez consumidores antigos pausados com autorização,
+PostgreSQL/Temporal disponíveis. Nenhuma migração de dev, geração paga ou publicação.
+
+Pendentes: persistência, execução produtiva por formato, orçamento separado,
+anexos, SSE/trace, retenção/exportação e jornada completa. Não é entrega final.
+[Especificação, decisões e evidências](design/admin-production-rehearsal-2026-11-16.md).
+
 ## 2026-11-13 — registrar reprovação da peça final e novo pedido de estudo
 
 **Estado vigente após o feedback do titular — 13/11/2026: entrega REPROVADA.**

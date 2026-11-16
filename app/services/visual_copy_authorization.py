@@ -23,8 +23,8 @@ from app.services.editorial_briefings import EditorialBriefingService
 from app.services.editorial_cta import public_action_matches_destination
 from app.services.editorial_proposals import (
     _COMMERCIAL_CLAIM,
-    _catalog_fact,
-    _catalog_price_fact,
+    briefing_facts,
+    briefing_subject,
     generated_copy_matches_fact,
     natural_generated_copy_matches_fact,
 )
@@ -76,8 +76,8 @@ async def authorize_visual_copy(
         raise AuthError("VISUAL_CONTEXT_CHANGED", 409)
     kit = BrandKitOverrides.model_validate(row["brand_kit_document"]["overrides"])
     draft = ProposalDraft.model_validate(row["document"])
-    offering: Any = catalog["offering"]
-    product_name = offering["name"]
+    offering: Any = catalog.get("offering") or {}
+    product_name = briefing_subject(catalog)
     facts = [scene for scene in draft.script if scene.role == "fact"]
     ctas = [scene for scene in draft.script if scene.role == "cta"]
     if len(facts) != 1 or len(facts[0].fact_ids) != 1 or len(ctas) != 1:
@@ -98,9 +98,7 @@ async def authorize_visual_copy(
         if document is None:
             raise AuthError("VISUAL_COPY_UNVERIFIED", 409)
         context = ContextContent.model_validate(document)
-    catalog_fact = _catalog_fact(catalog)
-    if generated and (catalog_fact is None or str(scene.fact_ids[0]) != catalog_fact["id"]):
-        catalog_fact = _catalog_price_fact(catalog)
+    catalog_fact = next((fact for fact in briefing_facts(catalog) if str(scene.fact_ids[0]) == fact["id"]), None)
     if catalog_fact is None or str(scene.fact_ids[0]) != catalog_fact["id"]:
         raise AuthError("VISUAL_COPY_UNVERIFIED", 409)
     statement = str(catalog_fact["statement"]).rstrip(". ") + "."
@@ -131,6 +129,14 @@ async def authorize_visual_copy(
         cta = ctas[0].on_screen_text
         if _COMMERCIAL_CLAIM.search(cta):
             raise AuthError("VISUAL_COPY_UNVERIFIED", 409)
+    if catalog_fact.get("valid_until"):
+        timezone = await session.scalar(
+            text("SELECT timezone FROM businesses WHERE tenant_id=:tenant AND id=:business"),
+            {"tenant": tenant, "business": business},
+        )
+        if timezone is None:
+            raise AuthError("VISUAL_COPY_UNVERIFIED", 409)
+        deadline = min(deadline, _end_of_day(date.fromisoformat(str(catalog_fact["valid_until"])), timezone))
     price = offering.get("price")
     if isinstance(price, dict) and price.get("status") == "valid" and price.get("valid_until"):
         timezone = await session.scalar(

@@ -1,6 +1,7 @@
 """Isolated Images API adapter. Caller must authorize assets and reserve budget first."""
 
 import base64
+from collections.abc import Awaitable, Callable
 import binascii
 import hashlib
 import io
@@ -167,7 +168,9 @@ class OpenAIVisualProvider:
         self._api_key = api_key
         self._transport = transport
 
-    async def generate(self, request: VisualRequest) -> VisualResult:
+    async def generate(
+        self, request: VisualRequest, *, response_observer: Callable[[dict[str, Any]], Awaitable[None]] | None = None
+    ) -> VisualResult:
         width, height = _validate(request)
         path, body = visual_request_http_parts(request)
         if request.references:
@@ -203,6 +206,8 @@ class OpenAIVisualProvider:
             raise VisualAIError("VISUAL_PROVIDER_UNCERTAIN", uncertain=True) from None
         try:
             data = json.loads(raw)
+            if response_observer is not None and isinstance(data, dict):
+                await response_observer(data)
             encoded = data["data"][0]["b64_json"]
             if (
                 len(data["data"]) != 1

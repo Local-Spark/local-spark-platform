@@ -111,6 +111,10 @@ class MotionCheckpoints:
         operation = checkpoint_id(row["operation_id"], stage)
         await effects.claim(row, token, operation, "review", packet)
         await effects.received(row, token, operation, {"content_sha256": digest(packet)}, 0)
+        await self.pause(row, token, stage)
+
+    async def pause(self, row: dict[str, Any], token: UUID, stage: Stage) -> None:
+        """Persist the boundary after the shared packet/receipt validation."""
         async with self.requests.database.transaction(row["tenant_id"], row["actor_id"]) as session:
             await self.requests.locked_running(session, row, token)
             # The request remains active like a storyboard; no actor retains an execution lease.

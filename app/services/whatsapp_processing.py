@@ -231,9 +231,13 @@ class MaterialProcessor:
             if row["kind"] == "text":
                 owner_database = Database(self.settings)
                 try:
-                    is_command = await apply_candidate_command(
-                        self.settings, owner_database, self.database, row, message
-                    ) or await apply_inbound_command(self.settings, self.database, row, message)
+                    from app.services.content_continuations import apply_clarification_reply
+
+                    is_command = (
+                        await apply_clarification_reply(self.settings, owner_database, self.database, row, message)
+                        or await apply_candidate_command(self.settings, owner_database, self.database, row, message)
+                        or await apply_inbound_command(self.settings, self.database, row, message)
+                    )
                 finally:
                     await owner_database.close()
             object_key = mime_type = checksum = None

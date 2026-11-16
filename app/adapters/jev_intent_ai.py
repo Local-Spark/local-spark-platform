@@ -1,6 +1,7 @@
 """Single bounded Jev request. Authorization and durable budget belong to caller."""
 
 import json
+from collections.abc import Awaitable, Callable
 import math
 import re
 from dataclasses import dataclass
@@ -91,9 +92,7 @@ class JevIntentProvider:
     def __init__(self, key: SecretStr, model: str, *, transport: httpx.AsyncBaseTransport | None = None) -> None:
         self._key, self._model, self._transport = key, model, transport
 
-    async def interpret(
-        self, message: str, candidates: list[dict[str, str]], eligible_formats: list[str], operation: UUID
-    ) -> JevDecision:
+    def prepare(self, message: str, candidates: list[dict[str, str]], eligible_formats: list[str]):
         if not message.strip() or len(message) > 4000 or len(candidates) > 8:
             raise JevIntentError("JEV_INPUT_INVALID")
         try:
@@ -146,6 +145,18 @@ class JevIntentProvider:
             # No selectable candidate is a structural fact, not an inference
             # that the request is complete or that the business has no catalog.
             payload["questions"].pop("offering")
+        return payload, ids, choices, formats
+
+    async def interpret(
+        self,
+        message: str,
+        candidates: list[dict[str, str]],
+        eligible_formats: list[str],
+        operation: UUID,
+        *,
+        response_observer: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
+    ) -> JevDecision:
+        payload, ids, choices, formats = self.prepare(message, candidates, eligible_formats)
         try:
             async with httpx.AsyncClient(
                 timeout=15, follow_redirects=False, trust_env=False, transport=self._transport
@@ -160,6 +171,8 @@ class JevIntentProvider:
                 )
                 response.raise_for_status()
                 body = response.json()
+            if response_observer is not None and isinstance(body, dict):
+                await response_observer(body)
             if not isinstance(body, dict) or body.get("model") != self._model:
                 raise ValueError
             incoming, outgoing = body["usage"]["input_tokens"], body["usage"]["output_tokens"]

@@ -233,7 +233,9 @@ class VisualBrandFinishService:
             if draft.art_text is None or draft.caption is None or draft.cta is None:
                 raise AuthError("VISUAL_COPY_UNVERIFIED", 409)
             fact, cta = [draft.art_text], [draft.cta]
-            product_name = str(catalog["offering"]["name"])  # type: ignore[index]
+            from app.services.editorial_proposals import briefing_subject
+
+            product_name = briefing_subject(catalog)
             source = (
                 (
                     await session.execute(
@@ -248,7 +250,9 @@ class VisualBrandFinishService:
             )
             if source is None:
                 raise AuthError("VISUAL_SOURCE_CHANGED", 409)
-            source_message = EditorialProposalService(self.settings, self.database)._source(source)
+            source_message = await EditorialBriefingService(self.settings, self.database)._source(
+                session, tenant, business, actor, context.source_asset_id
+            )
             if not source_message:
                 raise AuthError("VISUAL_SOURCE_UNAVAILABLE", 409)
             logo_row = None

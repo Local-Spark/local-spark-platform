@@ -5,10 +5,11 @@ No SDK retry, tools, URL fetch, model fallback or implicit extra model call.
 """
 
 import base64
+from collections.abc import Awaitable, Callable
 import hashlib
 import json
 from typing import Any
-from uuid import uuid5
+from uuid import UUID, uuid5
 
 import httpx
 from pydantic import BaseModel, ValidationError
@@ -221,6 +222,7 @@ class OpenAIMotionProvider:
         output_usd_micros_per_million_tokens: int,
         max_output_tokens: int = 32000,
         transport: httpx.AsyncBaseTransport | None = None,
+        delta_observer: Callable[[UUID, str], Awaitable[None]] | None = None,
     ) -> None:
         if not api_key.strip() or not model.strip() or not 1000 <= max_output_tokens <= 64000:
             raise MotionAIError("MOTION_AI_NOT_CONFIGURED")
@@ -230,6 +232,7 @@ class OpenAIMotionProvider:
         self._input_rate = input_usd_micros_per_million_tokens
         self._output_rate = output_usd_micros_per_million_tokens
         self._output_limit = max_output_tokens
+        self.delta_observer = delta_observer
 
     def build_request(self, request: MotionModelRequest) -> dict[str, Any]:
         from app.services.motion_preparation import evidence_bindings
@@ -521,6 +524,8 @@ class OpenAIMotionProvider:
             "instructions": instructions,
             "input": [{"role": "user", "content": content}],
         }
+        if self.delta_observer is not None:
+            payload["stream"] = True
         if len(request_bytes(payload)) > MAX_REQUEST_BYTES:
             raise MotionAIError("MOTION_AI_REQUEST_TOO_LARGE")
         return payload
@@ -589,13 +594,25 @@ class OpenAIMotionProvider:
                         "X-Client-Request-Id": str(request.operation_id),
                     },
                 ) as response:
-                    raw = bytearray()
-                    async for chunk in response.aiter_bytes(chunk_size=65536):
-                        if len(raw) + len(chunk) > MAX_RESPONSE_BYTES:
-                            raise MotionAIError("MOTION_AI_RESPONSE_TOO_LARGE", raw_response=bytes(raw))
-                        raw.extend(chunk)
-                    if response.status_code != 200:
-                        raise MotionAIError("MOTION_AI_HTTP_FAILED", raw_response=bytes(raw))
+                    if self.delta_observer is not None:
+                        from app.adapters.responses_stream import read_responses_stream
+
+                        try:
+                            raw = await read_responses_stream(
+                                response,
+                                lambda delta: self.delta_observer(request.operation_id, delta),
+                                maximum=MAX_RESPONSE_BYTES,
+                            )
+                        except ValueError:
+                            raise MotionAIError("MOTION_AI_STREAM_INCOMPLETE") from None
+                    else:
+                        raw = bytearray()
+                        async for chunk in response.aiter_bytes(chunk_size=65536):
+                            if len(raw) + len(chunk) > MAX_RESPONSE_BYTES:
+                                raise MotionAIError("MOTION_AI_RESPONSE_TOO_LARGE", raw_response=bytes(raw))
+                            raw.extend(chunk)
+                        if response.status_code != 200:
+                            raise MotionAIError("MOTION_AI_HTTP_FAILED", raw_response=bytes(raw))
                     request_id = response.headers.get("x-request-id")
         except httpx.HTTPError:
             raise MotionAIError("MOTION_AI_UNCERTAIN") from None

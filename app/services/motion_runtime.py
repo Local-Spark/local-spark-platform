@@ -20,8 +20,15 @@ from app.services.motion_requests import MotionRequestService
 from app.services.motion_speech_policy import speech_policy
 
 
-def build_motion_runner(settings: Settings, database: Database, worker_database: Database) -> MotionOrchestrator:
-    if not settings.motion_execution_ready():
+def build_motion_runner(
+    settings: Settings,
+    database: Database,
+    worker_database: Database,
+    *,
+    requests: MotionRequestService | None = None,
+    administrative: bool = False,
+) -> MotionOrchestrator:
+    if not settings.motion_execution_ready(administrative=administrative):
         raise AuthError("MOTION_EXECUTION_NOT_CONFIGURED", 409)
     provider: MotionModelProvider
     if settings.motion_ai_mode == "fake":
@@ -38,7 +45,7 @@ def build_motion_runner(settings: Settings, database: Database, worker_database:
     art_policy = illustration_policy(settings)
     store = MaterialStore(settings)
     return MotionOrchestrator(
-        MotionRequestService(settings, database),
+        requests or MotionRequestService(settings, database),
         worker_database,
         provider,
         IsolatedMotionRenderer(

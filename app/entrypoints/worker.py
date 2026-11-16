@@ -22,6 +22,9 @@ from app.workflows.activities import FoundationActivities
 from app.workflows.business_geocoding import BusinessGeocodingWorkflow
 from app.workflows.business_geocoding_activities import BusinessGeocodingActivities
 from app.workflows.content_activities import ContentCandidateActivities
+from app.workflows.creation_lab_activities import CreationLabActivities, CreationLabProductionActivities
+from app.workflows.creation_lab_production import CreationLabProductionWorkflow
+from app.workflows.creation_lab_retention import CreationLabRetentionWorkflow
 from app.workflows.content_candidate import ContentCandidateWorkflow
 from app.workflows.content_publication import FakeContentPublicationWorkflow
 from app.workflows.editorial_activities import EditorialActivities
@@ -135,6 +138,8 @@ async def run_worker() -> None:
             task_queue=settings.temporal_task_queue,
             workflows=[
                 BusinessCreatedWorkflow,
+                CreationLabRetentionWorkflow,
+                CreationLabProductionWorkflow,
                 BrandKitChangedWorkflow,
                 ReferenceDiscoveryWorkflow,
                 ReferenceSelectionWorkflow,
@@ -154,6 +159,9 @@ async def run_worker() -> None:
             )
             + ([ContentCandidateWorkflow, FakeContentPublicationWorkflow] if content_activities else []),
             activities=[
+                CreationLabActivities(database).expire_trace,
+                CreationLabProductionActivities(settings, database).run,
+                CreationLabProductionActivities(settings, database).fail,
                 FoundationActivities(database).record_business_created,
                 FoundationActivities(database).record_brand_kit_changed,
                 ReferenceDiscoveryActivities(database, settings, material_database).simulate_discovery,

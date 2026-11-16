@@ -1,5 +1,6 @@
 """Bounded private media preparation, with real sampled frames and preserved audio."""
 
+import asyncio
 import hashlib
 import io
 import math
@@ -227,6 +228,12 @@ class MotionInputLoader:
                 or hashlib.sha256(raw).hexdigest() != photo["sha256"]
             ):
                 raise AuthError("MOTION_COLLECTION_PHOTO_CHANGED", 409)
+            if photo.get("origin") == "creation_lab_upload":
+                from app.services.business_collection import normalize_photo
+
+                normalized = await asyncio.to_thread(normalize_photo, raw, photo["mime_type"])
+                raw = normalized.data
+                photo = {**photo, "sha256": normalized.sha256}
             asset_id = f"assets/photo-{photo['id']}.png"
             try:
                 with Image.open(io.BytesIO(raw)) as source_image:
@@ -248,7 +255,11 @@ class MotionInputLoader:
                     "title": photo["title"],
                     "sha256": photo["sha256"],
                     "version": photo["version"],
-                    "role": "product" if photo["item_id"] else "business_space",
+                    "role": "submitted_material"
+                    if photo.get("origin") == "creation_lab_upload"
+                    else "product"
+                    if photo["item_id"]
+                    else "business_space",
                     "identity_rule": "Material real autorizado; preserve aparência, não invente atributos comerciais.",
                 }
             )

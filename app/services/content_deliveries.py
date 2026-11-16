@@ -122,6 +122,15 @@ class ContentDeliveryService:
                 if clarification == "briefing"
                 else "Para preparar uma publicação, me conte o que deseja mostrar e confirme um fato atual do negócio."
             )
+            async with self.app_database.transaction(event["tenant_id"], event["actor_id"]) as question_session:
+                document = await question_session.scalar(
+                    text("""SELECT document FROM editorial_proposals
+                  WHERE tenant_id=:tenant AND business_id=:business AND source_asset_id=:source AND state='completed'
+                  ORDER BY created_at DESC,id DESC LIMIT 1"""),
+                    {"tenant": event["tenant_id"], "business": event["business_id"], "source": event_id},
+                )
+            if document and document.get("questions"):
+                body = "Para continuar, responda a esta mensagem:\n" + "\n".join(document["questions"])
             expires_at = datetime.now(UTC) + timedelta(days=1)
         cipher = Fernet(self.settings.meta_encryption_key.get_secret_value().encode())  # type: ignore[union-attr]
         async with self.app_database.transaction(event["tenant_id"], event["actor_id"]) as owner_session:
@@ -222,7 +231,14 @@ class ContentDeliveryService:
             return [ContentDeliveryRead.model_validate(row) for row in rows]
 
     async def decide(
-        self, tenant: UUID, business: UUID, actor: UUID, delivery_id: UUID, body: ContentDecision
+        self,
+        tenant: UUID,
+        business: UUID,
+        actor: UUID,
+        delivery_id: UUID,
+        body: ContentDecision,
+        *,
+        continuation_event: UUID | None = None,
     ) -> ContentDeliveryRead:
         async with self.app_database.transaction(tenant, actor) as session:
             await WhatsAppMaterialsService._require_owner(session, tenant, business, actor)
@@ -361,6 +377,17 @@ class ContentDeliveryService:
                 .mappings()
                 .one()
             )
+            if (
+                continuation_event is not None
+                and body.decision == "request_changes"
+                and body.note
+                and body.note.strip()
+            ):
+                from app.services.content_continuations import record_continuation
+
+                await record_continuation(
+                    session, self.settings, self.app_database, row, continuation_event, body.note.strip()
+                )
             await _audit(session, updated, f"content.{expected}", body.operation_id)
             return ContentDeliveryRead.model_validate(updated)
 
@@ -429,7 +456,12 @@ async def apply_candidate_command(
     )
     try:
         await ContentDeliveryService(settings, app_database, worker_database).decide(
-            event["tenant_id"], event["business_id"], matches[0]["actor_id"], matches[0]["id"], body
+            event["tenant_id"],
+            event["business_id"],
+            matches[0]["actor_id"],
+            matches[0]["id"],
+            body,
+            continuation_event=event["id"] if changes else None,
         )
     except AuthError as error:
         logger.info("content.command_rejected", extra={"event_id": str(event["id"]), "error_code": error.code})

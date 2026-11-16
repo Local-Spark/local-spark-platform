@@ -21,6 +21,14 @@ class Settings(BaseSettings):
     environment: Literal["development", "testing", "staging", "production"] = "development"
     # Development/test migration switch; production must enforce the agreement.
     service_agreement_required: bool = False
+    # Exclusive laboratory operator; unset means no account can access it.
+    creation_lab_editorial_reservation_usd_micros: int = Field(default=0, ge=0)
+    creation_lab_editorial_input_usd_micros_per_million_tokens: int = Field(default=0, ge=0)
+    creation_lab_editorial_output_usd_micros_per_million_tokens: int = Field(default=0, ge=0)
+    creation_lab_execution_enabled: bool = False
+    creation_lab_task_queue: str = Field(default="meu-braco-direito-creation-lab", min_length=1)
+    creation_lab_actor_id: UUID | None = None
+    creation_lab_budget_usd_micros: int = Field(default=0, ge=0, le=9_007_199_254_740_991)
     project_name: str = "Meu Braço Direito API"
     database_url: SecretStr
     relay_database_url: SecretStr | None = None
@@ -366,13 +374,15 @@ class Settings(BaseSettings):
             and self.reference_feed_reserved_usd_micros > 0
         )
 
-    def motion_execution_ready(self) -> bool:
+    def motion_execution_ready(self, *, administrative: bool = False) -> bool:
         return bool(
             self.motion_execution_enabled
             and self.environment in {"development", "testing"}
             and self.motion_ai_mode in {"fake", "openai"}
-            and self.motion_local_qualification_business_id
-            and self.motion_local_qualification_asset_ids
+            and (
+                administrative
+                or (self.motion_local_qualification_business_id and self.motion_local_qualification_asset_ids)
+            )
             and self.meta_encryption_key
             and self.correlator_database_url
             and self.motion_renderer_image
@@ -381,7 +391,9 @@ class Settings(BaseSettings):
             and self.material_storage_bucket
             and self.motion_ai_reservation_usd_micros > 0
             and self.motion_request_budget_usd_micros >= 2 * self.motion_ai_reservation_usd_micros
-            and self.visual_ai_monthly_budget_usd_micros > 0
+            and (
+                self.creation_lab_execution_enabled if administrative else self.visual_ai_monthly_budget_usd_micros > 0
+            )
             and (
                 self.motion_ai_mode == "fake"
                 or (
@@ -389,7 +401,7 @@ class Settings(BaseSettings):
                     and self.motion_ai_model
                     and self.motion_ai_input_usd_micros_per_million_tokens > 0
                     and self.motion_ai_output_usd_micros_per_million_tokens > 0
-                    and self.visual_ai_global_monthly_budget_usd_micros > 0
+                    and (administrative or self.visual_ai_global_monthly_budget_usd_micros > 0)
                 )
             )
         )

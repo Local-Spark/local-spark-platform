@@ -65,12 +65,34 @@ async def _head(session: Any, tenant: UUID, business: UUID) -> int:
     )
 
 
+async def _authorize_read(session: Any, tenant: UUID, business: UUID, actor: UUID, lab_run: UUID | None) -> None:
+    if lab_run is None:
+        await require_catalog_owner(session, tenant, business, actor)
+    elif not await session.scalar(
+        text("""SELECT creation_lab_read_scope(:tenant,:business)
+      AND EXISTS(SELECT 1 FROM creation_lab_runs WHERE id=:run AND actor_id=:actor
+        AND tenant_id=:tenant AND business_id=:business)"""),
+        {"run": lab_run, "actor": actor, "tenant": tenant, "business": business},
+    ):
+        raise AuthError("CREATION_LAB_ACCESS_DENIED", 403)
+
+
 async def catalog_candidates(
-    session: Any, tenant: UUID, business: UUID, actor: UUID, message: str
+    session: Any, tenant: UUID, business: UUID, actor: UUID, message: str, *, lab_run: UUID | None = None
 ) -> dict[str, object]:
     """Find bounded, owner-confirmed lexical candidates; never infer intent."""
-    await require_catalog_owner(session, tenant, business, actor)
-    version = await _head(session, tenant, business)
+    await _authorize_read(session, tenant, business, actor, lab_run)
+    version = (
+        await _head(session, tenant, business)
+        if lab_run is None
+        else int(
+            await session.scalar(
+                text("SELECT version FROM business_catalog_heads WHERE tenant_id=:tenant AND business_id=:business"),
+                {"tenant": tenant, "business": business},
+            )
+            or 0
+        )
+    )
     query = _tokens(message[:4000])
     if not query:
         return {"status": "no_text", "catalog_version": version, "candidates": []}
@@ -116,6 +138,7 @@ async def selected_catalog_snapshot(
     now: datetime,
     *,
     promotion_policy: Literal["legacy", "request_only"] = "legacy",
+    lab_run: UUID | None = None,
 ) -> dict[str, object]:
     """Capture only an explicitly resolved candidate; caller still checks intent.
 
@@ -125,7 +148,7 @@ async def selected_catalog_snapshot(
     if now.tzinfo is None or now.utcoffset() is None:
         raise ValueError("A timezone-aware instant is required")
     now = now.astimezone(UTC)
-    candidates = await catalog_candidates(session, tenant, business, actor, message)
+    candidates = await catalog_candidates(session, tenant, business, actor, message, lab_run=lab_run)
     if candidates["catalog_version"] != expected_catalog_version:
         raise AuthError("COLLECTION_CONTEXT_CHANGED", 409)
     choices = cast(list[dict[str, str]], candidates["candidates"])
@@ -257,6 +280,9 @@ async def validate_catalog_snapshot(
         raise ValueError("A timezone-aware instant is required")
     now = now.astimezone(UTC)
     await require_catalog_owner(session, tenant, business, actor)
+    if snapshot.get("basis") == "business":
+        current = await business_briefing_snapshot(session, tenant, business, actor)
+        return "valid" if current is not None and current == snapshot else "context_changed"
     try:
         version = snapshot["catalog_version"]
         offering = cast(dict[str, Any], snapshot["offering"])
@@ -366,3 +392,46 @@ async def validate_catalog_snapshot(
         if not exists:
             return "photo_changed_or_removed"
     return "valid"
+
+
+async def business_briefing_snapshot(session: Any, tenant: UUID, business: UUID, actor: UUID) -> dict[str, Any] | None:
+    """Current confirmed institutional basis without creating a catalog offering."""
+    await require_catalog_owner(session, tenant, business, actor)
+    from app.services.brand_kits import BrandKitService
+    from app.services.editorial_context import EditorialContextService
+    from app.services.editorial_proposals import editorial_business_facts
+
+    kit = (await BrandKitService._state(session, tenant, business)).confirmed
+    if kit is None:
+        return None
+    context = EditorialContextService._present(await EditorialContextService._version(session, tenant, business))
+    today = await session.scalar(
+        text(
+            "SELECT (clock_timestamp() AT TIME ZONE timezone)::date FROM businesses WHERE tenant_id=:tenant AND id=:business"
+        ),
+        {"tenant": tenant, "business": business},
+    )
+    facts = editorial_business_facts(
+        [
+            fact.model_dump(mode="json", exclude={"source_detail"})
+            for fact in context.facts
+            if fact.valid_until is None or fact.valid_until >= today
+        ],
+        kit.overrides.brand_name,
+        business,
+        kit.version,
+    )
+    if not facts:
+        return None
+    return {
+        "basis": "business",
+        "business_id": str(business),
+        "context_version": context.version,
+        "kit_version": kit.version,
+        "brand_name": kit.overrides.brand_name,
+        "confirmed_facts": facts,
+        "item_photo": None,
+        "space_photo": None,
+        "promotions": [],
+        "promotion_policy": "request_only",
+    }

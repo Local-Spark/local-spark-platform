@@ -34,6 +34,7 @@ async def claim_events(
     include_provider_discovery: bool = False,
     include_learning: bool = False,
     include_motion: bool = False,
+    lab_only: bool = False,
 ) -> list[ClaimedEvent]:
     async with database.sessions() as session, session.begin():
         rows = (
@@ -42,8 +43,14 @@ async def claim_events(
                     text("""
           WITH candidates AS (
             SELECT id FROM outbox_events
-            WHERE (event_type IN ('business.created','brand_kit.changed','reference.search_requested',
-                                 'reference.selection_confirmed') OR
+            WHERE (NOT :lab_only OR event_type IN (
+              'creation_lab.trace_cleanup_requested','creation_lab.requested','creation_lab.plan_approved',
+              'creation_lab.render_approved','creation_lab.storyboard_approved',
+              'creation_lab.editorial_approved','creation_lab.catalog_approved'))
+            AND (event_type IN ('business.created','brand_kit.changed','reference.search_requested',
+                                 'reference.selection_confirmed','creation_lab.trace_cleanup_requested',
+                                 'creation_lab.requested','creation_lab.plan_approved','creation_lab.render_approved',
+                                 'creation_lab.storyboard_approved','creation_lab.editorial_approved','creation_lab.catalog_approved') OR
                    (:include_geocoding AND event_type='business.address_geocode_requested') OR
                    (:include_motion AND event_type IN (
                       'motion.requested','motion.storyboard_approved','motion.storyboard_recapture_requested',
@@ -71,6 +78,7 @@ async def claim_events(
                         "include_providers": include_provider_discovery,
                         "include_learning": include_learning,
                         "include_motion": include_motion,
+                        "lab_only": lab_only,
                     },
                 )
             )
@@ -107,8 +115,12 @@ async def finish_event(database: Database, item: ClaimedEvent, owner_id: UUID, *
         return result is not None
 
 
-async def dispatch_once(database: Database, client: Client, settings: Settings, owner_id: UUID) -> int:
-    if getattr(settings, "motion_execution_ready", lambda: False)():
+async def dispatch_once(
+    database: Database, client: Client, settings: Settings, owner_id: UUID, *, lab_only: bool = False
+) -> int:
+    if lab_only:
+        items = await claim_events(database, owner_id, limit=5, lab_only=True)
+    elif getattr(settings, "motion_execution_ready", lambda: False)():
         items = await claim_events(
             database,
             owner_id,
@@ -177,6 +189,13 @@ async def dispatch_once(database: Database, client: Client, settings: Settings, 
 async def _start_workflow(client: Client, settings: Settings, item: ClaimedEvent) -> None:
     event = item.event
     workflow_type = {
+        "creation_lab.requested": "CreationLabProductionWorkflow",
+        "creation_lab.plan_approved": "CreationLabProductionWorkflow",
+        "creation_lab.render_approved": "CreationLabProductionWorkflow",
+        "creation_lab.storyboard_approved": "CreationLabProductionWorkflow",
+        "creation_lab.catalog_approved": "CreationLabProductionWorkflow",
+        "creation_lab.editorial_approved": "CreationLabProductionWorkflow",
+        "creation_lab.trace_cleanup_requested": "CreationLabRetentionWorkflow",
         "business.created": "BusinessCreatedWorkflow",
         "motion.requested": "MotionProductionWorkflow",
         "motion.plan_approved": "MotionProductionWorkflow",
@@ -194,6 +213,13 @@ async def _start_workflow(client: Client, settings: Settings, item: ClaimedEvent
         "reference.effect_completed": "ReferenceEffectProjectionWorkflow",
     }[item.event_type]
     workflow_id = {
+        "creation_lab.requested": "creation-lab-requested",
+        "creation_lab.plan_approved": "creation-lab-plan_approved",
+        "creation_lab.render_approved": "creation-lab-render_approved",
+        "creation_lab.storyboard_approved": "creation-lab-storyboard_approved",
+        "creation_lab.catalog_approved": "creation-lab-catalog_approved",
+        "creation_lab.editorial_approved": "creation-lab-editorial_approved",
+        "creation_lab.trace_cleanup_requested": "creation-lab-trace-retention",
         "business.created": "business-created",
         "motion.requested": "motion-production",
         "motion.plan_approved": "motion-plan-approved",
@@ -221,7 +247,11 @@ async def _start_workflow(client: Client, settings: Settings, item: ClaimedEvent
         workflow_type,
         event,
         id=f"{workflow_id}/{event.tenant_id}/{identity}",
-        task_queue=settings.temporal_task_queue,
+        task_queue=(
+            settings.creation_lab_task_queue
+            if item.event_type.startswith("creation_lab.")
+            else settings.temporal_task_queue
+        ),
         id_reuse_policy=WorkflowIDReusePolicy.REJECT_DUPLICATE,
         rpc_timeout=timedelta(seconds=5),
     )

@@ -22,6 +22,7 @@ from app.api.v1.business_catalog import catalog_router
 from app.api.v1.business_collection import collection_router
 from app.api.v1.content_deliveries import deliveries_router
 from app.api.v1.content_pieces import pieces_router
+from app.api.v1.creation_lab import creation_lab_router
 from app.api.v1.editorial_context import context_router
 from app.api.v1.editorial_conversation import conversation_router
 from app.api.v1.editorial_proposals import proposals_router
@@ -110,6 +111,7 @@ def create_app(
     application.include_router(agreement_router)
     application.include_router(billing_router)
     application.include_router(staff_router)
+    application.include_router(creation_lab_router)
     application.include_router(phone_router)
     application.include_router(whatsapp_router)
     application.include_router(whatsapp_link_router)

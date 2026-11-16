@@ -109,11 +109,7 @@ class MotionStoryboards:
                 "object_key": key,
                 "size_bytes": len(frame.png),
             }
-            await effects.claim(row, token, upload, "upload", manifest)
-            await self.store.put(key, FetchedMedia(frame.png, "image/png", frame.sha256))
-            await self.read_png(manifest)
-            await effects.received(row, token, upload, manifest)
-            frames.append(manifest)
+            frames.append(await self.persist_frame(row, token, upload, manifest, frame.png, effects))
         illustrated = {item.asset_id for item in composition.illustrations}
         art = []
         for asset in prepared.assets:
@@ -169,6 +165,25 @@ class MotionStoryboards:
         }
         sha = digest(payload)
         ciphertext = await effects.persist_payload(row, token, operation, "board", payload)
+        await self.persist_board(row, token, operation, sha, ciphertext)
+
+    async def persist_frame(
+        self,
+        row: dict[str, Any],
+        token: UUID,
+        operation: UUID,
+        manifest: dict[str, Any],
+        data: bytes,
+        effects: MotionEffects,
+    ) -> dict[str, Any]:
+        await effects.claim(row, token, operation, "upload", manifest)
+        await self.store.put(manifest["object_key"], FetchedMedia(data, "image/png", manifest["sha256"]))
+        await self.read_png(manifest)
+        await effects.received(row, token, operation, manifest)
+        return manifest
+
+    async def persist_board(self, row: dict[str, Any], token: UUID, operation: UUID, sha: str, ciphertext: str) -> None:
+        """Persist only after productive sampling, rendering and byte validation."""
         async with self.requests.database.transaction(row["tenant_id"], row["actor_id"]) as session:
             await self.requests.locked_running(session, row, token)
             await session.execute(
