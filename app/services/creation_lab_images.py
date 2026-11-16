@@ -26,6 +26,7 @@ from app.services.creation_lab_motion_requests import LabMotionRequests
 from app.services.creative_catalog import catalog_candidates, selected_catalog_snapshot
 from app.services.editorial_context import EditorialContextService
 from app.services.editorial_materials import editorial_material_reference
+from app.services.editorial_questions import resolve_selected_photo_questions
 from app.services.editorial_proposals import (
     EditorialProposalService,
     _catalog_fact,
@@ -34,6 +35,7 @@ from app.services.editorial_proposals import (
     editorial_kit_input,
 )
 from app.services.service_agreement_scope import accepted_agreement_sql
+from app.services.space_photo_selection import select_space_photo
 from app.services.visual_brand_finish import _full_piece_prompt
 from app.services.visual_kit_reference import load_kit_example
 from app.services.visual_references import VisualReferenceSource
@@ -133,20 +135,13 @@ class LabImageRequests(LabMotionRequests):
             if logo is None:
                 raise AuthError("VISUAL_LOGO_CHANGED", 409)
             sources.append(dict(logo) | {"role": "brand_logo", "version": 1})
-        # Institutional requests have no offering, but still have the business acervo.
-        # Capture a deterministic authorized environment reference in the fingerprint.
+        # Preserve the existing reference unless a registered category matches an explicit request.
+        space_selection = {
+            "reason": "Foto anexada priorizada ou limite de referências atingido; acervo não selecionado.",
+            "matched_explicit_request": False,
+        }
         if len(sources) < 4 and not any(item["role"] == "source_photo" for item in sources):
-            identifier = await session.scalar(
-                text("""SELECT id FROM business_collection_photos
-                  WHERE tenant_id=:tenant AND business_id=:business
-                    AND state='ready' AND status='active'
-                    AND rights_scope='business_collection_confirmed'
-                    AND item_id IS NULL AND space_kind IN ('environment','room','counter')
-                    AND delete_owner IS NULL AND delete_lease_until IS NULL
-                  ORDER BY CASE space_kind WHEN 'environment' THEN 0 WHEN 'room' THEN 1 ELSE 2 END,id
-                  LIMIT 1"""),
-                {"tenant": tenant, "business": business},
-            )
+            identifier, space_selection = await select_space_photo(session, tenant, business, message)
             if identifier:
                 photo = await self.context.photo(session, tenant, business, identifier)
                 if photo is None:
@@ -174,6 +169,7 @@ class LabImageRequests(LabMotionRequests):
             ],
             "reference_context": references.model_input(),
             "sources": sources,
+            "space_photo_selection": space_selection,
             "editorial_skill": {"id": skill_id, "sha256": skill_hash, "instructions": instructions},
             "execution": {
                 "request_budget": row["budget_usd_micros"],
@@ -223,6 +219,8 @@ class LabImageRequests(LabMotionRequests):
         sources = [item for item in snapshot["sources"] if item["role"] not in {"item_photo", "space_photo"}]
         for role in ("item_photo", "space_photo"):
             reference = catalog.get(role)
+            if role == "space_photo" and snapshot.get("space_photo_selection", {}).get("matched_explicit_request"):
+                reference = next((item for item in snapshot["sources"] if item["role"] == "space_photo"), reference)
             if reference is None or len(sources) >= 4:
                 continue
             photo = await self.context.photo(session, row["tenant_id"], row["business_id"], UUID(reference["id"]))
@@ -237,6 +235,8 @@ class LabImageRequests(LabMotionRequests):
         await self._admission(session, row["tenant_id"], row["business_id"])
         snapshot = self.context.open(row["snapshot_ciphertext"])
         fresh = await self.build_snapshot(session, row, LabStart.model_validate(snapshot["request"]))
+        if "space_photo_selection" not in snapshot:
+            fresh.pop("space_photo_selection", None)
         if self.context.fingerprint(fresh) != row["source_fingerprint"]:
             raise AuthError("CREATION_LAB_CONTEXT_CHANGED", 409)
         # Revalidate price/versions at every approval and external effect.
@@ -522,6 +522,21 @@ class LabImageRunner:
                     )
                     // 1000000,
                 )
+                remaining, resolved = resolve_selected_photo_questions(draft.questions, data["available_materials"])
+                if resolved:
+                    await self.execution.evidence(
+                        row["actor_id"],
+                        row["id"],
+                        token,
+                        uuid5(row["id"], "editorial-photo-questions"),
+                        "editorial_questions",
+                        {
+                            "resolved_questions": resolved,
+                            "reason": "Foto autorizada já selecionada para geração.",
+                            "remaining_questions": remaining,
+                        },
+                    )
+                    draft = draft.model_copy(update={"questions": remaining})
                 if draft.questions:
                     await self.pause(
                         row,

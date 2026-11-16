@@ -23,4 +23,5 @@ def editorial_material_reference(source: dict[str, Any]) -> dict[str, Any]:
         "title": label + (" (imagem ilustrativa)" if illustrative else ""),
         "declared_illustrative": illustrative,
         "authorized": True,
+        "selected_for_generation": True,
     }

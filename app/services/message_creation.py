@@ -18,6 +18,7 @@ from app.services.creation_lab_drafts import ZERO, CreationLabDrafts
 from app.services.creation_lab_execution import CreationLabExecution
 from app.services.creation_lab_motion_requests import LabMotionRequests
 from app.services.creative_catalog_resolution import CatalogIntent, resolve_catalog_context
+from app.services.creative_continuation import confirmed_reply_format, copied_format_reply
 from app.services.motion_context import MotionContext, digest
 
 MESSAGE_FORMATS = ("photo", "story", "reel")
@@ -157,6 +158,20 @@ class MessageCreation:
             row = dict(row) | {"state": "running", "execution_token": token}
             await self.execution.event(session, self.run, uuid5(self.run, "interpreting"), "run.interpreting")
             materials = await self.materials(session)
+            confirmed_format = (
+                copied_format_reply(message_text(self.cipher, row)) if not row.get("parent_run_id") else None
+            )
+            if row.get("parent_run_id"):
+                continuation = await session.scalar(
+                    text(
+                        "SELECT payload_ciphertext FROM creation_lab_trace "
+                        "WHERE id=:id AND run_id=:run AND stage='continuation'"
+                    ),
+                    {"id": uuid5(self.run, "continuation"), "run": self.run},
+                )
+                if continuation:
+                    reply = self.cipher.open(continuation)["value"]
+                    confirmed_format = confirmed_reply_format(reply.get("questions", []), reply.get("note", ""))
         image_requests = LabImageRequests(self.settings, self.database, self.run, administrative=row["origin"] == "lab")
         image_runner = LabImageRunner(image_requests)
 
@@ -180,7 +195,8 @@ class MessageCreation:
             async def interpret(self, message, candidates):
                 provider = JevIntentProvider(outer.settings.typesafe_api_key, outer.settings.intent_ai_model)
                 operation = uuid5(outer.run, "message-intent")
-                payload = provider.prepare(message, candidates, list(MESSAGE_FORMATS))[0]
+                format_options = {"confirmed_format": confirmed_format} if confirmed_format else {}
+                payload = provider.prepare(message, candidates, list(MESSAGE_FORMATS), **format_options)[0]
                 reserve = (64000 * outer.settings.intent_ai_input_rate_usd_micros + 999999) // 1000000
                 await outer.execution.claim(
                     actor,
@@ -201,6 +217,7 @@ class MessageCreation:
                     list(MESSAGE_FORMATS),
                     operation,
                     response_observer=image_runner.observer(row, token, operation),
+                    **format_options,
                 )
                 await outer.execution.received(
                     actor,

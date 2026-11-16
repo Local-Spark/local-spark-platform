@@ -316,3 +316,84 @@ async def test_uncertain_motion_format_is_not_silently_treated_as_unspecified(ca
     )
     result = await provider.interpret("Faça reel", [candidate], eligible, uuid4())
     assert result.decision == "clarify" and result.format is None
+
+
+@pytest.mark.asyncio
+async def test_confirmed_reply_does_not_reclassify_options_in_previous_question():
+    body = response_body(0)
+    body["answers"].pop("format")
+
+    def handler(request):
+        payload = json.loads(request.content)
+        assert "format" not in payload["questions"]
+        assert json.loads(payload["state"])["confirmed_format"] == "photo"
+        return httpx.Response(200, json=body)
+
+    provider = JevIntentProvider(SecretStr("local-test"), "jev-1.14.0", transport=httpx.MockTransport(handler))
+    result = await provider.interpret(
+        "Faz um post convidando amigos. Perguntas pendentes: feed, story ou reel? Resposta: Pro feed mesmo",
+        [],
+        ["photo", "story", "reel"],
+        uuid4(),
+        confirmed_format="photo",
+    )
+    assert result.intent == "content_request"
+    assert result.decision == "none"
+    assert result.format == "photo"
+
+
+@pytest.mark.parametrize(
+    "note,expected",
+    [
+        ("Pro feed mesmo", "photo"),
+        ("Feed.", "photo"),
+        ("Story estático", "story"),
+        ("Um reel", "reel"),
+        ("Não quero feed", None),
+        ("Feed ou reel", None),
+        ("Não sei", None),
+        ("Feed com vídeo", None),
+    ],
+)
+def test_only_explicit_answer_to_saved_format_question_is_confirmed(note, expected):
+    from app.services.creative_continuation import confirmed_reply_format
+
+    question = "Você quer um post no feed, um story estático ou um reel?"
+    assert confirmed_reply_format([question], note) == expected
+    assert confirmed_reply_format(["Qual produto quer divulgar?"], note) is None
+    assert confirmed_reply_format([question, "Qual preço?"], note) is None
+
+
+@pytest.mark.parametrize("escaped", [False, True])
+def test_reused_conversation_keeps_explicit_feed_reply(escaped):
+    from app.services.creative_continuation import copied_format_reply
+
+    message = (
+        "Faz um post do café convidando amigos.\n\nPerguntas pendentes:\n"
+        "Você quer um post no feed, um story estático ou um reel?\n\n"
+        "Resposta do solicitante:\nPro feed mesmo"
+    )
+    if escaped:
+        message = message.replace("\n", "\\n")
+    assert copied_format_reply(message) == "photo"
+
+
+@pytest.mark.parametrize("reply", ["Feed ou story", "Não quero feed", "Pro feed mesmo. Quero também um reel", ""])
+def test_copied_conversation_does_not_force_uncertain_format(reply):
+    from app.services.creative_continuation import copied_format_reply
+
+    message = (
+        "Faz um post do café.\n\nPerguntas pendentes:\n"
+        "Você quer um post no feed, um story estático ou um reel?\n\nResposta do solicitante:\n" + reply
+    )
+    assert copied_format_reply(message) is None
+
+
+def test_last_copied_answer_supersedes_prior_format():
+    from app.services.creative_continuation import continued_instruction, copied_format_reply
+
+    question = ["Você quer um post no feed, um story estático ou um reel?"]
+    first = continued_instruction("Crie uma peça para o café.", "Feed", questions=question)
+    latest = continued_instruction(first, "Story", questions=question)
+    assert copied_format_reply(latest) == "story"
+    assert copied_format_reply("Faz um post do café.") is None

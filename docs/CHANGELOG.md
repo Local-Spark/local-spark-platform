@@ -1,5 +1,119 @@
 # Registro de mudanças
 
+## 16/11/2026 — worker antigo confirmado e recarregado
+
+As tentativas ed81a554-8eeb-53bb-8cef-a2cf1093ed29 e
+fc214884-9d46-5fac-b61f-659c1252e105 continuavam enviando pergunta de formato sem
+confirmed_format. Inspeção de processos confirmou API reiniciada às 17h49, porém
+worker dedicado iniciado às 16h25, anterior às correções das 17h47. A preparação
+local correta não comprovava o código carregado por esse processo persistente.
+
+Leitura autenticada confirmou ausência de execuções queued/running. Encerrado apenas
+o worker dedicado antigo e iniciado make creation-lab às 17h51. Novo processo
+confirmado como poller da fila de atividades Temporal. Sem alteração adicional de
+regra, geração paga ou execução de testes. Ensaios pausados não foram reescritos ou
+retomados; continuação manual permanece pendente. Reiniciar apenas a API no VS Code
+não recarrega esse worker: mudanças de geração exigem reiniciar também o processo
+make creation-lab. Conferir poller ativo antes de repetir ensaios após mudanças.
+
+## 16/11/2026 — formato explícito em conversa reutilizada como pedido novo
+
+Diagnóstico do ensaio e42276d6-1571-51f8-b428-c97de1fe4744: parent_run_id ausente,
+texto com pergunta anterior e resposta “Pro feed mesmo” copiados. A correção anterior
+cobria apenas continuações vinculadas e não era acionada nesse novo pedido. Não se
+atribui o problema a reinício faltante; o escopo da correção era insuficiente.
+
+Agora um pedido raiz com bloco final completo no formato de conversa da UI pode
+fornecer resposta inequívoca de formato. Isso não confere proveniência de sistema
+ao texto nem autoriza operações: continua sendo conteúdo do solicitante. Resposta
+ambígua, negativa, com instruções adicionais ou sem pergunta conhecida mantém a
+interpretação normal. Último bloco prevalece; continuações vinculadas ainda usam
+a evidência persistida. Sem alteração de orçamento, aprovação ou publicação.
+
+Conferência local da preparação com a mensagem real do ensaio: formato photo e
+pergunta format ausente do payload. Nenhuma chamada de provedor ou geração. Ruff,
+formatação, sintaxe e diff conferidos; regressões adicionadas, suíte não executada.
+Validação completa pela UI pendente. Ensaio pausado não foi reescrito/reiniciado.
+API e worker sem reload precisam carregar o código atualizado.
+
+## 16/11/2026 — formato confirmado na resposta de continuação
+
+Ensaio d060263b-c287-55fb-849b-5cbd9e2bb7d8 voltou a pedir detalhes após “Pro feed
+mesmo”. Trace bruto mostrou abstenção de formato (unspecified, confiança 0,39);
+validação local também encontrava reel nas opções da pergunta anterior concatenada.
+
+Coordenador comum lê a evidência persistida da continuação, separando a pergunta do
+sistema da resposta efetiva. Respostas curtas inequívocas a uma única pergunta conhecida
+de formato confirmam photo/story/reel. Jev deixa de perguntar formato nesse caso,
+recebe confirmed_format e continua avaliando intenção e catálogo. Guarda contra vídeo
+não trata alternativas citadas pelo sistema como solicitação do usuário quando há
+confirmação explícita. Sem confirmação, proteções anteriores permanecem. Respostas
+negadas, ambíguas ou a perguntas diferentes não recebem esse tratamento.
+
+Sem migração, chamada paga extra ou reinício automático da tentativa pausada. Mesmo
+caminho para WhatsApp e laboratório. Ruff aprovado em adapter/helper/regressões;
+sintaxe e diff conferidos. message_creation mantém E501 preexistentes. Regressões
+adicionadas, não executadas conforme orientação. Validação manual pendente; reiniciar
+API/worker sem reload antes da continuação. Botão extra de início no laboratório
+permanece uma diferença de UI já identificada, não alterada nesta correção.
+
+## 16/11/2026 — pergunta redundante sobre foto já selecionada
+
+Ensaio 7ef01225-dc4c-5cce-b8f4-683498a2dbd7 aguardava envio/escolha de space_photo,
+embora o contexto já contivesse a foto de ambiente autorizada. Entrada editorial
+agora explicita selected_for_generation e que o arquivo vai ao gerador na etapa
+seguinte; modelo não deve pedir reenvio/seleção nem expor nomes técnicos.
+Serviço compartilhado resolve perguntas inteiras reconhecidas de envio/escolha da
+foto de ambiente somente quando essa referência está selecionada e autorizada.
+Perguntas mistas, factuais, de direitos ou materiais ausentes são preservadas.
+
+Resposta original permanece no trace e resolução fica em editorial_questions,
+com justificativa e perguntas restantes. Proposta continua passando por validação
+factual normal antes da geração. Não há classificador extra, chamada paga adicional,
+alteração do prompt visual, composição ou seleção da foto. API/worker sem reload
+precisam reiniciar. Ensaio já pausado não foi reescrito nem retomado automaticamente.
+
+Ruff aprovado nos novos serviços, adapter, materiais e regressões; sintaxe/diff
+conferidos. Regressões adicionadas, não executadas conforme orientação vigente.
+Sem geração ou testes de integração. Validação manual do fluxo permanece pendente.
+
+## 16/11/2026 — proporção da foto na direção visual
+
+Trace do ensaio b496fb2a-dc47-5a9f-a26b-afa6a6e35cc5 confirmou falso positivo em
+creative_brief.photo_use: “evitar adicionar elementos gráficos que cubram mais que
+20% da foto”. A regra já aceitava a mesma proporção “da imagem”. Foto e fotografia
+agora são reconhecidas como dimensões visuais equivalentes somente no briefing
+privado. Não autoriza percentuais em texto público nem descontos na direção visual.
+
+Correção no validador produtivo compartilhado; sem mudança de seleção de fotos,
+prompt ou kit. Ruff, formatação e diff conferidos. Regressões de cobertura visual,
+texto público e desconto adicionadas, não executadas conforme orientação vigente.
+Sem nova geração ou alteração do ensaio encerrado. Reiniciar API/worker sem reload;
+validação manual da próxima geração permanece pendente.
+
+## 16/11/2026 — seleção conservadora da foto de espaço pelo pedido
+
+Implementado seletor compartilhado por feed/story via mensagem produtiva e laboratório.
+Reconhece indicação visual explícita de fachada, balcão, sala/salão ou ambiente/espaço
+usando somente space_kind cadastrado. Não interpreta fotos por título e não chama IA.
+Sem categoria inequívoca, com negação ou múltiplas categorias, preserva a ordenação
+anterior (environment, room, counter, id). Categoria pedida sem foto elegível também
+mantém a seleção habitual. Fotos continuam restritas ao negócio, prontas, ativas,
+autorizadas e fora de exclusão. Foto anexada mantém precedência no contexto inicial.
+
+Trace de contexto inclui space_photo_selection: categoria pedida, referência e motivo.
+Seleção explícita de espaço também prevalece quando o catálogo fornece uma referência
+genérica; foto de produto e limites de referências permanecem iguais. Fonte entra no
+fingerprint e continua sendo revalidada por versão/hash/direitos. Contextos antigos
+sem o novo metadado não falham apenas pela adição do campo. Mudança limitada a peças
+estáticas; sem alteração de prompt, kit, modelo, composição, custos ou aleatoriedade.
+
+Validação: revisão estática, sintaxe Python e diff; Ruff aprovado no novo serviço e
+regressões adicionadas. creation_lab_images conserva avisos E501 preexistentes fora
+dos trechos alterados. Regressões de pedidos explícitos, genéricos, ambíguos e negados
+adicionadas, não executadas. Sem testes/build/navegador ou geração paga por orientação.
+Validação visual manual pendente. Reiniciar API/worker sem reload antes de nova criação.
+
 ## 16/11/2026 — contagem de linhas no briefing do story
 
 Ensaio 21de1a71-4dea-511f-8300-48ff7d464b1d falhou por números 1 e 2 em

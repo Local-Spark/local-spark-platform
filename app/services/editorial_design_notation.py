@@ -17,7 +17,8 @@ _UNIT = r"(?:px|pixels?|pt|pontos tipográficos|rem)\b"
 # Explicit proportions of a visual dimension, e.g. 20–25% da altura.
 _PROPORTION = re.compile(
     r"(?<![\w.,])" + _PERCENT_RANGE + r"\s*%\s+(?:da|de|do)\s+"
-    r"(?:altura|largura|área|imagem|quadro|canvas|tela|margem|margens|espaço\s+(?:livre|negativo|de respiro))\b",
+    r"(?:altura|largura|área|imagem|foto|fotografia|quadro|canvas|tela|margem|margens|"
+    r"espaço\s+(?:livre|negativo|de respiro))\b",
     re.I,
 )
 _PROPERTY_PERCENT = re.compile(

@@ -1,9 +1,9 @@
 """Single bounded Jev request. Authorization and durable budget belong to caller."""
 
 import json
-from collections.abc import Awaitable, Callable
 import math
 import re
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
@@ -92,7 +92,14 @@ class JevIntentProvider:
     def __init__(self, key: SecretStr, model: str, *, transport: httpx.AsyncBaseTransport | None = None) -> None:
         self._key, self._model, self._transport = key, model, transport
 
-    def prepare(self, message: str, candidates: list[dict[str, str]], eligible_formats: list[str]):
+    def prepare(
+        self,
+        message: str,
+        candidates: list[dict[str, str]],
+        eligible_formats: list[str],
+        *,
+        confirmed_format: str | None = None,
+    ):
         if not message.strip() or len(message) > 4000 or len(candidates) > 8:
             raise JevIntentError("JEV_INPUT_INVALID")
         try:
@@ -107,6 +114,8 @@ class JevIntentProvider:
                 raise ValueError
         except (KeyError, ValueError, TypeError):
             raise JevIntentError("JEV_INPUT_INVALID") from None
+        if confirmed_format is not None and confirmed_format not in eligible_formats:
+            raise JevIntentError("JEV_INPUT_INVALID")
         choices = {f"item_{i}": f"O item na posição {i} da lista candidates." for i in range(len(ids))}
         choices.update(none="Nenhum item corresponde ao pedido.", clarify="Não é possível decidir com segurança.")
         formats = {item: _FORMAT_CRITERIA[item] for item in eligible_formats}
@@ -145,6 +154,12 @@ class JevIntentProvider:
             # No selectable candidate is a structural fact, not an inference
             # that the request is complete or that the business has no catalog.
             payload["questions"].pop("offering")
+        if confirmed_format is not None:
+            payload["questions"].pop("format")
+            payload["state"] = json.dumps(
+                {"message": message, "candidates": candidates, "confirmed_format": confirmed_format},
+                ensure_ascii=False,
+            )
         return payload, ids, choices, formats
 
     async def interpret(
@@ -155,8 +170,11 @@ class JevIntentProvider:
         operation: UUID,
         *,
         response_observer: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
+        confirmed_format: str | None = None,
     ) -> JevDecision:
-        payload, ids, choices, formats = self.prepare(message, candidates, eligible_formats)
+        payload, ids, choices, formats = self.prepare(
+            message, candidates, eligible_formats, confirmed_format=confirmed_format
+        )
         try:
             async with httpx.AsyncClient(
                 timeout=15, follow_redirects=False, trust_env=False, transport=self._transport
@@ -180,14 +198,14 @@ class JevIntentProvider:
                 raise ValueError
             intent = _choice(body, "intent", set(INTENTS), 0.5)
             offering = _choice(body, "offering", set(choices), 0.5) if ids else "none"
-            fmt = _choice(body, "format", set(formats), 0.5)
+            fmt = confirmed_format or _choice(body, "format", set(formats), 0.5)
         except (httpx.HTTPError, ValueError, KeyError, TypeError, JevIntentError):
             raise JevIntentError("JEV_RESULT_UNCERTAIN") from None
         if intent is None or offering is None:
             return JevDecision(intent or "other", "clarify", None, None, incoming, outgoing)
         if intent in {"question", "other"}:
             return JevDecision(intent, "clarify", None, None, incoming, outgoing)
-        if _format_needs_clarification(message, fmt):
+        if confirmed_format is None and _format_needs_clarification(message, fmt):
             return JevDecision(intent, "clarify", None, None, incoming, outgoing)
         selected = ids[int(offering[5:])] if offering.startswith("item_") else None
         decision = "selected" if selected is not None else offering

@@ -181,3 +181,29 @@ def test_number_rejection_identifies_field_and_source_excerpt(editorial_case):
         == "EDITORIAL_UNCONFIRMED_NUMBER"
     )
     assert diagnostics["violations"] == [{"field": "caption", "numbers": ["12"], "excerpt": "Compre 12 cafés"}]
+
+
+@pytest.mark.parametrize("noun", ["foto", "fotografia"])
+def test_photo_coverage_is_private_design_not_public_fact(editorial_case, noun):
+    proposal, data, ids = editorial_case
+    direction = f"Evitar adicionar elementos gráficos que cubram mais que 20% da {noun}."
+    proposal = proposal.model_copy(
+        update={"creative_brief": proposal.creative_brief.model_copy(update={"photo_use": direction})}
+    )
+    assert EditorialProposalService._generated_rejection(proposal, data, ids, full_piece=True) is None
+    public = proposal.model_copy(update={"caption": direction})
+    assert (
+        EditorialProposalService._generated_rejection(public, data, ids, full_piece=True)
+        == "EDITORIAL_UNCONFIRMED_NUMBER"
+    )
+    discount = proposal.model_copy(
+        update={
+            "creative_brief": proposal.creative_brief.model_copy(
+                update={"photo_use": f"{direction} Exibir 20% de desconto."}
+            )
+        }
+    )
+    assert (
+        EditorialProposalService._generated_rejection(discount, data, ids, full_piece=True)
+        == "EDITORIAL_UNCONFIRMED_NUMBER"
+    )
