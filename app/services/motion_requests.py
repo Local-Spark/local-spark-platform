@@ -66,6 +66,8 @@ class MotionRequestService:
         return row
 
     async def create(self, tenant: UUID, business: UUID, actor: UUID, body: MotionRequest) -> MotionRequestRead:
+        if body.source_asset_id is None:
+            raise AuthError("MOTION_PHOTOS_REQUIRE_MESSAGE_FLOW", 409)
         self.context.require_qualification(business, body.source_asset_id)
         request_id = uuid5(body.operation_id, f"motion-request:{tenant}:{business}")
         request_hash = digest([tenant, business, actor, body.model_dump(mode="json")])

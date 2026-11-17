@@ -62,7 +62,10 @@ class MotionDucking(MotionModel):
 class MotionRequest(MotionModel):
     operation_id: UUID
     instruction: str = Field(min_length=1, max_length=4000, repr=False)
-    source_asset_id: UUID
+    source_asset_id: UUID | None
+    photo_duration_ms: int | None = Field(
+        default=None, strict=True, ge=5000, le=60000, exclude_if=lambda value: value is None
+    )
     format: Literal["reel"] = "reel"
     storyboard: bool = Field(default=False, exclude_if=lambda value: not value)
     collection_photo_ids: tuple[UUID, ...] = Field(default=(), max_length=4, exclude_if=lambda value: not value)
@@ -87,6 +90,10 @@ class MotionRequest(MotionModel):
 
     @model_validator(mode="after")
     def unique_photos(self) -> Self:
+        if (self.source_asset_id is None) != (self.photo_duration_ms is not None):
+            raise ValueError("Photo motion requires its own duration and no source video")
+        if self.source_asset_id is None and (self.speech_timing is not None or self.evolution is not None):
+            raise ValueError("Photo motion has no recorded speech or source-video evolution")
         if self.review_checkpoints and (
             self.preparation is None
             or (self.scene_direction is None and not self.propose_direction)

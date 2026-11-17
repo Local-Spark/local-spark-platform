@@ -293,11 +293,6 @@ class MessageCreation:
                     row, token, "catalog", {"questions": ["Você quer um post no feed, um story estático ou um reel?"]}
                 )
                 return "awaiting_reply"
-            if fmt == "reel" and kind != "video":
-                await image_runner.pause(
-                    row, token, "catalog", {"questions": ["Envie o vídeo que deseja usar para criar o reel."]}
-                )
-                return "awaiting_reply"
             if fmt != "reel" and kind == "video":
                 await image_runner.pause(
                     row,
@@ -323,7 +318,13 @@ class MessageCreation:
                     text("UPDATE creation_lab_runs SET format=:format WHERE id=:run"), {"format": fmt, "run": self.run}
                 )
                 await requests._admission(session, row["tenant_id"], row["business_id"])
-                snapshot = await requests.build_snapshot(session, row, body)
+                try:
+                    snapshot = await requests.build_snapshot(session, row, body)
+                except AuthError as exc:
+                    if exc.code not in {"MOTION_PHOTOS_REQUIRED", "MOTION_PHOTO_DURATION_REQUIRED"}:
+                        raise
+                    # Leave this transaction before pause acquires its execution lock.
+                    raise _PhotoInputRequired(exc.code) from exc
                 snapshot["execution"]["request_budget"] = row["budget_usd_micros"]
                 trace = uuid5(self.run, "snapshot")
                 await session.execute(
@@ -368,6 +369,14 @@ class MessageCreation:
                 return await LabMotionOrchestrator(productive, self.run).run(translated)
             # There is no administrative catalog/editorial approval in message creation.
             return await image_runner.run(translated, "catalog_approved", prepared=(row, token, {"catalog": catalog}))
+        except _PhotoInputRequired as exc:
+            question = (
+                "Envie uma foto autorizada para criar o reel; não encontrei fotos disponíveis no acervo."
+                if str(exc) == "MOTION_PHOTOS_REQUIRED"
+                else "Qual duração você quer para o reel? Podemos criar uma peça de 5 a 60 segundos."
+            )
+            await image_runner.pause(row, token, "catalog", {"questions": [question]})
+            return "awaiting_reply"
         except BaseException as exc:
             code = getattr(exc, "code", "MESSAGE_CREATION_FAILED")
             # The motion runner owns its new fence after dispatch.
@@ -376,3 +385,7 @@ class MessageCreation:
                 if fresh["state"] == "running" and fresh["execution_token"] == token:
                     await self.execution.finish_locked(session, fresh, "failed", code)
             raise
+
+
+class _PhotoInputRequired(Exception):
+    """A missing material/duration needs a customer reply, outside the snapshot transaction."""

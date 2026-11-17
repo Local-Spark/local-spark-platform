@@ -106,6 +106,19 @@ def request(kind="generate", **updates):
     return MotionModelRequest(uuid4(), kind, {"instruction": "Um convite", "facts": ["Café"]}, **updates)
 
 
+@pytest.mark.parametrize("kind", ["generate", "correct"])
+def test_unstaged_generation_schema_only_accepts_null_staging(kind):
+    current = composition()
+    job = request(kind)
+    if kind == "correct":
+        job = replace(job, composition=current, review=MotionReview.model_validate(review_data(revise=True)))
+    schema = provider().build_request(job)["text"]["format"]["schema"]
+    assert schema["properties"]["staging"] == {"type": "null"}
+    assert "staging" in schema["required"]
+    # Per-request narrowing must not mutate the reusable Pydantic model schema.
+    assert "anyOf" in HTMLMotionComposition.model_json_schema()["properties"]["staging"]
+
+
 async def test_exact_context_schema_and_one_request_without_storage_tools_or_credentials():
     seen = []
 

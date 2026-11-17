@@ -138,32 +138,43 @@ class MotionInputLoader:
     async def prepare(self, snapshot: dict[str, Any]) -> PreparedMotionInput:
         reference_images = load_repertoire_images(snapshot)
         source = snapshot["source"]
-        data = await self.store.get_video(source["object_key"])
-        if len(data) != source["size_bytes"] or hashlib.sha256(data).hexdigest() != source["sha256"]:
-            raise AuthError("MOTION_SOURCE_BYTES_CHANGED", 409)
-        info, _ = await inspect_and_extract_motion_audio(
-            FetchedMedia(data, "video/mp4", source["sha256"]), extract_audio=False
-        )
-        # Round up to an exact output-frame boundary, retaining the entire recording.
-        duration_ms = math.ceil(math.ceil(info.duration_seconds * 30) * 1000 / 30)
-        if duration_ms > 60000:
-            raise AuthError("MOTION_SOURCE_TOO_LONG", 409)
-        assets = [_asset("assets/source.mp4", "video/mp4", data)]
+        if source is None:
+            from app.schemas.motion_production import MotionRequest
+
+            photo_request = MotionRequest.model_validate(snapshot["request"])
+            if photo_request.source_asset_id is not None or not snapshot.get("collection_photos"):
+                raise AuthError("MOTION_PHOTOS_REQUIRED", 409)
+            assert photo_request.photo_duration_ms is not None
+            duration_ms = photo_request.photo_duration_ms
+            assets = []
+            audio: dict[str, Any] = {"mode": "silent", "tracks": []}
+        else:
+            data = await self.store.get_video(source["object_key"])
+            if len(data) != source["size_bytes"] or hashlib.sha256(data).hexdigest() != source["sha256"]:
+                raise AuthError("MOTION_SOURCE_BYTES_CHANGED", 409)
+            info, _ = await inspect_and_extract_motion_audio(
+                FetchedMedia(data, "video/mp4", source["sha256"]), extract_audio=False
+            )
+            # Round up to an exact output-frame boundary, retaining the entire recording.
+            duration_ms = math.ceil(math.ceil(info.duration_seconds * 30) * 1000 / 30)
+            if duration_ms > 60000:
+                raise AuthError("MOTION_SOURCE_TOO_LONG", 409)
+            assets = [_asset("assets/source.mp4", "video/mp4", data)]
+            audio = {"mode": "silent", "tracks": []}
+            if info.audio_codec is not None:
+                audio = {
+                    "mode": "mix",
+                    "tracks": [
+                        {
+                            "asset_id": "assets/source.mp4",
+                            "offset_ms": 0,
+                            "trim_start_ms": 0,
+                            "trim_end_ms": math.floor(info.duration_seconds * 1000),
+                            "volume": 1.0,
+                        }
+                    ],
+                }
         assets.extend(load_sound_library(snapshot))
-        audio: dict[str, Any] = {"mode": "silent", "tracks": []}
-        if info.audio_codec is not None:
-            audio = {
-                "mode": "mix",
-                "tracks": [
-                    {
-                        "asset_id": "assets/source.mp4",
-                        "offset_ms": 0,
-                        "trim_start_ms": 0,
-                        "trim_end_ms": math.floor(info.duration_seconds * 1000),
-                        "volume": 1.0,
-                    }
-                ],
-            }
         for filename in ("DejaVuSans.ttf", "DejaVuSerif.ttf"):
             assets.append(_asset(f"assets/{filename}", "font/ttf", (FONTS / filename).read_bytes()))
         logo = snapshot["logo"]
@@ -209,13 +220,15 @@ class MotionInputLoader:
             audio_public.append(
                 {"asset_id": asset_id, "sha256": asset.sha256, "rights": "owner_confirmed", "origin": "owner_material"}
             )
-        source_duration = int(info.duration_seconds * 1000)
-        extra = additional_source_times(snapshot, source_duration)
-        frames = (
-            await source_frames(data, source_duration, extra_times=extra)
-            if extra
-            else await source_frames(data, source_duration)
-        )
+        frames = ()
+        if source is not None:
+            source_duration = int(info.duration_seconds * 1000)
+            extra = additional_source_times(snapshot, source_duration)
+            frames = (
+                await source_frames(data, source_duration, extra_times=extra)
+                if extra
+                else await source_frames(data, source_duration)
+            )
         previews = []
         materials = []
         if len(snapshot.get("collection_photos", [])) > 4:
@@ -280,17 +293,27 @@ class MotionInputLoader:
         }
         if materials:
             context["available_materials"] = materials
-        context["source"] = {
-            "asset_id": "assets/source.mp4",
-            "sha256": source["sha256"],
-            "duration_ms": math.floor(info.duration_seconds * 1000),
-            "width": info.width,
-            "height": info.height,
-            "rotation": info.rotation,
-            "has_audio": info.audio_codec is not None,
-        }
+        if source is None:
+            context["source"] = {"kind": "photos", "has_audio": False, "duration_ms": duration_ms}
+        else:
+            context["source"] = {
+                "asset_id": "assets/source.mp4",
+                "sha256": source["sha256"],
+                "duration_ms": math.floor(info.duration_seconds * 1000),
+                "width": info.width,
+                "height": info.height,
+                "rotation": info.rotation,
+                "has_audio": info.audio_codec is not None,
+            }
         context["authorized_audio"] = audio
         soundtrack = compile_soundtrack(audio, events, ducking, audio_catalog, duration_ms)
+        if source is None and snapshot.get("photo_motion", {}).get("music") is not None:
+            from app.services.motion_photos import load_photo_music
+
+            if events:
+                raise AuthError("MOTION_AUDIO_SELECTION_CONFLICT", 409)
+            music_asset, soundtrack = load_photo_music(snapshot["photo_motion"]["music"], duration_ms)
+            assets.append(music_asset)
         if soundtrack is not None:
             context["authorized_soundtrack"] = soundtrack
             context["available_audio"] = audio_public
@@ -302,6 +325,10 @@ class MotionInputLoader:
             else "No transcript or audio listening supplied; preserve the entire original audio.",
             "Source sampling does not show continuous movement.",
         ]
+        if source is None:
+            from app.services.motion_photos import PHOTO_MOTION_RULES
+
+            context["limitations"] = [PHOTO_MOTION_RULES]
         prepared = PreparedMotionInput(
             context, tuple(assets), frames, duration_ms, audio, tuple(previews), reference_images, soundtrack
         )

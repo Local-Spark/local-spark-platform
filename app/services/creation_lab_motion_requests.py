@@ -87,7 +87,9 @@ class LabMotionRequests(MotionRequestService):
         return dict(row) | {
             "operation_id": self.run_id,
             "snapshot_ciphertext": self.context.seal(snapshot),
-            "source_asset_id": UUID(snapshot["request"]["source_asset_id"]),
+            "source_asset_id": UUID(snapshot["request"]["source_asset_id"])
+            if snapshot["request"]["source_asset_id"]
+            else None,
             "max_corrections": snapshot["execution"]["max_corrections"],
         }
 
@@ -166,6 +168,16 @@ class LabMotionRequests(MotionRequestService):
         from app.services.message_creation import message_text
 
         message = message_text(self.context, row)
+        if row.get("flow_version") == 2:
+            from app.services.motion_photos import photo_duration_ms
+
+            request = MotionRequest(
+                operation_id=self.run_id,
+                instruction=message,
+                source_asset_id=body.source_attachment_id,
+                photo_duration_ms=photo_duration_ms(message) if body.source_attachment_id is None else None,
+            )
+            return await self.context.capture(session, row["tenant_id"], row["business_id"], request)
         preparation = MotionPreparation.model_validate(
             {
                 "client_message": message,
@@ -201,10 +213,6 @@ class LabMotionRequests(MotionRequestService):
             propose_direction=True,
             preparation=preparation,
         )
-        if row.get("flow_version") == 2:
-            request = MotionRequest(
-                operation_id=self.run_id, instruction=message, source_asset_id=body.source_attachment_id
-            )
         snapshot = await self.context.capture(session, row["tenant_id"], row["business_id"], request)
         return snapshot
 

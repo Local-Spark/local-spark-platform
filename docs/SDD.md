@@ -1,5 +1,153 @@
 # SDD geral — Meu Braço Direito
 
+## 17/11/2026 — schema de geração respeita habilitação de staging
+
+Tentativa af31c6b3-b273-5871-a2f5-64e0cab96944 falhou com
+MOTION_STAGING_UNEXPECTED. Trace autenticado mostrou contexto sem staging_contract,
+schema permitindo MotionStaging ou null e composição recebida com staging preenchido.
+O problema era a divergência entre o schema enviado e o contrato aceito pelo serviço,
+não indisponibilidade do renderer nem preparação de arquivos.
+
+Adapter compartilhado agora restringe o campo staging a null quando o contrato não
+está habilitado. Mantém schema de staging completo quando habilitado e preserva o
+validador de serviço, sem apagar dados da resposta nem liberar contratos ausentes.
+Restrição vale para geração e correção; modelos Pydantic reutilizáveis não são
+mutados. Orçamentos, efeitos e respostas históricas preservados.
+
+Validação: 102 testes direcionados de adapter, staging e geração passaram, com novas
+regressões de geração/correção sem staging e schema habilitado preservado. Ruff e
+formatação passaram nos três arquivos alterados. make ci, com cache gravável, parou
+no lint preexistente do repositório (76 erros na execução, um E501 local corrigido
+sem mudar o texto). Mypy apontou três erros no trecho de streaming não modificado.
+CI completo/cobertura 100% e integração PostgreSQL não comprovados nesta intervenção.
+
+Zero execuções queued/running antes do reload; worker PID 30614 confirmado no Temporal.
+Sem nova geração paga ou reescrita da tentativa encerrada. Pendente: validação
+completa pela UI e resolução dos gates globais; os testes dirigidos não comprovam
+qualidade visual nem sucesso de todas as etapas posteriores.
+
+## 17/11/2026 — renderer local atualizado para o contrato de fingerprints
+
+Tentativa 6a8fbec3-5825-5695-8435-cb00af95e687 falhou com
+MOTION_RENDER_INVALID_OUTPUT. Trace de render confirmou fingerprint_frames=true.
+A imagem configurada continha runner antigo sem frame_fingerprints e sem
+instrumentação audio_measurements, incompatível com o adapter atual. Não se
+relaxaram as validações de saída ou isolamento.
+
+Construída imagem local com os arquivos atuais de app/assets/motion_html_renderer
+sobre a base instalada, usando contexto temporário contendo somente esses arquivos.
+Digest validado e configurado no .env local:
+sha256:d95f88a43e845795a3f9146b71794db5d29731ec40e356d934e57743507dbcf4.
+Sem mudança de código ou orçamento. Zero pedidos queued/running antes da troca;
+worker dedicado recarregado e PID 27418 confirmado nas duas filas do Temporal.
+
+Validação: mesma peça sintética silenciosa de 64x64, três quadros, com fingerprints,
+falhou com MOTION_RENDER_INVALID_OUTPUT na imagem anterior e passou na nova,
+com MP4 de 2.184 bytes e três fingerprints. Os 122 testes existentes do adapter
+passaram. Sem chamada paga, migração ou CI integral nesta intervenção; teste real
+usou somente conteúdo sintético. A tentativa encerrada não foi reescrita nem
+repetida. Pendente: geração completa e avaliação visual pela UI. A compatibilidade
+da imagem não era coberta pela verificação anterior de mera disponibilidade.
+
+## 17/11/2026 — tarifa de entrada de motion alinhada à política interna
+
+Tentativa ac4178c1-8634-5811-bdd8-f913e054bf6d falhou com
+MOTION_COST_TARIFF_UNDERESTIMATED. A configuração local usava 2.000.000 micros USD
+por milhão de tokens de entrada, abaixo do mínimo conservador de 2.500.000 exigido
+por validate_tariff (política sol-standard-2026-11-09). Ajustado somente esse
+parâmetro no .env ignorado pelo Git. Trata-se de alinhamento à política existente,
+não de nova verificação da tabela comercial do provedor. Tarifa de saída, reserva
+de US$ 0,85 e orçamento de requisição de US$ 3,70 preservados.
+
+Confirmados zero pedidos queued/running antes da intervenção. Worker dedicado
+recarregado; PID 22405 registrado como poller de workflow e atividade no Temporal.
+Validados readiness administrativo, tarifa e custo máximo de saída dentro da reserva.
+56 testes existentes de motion_budget/motion_effects passaram, incluindo bloqueio
+de tarifa inadequada antes da contagem/submissão. Sem alteração de código, CI
+integral ou nova geração paga. A tentativa encerrada não foi repetida.
+
+Pendente: nova tentativa pela UI. A admissão de custo total ainda depende da contagem
+real de tokens do payload; readiness e tarifa válidos não comprovam geração completa
+nem qualidade visual. Verificação operacional anterior não cobria validate_tariff.
+
+## 17/11/2026 — configuração local de motion restabelecida
+
+Após autorização explícita do usuário, adicionadas ao .env local ignorado pelo Git
+as opções motion_execution_enabled=true e motion_ai_mode=openai e a conexão
+correlator_database_url do login restrito já configurado no worker Docker, adaptada
+ao endereço local do PostgreSQL. As três opções estavam ausentes do .env; os valores
+desativados vinham dos padrões. Credenciais não foram exibidas nem versionadas.
+Orçamentos e tarifas existentes preservados.
+
+Leitura administrativa confirmou zero pedidos queued/running antes do reinício.
+Conexão do correlator validada com rolsuper=false e rolbypassrls=false. Encerrado
+somente o worker dedicado anterior e iniciado make creation-lab: PID 20119 confirmado
+como poller de workflow e atividade. motion_execution_ready(administrative=True)
+retornou true e a imagem configurada do renderer está disponível no Docker local.
+
+Sem alteração de código, migração, testes/CI ou geração paga nesta intervenção.
+O pedido encerrado ec9ceb40-d0db-52b2-bc14-2e3f3e352ef3 não foi reaberto nem duplicado.
+Pendente: nova tentativa pela UI para validar geração completa e qualidade visual.
+A inicialização do worker dedicado continua manual via make creation-lab após
+reiniciar a máquina; não foi instalado supervisor de processos.
+
+## 17/11/2026 — fila do laboratório sem worker e bloqueio de motion
+
+Diagnóstico operacional do pedido ec9ceb40-d0db-52b2-bc14-2e3f3e352ef3:
+estado queued e zero pollers de workflow/atividade na fila exclusiva do laboratório,
+embora os contêineres principais estivessem ativos. Iniciado make creation-lab em
+processo independente (launcher PID 15923); Temporal confirmou um poller de cada
+tipo. O pedido existente saiu da fila e terminou failed com
+MOTION_EXECUTION_NOT_CONFIGURED; não foi criado pedido duplicado.
+
+Configuração local lida pelo worker: motion_execution_enabled=false,
+motion_ai_mode=disabled e correlator_database_url ausente. Credencial de provedor,
+renderer e limites de custo presentes não bastam para habilitar esse fluxo.
+Flags de execução paga e credenciais não foram alteradas nesta intervenção.
+O worker dedicado precisa ser iniciado separadamente dos contêineres; sua ausência
+foi confirmada, mas a causa de encerramento do processo anterior não foi apurada.
+
+Validação operacional por leitura com ator administrativo configurado/RLS e consulta
+ao Temporal. Sem alterações de código, migração ou execução de testes/CI. Pendente:
+restabelecer a configuração explícita de motion e então solicitar nova tentativa;
+o pedido encerrado não foi reescrito ou repetido automaticamente. A qualidade do
+reel com fotos continua sem validação por esta intervenção.
+
+## 16/11/2026 — reel por mensagem sem vídeo de entrada
+
+O fluxo produtivo compartilhado por WhatsApp e laboratório aceita pedido de reel
+sem vídeo: usa fotos autorizadas do acervo e prioriza imagens anexadas, dentro do
+limite existente de quatro fotos. Somente a ausência de fotos disponíveis solicita
+um anexo ao cliente. Não é criado um vídeo-fonte fictício. Consentimento, RLS,
+contexto/kit confirmado, orçamento por execução, efeitos duráveis, renderer isolado,
+revisão e aprovação continuam nos serviços existentes. Feed/story e a preservação
+de áudio/duração do vídeo enviado seguem pelos caminhos anteriores.
+
+Decisão de duração: 15 segundos como padrão de produto para reel de fotos, não como
+regra universal de mercado. Duração explícita em segundos inteiros é aceita entre
+5 e 60; valores conflitantes ou fora do intervalo pedem esclarecimento. O contrato
+separa source_asset_id de photo_duration_ms e não admite alinhamento de fala nem
+reedição vinculada a vídeo no modo de fotos. O endpoint legado de qualificação
+continua exigindo vídeo; o recurso novo pertence à entrada comum por mensagem.
+
+Áudio: usar trilha licenciada disponível, conforme escolha do titular. A seleção
+aceita apenas faixa do manifesto local verificado, marcada como música padrão para
+reels de fotos, CC0 e suficientemente longa; preserva hash, mistura autorizada e
+fades. A biblioteca atual contém apenas efeitos sonoros, logo o resultado atual é
+silencioso e registra music_status no contexto/trace. Não se substitui música por
+efeito, não se baixa faixa automaticamente e não há chamada paga adicional.
+
+Validação: regressões unitárias adicionadas para duração, separação foto/vídeo,
+loader sem leitura de vídeo, ausência de fotos e seleção de música; integração
+adicionada para consulta com source nulo e isolamento RLS dos anexos entre ensaios.
+Suítes não executadas por instrução do usuário; não houve geração paga. Conferência
+estática de sintaxe, formatação, Ruff (sem E501 preexistente nos serviços) e diff.
+Worker dedicado recarregado após leitura confirmar zero execuções queued/running;
+novo PID 34505 confirmado como poller de atividades do Temporal. Nenhum ensaio
+foi retomado automaticamente. Qualidade visual/movimento e percurso
+completo permanecem para validação manual pela UI. Curadoria de uma trilha musical
+real permanece pendente, sem bloquear a geração silenciosa autorizada.
+
 ## 16/11/2026 — worker antigo confirmado e recarregado
 
 As tentativas ed81a554-8eeb-53bb-8cef-a2cf1093ed29 e

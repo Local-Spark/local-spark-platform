@@ -180,7 +180,27 @@ def capture_motion_guidance(
     if staging and previous is None:
         creative = {**cast(dict[str, Any], creative), "temporal_review": dict(POLICY_V4)}
     repertoire_id = request.repertoire_id or ("business-reel-v5" if staging else None)
+    if request.source_asset_id is None:
+        from app.services.motion_photos import PHOTO_MOTION_RULES, photo_music
+
+        assert request.photo_duration_ms is not None
+        music = photo_music(request.photo_duration_ms)
+        creative = {**creative, "media_visibility_policy": PHOTO_MOTION_RULES}
     return {
+        **(
+            {
+                "photo_motion": {
+                    "rules": PHOTO_MOTION_RULES,
+                    "duration_ms": request.photo_duration_ms,
+                    "music": music,
+                    "music_status": "licensed_library_selected"
+                    if music
+                    else "unavailable_no_licensed_music_in_library",
+                }
+            }
+            if request.source_asset_id is None
+            else {}
+        ),
         **staging,
         **quality,
         **(
@@ -209,7 +229,9 @@ def capture_motion_guidance(
                 else {
                     **HTML_EXECUTOR_CONTRACT,
                     "version": "html-motion-executor-v2",
-                    "integration_policy": MEDIA_VISIBILITY_POLICY,
+                    "integration_policy": PHOTO_MOTION_RULES
+                    if request.source_asset_id is None
+                    else MEDIA_VISIBILITY_POLICY,
                 }
             }
             if html_contract
@@ -345,22 +367,36 @@ class MotionContext:
         if request.storyboard and not self.settings.motion_storyboard_enabled:
             raise AuthError("MOTION_STORYBOARD_NOT_CONFIGURED", 409)
         params = {"tenant": tenant, "business": business, "source": request.source_asset_id}
-        source = await self.source(session, tenant, business, request.source_asset_id)
-        if source is None:
+        source = (
+            await self.source(session, tenant, business, request.source_asset_id)
+            if request.source_asset_id is not None
+            else None
+        )
+        if source is None and request.source_asset_id is not None:
             raise AuthError("MOTION_SOURCE_UNAVAILABLE", 409)
-        if request.speech_timing is not None and request.speech_timing.source_sha256 != source["sha256"]:
+        if request.speech_timing is not None and (
+            source is None or request.speech_timing.source_sha256 != source["sha256"]
+        ):
             raise AuthError("MOTION_SPEECH_SOURCE_CHANGED", 409)
         art_policy = (
             illustration_policy(self.settings) if previous is None or "illustration_generation" in previous else None
         )
         guidance = capture_motion_guidance(request, illustration_generation=art_policy, previous=previous)
-        if request.speech_timing is None and (previous is None or "speech_recognition" in previous):
+        if (
+            source is not None
+            and request.speech_timing is None
+            and (previous is None or "speech_recognition" in previous)
+        ):
             policy = speech_policy(self.settings)
             if policy is not None:
                 guidance["speech_recognition"] = policy
         photos = []
         photo_ids = request.collection_photo_ids
-        if request.propose_direction and not photo_ids and self.select_default_photos():
+        if (
+            (request.propose_direction or request.source_asset_id is None)
+            and not photo_ids
+            and self.select_default_photos()
+        ):
             photo_ids = tuple(
                 (
                     await session.scalars(
@@ -426,7 +462,7 @@ class MotionContext:
                         **guidance,
                         "tenant_id": tenant,
                         "business_id": business,
-                        "source": dict(source),
+                        "source": dict(source) if source is not None else None,
                         **({"evolution": evolution} if evolution is not None else {}),
                         **({"collection_photos": photos} if photos else {}),
                         **({"audio_materials": audio_materials} if audio_materials else {}),

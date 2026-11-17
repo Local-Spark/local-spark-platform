@@ -42,6 +42,20 @@ class FixtureMotionProvider:
                 motion_plan=self._plan(request) if requires_motion_plan(request.context) else None,
                 scene_direction=self._direction() if requires_scene_direction(request.context) else None,
             )
+            if request.context.get("source", {}).get("kind") == "photos":
+                photo = html.escape(request.context["available_materials"][0]["asset_id"], quote=True)
+                composition = composition.model_copy(
+                    update={
+                        "html": (
+                            '<html><body style="margin:0;background:#fff">'
+                            f'<img id="source" src="{photo}" style="width:720px;height:1280px;object-fit:contain">'
+                            f'<div id="brand" style="position:absolute;top:100px;left:70px;color:#000;'
+                            f'background:#fff;font:36px sans-serif">{brand}</div></body></html>'
+                        ),
+                        "scene_init": "window.seek=async(ms)=>{};",
+                        "source_usage": "Authorized synthetic photograph; silent local fixture.",
+                    }
+                )
             return MotionModelResult(composition=composition, estimated_usd_micros=0)
         evidence = [{"version": "current", "at_ms": frame.ms, "sha256": frame.sha256} for frame in request.frames[:1]]
         temporal = temporal_payload(
@@ -172,7 +186,9 @@ class FixtureMotionProvider:
                                 ],
                             }
                             for identifier, role, asset in (
-                                ("source", "video", "assets/source.mp4"),
+                                ("source", "image", request.context["available_materials"][0]["asset_id"])
+                                if request.context.get("source", {}).get("kind") == "photos"
+                                else ("source", "video", "assets/source.mp4"),
                                 ("brand", "text", None),
                             )
                         ],

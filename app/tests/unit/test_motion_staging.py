@@ -104,6 +104,7 @@ def test_real_builder_supplies_qualified_mechanisms_inventory_and_required_stagi
     sent = json.loads(payload["input"][0]["content"][0]["text"])
     assert payload["text"]["format"]["name"] == "MotionStagedPlanningOutput"
     assert "staging" in payload["text"]["format"]["schema"]["required"]
+    assert payload["text"]["format"]["schema"]["properties"]["staging"] == {"$ref": "#/$defs/MotionStaging"}
     assert len(job.reference_images) == 2 and len(sent["material_inventory"]["source_samples"]) == 2
     assert all(r.sha256 not in {a.sha256 for a in job.assets} for r in job.reference_images)
     assert sent["authorized_context"]["request"]["instruction"] == natural_body().instruction

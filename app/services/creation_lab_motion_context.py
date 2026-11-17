@@ -71,7 +71,9 @@ class LabMotionContext(MotionContext):
             (
                 await session.execute(
                     text("""SELECT id,kind,object_key,mime_type,byte_size,sha256,name_ciphertext
-          FROM creation_lab_attachments WHERE run_id=:run AND active AND id<>:source AND state='ready' AND rights_confirmed ORDER BY id"""),
+          FROM creation_lab_attachments WHERE run_id=:run AND active
+          AND (CAST(:source AS uuid) IS NULL OR id<>:source) AND kind<>'audio'
+          AND state='ready' AND rights_confirmed ORDER BY id"""),
                     {"run": self.run_id, "source": request.source_asset_id},
                 )
             )
@@ -101,6 +103,8 @@ class LabMotionContext(MotionContext):
             )
         if len(photos) > 4:
             raise AuthError("MOTION_COLLECTION_PHOTO_LIMIT", 409)
+        if not photos and request.source_asset_id is None:
+            raise AuthError("MOTION_PHOTOS_REQUIRED", 409)
         if photos:
             snapshot["collection_photos"] = photos
         return snapshot
