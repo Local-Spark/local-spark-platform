@@ -147,17 +147,22 @@ def test_automatic_plan_does_not_disable_video_checkpoints_or_accept_missing_evi
 
 
 @pytest.mark.parametrize(
-    "version,relation", [("motion-staging-photo-v1", "photo_dominant"), ("motion-staging-v1", "recording_dominant")]
+    "version,relation",
+    [
+        ("motion-staging-photo-v2", "photo_dominant"),
+        ("motion-staging-photo-v1", "photo_dominant"),
+        ("motion-staging-v1", "recording_dominant"),
+    ],
 )
 def test_wire_schema_is_pinned_without_mutating_shared_models(version, relation):
     schema = _format(MotionStagedPlanningOutput, allow_staging=True, staging_version=version)["schema"]
     assert schema["$defs"]["MotionStaging"]["properties"]["version"]["enum"] == [version]
     values = schema["$defs"]["StagedMoment"]["properties"]["media_relation"]["enum"]
     assert relation in values
-    assert ("photo_dominant" in values) == (version == "motion-staging-photo-v1")
+    assert ("photo_dominant" in values) == (version in ("motion-staging-photo-v1", "motion-staging-photo-v2"))
     assert (
         len(MotionStagedPlanningOutput.model_json_schema()["$defs"]["MotionStaging"]["properties"]["version"]["enum"])
-        == 2
+        == 3
     )
 
 

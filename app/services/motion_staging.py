@@ -36,7 +36,7 @@ STAGING_CONTRACT = {
 }
 
 
-PHOTO_STAGING_CONTRACT = {
+PHOTO_STAGING_CONTRACT_V1 = {
     **STAGING_CONTRACT,
     "version": "motion-staging-photo-v1",
     "rules": STAGING_CONTRACT["rules"].replace(
@@ -53,11 +53,29 @@ PHOTO_STAGING_CONTRACT = {
 }
 
 
+PHOTO_STAGING_CONTRACT = {
+    **PHOTO_STAGING_CONTRACT_V1,
+    "version": "motion-staging-photo-v2",
+    "rules": PHOTO_STAGING_CONTRACT_V1["rules"]
+    .replace(
+        "sustained_value explica o que sustenta uma permanência, sem exigir movimento contínuo.",
+        "sustained_value descreve a leitura e o percurso contínuo de Ken Burns durante todo hold da foto.",
+    )
+    .replace(
+        "O plano descreve enquadramento, relações, leitura e passagem, sem exigir zoom ou scale.",
+        "O plano descreve scale suave e pan leve contínuos da fotografia inteira durante a leitura, "
+        "sem animar objetos internos nem simular filmagem; protege foco e bordas. "
+        "Declare entrada/saída temporal do texto e scale na entrega à marca conforme photo_intent_contract. "
+        "Essas são instruções de construção, não gates estéticos automáticos.",
+    ),
+}
+
+
 def staging_enabled(context: dict[str, Any]) -> bool:
     contract = context.get("staging_contract")
     if contract is None:
         return False
-    if contract not in (STAGING_CONTRACT, PHOTO_STAGING_CONTRACT):
+    if contract not in (STAGING_CONTRACT, PHOTO_STAGING_CONTRACT_V1, PHOTO_STAGING_CONTRACT):
         raise AuthError("MOTION_STAGING_CONTRACT_CHANGED", 409)
     return True
 
@@ -71,7 +89,7 @@ def validate_staging(artifact: "MotionConstructionPlan | HTMLMotionComposition",
         return
     if staging is None or plan is None:
         raise AuthError("MOTION_STAGING_REQUIRED", 409)
-    photo = context["staging_contract"] == PHOTO_STAGING_CONTRACT
+    photo = context["staging_contract"] in (PHOTO_STAGING_CONTRACT_V1, PHOTO_STAGING_CONTRACT)
     if staging.version != context["staging_contract"]["version"]:
         raise AuthError("MOTION_STAGING_CONTRACT_CHANGED", 409)
     if [m.scene_id for m in staging.moments] != [s.id for s in plan.scenes]:

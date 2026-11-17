@@ -1,4 +1,4 @@
-"""A3 preserves plan intent and historical snapshots without effect requirements."""
+"""Photo P1–P3 guidance preserves plan identity and historical snapshot semantics."""
 
 import json
 from dataclasses import replace
@@ -58,8 +58,107 @@ def test_real_provider_receives_intent_for_planning_and_code(implementation):
     payload = provider().build_request(job)
     sent = json.loads(payload["input"][0]["content"][0]["text"])
     assert PHOTO_INTENT_CONTRACT["rules"] in payload["instructions"]
+    wire = json.dumps(payload, ensure_ascii=False)
+    for conflicting in ("sem exigir movimento contínuo", "sem exigir zoom ou scale", "movimento suave quando pedido"):
+        assert conflicting not in wire
+    assert sent["authorized_context"]["staging_contract"]["version"] == "motion-staging-photo-v2"
+    assert "Ken Burns contínuo" in sent["authorized_context"]["executor_contract"]["integration_policy"]
     if implementation:
         assert sent["photo_implementation_intent"] == implementation_intent(plan)
         assert sent["plan_sha256"] == sent["photo_implementation_intent"]["plan_sha256"]
     else:
         assert "photo_implementation_intent" not in sent
+
+
+def test_v1_snapshot_replay_and_provider_projection_keep_original_contract():
+    from app.services.motion_photo_intent import PHOTO_INTENT_CONTRACT_V1
+    from app.services.motion_repertoire import capture_repertoire
+    from app.services.motion_skills import resolve_html_motion_skill
+
+    body, prepared, plan = photo_case()
+    skill_id, digest, instructions = resolve_html_motion_skill("reel")
+    old = {
+        **prepared.context,
+        "photo_intent_contract": dict(PHOTO_INTENT_CONTRACT_V1),
+        "repertoire": capture_repertoire("business-reel-v5"),
+        "skill": {"id": skill_id, "sha256": digest, "instructions": instructions},
+    }
+    replay = capture_motion_guidance(body, previous=old)
+    for key in ("photo_intent_contract", "repertoire", "skill", "photo_motion"):
+        assert replay[key] == old[key]
+    intent = implementation_intent(plan, PHOTO_INTENT_CONTRACT_V1)
+    assert intent["version"] == "motion-photo-intent-v1"
+    assert "visual_execution" not in intent
+    prepared = prepare_implementation_materials(plan, replace(prepared, context=old))
+    job = replace(
+        request(),
+        context=prepared.context,
+        assets=prepared.assets,
+        source_frames=(),
+        asset_previews=prepared.asset_previews,
+        reference_images=prepared.reference_images,
+        construction_plan=plan,
+    )
+    payload = provider().build_request(job)
+    sent = json.loads(payload["input"][0]["content"][0]["text"])
+    assert sent["photo_implementation_intent"] == intent
+
+
+def test_new_photo_snapshots_pin_executable_examples_without_changing_video_defaults():
+    from app.services.motion_skills import resolve_html_motion_skill
+
+    _, prepared, plan = photo_case()
+    assert prepared.context["skill"]["id"] == "instagram-reel-photo-v14"
+    assert resolve_html_motion_skill("reel")[0] == "instagram-reel-v13"
+    pack = prepared.context["repertoire"]
+    assert pack["id"] == "business-reel-v6"
+    example = next(e for e in pack["examples"] if e["id"] == "photo-reel")
+    assert "window.makePhotoReelMotion" in example["content"]
+    assert "animatePhoto(ms)" in example["integration"]
+    assert "P1:" in implementation_intent(plan)["visual_execution"]
+
+
+@pytest.mark.parametrize("legacy_intent", [False, True])
+def test_historical_photo_staging_and_rules_replay_without_upgrade(legacy_intent):
+    from app.schemas.motion_production import MotionConstructionPlan
+    from app.services.motion_photo_intent import PHOTO_INTENT_CONTRACT_V1
+    from app.services.motion_photos import PHOTO_MOTION_RULES
+    from app.services.motion_staging import PHOTO_STAGING_CONTRACT_V1, validate_staging
+
+    body, prepared, plan = photo_case()
+    old = {
+        **prepared.context,
+        "staging_contract": dict(PHOTO_STAGING_CONTRACT_V1),
+        "photo_motion": {**prepared.context["photo_motion"], "rules": PHOTO_MOTION_RULES},
+        "executor_contract": {**prepared.context["executor_contract"], "integration_policy": PHOTO_MOTION_RULES},
+        "photo_intent_contract": PHOTO_INTENT_CONTRACT_V1 if legacy_intent else PHOTO_INTENT_CONTRACT,
+    }
+    replay = capture_motion_guidance(body, previous=old)
+    for key in ("staging_contract", "photo_motion", "executor_contract", "photo_intent_contract"):
+        assert replay[key] == old[key]
+    data = plan.model_dump(mode="json")
+    data["staging"]["version"] = "motion-staging-photo-v1"
+    validate_staging(
+        MotionConstructionPlan.model_validate(data),
+        replay | {"available_materials": prepared.context["available_materials"]},
+    )
+    with pytest.raises(AuthError, match="MOTION_STAGING_CONTRACT_CHANGED"):
+        validate_staging(plan, replay)
+
+
+def test_new_photo_rules_also_cover_silent_non_staged_capture():
+    from uuid import uuid4
+
+    from app.schemas.motion_production import MotionRequest
+
+    body = MotionRequest(
+        operation_id=uuid4(), source_asset_id=None, photo_duration_ms=15000, instruction="Reel silencioso de fotos"
+    )
+    captured = capture_motion_guidance(body)
+    for rules in (
+        captured["photo_motion"]["rules"],
+        captured["executor_contract"]["integration_policy"],
+        captured["creative_contract"]["media_visibility_policy"],
+    ):
+        assert "Ken Burns contínuo" in rules
+        assert "movimento suave quando pedido" not in rules

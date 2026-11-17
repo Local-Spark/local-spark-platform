@@ -22,6 +22,13 @@ PHOTO_MOTION_RULES = (
 )
 
 
+# Keep legacy bytes for old snapshots and input fallback; only new captures use v2.
+PHOTO_MOTION_RULES_V2 = PHOTO_MOTION_RULES.replace(
+    "Escolha enquadramentos, movimento suave quando pedido, ",
+    "Planeje Ken Burns contínuo (scale suave e pan leve) durante todo hold de fotografia, ",
+)
+
+
 def photo_duration_ms(message: str) -> int:
     """Honor explicit numeric seconds; a short unspecified photo reel defaults to 15s."""
     pattern = r"(?<![\w.,])([0-9]+)\s*(?:segundos?|segs?|s)\b"

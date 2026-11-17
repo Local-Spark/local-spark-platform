@@ -1,5 +1,80 @@
 # BL04 — contexto seletivo e produção visual com IA
 
+## 17/11/2026 — eliminar conflito de instruções photo antes do ensaio
+
+Revisão confirmou que o scaffolding P1–P3 ainda enviava permissões antigas:
+“sem exigir movimento contínuo”, “sem exigir zoom ou scale” e “movimento suave
+quando pedido”. Novas capturas usam `motion-staging-photo-v2` e
+`PHOTO_MOTION_RULES_V2`, inclusive na política do executor, com Ken Burns contínuo
+nos holds. Schema do provedor e validação reconhecem photo v2; photo v1 mantém
+texto, semântica e replay originais. Vídeo conserva o staging genérico v1.
+Não reescrever snapshots já capturados para corrigir o prompt: o ensaio deve
+partir de nova captura. Skill photo v14, intent v2 e repertório v6 permanecem.
+
+Validação: 110 testes no recorte AI/photo/staging passaram, com 100% de linhas
+e branches em staging/intent; três integrações lab/WhatsApp passaram no banco
+exclusivo `_test`. Regressões verificam o payload completo de planejamento e
+implementação sem as três frases, regras no modo silencioso sem staging,
+schema photo v1/v2 versus vídeo e preservação de snapshots históricos. Ruff
+passou; `make ci` segue bloqueado pelas 66 ocorrências de lint preexistentes.
+Cobertura global não estabelecida. O recorte inicial photo/staging teve 86
+passes (sobrepõe o recorte de 110; não somar as contagens).
+
+Esta é correção da consistência do prompt, não garantia de acabamento visual.
+Helper continua exigindo adaptação/chamada pelo modelo. Sem chamada paga,
+novo MP4, aceite E2E, A5b ou alteração de Music/renderer. Próxima evidência:
+MP4 de ensaio autorizado e escuta/visual do titular.
+
+
+## 17/11/2026 — photo P1–P3: holds vivos, texto temporal e handoff
+
+Implementada a direção photo versionada `motion-photo-intent-v2`: Ken Burns
+contínuo durante leitura, entrada/saída tipográfica com deslocamento e stagger,
+saída antes da passagem e scale na entrega à marca. A orientação de evitar
+~2 s sem mudança perceptível não é gate A5b. Tempos, materiais e hash do plano
+continuam preservados; o intent de implementação usa a versão capturada.
+
+Novas capturas photo usam `instagram-reel-photo-v14` (derivada localmente da
+v13) e, com staging/default, `business-reel-v6` (extensão local da v5), ambos
+pinados por SHA-256. O exemplo `makePhotoReelMotion` deve ser adaptado/instanciado
+em scene_init e chamado em seek absoluto: pan/scale contínuo, texto temporal e
+handoff usam wrappers separados. Não há auto-injeção de helpers. v13/v5 e
+intent v1 permanecem íntegros para snapshots históricos; vídeo mantém v13/v5.
+Repertório explicitamente escolhido continua respeitado. Nenhuma leitura dos
+repos externos, chamada paga, troca de renderer, tarifa/credencial ou mix Music.
+
+Validação: 135 unitários focados passaram; intent com 100% de linhas/branches.
+Quatro testes Node provaram mudança nos holds, stagger/saída, escala, limites e
+seek reverso determinístico. Três integrações PostgreSQL passaram no banco
+exclusivo `_test`, incluindo snapshots de lab/WhatsApp com roles restritas.
+Mais 83 testes de adapters passaram. Ruff/check de formato dos arquivos alterados
+passaram. `make ci` parou no lint global (66 ocorrências).
+A ampliação para contexto teve 18 falhas nas fixtures de feedback, reproduzidas
+com os módulos de produção de HEAD em cópia isolada (18 falhas/19 passes);
+o recorte ampliado atual teve 154 passes/18 falhas. Mypy sem cache apontou
+cinco erros em trechos não alterados de context/inputs/AI, também presentes
+na cópia de HEAD. Cobertura global 100% não
+foi estabelecida. Não excluir módulos nem relaxar gates para declarar CI verde.
+
+Pendente: novo MP4 e escuta/visual do titular para aceite E2E. Testes de estado
+não comprovam acabamento comercial nem ausência perceptiva de congelamento.
+P4/P5, A5b, TTS/Voice e avatar permanecem fora desta fatia.
+
+
+## 17/11/2026 — backlog motion pós-ensaio Café Aurora (só docs)
+
+Ensaio `versao-1 (2).mp4`: trilha AAC presente; ~89% dos pares amostrados quase
+estáticos; holds longos (~4,8 s e ~6,6 s). Diagnóstico: caminho A1–A5a e método
+Maestros ok; acabamento visual ainda editorial/estático. Backlog P1–P5
+(Ken Burns contínuo, tipografia cinética, scale no handoff, ritmo, mix) e
+prompt para outro chat em
+[motion-melhorias-pos-ensaio-cafe-aurora-2026-11-17.md](../design/motion-melhorias-pos-ensaio-cafe-aurora-2026-11-17.md).
+
+Skills/repertório: runtime usa snapshots pinados (`instagram-reel-v13`,
+`business-reel-v5` quando staging); repos `meu-braco-direito-skills` e
+`meu-braco-direito-motion-sources` **não** entram ao vivo. Sem implementação,
+A5b, chamada paga ou aceite E2E nesta mudança.
+
 ## 17/11/2026 — lab SSE como fonte de atualização e worker recarregado
 
 Frontend remove polling permanente de run/checkpoints/results. SSE invalida

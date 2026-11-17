@@ -223,7 +223,7 @@ def _format(
             definitions["StagedMoment"]["properties"]["media_relation"] = {
                 "type": "string",
                 "enum": ["photo_dominant", "integrated", "graphic"]
-                if staging_version == "motion-staging-photo-v1"
+                if staging_version in ("motion-staging-photo-v1", "motion-staging-photo-v2")
                 else ["recording_dominant", "integrated", "graphic"],
             }
 
@@ -353,7 +353,9 @@ class OpenAIMotionProvider:
                 context["validated_plan"] = request.construction_plan.model_dump(mode="json")
                 context["plan_sha256"] = construction_plan_hash(request.construction_plan)
                 if intent_rules:
-                    context["photo_implementation_intent"] = implementation_intent(request.construction_plan)
+                    context["photo_implementation_intent"] = implementation_intent(
+                        request.construction_plan, request.context["photo_intent_contract"]
+                    )
         if compact_review:
             context["review_evidence_index"] = review_evidence_index(request)
             context["input_projection"] = request.context["review_contract"]["input_projection"]

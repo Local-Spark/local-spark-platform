@@ -328,7 +328,7 @@ class MotionInputLoader:
         if source is None:
             from app.services.motion_photos import PHOTO_MOTION_RULES
 
-            context["limitations"] = [PHOTO_MOTION_RULES]
+            context["limitations"] = [snapshot.get("photo_motion", {}).get("rules", PHOTO_MOTION_RULES)]
         prepared = PreparedMotionInput(
             context, tuple(assets), frames, duration_ms, audio, tuple(previews), reference_images, soundtrack
         )

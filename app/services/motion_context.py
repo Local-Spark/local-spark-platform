@@ -26,7 +26,7 @@ from app.services.motion_generation import (
     provided_output_enabled,
 )
 from app.services.motion_illustration_policy import illustration_policy
-from app.services.motion_photo_intent import PHOTO_INTENT_CONTRACT
+from app.services.motion_photo_intent import PHOTO_INTENT_CONTRACT, PHOTO_VISUAL_RULES
 from app.services.motion_preparation import PREPARATION_RULES, PRODUCTION_PREPARATION_RULES, PROPOSED_PREPARATION_RULES
 from app.services.motion_quality import PHOTO_QUALITY_CONTRACT, QUALITY_CONTRACT
 from app.services.motion_repertoire import capture_repertoire
@@ -165,7 +165,9 @@ def capture_motion_guidance(
         skill_text = load_motion_skill(skill_id, skill_hash, request.format)
     else:
         skill_id, skill_hash, skill_text = (
-            resolve_html_motion_skill(request.format) if html_contract else resolve_motion_skill(request.format)
+            resolve_html_motion_skill(request.format, photo=request.source_asset_id is None)
+            if html_contract
+            else resolve_motion_skill(request.format)
         )
     styles = []
     for style in list_motion_styles():
@@ -184,16 +186,21 @@ def capture_motion_guidance(
         )
     staging = (
         {"staging_contract": PHOTO_STAGING_CONTRACT if request.source_asset_id is None else STAGING_CONTRACT}
-        if previous is None and quality and request.repertoire_id in (None, "business-reel-v5")
+        if previous is None and quality and request.repertoire_id in (None, "business-reel-v5", "business-reel-v6")
         else {"staging_contract": previous["staging_contract"]}
         if previous is not None and "staging_contract" in previous
         else {}
     )
     if staging and previous is None:
         creative = {**cast(dict[str, Any], creative), "temporal_review": dict(POLICY_V4)}
-    repertoire_id = request.repertoire_id or ("business-reel-v5" if staging else None)
+    repertoire_id = (
+        previous.get("repertoire", {}).get("id")
+        if previous is not None
+        else request.repertoire_id
+        or (("business-reel-v6" if request.source_asset_id is None else "business-reel-v5") if staging else None)
+    )
     if request.source_asset_id is None:
-        from app.services.motion_photos import PHOTO_MOTION_RULES, photo_music
+        from app.services.motion_photos import PHOTO_MOTION_RULES, PHOTO_MOTION_RULES_V2, photo_music
 
         assert request.photo_duration_ms is not None
         music = (
@@ -201,16 +208,19 @@ def capture_motion_guidance(
             if previous is not None and not previous.get("photo_motion", {}).get("music_policy")
             else None
         )
+        base_photo_rules = PHOTO_MOTION_RULES_V2 if previous is None else PHOTO_MOTION_RULES
         photo_rules = (
-            PHOTO_MOTION_RULES.replace(
+            base_photo_rules.replace(
                 "sem trilha disponível, mantenha silêncio.",
                 "SFX opcionais seguem o plano audiovisual; ausência de música não exige SFX. " + PHOTO_SFX_RULES,
             )
             if previous is None and request.sound_library_id and request.propose_direction
             else previous["photo_motion"]["rules"]
             if previous is not None and "photo_motion" in previous
-            else PHOTO_MOTION_RULES
+            else base_photo_rules
         )
+        if previous is None:
+            photo_rules += " " + PHOTO_VISUAL_RULES
         creative = {**cast(dict[str, Any], creative), "media_visibility_policy": photo_rules}
     return {
         **(
@@ -270,7 +280,7 @@ def capture_motion_guidance(
                 else {
                     **HTML_EXECUTOR_CONTRACT,
                     "version": "html-motion-executor-v2",
-                    "integration_policy": PHOTO_MOTION_RULES
+                    "integration_policy": PHOTO_MOTION_RULES_V2
                     if request.source_asset_id is None
                     else MEDIA_VISIBILITY_POLICY,
                 }

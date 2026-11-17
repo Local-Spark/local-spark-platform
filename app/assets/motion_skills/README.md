@@ -185,3 +185,13 @@ estados das tracks são expostos para correspondência com o plano; o vídeo e o
 biblioteca instalada nem uma receita para todos os negócios. V1–v12 permanecem
 imutáveis. Testes com DOM sintético e o runtime v3 verificam seeks diretos,
 reversos e preservação da gravação; não comprovam acabamento visual ou áudio.
+
+
+### Photo P1–P3 — 17/11/2026
+
+Novas capturas photo usam `instagram-reel-photo-v14.md`, derivada exclusivamente
+localmente de v13, com digest registrado em `motion_skills.py`. Vídeos continuam
+v13; snapshots históricos conservam suas versões. O contrato photo intent v2
+orienta KB durante leitura, entrada/saída temporal e escala no handoff. Repertório
+default de staging photo: business-reel-v6, extensão pinada de v5. Não auto-injeta
+funções nem comprova qualidade audiovisual: MP4/revisão do titular pendentes.

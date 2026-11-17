@@ -70,7 +70,14 @@ class MotionRequest(MotionModel):
     storyboard: bool = Field(default=False, exclude_if=lambda value: not value)
     collection_photo_ids: tuple[UUID, ...] = Field(default=(), max_length=4, exclude_if=lambda value: not value)
     repertoire_id: (
-        Literal["business-reel-v1", "business-reel-v2", "business-reel-v3", "business-reel-v4", "business-reel-v5"]
+        Literal[
+            "business-reel-v1",
+            "business-reel-v2",
+            "business-reel-v3",
+            "business-reel-v4",
+            "business-reel-v5",
+            "business-reel-v6",
+        ]
         | None
     ) = Field(default=None, exclude_if=lambda value: value is None)
     scene_direction: MotionSceneDirection | None = Field(

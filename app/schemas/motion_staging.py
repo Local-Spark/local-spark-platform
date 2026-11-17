@@ -31,6 +31,6 @@ class StagedMoment(PlanModel):
 
 
 class MotionStaging(PlanModel):
-    version: Literal["motion-staging-v1", "motion-staging-photo-v1"]
+    version: Literal["motion-staging-v1", "motion-staging-photo-v1", "motion-staging-photo-v2"]
     moments: tuple[StagedMoment, ...] = Field(min_length=1, max_length=12)
     unavailable_materials: tuple[Description, ...] = Field(max_length=8)
