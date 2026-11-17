@@ -104,6 +104,15 @@ def validate_motion_plan(
     duration_ms: int,
     asset_ids: set[str],
 ) -> None:
+    from app.services.motion_photo_intent import PHOTO_INTENT_CONTRACT
+
+    if context.get("photo_intent_contract") == PHOTO_INTENT_CONTRACT and "assets/logo.png" in asset_ids:
+        if composition.motion_plan is None or not any(
+            element.role == "image" and element.asset_id == "assets/logo.png"
+            for scene in composition.motion_plan.scenes
+            for element in scene.elements
+        ):
+            raise AuthError("MOTION_PHOTO_LOGO_REQUIRED", 409)
     validate_speech_plan(composition, context)
     required = requires_motion_plan(context)
     validate_direction_fidelity(composition, context)

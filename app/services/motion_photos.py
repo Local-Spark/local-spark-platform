@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 from app.adapters.motion_html_renderer import RenderAsset
 from app.services.auth import AuthError
+from app.services.motion_photo_intent import PHOTO_QUALITY_RULES
 from app.services.motion_sound_library import capture_sound_library, load_sound_library
 
 if TYPE_CHECKING:
@@ -27,6 +28,9 @@ PHOTO_MOTION_RULES_V2 = PHOTO_MOTION_RULES.replace(
     "Escolha enquadramentos, movimento suave quando pedido, ",
     "Planeje Ken Burns contínuo (scale suave e pan leve) durante todo hold de fotografia, ",
 )
+
+
+PHOTO_MOTION_RULES_V3 = PHOTO_MOTION_RULES_V2 + " " + PHOTO_QUALITY_RULES
 
 
 def photo_duration_ms(message: str) -> int:

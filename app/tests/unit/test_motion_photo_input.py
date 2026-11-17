@@ -3,7 +3,7 @@
 import hashlib
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from pydantic import ValidationError
@@ -133,3 +133,54 @@ def test_music_requires_curated_rights_duration_and_verified_bytes(monkeypatch):
     assert motion_photos.photo_music(15000) is None
     with pytest.raises(AuthError, match="MOTION_SOUND_LIBRARY_CHANGED"):
         motion_photos.load_photo_music(selection, 15000)
+
+
+@pytest.mark.parametrize("new_contract", [False, True])
+async def test_logo_inventory_and_preview_before_plan_preserve_legacy(new_contract):
+    from app.services.motion_photo_intent import PHOTO_INTENT_CONTRACT, PHOTO_INTENT_CONTRACT_V2
+
+    png = frame().png
+    descriptor = {"object_key": "private/logo.png", "size_bytes": len(png), "sha256": hashlib.sha256(png).hexdigest()}
+    snapshot = {
+        "source": None,
+        "logo": descriptor,
+        "photo_intent_contract": PHOTO_INTENT_CONTRACT if new_contract else PHOTO_INTENT_CONTRACT_V2,
+        "request": MotionRequest(
+            operation_id=uuid4(), instruction="Fotos", source_asset_id=None, photo_duration_ms=15000
+        ).model_dump(mode="json"),
+        "collection_photos": [
+            {**descriptor, "id": str(UUID(int=i + 1)), "title": "Foto", "version": 1, "item_id": None} for i in range(4)
+        ],
+    }
+    store = SimpleNamespace(get_image=AsyncMock(return_value=png))
+    prepared = await motion_inputs.MotionInputLoader(store).prepare(snapshot)
+    assert sum(a.id == "assets/logo.png" for a in prepared.assets) == 1
+    assert len(prepared.asset_previews) == 4 + int(new_contract)
+    logos = [m for m in prepared.context["available_materials"] if m["role"] == "brand_logo"]
+    assert bool(logos) == new_contract
+    assert "private/logo.png" not in str(prepared.context)
+    if new_contract:
+        assert logos[0]["asset_id"] == "assets/logo.png"
+        assert prepared.asset_previews[-1][0] == "assets/logo.png"
+
+        import json
+        from dataclasses import replace
+
+        from app.tests.unit.test_motion_ai import provider, request
+        from app.tests.unit.test_motion_photo_planning import photo_case
+
+        _, base, _ = photo_case()
+        job = replace(
+            request(),
+            context={**base.context, "available_materials": prepared.context["available_materials"]},
+            assets=(*prepared.assets, *(a for a in base.assets if a.mime_type != "image/png")),
+            source_frames=(),
+            asset_previews=prepared.asset_previews,
+            reference_images=base.reference_images,
+        )
+        payload = provider().build_request(job)
+        content = payload["input"][0]["content"]
+        labels = [json.loads(item["text"]) for item in content if item["type"] == "input_text"]
+        assert any(item.get("material_asset_id") == "assets/logo.png" for item in labels)
+        assert len([item for item in labels if "material_asset_id" in item]) == 5
+        assert logos[0] in labels[0]["authorized_context"]["available_materials"]

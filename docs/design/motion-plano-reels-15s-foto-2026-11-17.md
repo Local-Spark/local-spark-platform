@@ -1,11 +1,20 @@
 # Plano de execução — reels 15s de fotos (qualidade), 17/11/2026
 
+## 17/11/2026 — ensaio v3: próximo backlog L1–L4 (não implementado)
+
+Após `versao-1 (3).mp4` (melhoria parcial; logo tipográfica; fecho frio), o
+próximo salto está em
+[motion-ensaio-cafe-aurora-v3-gaps-2026-11-17.md](motion-ensaio-cafe-aurora-v3-gaps-2026-11-17.md)
+(L1 logo, L2 ritmo/fecho, L3 bleed, L4 mix). A5b continua fora. Este plano
+A0–A5a não muda.
+
 ## 17/11/2026 — pós-ensaio: backlog visual documentado (não implementado)
 
-Após ensaio com Music (`versao-1 (2).mp4`), o próximo salto de qualidade visual
-está em
-[motion-melhorias-pos-ensaio-cafe-aurora-2026-11-17.md](motion-melhorias-pos-ensaio-cafe-aurora-2026-11-17.md)
-(P1–P5). A5b continua fora até calibração humana. Este plano A0–A5a não muda.
+Após ensaio com Music (`versao-1 (2).mp4`), o salto P1–P5 ficou em
+[motion-melhorias-pos-ensaio-cafe-aurora-2026-11-17.md](motion-melhorias-pos-ensaio-cafe-aurora-2026-11-17.md).
+P1–P3 + correção de conflito de staging foram implementados depois; P4/P5 e o
+ensaio v3 remeteram ao doc L1–L4 acima. A5b continua fora até calibração humana.
+Este plano A0–A5a não muda.
 
 ## 17/11/2026 — lab: construção automática, aprovação somente da peça pronta
 

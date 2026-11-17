@@ -45,14 +45,31 @@ PHOTO_VISUAL_RULES = (
     "na implementação. Na revisão compare intenção/evidência, sem inferir movimento entre amostras "
     "ou criar gates estéticos automáticos."
 )
-PHOTO_INTENT_CONTRACT = {"version": "motion-photo-intent-v2", "rules": PHOTO_VISUAL_RULES}
+PHOTO_INTENT_CONTRACT_V2 = {"version": "motion-photo-intent-v2", "rules": PHOTO_VISUAL_RULES}
+PHOTO_QUALITY_RULES = (
+    "L1: quando assets/logo.png estiver disponível, declare no plano pelo menos um elemento "
+    "role=image com asset_id=assets/logo.png. No HTML do fecho, renderize obrigatoriamente "
+    '<img src="assets/logo.png"> visível, seguindo os tempos de fecho/handoff do plano; '
+    "declarar o asset no plano não basta. brand_name tipográfico "
+    "pode coexistir como copy, mas não substitui o PNG. Preserve proporções e legibilidade da logo. "
+    "P4/L2: planeje holds de leitura curtos, de até ~2–2,5 s; divida copy longa em beats legíveis. "
+    "Em 15 s, prefira gancho → acento → segundo material vivo → handoff → marca/CTA. "
+    "Durante o fecho/handoff, nos tempos definidos pelo plano, mantenha Ken Burns nas fotos/díptico "
+    "e micro-movimento de scale/assentamento "
+    "na logo até o fim; nenhum fecho de ~2 s ou mais sem mudança perceptível. "
+    "L3: foto dominante full-bleed 9:16 com object-fit:cover e foco protegido é a composição padrão. "
+    "Evite janela landscape e faixas mortas; justifique inset na intenção quando necessário. "
+    "Tipografia/overlay sobre foto com contraste e protagonista protegido, sem cartaz estático. "
+    "Ritmo e composição são orientação forte, não gates automáticos A5b; preserve a trilha."
+)
+PHOTO_INTENT_CONTRACT = {"version": "motion-photo-intent-v3", "rules": PHOTO_VISUAL_RULES + " " + PHOTO_QUALITY_RULES}
 
 
 def photo_intent_rules(context: dict[str, Any]) -> str:
     contract = context.get("photo_intent_contract")
     if contract is None:
         return ""
-    if contract not in (PHOTO_INTENT_CONTRACT_V1, PHOTO_INTENT_CONTRACT):
+    if contract not in (PHOTO_INTENT_CONTRACT_V1, PHOTO_INTENT_CONTRACT_V2, PHOTO_INTENT_CONTRACT):
         raise AuthError("MOTION_PHOTO_INTENT_CONTRACT_INVALID", 409)
     return str(contract["rules"])
 
@@ -67,7 +84,7 @@ def implementation_intent(
     moments = {moment.scene_id: moment for moment in plan.staging.moments}
     return {
         "version": contract["version"],
-        **({"visual_execution": PHOTO_VISUAL_RULES} if contract == PHOTO_INTENT_CONTRACT else {}),
+        **({"visual_execution": contract["rules"]} if contract != PHOTO_INTENT_CONTRACT_V1 else {}),
         "plan_sha256": construction_plan_hash(plan),
         "scenes": [
             {

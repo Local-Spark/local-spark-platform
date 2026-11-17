@@ -233,7 +233,12 @@ class MotionInputLoader:
         materials = []
         if len(snapshot.get("collection_photos", [])) > 4:
             raise AuthError("MOTION_COLLECTION_PHOTO_LIMIT", 409)
-        for photo in snapshot.get("collection_photos", []):
+        from app.services.motion_photo_intent import PHOTO_INTENT_CONTRACT
+
+        planning_photos = list(snapshot.get("collection_photos", []))
+        if logo and snapshot.get("photo_intent_contract") == PHOTO_INTENT_CONTRACT:
+            planning_photos.append({**logo, "id": "logo", "title": "Logo", "version": 1, "item_id": None})
+        for photo in planning_photos:
             raw = await self.store.get_image(photo["object_key"])
             if (
                 not 0 < len(raw) <= 8 * 1024 * 1024
@@ -247,7 +252,8 @@ class MotionInputLoader:
                 normalized = await asyncio.to_thread(normalize_photo, raw, photo["mime_type"])
                 raw = normalized.data
                 photo = {**photo, "sha256": normalized.sha256}
-            asset_id = f"assets/photo-{photo['id']}.png"
+            is_logo = photo["id"] == "logo"
+            asset_id = "assets/logo.png" if is_logo else f"assets/photo-{photo['id']}.png"
             try:
                 with Image.open(io.BytesIO(raw)) as source_image:
                     if source_image.format != "PNG" or source_image.width * source_image.height > 16_000_000:
@@ -260,7 +266,8 @@ class MotionInputLoader:
                     png = output.getvalue()
             except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as exc:
                 raise AuthError("MOTION_COLLECTION_PHOTO_INVALID", 409) from exc
-            assets.append(_asset(asset_id, "image/png", raw))
+            if not is_logo:
+                assets.append(_asset(asset_id, "image/png", raw))
             previews.append((asset_id, RenderedFrame(0, png, hashlib.sha256(png).hexdigest())))
             materials.append(
                 {
@@ -268,7 +275,9 @@ class MotionInputLoader:
                     "title": photo["title"],
                     "sha256": photo["sha256"],
                     "version": photo["version"],
-                    "role": "submitted_material"
+                    "role": "brand_logo"
+                    if is_logo
+                    else "submitted_material"
                     if photo.get("origin") == "creation_lab_upload"
                     else "product"
                     if photo["item_id"]

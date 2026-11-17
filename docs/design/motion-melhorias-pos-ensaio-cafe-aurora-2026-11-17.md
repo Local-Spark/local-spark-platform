@@ -1,5 +1,12 @@
 # Melhorias pós-ensaio Café Aurora — 17/11/2026
 
+## Ensaio v3 — próximo backlog noutro doc
+
+Ensaio `versao-1 (3).mp4` após P1–P3 + staging v2: melhora parcial; gaps de logo,
+ritmo/fecho, bleed e mix em
+[motion-ensaio-cafe-aurora-v3-gaps-2026-11-17.md](motion-ensaio-cafe-aurora-v3-gaps-2026-11-17.md).
+Este documento permanece o baseline v2 + histórico P1–P3.
+
 ## Revisão de consistência antes do ensaio
 
 Scaffolding P1–P3 não garante correção visual. O conflito remanescente de staging

@@ -1,5 +1,59 @@
 # Registro de mudanças
 
+## 17/11/2026 — photo L1–L3: logo, ritmo do fecho e foto dominante
+
+Implementação autorizada pelo titular após o diagnóstico v3. Novas capturas
+photo de produção usam `motion-photo-intent-v3`, `instagram-reel-photo-v15`
+e repertório default com staging `business-reel-v7`, com hashes pinados.
+Quando `assets/logo.png` existe no pacote, o plano deve conter elemento
+`role=image` com esse asset; ausência ou substituição por texto resulta em
+`MOTION_PHOTO_LOGO_REQUIRED`, antes de implementar. O inventário de planejamento
+inclui `brand_logo` e seu preview, além das até quatro fotografias. A logo não
+conta como foto para a relação `photo_dominant` do staging.
+
+Contrato/skill/regras orientam holds de leitura ≤ ~2–2,5 s, full-bleed 9:16
+com cover/foco protegido, overlays legíveis e inset somente com intenção
+justificada. No fecho/handoff, pelos tempos do plano, fotos/díptico mantêm KB e a logo mantém
+micro-movimento de escala. O exemplo v7 mostra `<img src="assets/logo.png">`,
+recebe `closingPhotos` fora do wrapper que sai e anima ambos até o fim.
+Refinamento solicitado: removida a janela fixa do intent/skill/regras do
+repertório. Com logo no pacote, o contrato exige que o HTML do fecho renderize
+`<img src="assets/logo.png">` visível; só declarar no plano não basta.
+Hashes da fatia L1–L3 em desenvolvimento atualizados; versões históricas intactas.
+A exigência de HTML é instrução de implementação, não novo gate de inspeção DOM.
+Validação do refinamento: 81 testes focados passaram, incluindo payload de
+planejamento/implementação e integridade dos hashes; intent com 100% de
+linhas/branches. Ruff/formatação passaram; make ci repetido segue com 66
+ocorrências de lint. Sem chamada paga, novo MP4 ou aceite E2E.
+Exige adaptação, instanciação em scene_init e chamada em seek absoluto;
+não é auto-injetado nem um storyboard fixo. Ritmo/composição são orientação
+forte, não gates A5b nem prova de visibilidade no MP4.
+
+Intent v1/v2, regras v1/v2, skill v14 e repertório v6 continuam íntegros para
+replay; snapshots capturados não são migrados. Vídeo conserva skill v13 e
+default v5; seleção explícita de repertório permanece respeitada. Nenhuma
+mudança de Music/mix, renderer, TTS/avatar ou chamada paga.
+
+Validação desta fatia: 254 testes unitários passaram (contratos, plano,
+loader, payload do provedor, staging, skills/repertório e replay); intent com
+100% de linhas/branches no recorte. Cinco testes Node passaram, incluindo
+fecho 11–15 s e seek reverso determinístico. Três integrações PostgreSQL
+lab/WhatsApp passaram no banco dedicado `_test`, com roles restritas.
+Ruff/check de formato dos 11 arquivos Python alterados e diff-check passaram.
+`make ci` executado com cache local permitido parou nas mesmas 66 ocorrências
+de lint já documentadas; CI global e cobertura global 100% não estabelecidos.
+Mypy global também falhou (183 erros em 31 arquivos); não é declarado verde.
+Nenhuma exclusão de módulos ou relaxamento de gates. Pendente: novo MP4 de
+ensaio autorizado e revisão visual/escuta do titular. Sem aceite E2E.
+
+## 17/11/2026 — ensaio v3 Café Aurora: gaps e backlog L1–L4 (só docs)
+
+Documentado diagnóstico de `versao-1 (3).mp4` (melhoria parcial vs v2; holds/
+fecho frios; marca tipográfica sem logo PNG) e backlog L1–L4 (logo obrigatória,
+ritmo/fecho, full-bleed, mix) em
+[motion-ensaio-cafe-aurora-v3-gaps-2026-11-17.md](design/motion-ensaio-cafe-aurora-v3-gaps-2026-11-17.md),
+com prompt para outro chat. Sem código, chamada paga ou aceite E2E.
+
 ## 17/11/2026 — eliminar conflito de instruções photo antes do ensaio
 
 Revisão confirmou que o scaffolding P1–P3 ainda enviava permissões antigas:
