@@ -511,3 +511,46 @@ async def test_rejected_complete_response_preserves_usage_cost_request_id_withou
     assert caught.value.estimated_usd_micros == 400
     assert caught.value.provider_request_id == "rejected-known-usage"
     assert json.loads(caught.value.raw_response) == data
+
+
+@pytest.mark.parametrize("failure", [None, "extra_photo", "duplicate_logo", "unauthorized_logo", "corrupt_logo"])
+def test_four_photo_previews_and_separate_verified_logo(failure):
+    from app.schemas.motion_production import MotionConstructionPlan
+    from app.services.motion_materials import prepare_implementation_materials
+    from app.tests.unit.test_motion_photo_planning import photo_case
+
+    _, prepared, plan = photo_case()
+    png = frame()
+    additions = tuple(RenderAsset(f"assets/extra-{i}.png", "image/png", png.png, png.sha256) for i in range(3))
+    logo = RenderAsset("assets/logo.png", "image/png", png.png, png.sha256)
+    prepared = replace(
+        prepared,
+        assets=(*prepared.assets, *additions, logo),
+        asset_previews=(*prepared.asset_previews, *((a.id, png) for a in additions)),
+    )
+    data = plan.model_dump(mode="json")
+    data["motion_plan"]["scenes"][1]["elements"][0].update(role="image", asset_id=logo.id)
+    resolved = prepare_implementation_materials(MotionConstructionPlan.model_validate(data), prepared)
+    assert len(resolved.asset_previews) == 5
+    job = replace(request(), assets=resolved.assets, asset_previews=resolved.asset_previews)
+    if failure == "extra_photo":
+        extra = RenderAsset("assets/excess.png", "image/png", png.png, png.sha256)
+        job = replace(job, assets=(*job.assets, extra), asset_previews=(*job.asset_previews, (extra.id, png)))
+    elif failure == "duplicate_logo":
+        job = replace(job, asset_previews=(*job.asset_previews, (logo.id, png)))
+    elif failure == "unauthorized_logo":
+        job = replace(job, assets=tuple(a for a in job.assets if a.id != logo.id))
+    elif failure == "corrupt_logo":
+        job = replace(
+            job,
+            asset_previews=tuple(
+                (i, replace(p, sha256="0" * 64) if i == logo.id else p) for i, p in job.asset_previews
+            ),
+        )
+    if failure:
+        with pytest.raises(MotionAIError, match="MOTION_AI_ASSET_PREVIEW_INVALID"):
+            provider().build_request(job)
+    else:
+        payload = provider().build_request(job)
+        content = payload["input"][0]["content"]
+        assert sum(x["type"] == "input_image" for x in content) == 5

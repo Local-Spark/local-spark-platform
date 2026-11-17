@@ -192,12 +192,40 @@ def request_bytes(payload: dict[str, Any]) -> bytes:
     return json.dumps(payload, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode()
 
 
-def _format(model: type[BaseModel], *, allow_staging: bool) -> dict[str, Any]:
+def _format(
+    model: type[BaseModel],
+    *,
+    allow_staging: bool,
+    staging_version: str | None = None,
+    quality_function_ids: tuple[str, ...] | None = None,
+) -> dict[str, Any]:
     schema = model.model_json_schema()
+    definitions = schema.get("$defs", {})
+    if quality_function_ids is not None and "MotionFunctionCoverage" in definitions:
+        fields = definitions["MotionFunctionCoverage"]["properties"]
+        fields["function_id"] = {"type": "string", "enum": list(quality_function_ids)}
+        fields["disposition"] = {"type": "string", "enum": ["satisfy_requirement"]}
+        coverage = definitions["MotionAudiovisualDesign"]["properties"]["functions"]
+        coverage.update(
+            minItems=len(quality_function_ids),
+            maxItems=len(quality_function_ids),
+            description="Exactly one entry per quality requirement ID; review checks are not requirement IDs.",
+        )
     # The shared model accepts historical and staged artifacts; each request must
     # expose only the contract its downstream validator is authorized to accept.
     if not allow_staging and "staging" in schema.get("properties", {}):
         schema["properties"]["staging"] = {"type": "null"}
+    if allow_staging and staging_version is not None:
+        definitions = schema.get("$defs", {})
+        if "MotionStaging" in definitions:
+            definitions["MotionStaging"]["properties"]["version"] = {"type": "string", "enum": [staging_version]}
+        if "StagedMoment" in definitions:
+            definitions["StagedMoment"]["properties"]["media_relation"] = {
+                "type": "string",
+                "enum": ["photo_dominant", "integrated", "graphic"]
+                if staging_version == "motion-staging-photo-v1"
+                else ["recording_dominant", "integrated", "graphic"],
+            }
 
     def strict(node: Any) -> None:
         if isinstance(node, dict):
@@ -240,10 +268,12 @@ class OpenAIMotionProvider:
         self.delta_observer = delta_observer
 
     def build_request(self, request: MotionModelRequest) -> dict[str, Any]:
+        from app.services.motion_photo_intent import implementation_intent, photo_intent_rules
         from app.services.motion_preparation import evidence_bindings
         from app.services.motion_quality import planning_input, validate_quality_input
         from app.services.motion_sound_library import verify_sound_assets
 
+        intent_rules = photo_intent_rules(request.context)
         validate_quality_input(request)
         verify_sound_assets(request.context, request.assets)
         bindings = evidence_bindings(request)
@@ -322,6 +352,8 @@ class OpenAIMotionProvider:
             if request.construction_plan is not None:
                 context["validated_plan"] = request.construction_plan.model_dump(mode="json")
                 context["plan_sha256"] = construction_plan_hash(request.construction_plan)
+                if intent_rules:
+                    context["photo_implementation_intent"] = implementation_intent(request.construction_plan)
         if compact_review:
             context["review_evidence_index"] = review_evidence_index(request)
             context["input_projection"] = request.context["review_contract"]["input_projection"]
@@ -351,7 +383,10 @@ class OpenAIMotionProvider:
                 ]
             )
         max_previews = 4 + (request.context.get("illustration_generation") or {}).get("max_images", 0)
-        if len(request.asset_previews) > min(6, max_previews) or len(
+        # The brand logo is not one of the four collection photos. The material
+        # resolver adds its preview when the approved plan uses it.
+        logo_preview = int(any(asset_id == "assets/logo.png" for asset_id, _ in request.asset_previews))
+        if len(request.asset_previews) > min(6, max_previews) + logo_preview or len(
             {asset_id for asset_id, _ in request.asset_previews}
         ) != len(request.asset_previews):
             raise MotionAIError("MOTION_AI_ASSET_PREVIEW_INVALID")
@@ -409,6 +444,8 @@ class OpenAIMotionProvider:
                     ]
                 )
         instructions = REVIEW_RULES if request.kind == "review" else CREATIVE_RULES
+        if intent_rules:
+            instructions += " " + intent_rules
         if request.context.get("customer_feedback"):
             instructions += (
                 " Comentários em customer_feedback são referências flexíveis de gosto, não regras fixas "
@@ -532,6 +569,12 @@ class OpenAIMotionProvider:
                     if planned
                     else HTMLMotionComposition,
                     allow_staging=staging_enabled(request.context),
+                    staging_version=request.context.get("staging_contract", {}).get("version"),
+                    quality_function_ids=tuple(
+                        item["id"] for item in request.context["quality_contract"]["requirements"]
+                    )
+                    if request.context.get("quality_contract") is not None
+                    else None,
                 )
             },
             "instructions": instructions,

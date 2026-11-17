@@ -36,11 +36,28 @@ STAGING_CONTRACT = {
 }
 
 
+PHOTO_STAGING_CONTRACT = {
+    **STAGING_CONTRACT,
+    "version": "motion-staging-photo-v1",
+    "rules": STAGING_CONTRACT["rules"].replace(
+        "recording_dominant, integrated ou graphic", "photo_dominant, integrated ou graphic"
+    )
+    + (
+        " Nesta versão a fonte são fotografias: photo_dominant significa que uma foto autorizada "
+        "é protagonista; integrated relaciona uma foto autorizada a texto/grafismos. Ambas exigem "
+        "elemento image com asset_id de fotografia disponibilizada, não vídeo nem ilustração gerada. "
+        "graphic descreve cena editorial realmente gráfica, não uma forma de disfarçar fotografia. "
+        "recording_dominant não se aplica. Não invente movimento dentro da cena fotografada. "
+        "O plano descreve enquadramento, relações, leitura e passagem, sem exigir zoom ou scale."
+    ),
+}
+
+
 def staging_enabled(context: dict[str, Any]) -> bool:
     contract = context.get("staging_contract")
     if contract is None:
         return False
-    if contract != STAGING_CONTRACT:
+    if contract not in (STAGING_CONTRACT, PHOTO_STAGING_CONTRACT):
         raise AuthError("MOTION_STAGING_CONTRACT_CHANGED", 409)
     return True
 
@@ -54,17 +71,43 @@ def validate_staging(artifact: "MotionConstructionPlan | HTMLMotionComposition",
         return
     if staging is None or plan is None:
         raise AuthError("MOTION_STAGING_REQUIRED", 409)
+    photo = context["staging_contract"] == PHOTO_STAGING_CONTRACT
+    if staging.version != context["staging_contract"]["version"]:
+        raise AuthError("MOTION_STAGING_CONTRACT_CHANGED", 409)
     if [m.scene_id for m in staging.moments] != [s.id for s in plan.scenes]:
         raise AuthError("MOTION_STAGING_SCENES_INVALID", 409)
     for index, (moment, scene) in enumerate(zip(staging.moments, plan.scenes, strict=True)):
         elements = {e.id: e for e in scene.elements}
         materials = {e.id for e in scene.elements if e.role in {"image", "video"}}
+        photographs = {
+            e.id
+            for e in scene.elements
+            if e.role == "image"
+            and e.asset_id
+            in {
+                item["asset_id"]
+                for item in context.get("available_materials", [])
+                if item["asset_id"].startswith("assets/photo-")
+            }
+        }
+        relation_invalid = (
+            (
+                moment.media_relation == "recording_dominant"
+                or (moment.media_relation in {"photo_dominant", "integrated"} and not photographs)
+                or (moment.media_relation == "photo_dominant" and moment.protagonist_id not in photographs)
+            )
+            if photo
+            else (
+                moment.media_relation == "photo_dominant"
+                or (moment.media_relation != "graphic" and not any(e.role == "video" for e in scene.elements))
+            )
+        )
         if (
             moment.protagonist_id not in elements
             or len(set(moment.material_element_ids)) != len(moment.material_element_ids)
             or set(moment.material_element_ids) != materials
             or not scene.start_ms <= moment.inspect_start_ms < moment.inspect_end_ms <= scene.end_ms
-            or (moment.media_relation != "graphic" and not any(e.role == "video" for e in scene.elements))
+            or relation_invalid
         ):
             raise AuthError("MOTION_STAGING_MOMENT_INVALID", 409)
         transition = moment.transition

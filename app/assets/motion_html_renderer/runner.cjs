@@ -283,11 +283,23 @@ async function render() {
     }
     const mp4 = read(output, MAX_VIDEO);
     const audioMeasurement = cfg.audio.version === 'motion-audio-v2' ? audioMetrics(output) : null;
+    const musicTracks = cfg.audio.tracks.filter(track => track.role === 'music');
+    let musicIntegrity = null;
+    if (musicTracks.length) {
+      const streams = metadata.streams.filter(stream => stream.codec_type === 'audio');
+      const requiredMs = Math.max(...musicTracks.map(track => track.offset_ms + track.trim_end_ms - track.trim_start_ms));
+      const durationMs = streams.length === 1 ? Number(streams[0].duration) * 1000 : NaN;
+      // One AAC frame of tolerance (rounding/padding), never an aesthetic loudness gate.
+      if (!Number.isFinite(durationMs) || durationMs <= 0 || durationMs + 25 < requiredMs ||
+          !audioMeasurement || audioMeasurement.sample_peak_dbfs === null) fail('MOTION_RENDER_MUSIC_INVALID');
+      musicIntegrity = {source:'decoded_output', audio_duration_ms:durationMs, required_end_ms:requiredMs};
+    }
     const diagnostics = { frame_count: count, width: cfg.width, height: cfg.height, duration_ms: cfg.duration_ms,
       fps: 30, sandbox: true, seccomp: 2, host_seccomp_filters: ownFilters, renderer_seccomp_filters: rendererFilters,
       denied_requests: denied, audio_mode: cfg.audio.mode, audio_source_spans: audioSourceSpans,
       video_codec: 'h264', protocol_version: 1, evidence_source: 'decoded_mp4',
       ...(audioMeasurement ? {audio_measurements: audioMeasurement} : {}),
+      ...(musicIntegrity ? {music_integrity: musicIntegrity} : {}),
       ...(cfg.fingerprint_frames ? {frame_fingerprints: fingerprints, fingerprint_environment: fingerprintEnvironment} : {}),
       html_sha256: cfg.html_sha256, scene_sha256: cfg.scene_sha256, config_sha256: hash(configBytes) };
     const header = Buffer.from(JSON.stringify({ version: 1, video: { size: mp4.length, sha256: hash(mp4) }, frames, diagnostics }) + '\n');

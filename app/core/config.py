@@ -66,6 +66,12 @@ class Settings(BaseSettings):
     material_storage_secret_key: SecretStr | None = None
     audio_transcription_mode: Literal["disabled", "openai"] = "disabled"
     openai_api_key: SecretStr | None = None
+    elevenlabs_api_key: SecretStr | None = None
+    elevenlabs_music_execution_enabled: bool = False
+    elevenlabs_music_commercial_rights_confirmed: bool = False
+    elevenlabs_music_reservation_usd_micros: int = Field(default=0, ge=0, le=1_000_000_000_000)
+    elevenlabs_music_monthly_budget_usd_micros: int = Field(default=0, ge=0, le=1_000_000_000_000)
+    elevenlabs_music_usd_micros_per_minute: int = Field(default=0, ge=0, le=1_000_000_000_000)
     audio_daily_seconds_limit: int = Field(default=0, ge=0)
     editorial_ai_mode: Literal["disabled", "openai"] = "disabled"
     editorial_ai_model: str = "gpt-5-mini"

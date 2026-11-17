@@ -20,20 +20,22 @@ from app.services.motion_creative import MEDIA_VISIBILITY_POLICY, alternating_cr
 from app.services.motion_evolution import capture_evolution
 from app.services.motion_generation import (
     ASSET_INFORMED_GENERATION_CONTRACT,
+    PHOTO_GENERATION_CONTRACT,
     PRODUCTION_GENERATION_CONTRACT,
     PROPOSED_GENERATION_CONTRACT,
     provided_output_enabled,
 )
 from app.services.motion_illustration_policy import illustration_policy
+from app.services.motion_photo_intent import PHOTO_INTENT_CONTRACT
 from app.services.motion_preparation import PREPARATION_RULES, PRODUCTION_PREPARATION_RULES, PROPOSED_PREPARATION_RULES
-from app.services.motion_quality import QUALITY_CONTRACT
+from app.services.motion_quality import PHOTO_QUALITY_CONTRACT, QUALITY_CONTRACT
 from app.services.motion_repertoire import capture_repertoire
 from app.services.motion_review import compact_review_enabled, review_contract
 from app.services.motion_skills import load_motion_skill, resolve_html_motion_skill, resolve_motion_skill
 from app.services.motion_sound_analysis import ANALYSIS_CONTRACT
-from app.services.motion_sound_library import capture_sound_library
+from app.services.motion_sound_library import PHOTO_SFX_RULES, capture_sound_library
 from app.services.motion_speech_policy import speech_policy
-from app.services.motion_staging import STAGING_CONTRACT
+from app.services.motion_staging import PHOTO_STAGING_CONTRACT, STAGING_CONTRACT
 from app.services.motion_styles import html_style_card, list_motion_styles
 from app.services.motion_temporal import POLICY_V3, POLICY_V4
 from app.services.motion_visual_direction import supplied_direction
@@ -79,6 +81,8 @@ def capture_motion_guidance(
     generation = (
         previous.get("generation_contract")
         if previous is not None
+        else dict(PHOTO_GENERATION_CONTRACT)
+        if request.propose_direction and request.source_asset_id is None
         else dict(PRODUCTION_GENERATION_CONTRACT)
         if request.propose_direction and request.evolution is None
         else dict(PROPOSED_GENERATION_CONTRACT)
@@ -116,9 +120,17 @@ def capture_motion_guidance(
                     "Somente após aprovação exata, implemente esse plano no HTML/scene_init.",
                 )
             )
+    if request.automatic_plan and previous is None:
+        creative = dict(cast(dict[str, Any], creative))
+        for field in ("scene_direction_rules", "motion_plan_rules", "direction"):
+            creative[field] = creative[field].replace("aprovação exata", "validação automática do plano")
     quality = (
-        {"quality_contract": QUALITY_CONTRACT if previous is None else previous.get("quality_contract")}
-        if generation == PRODUCTION_GENERATION_CONTRACT
+        {
+            "quality_contract": (PHOTO_QUALITY_CONTRACT if request.source_asset_id is None else QUALITY_CONTRACT)
+            if previous is None
+            else previous.get("quality_contract")
+        }
+        if generation in (PRODUCTION_GENERATION_CONTRACT, PHOTO_GENERATION_CONTRACT)
         else {}
     )
     if quality and previous is None:
@@ -171,7 +183,7 @@ def capture_motion_guidance(
             }
         )
     staging = (
-        {"staging_contract": STAGING_CONTRACT}
+        {"staging_contract": PHOTO_STAGING_CONTRACT if request.source_asset_id is None else STAGING_CONTRACT}
         if previous is None and quality and request.repertoire_id in (None, "business-reel-v5")
         else {"staging_contract": previous["staging_contract"]}
         if previous is not None and "staging_contract" in previous
@@ -184,13 +196,35 @@ def capture_motion_guidance(
         from app.services.motion_photos import PHOTO_MOTION_RULES, photo_music
 
         assert request.photo_duration_ms is not None
-        music = photo_music(request.photo_duration_ms)
-        creative = {**creative, "media_visibility_policy": PHOTO_MOTION_RULES}
+        music = (
+            photo_music(request.photo_duration_ms)
+            if previous is not None and not previous.get("photo_motion", {}).get("music_policy")
+            else None
+        )
+        photo_rules = (
+            PHOTO_MOTION_RULES.replace(
+                "sem trilha disponível, mantenha silêncio.",
+                "SFX opcionais seguem o plano audiovisual; ausência de música não exige SFX. " + PHOTO_SFX_RULES,
+            )
+            if previous is None and request.sound_library_id and request.propose_direction
+            else previous["photo_motion"]["rules"]
+            if previous is not None and "photo_motion" in previous
+            else PHOTO_MOTION_RULES
+        )
+        creative = {**cast(dict[str, Any], creative), "media_visibility_policy": photo_rules}
     return {
         **(
             {
                 "photo_motion": {
-                    "rules": PHOTO_MOTION_RULES,
+                    **({"planning_policy": "photo-production-v1"} if generation == PHOTO_GENERATION_CONTRACT else {}),
+                    **(
+                        {"music_policy": "elevenlabs-music-v1"}
+                        if previous is None
+                        else {"music_policy": previous["photo_motion"]["music_policy"]}
+                        if previous.get("photo_motion", {}).get("music_policy")
+                        else {}
+                    ),
+                    "rules": photo_rules,
                     "duration_ms": request.photo_duration_ms,
                     "music": music,
                     "music_status": "licensed_library_selected"
@@ -202,6 +236,13 @@ def capture_motion_guidance(
             else {}
         ),
         **staging,
+        **(
+            {"photo_intent_contract": dict(PHOTO_INTENT_CONTRACT)}
+            if previous is None and generation == PHOTO_GENERATION_CONTRACT
+            else {"photo_intent_contract": previous["photo_intent_contract"]}
+            if previous is not None and "photo_intent_contract" in previous
+            else {}
+        ),
         **quality,
         **(
             {"audio_analysis_contract": ANALYSIS_CONTRACT}

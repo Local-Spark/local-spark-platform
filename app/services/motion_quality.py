@@ -92,11 +92,31 @@ QUALITY_CONTRACT: dict[str, Any] = {
 }
 
 
+PHOTO_QUALITY_CONTRACT: dict[str, Any] = {
+    **QUALITY_CONTRACT,
+    "version": "motion-photo-quality-v1",
+    "requirements": [
+        {"id": "photographs", "expectation": "Usar fotos autorizadas preservando identidade e detalhes visíveis."}
+        if requirement["id"] == "recording"
+        else {"id": "sound", "expectation": "Respeitar a trilha autorizada pelo servidor ou o silêncio solicitado."}
+        if requirement["id"] == "sound"
+        else requirement
+        for requirement in QUALITY_CONTRACT["requirements"]
+    ],
+    "rules": QUALITY_CONTRACT["rules"]
+    + (
+        " Nesta versão a fonte são fotos: não existe gravação, voz ou ação registrada para preservar. "
+        "O requisito photographs substitui recording. Não invente transcrição, quadros de vídeo ou "
+        "movimento interno à fotografia. Áudio segue authorized_audio e authorized_soundtrack do servidor."
+    ),
+}
+
+
 def validate_quality_context(context: dict[str, Any]) -> bool:
     contract = context.get("quality_contract")
     if contract is None:
         return False
-    if contract not in (LEGACY_QUALITY_CONTRACT, QUALITY_CONTRACT):
+    if contract not in (LEGACY_QUALITY_CONTRACT, QUALITY_CONTRACT, PHOTO_QUALITY_CONTRACT):
         raise AuthError("MOTION_QUALITY_CONTRACT_CHANGED", 409)
     if context.get("request", {}).get("evolution") is not None or context.get("evolution") is not None:
         raise AuthError("MOTION_QUALITY_HISTORICAL_CONTEXT_FORBIDDEN", 409)
@@ -147,7 +167,10 @@ def validate_quality_plan(artifact: "MotionConstructionPlan | HTMLMotionComposit
 
 def planning_input(context: dict[str, Any], bindings: list[dict[str, Any]]) -> dict[str, Any] | None:
     """Expose planning stages and hash-bound human observations without inferring their meaning."""
-    if not validate_quality_context(context) or context["quality_contract"] != QUALITY_CONTRACT:
+    if not validate_quality_context(context) or context["quality_contract"] not in (
+        QUALITY_CONTRACT,
+        PHOTO_QUALITY_CONTRACT,
+    ):
         return None
 
     def reports(identifier: str, sha256: str) -> list[dict[str, Any]]:
@@ -160,6 +183,15 @@ def planning_input(context: dict[str, Any], bindings: list[dict[str, Any]]) -> d
     source = context["source"]
     return {
         "version": "motion-planning-input-v1",
+        "quality_coverage": {
+            "required_function_ids": [item["id"] for item in context["quality_contract"]["requirements"]],
+            "disposition": "satisfy_requirement",
+            "rules": (
+                "Use exatamente uma entrada por required_function_ids em audiovisual.functions, sem extras. "
+                "Checks de review/creative_contract não são function_id adicionais. "
+                "target_element_ids referencia somente elementos existentes no motion_plan."
+            ),
+        },
         "visual_development": {
             "required_by": "product_quality_profile_not_client_technical_wording",
             "review": "Explain concrete before/after relationships; declared coverage is not artistic approval.",
@@ -169,7 +201,9 @@ def planning_input(context: dict[str, Any], bindings: list[dict[str, Any]]) -> d
                 "asset_id": source["asset_id"],
                 "sha256": source["sha256"],
                 "human_file_evidence": reports(source["asset_id"], source["sha256"]),
-            },
+            }
+            if source.get("kind") != "photos"
+            else {"kind": "photos", "has_recorded_audio": False},
             "candidates": [
                 {
                     "candidate_id": item["id"],

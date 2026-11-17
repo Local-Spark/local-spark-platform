@@ -1,5 +1,72 @@
 # Decisões vigentes e pendências
 
+## 17/11/2026 — lab: construção automática, aprovação somente da peça pronta
+
+Por solicitação explícita do titular, esta decisão substitui Q5b/A2: novos reels
+do lab não exigem aprovação intermediária de plano, render ou storyboard. Fotos
+usam planned_photo_request(human_review=False), como WhatsApp: planejamento e
+validação automáticos antes de implementar. Vídeos seguem o caminho produtivo
+automático, inclusive em drafts antigos ainda não iniciados. Não são emitidos
+eventos fictícios de aprovação. Aprovação final approve-piece, RLS, Music,
+reservas, revisão e integridade permanecem; nenhuma geração paga nesta mudança.
+
+Frontend remove a galeria de frames e seus downloads. Checkpoints legados e
+perguntas de outros formatos permanecem compatíveis. Runs já iniciados conservam
+snapshot/contrato original: não foram migrados, retomados ou cobrados. Para usar
+o novo comportamento, reiniciar API/worker e iniciar um novo reel. Frames
+internos de revisão automática continuam necessários e não são aprovação humana.
+
+Validação: 15 testes unitários (planejamento photo e snapshots de vídeo) e três
+de integração photo lab/WhatsApp passaram no banco dedicado _test. TypeScript
+do frontend e Ruff da fatia passaram. Make ci bloqueado no lint global com 66
+ocorrências. Aceite UI/MP4 e cobertura global permanecem pendentes.
+
+
+## 17/11/2026 — escopo da rodada: A2, sem executar testes agora
+
+Titular confirmou Starter+ e chave ElevenLabs no `.env`, autorizou habilitar
+Music e dispensou merge como pré-requisito. Flags locais Music/confirmacão de
+direitos habilitadas; tetos e credencial preservados; nenhum gasto autorizado
+ou executado nesta rodada. Instrução final: implementar primeiro **somente A2**,
+com lab sempre aprovando plano e WhatsApp validando automaticamente. A3–A5,
+TTS/Voice e avatar continuam fora desta mudança. Testes devem ser preparados,
+com execução adiada pelo pedido expresso de não testar agora. O aceite de
+ponta a ponta continua posterior; não declarar A1/A2 artisticamente aceitas.
+
+
+## 17/11/2026 — trilha de photo reel via ElevenLabs Music (cache interno)
+
+Execução posterior nesta rodada: A1 implementada com flag desativada, cache
+privado, ledger e testes sintéticos. Aceite pago/escuta e gates globais de CI
+continuam pendentes; ver o registro de execução no topo de PROJECT/SDD/BL04.
+A autorização de código não autoriza chamada paga nem ativação.
+
+Titular rejeitou Freesound CC0 como fonte principal de trilha para café/jazz
+(qualidade aquém do alvo tipo Cafe Music BGM). Decisão: **ElevenLabs Music**
+para gerar trilhas instrumentais; **Freesound CC0 permanece para SFX**.
+ElevenLabs Voice/clonagem continua reservada a fatia posterior (narração/voz
+do cliente), distinta da trilha.
+
+Modelo de produto (não é seletor para o cliente):
+- Cliente **não escolhe** faixas e **não vê** catálogo/stock.
+- O sistema seleciona uma faixa já gerada/cacheada que faça sentido ao clima
+  do pedido/negócio, ou **gera** quando não houver candidata adequada.
+- Faixas geradas são baixadas, armazenadas com identidade/hash e reutilizadas
+  no mix sem nova cobrança à API enquanto o mesmo arquivo for reaproveitado.
+- Custo de lista ~US$ 0,15/min gerado (API); cobrança por geração, não por
+  reprodução no Instagram. Plano pago Starter+ exigido para uso comercial de
+  música conforme termos ElevenLabs vigentes.
+
+Enquadramento vs Music Terms: não expor biblioteca de outputs a terceiros para
+escolha/download/licenciamento. O cache é operacional interno do produto (o
+sistema escolhe/gera). Revisão jurídica/Enterprise permanece se o enquadramento
+multi-tenant for questionado; não confundir com Marketplace público.
+
+Estado atualizado: integração A1 implementada; titular confirmou chave e Starter+
+e autorizou a flag local. Reserva/tarifa/teto e aceite pago/escuta continuam
+pendentes; não declarar integração aceita E2E. Plano:
+[motion-plano-reels-15s-foto-2026-11-17.md](design/motion-plano-reels-15s-foto-2026-11-17.md).
+
 ## 16/11/2026 — confirmação da base editorial no laboratório
 
 O titular escolheu sugestão pelo modelo a partir da mensagem, seguida de confirmação

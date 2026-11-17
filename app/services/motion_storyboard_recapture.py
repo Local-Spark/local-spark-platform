@@ -14,6 +14,7 @@ from app.services.content_pieces import _event
 from app.services.motion_context import digest
 from app.services.motion_elements import elements_hash
 from app.services.motion_movement import movement_hash
+from app.services.motion_music import MotionMusic
 from app.services.motion_protocols import MotionRenderer
 from app.services.motion_storyboard_frames import storyboard_moments, storyboard_upload_name
 from app.services.motion_storyboards import MotionStoryboards
@@ -182,6 +183,7 @@ class MotionStoryboardRecapture:
         try:
             composition, ctx, signed, rendered = await self.evidence(row, effects)
             prepared = await self.runner.inputs.prepare(self.runner.requests.context.open(row["snapshot_ciphertext"]))
+            prepared = await MotionMusic(self.runner.effects).prepare(row, token, prepared, restore=True)
             if (
                 any(ctx.get(k) != prepared.context.get(k) for k in ("source", "kit", "authorized_audio", "request"))
                 or signed["assets"] != [{"id": a.id, "sha256": a.sha256} for a in prepared.assets]

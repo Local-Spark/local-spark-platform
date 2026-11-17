@@ -21,7 +21,7 @@ class StagedMoment(PlanModel):
     scene_id: Identifier
     contribution: Description
     protagonist_id: Identifier
-    media_relation: Literal["recording_dominant", "integrated", "graphic"]
+    media_relation: Literal["recording_dominant", "photo_dominant", "integrated", "graphic"]
     material_element_ids: tuple[Identifier, ...] = Field(max_length=16)
     development: Description
     sustained_value: Description
@@ -31,6 +31,6 @@ class StagedMoment(PlanModel):
 
 
 class MotionStaging(PlanModel):
-    version: Literal["motion-staging-v1"]
+    version: Literal["motion-staging-v1", "motion-staging-photo-v1"]
     moments: tuple[StagedMoment, ...] = Field(min_length=1, max_length=12)
     unavailable_materials: tuple[Description, ...] = Field(max_length=8)

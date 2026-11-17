@@ -6,7 +6,7 @@
       "type": "debugpy",
       "request": "launch",
       "python": "${workspaceFolder}/.venv/bin/python",
-      "module": "uvicorn",
+      "module": "app.entrypoints.api_debug",
       "args": [
         "app.main:create_app",
         "--factory",

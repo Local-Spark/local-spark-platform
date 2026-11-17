@@ -86,6 +86,7 @@ class MotionRequest(MotionModel):
     preparation: MotionPreparation | None = Field(default=None, exclude_if=lambda value: value is None, repr=False)
     review_checkpoints: bool = Field(default=False, strict=True, exclude_if=lambda value: not value)
     propose_direction: bool = Field(default=False, strict=True, exclude_if=lambda value: not value)
+    automatic_plan: bool = Field(default=False, strict=True, exclude_if=lambda value: not value)
     sound_library_id: Literal["public-cc0-v1"] | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @model_validator(mode="after")
@@ -94,6 +95,10 @@ class MotionRequest(MotionModel):
             raise ValueError("Photo motion requires its own duration and no source video")
         if self.source_asset_id is None and (self.speech_timing is not None or self.evolution is not None):
             raise ValueError("Photo motion has no recorded speech or source-video evolution")
+        if self.automatic_plan and (
+            self.source_asset_id is not None or not self.propose_direction or self.review_checkpoints or self.storyboard
+        ):
+            raise ValueError("Automatic planning is exclusive to photo motion without human checkpoints")
         if self.review_checkpoints and (
             self.preparation is None
             or (self.scene_direction is None and not self.propose_direction)
@@ -101,7 +106,7 @@ class MotionRequest(MotionModel):
         ):
             raise ValueError("Checkpoints require preparation, supplied direction and storyboard")
         if self.propose_direction and (
-            not self.review_checkpoints
+            (not self.review_checkpoints and not self.automatic_plan)
             or self.scene_direction is not None
             or self.preparation is None
             or self.instruction != self.preparation.client_message

@@ -58,7 +58,9 @@ class LabCheckpoints:
 
     async def list(self, actor: UUID) -> list[dict[str, Any]]:
         async with self.requests.database.transaction(ZERO, actor) as session:
-            await self.execution.guard(session, actor, self.run_id, "admin.creation_lab.checkpoint.read")
+            await self.execution.guard(
+                session, actor, self.run_id, "admin.creation_lab.checkpoint.read", read_only=True
+            )
             rows = (
                 (
                     await session.execute(
@@ -72,39 +74,39 @@ class LabCheckpoints:
                 .mappings()
                 .all()
             )
-            result = []
-            for row in rows:
-                payload = (
-                    None
-                    if row["expired"] or not row["payload_ciphertext"]
-                    else self.requests.context.open(row["payload_ciphertext"])["value"]
-                )
-                if payload is not None:
-                    # Do not put executable HTML or base64 assets into the UI. Full payload remains in authenticated trace.
-                    payload = {
-                        k: v
-                        for k, v in payload.items()
-                        if k not in {"resolved_images", "illustrations", "baseline_evidence"}
-                    }
-                    for key in ("artifact", "composition"):
-                        if key in payload and isinstance(payload[key], dict):
-                            payload[key] = {k: v for k, v in payload[key].items() if k not in {"html", "scene_init"}}
-                    if "frames" in payload:
-                        payload["frames"] = [
-                            {k: v for k, v in frame.items() if k not in {"object_key", "data"}}
-                            for frame in payload["frames"]
-                        ]
-                result.append(
-                    {
-                        "stage": row["stage"],
-                        "content_sha256": row["content_sha256"],
-                        "decision": row["decision"],
-                        "consumed": row["consumed"],
-                        "trace_id": row["trace_id"],
-                        "payload": payload,
-                    }
-                )
-            return result
+        result = []
+        for row in rows:
+            payload = (
+                None
+                if row["expired"] or not row["payload_ciphertext"]
+                else self.requests.context.open(row["payload_ciphertext"])["value"]
+            )
+            if payload is not None:
+                # Do not put executable HTML or base64 assets into the UI. Full payload remains in authenticated trace.
+                payload = {
+                    k: v
+                    for k, v in payload.items()
+                    if k not in {"resolved_images", "illustrations", "baseline_evidence"}
+                }
+                for key in ("artifact", "composition"):
+                    if key in payload and isinstance(payload[key], dict):
+                        payload[key] = {k: v for k, v in payload[key].items() if k not in {"html", "scene_init"}}
+                if "frames" in payload:
+                    payload["frames"] = [
+                        {k: v for k, v in frame.items() if k not in {"object_key", "data"}}
+                        for frame in payload["frames"]
+                    ]
+            result.append(
+                {
+                    "stage": row["stage"],
+                    "content_sha256": row["content_sha256"],
+                    "decision": row["decision"],
+                    "consumed": row["consumed"],
+                    "trace_id": row["trace_id"],
+                    "payload": payload,
+                }
+            )
+        return result
 
     async def decide(self, actor: UUID, stage: str, body: MotionCheckpointDecision) -> dict[str, str]:
         if stage not in STAGES:
@@ -205,7 +207,8 @@ class LabCheckpoints:
             )
             await session.execute(
                 text(
-                    "UPDATE creation_lab_runs SET state='running',execution_token=:token,execution_event_id=:event WHERE id=:run"
+                    "UPDATE creation_lab_runs SET state='running',execution_token=:token,"
+                    "execution_event_id=:event WHERE id=:run"
                 ),
                 {"run": self.run_id, "token": token, "event": UUID(event.event_id)},
             )
@@ -240,7 +243,8 @@ class LabMotionCheckpoints(MotionCheckpoints):
         for slot in ("request", "response"):
             value = await session.scalar(
                 text(
-                    "SELECT payload_ciphertext FROM creation_lab_trace WHERE run_id=:run AND effect_id=:id AND slot=:slot"
+                    "SELECT payload_ciphertext FROM creation_lab_trace "
+                    "WHERE run_id=:run AND effect_id=:id AND slot=:slot"
                 ),
                 {"run": row["id"], "id": operation, "slot": slot},
             )
@@ -309,7 +313,9 @@ class LabMotionStoryboards(MotionStoryboards):
 async def storyboard_frame(requests: LabMotionRequests, actor: UUID, index: int) -> bytes:
     async def manifest():
         async with requests.database.transaction(ZERO, actor) as session:
-            await requests.execution.guard(session, actor, requests.run_id, "admin.creation_lab.storyboard.read")
+            await requests.execution.guard(
+                session, actor, requests.run_id, "admin.creation_lab.storyboard.read", read_only=True
+            )
             row = (
                 (
                     await session.execute(
@@ -327,10 +333,10 @@ async def storyboard_frame(requests: LabMotionRequests, actor: UUID, index: int)
                 raise AuthError("CREATION_LAB_CHECKPOINT_NOT_FOUND", 404)
             if row["expired"] or not row["payload_ciphertext"]:
                 raise AuthError("CREATION_LAB_TRACE_EXPIRED", 410)
-            frames = requests.context.open(row["payload_ciphertext"])["value"]["frames"]
-            if not 0 <= index < len(frames):
-                raise AuthError("CREATION_LAB_FRAME_NOT_FOUND", 404)
-            return frames[index]
+        frames = requests.context.open(row["payload_ciphertext"])["value"]["frames"]
+        if not 0 <= index < len(frames):
+            raise AuthError("CREATION_LAB_FRAME_NOT_FOUND", 404)
+        return frames[index]
 
     expected = await manifest()
     data = await LabMotionStoryboards(requests, MaterialStore(requests.settings)).read_png(expected)

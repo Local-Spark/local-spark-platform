@@ -12,6 +12,7 @@ from app.services.auth import AuthError
 from app.services.content_pieces import PieceArtifact, _event
 from app.services.motion_checkpoints import MotionCheckpoints
 from app.services.motion_context import digest
+from app.services.motion_music import MotionMusic
 from app.services.motion_render_recovery import recovery_operation
 from app.services.motion_storyboards import MotionStoryboards
 from app.workflows.contracts import BusinessEvent
@@ -205,6 +206,7 @@ class MotionReviewRecovery:
                 raise AuthError("MOTION_REVIEW_RECOVERY_BYTES_CHANGED", 409)
             row["render_namespace"] = namespace
             prepared = await self.runner.inputs.prepare(self.requests.context.open(row["snapshot_ciphertext"]))
+            prepared = await MotionMusic(self.runner.effects).prepare(row, token, prepared, restore=True)
             prepared, composition = await self.boards.restore(row, board, prepared)
             candidate = await self.candidate(row, version, composition)
             return await self.runner.produce(row, token, prepared, composition, initial_candidate=candidate)

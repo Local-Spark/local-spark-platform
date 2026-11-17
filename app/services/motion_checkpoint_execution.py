@@ -14,6 +14,7 @@ from app.services.motion_checkpoints import Stage, input_manifest
 from app.services.motion_construction import implement_motion
 from app.services.motion_illustrations import MotionIllustrations
 from app.services.motion_materials import prepare_implementation_materials
+from app.services.motion_music import MotionMusic
 from app.services.motion_sound_library import apply_planned_sound
 from app.workflows.contracts import BusinessEvent
 
@@ -83,6 +84,7 @@ async def resume_checkpoint(runner: "MotionOrchestrator", event: BusinessEvent, 
             await runner.requests.locked_running(session, row, token)
             await runner.requests._admission(session, row["tenant_id"], row["business_id"])
         fresh = await runner.inputs.prepare(runner.requests.context.open(row["snapshot_ciphertext"]))
+        fresh = await MotionMusic(runner.effects).prepare(row, token, fresh, restore=True)
         prepared = restore_input(fresh, packet)
         if stage == "plan":
             plan = MotionConstructionPlan.model_validate(packet["artifact"])

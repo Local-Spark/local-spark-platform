@@ -17,6 +17,17 @@ if TYPE_CHECKING:
 
 ROOT = Path(__file__).resolve().parents[1] / "assets/motion_sounds"
 LIBRARIES = {"public-cc0-v1": "27585d59dc871497b3dd6681487fc44c34228c4615f74378654fc577d9a08c99"}
+PHOTO_SFX_RULES = (
+    "SFX photo opcionais: public-cc0-v1 oferece somente coffee-pour e cup-contact. "
+    "Selecione apenas com purpose justificando função narrativa e vínculo ao elemento/beat e ação "
+    "de servir ou contato/apoio previstos no plano. A fotografia não comprova ação nem som gravados: "
+    "o evento é sonorização editorial da representação planejada, nunca áudio original da foto. "
+    "Omitir ambos é válido; registre reason para cada candidato não usado, sem inventar ações para usar SFX. "
+    "SFX nunca substituem música ElevenLabs: preserve integralmente a faixa music autorizada. "
+    "Se Music estiver indisponível, SFX pontuais justificados continuam opcionais, não se tornam trilha "
+    "nem devem preencher toda a duração. Silêncio solicitado prevalece. "
+    "Adequação e mix continuam pendentes de escuta humana; não alegue escuta pelo sistema."
+)
 
 
 def capture_sound_library(identifier: str) -> dict[str, Any]:
@@ -131,6 +142,8 @@ def apply_planned_sound(
     if not sounds:
         return prepared
     tracks = [{**track, "role": "original", "fade_in_ms": 0, "fade_out_ms": 0} for track in prepared.audio["tracks"]]
+    if prepared.soundtrack is not None:
+        tracks.extend(track for track in prepared.soundtrack["tracks"] if track["role"] == "music")
     for sound in sounds:
         tracks.append(
             {

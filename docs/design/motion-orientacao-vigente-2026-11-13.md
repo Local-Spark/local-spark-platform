@@ -7,11 +7,14 @@ Não altera contratos serializados, runtime, autorizações ou histórico de exe
 ## Como interpretar os documentos
 
 Instruções atuais do titular e AGENTS prevalecem sobre propostas e gates históricos.
-O roteiro da próxima melhoria é
+O plano vigente para reels 15s de fotos (pós-consenso 17/11) é
+[motion-plano-reels-15s-foto-2026-11-17.md](motion-plano-reels-15s-foto-2026-11-17.md);
+não autoriza execução de fatias sem OK explícito. O roteiro histórico da
+melhoria de 13/11 permanece em
 [motion-roteiro-melhoria-peca-completa-2026-11-13.md](motion-roteiro-melhoria-peca-completa-2026-11-13.md).
-A implementação e a entrega local revisada desta sessão estão registradas em
+A implementação e a entrega local revisada daquela sessão estão em
 [motion-execucao-melhoria-2026-11-13.md](motion-execucao-melhoria-2026-11-13.md).
-O roteiro não autoriza por si só gastos ou migrações. Os achados abaixo são
+Esses roteiros não autorizam por si só gastos ou migrações. Os achados abaixo são
 o diagnóstico anterior à implementação; não substituem esse registro de execução.
 A evidência visual vigente está na
 [análise das 41 referências](../evals/analise-41-referencias-motion-2026-11-12.md).

@@ -1,5 +1,470 @@
 # SDD geral — Meu Braço Direito
 
+## 17/11/2026 — lab SSE como fonte de atualização e worker recarregado
+
+Frontend remove polling permanente de run/checkpoints/results. SSE invalida
+projeções por tipo de evento, agrupadas em 200 ms; parciais e heartbeat não
+consultam snapshots. Conexão/reconexão reconcilia snapshots; fallback de 15 s
+somente desconectado e não terminal. Checkpoints só fazem fallback quando há
+decisão pendente. Revogação/expiração de sessão interrompe acompanhamento.
+
+Diagnóstico do run fb4c0836-6636-58e4-8533-1233d76cf441: snapshot persistido
+com review_checkpoints/storyboard=true e automatic_plan=false. API iniciada
+15h46, mas worker desde 15h08 ainda carregava código anterior à mudança de
+15h43. Worker recarregado (PID 54401) após verificar zero runs queued/running
+do lab. Snapshot pausado não alterado, sem aprovação fictícia, retomada ou
+chamada paga. Novo reel usa construção automática e aprovação final mantida.
+
+Validação frontend: sete testes focados passaram, incluindo componentes reais
+sem polling por 30 s conectados, fallback/reconexão e isolamento por run.
+Três testes de descoberta em CreationLabPage.test.tsx falharam na execução mais
+ampla; suíte global não está verde. Aceite manual na UI permanece pendente.
+
+
+## 17/11/2026 — lab: construção automática, aprovação somente da peça pronta
+
+Por solicitação explícita do titular, esta decisão substitui Q5b/A2: novos reels
+do lab não exigem aprovação intermediária de plano, render ou storyboard. Fotos
+usam planned_photo_request(human_review=False), como WhatsApp: planejamento e
+validação automáticos antes de implementar. Vídeos seguem o caminho produtivo
+automático, inclusive em drafts antigos ainda não iniciados. Não são emitidos
+eventos fictícios de aprovação. Aprovação final approve-piece, RLS, Music,
+reservas, revisão e integridade permanecem; nenhuma geração paga nesta mudança.
+
+Frontend remove a galeria de frames e seus downloads. Checkpoints legados e
+perguntas de outros formatos permanecem compatíveis. Runs já iniciados conservam
+snapshot/contrato original: não foram migrados, retomados ou cobrados. Para usar
+o novo comportamento, reiniciar API/worker e iniciar um novo reel. Frames
+internos de revisão automática continuam necessários e não são aprovação humana.
+
+Validação: 15 testes unitários (planejamento photo e snapshots de vídeo) e três
+de integração photo lab/WhatsApp passaram no banco dedicado _test. TypeScript
+do frontend e Ruff da fatia passaram. Make ci bloqueado no lint global com 66
+ocorrências. Aceite UI/MP4 e cobertura global permanecem pendentes.
+
+
+## 17/11/2026 — leituras concorrentes do storyboard no lab
+
+Correção da contenção nas consultas de frames, checkpoints e resultados: essas
+leituras usam advisory lock compartilhado por run; mutações mantêm o lock
+exclusivo padrão. A decodificação dos payloads ocorre após encerrar a transação,
+sem manter lock/conexão durante essa etapa. RLS, autorização/auditoria e a
+rechecagem de expiração/bytes antes de liberar o frame permanecem vigentes.
+
+O relato do run `1095bbe0-ffc8-5242-8e5f-9ca0ec3ad36d` contém DBAPIError em
+leituras simultâneas, mas não SQLSTATE; portanto a atribuição dos 500 à contenção
+é hipótese sustentada pelo caminho exclusivo encontrado, não traceback conclusivo.
+Não houve regeneração, mudança de orçamento ou chamada paga. Reiniciar a API
+e reabrir o mesmo run para confirmar a correção na UI; aceite E2E segue pendente.
+
+Validação: cinco testes unitários de frame (sucesso, expiração, ausência, índice
+e bytes alterados); regressão PostgreSQL dedicada verifica leitores simultâneos,
+escritores exclusivos, auditoria e revogação RLS. Ruff dos arquivos alterados
+passa. Make ci segue bloqueado no lint global (66 ocorrências); cobertura global
+100% e aceite UI não foram estabelecidos nesta rodada.
+
+
+## 17/11/2026 — implementação photo: logo não consome limite de fotos
+
+Após aprovação do plano, o run `f9c135c7-c258-502a-8361-4fc5f2f5ccff` falhou
+com `MOTION_AI_ASSET_PREVIEW_INVALID` antes do envio da implementação ao modelo.
+O checkpoint continha quatro previews de fotos; o plano usava duas dessas fotos
+e o logo. O resolvedor preserva previews disponíveis e acrescenta o logo previsto,
+produzindo cinco. O adapter aplicava o limite de quatro sem separar identidade
+visual de fotografias da coleção.
+
+Correção: permitir um preview adicional somente com ID `assets/logo.png`.
+Mantido limite de quatro materiais e até dois previews de ilustrações quando
+habilitadas, mais um logo. Preservadas verificações de asset PNG autorizado,
+hash do preview e unicidade. Não descartar fotos, alterar plano ou desativar a
+validação para passar. O schema, o plano aprovado, Music e orçamento não mudam.
+
+Validação: 124 testes locais passaram, incluindo preparação real do manifesto
+seguida do builder com quatro fotos + logo, além de preview extra, duplicata,
+logo não autorizado e hash inválido. Ruff passou; `make ci` continua bloqueado
+por 70 ocorrências no lint global. Worker do lab atualizado após conferir que
+não havia geração ativa/pendente. Sem geração paga nesta investigação.
+O run falho foi preservado; o fluxo atual do lab não retoma checkpoint consumido
+de run failed por novo clique de aprovação. Aceite UI/MP4 permanece pendente.
+
+
+## 17/11/2026 — correção do launcher após reinício não resolver o conflito
+
+Correção do diagnóstico operacional anterior: o titular reiniciou a API, mas o
+novo processo ainda recebeu do ambiente de debug os mesmos renderer/tarifa
+antigos. Portanto, simplesmente reiniciar não era suficiente. Nenhuma mudança
+no cadastro ou plano explica este conflito. A validação completa
+`LabMotionRequests.current` do run `f9c135c7-c258-502a-8361-4fc5f2f5ccff` passou
+com o `.env` vigente, sob escopo RLS e rollback, sem enviar decisão.
+
+A configuração VS Code `Meu Braço Direito: API (FastAPI)` agora usa
+`app.entrypoints.api_debug`, que exige o `.env` local e carrega seus valores com
+precedência sobre exports herdados antes de iniciar Uvicorn/importar Settings.
+Isso se limita ao launcher explícito de desenvolvimento: precedência de ambiente
+na API de produção/worker e proteção de fingerprint permanecem inalteradas.
+Não gravar o novo contexto sobre o antigo nem afrouxar aprovação para contornar
+incompatibilidades reais. Titular deve parar/iniciar pela configuração corrigida
+e aprovar o mesmo plano. Sem novo run, nova aprovação automática ou gasto.
+
+Validação: três testes passaram, cobertura de linhas/ramos de 100% no launcher,
+incluindo ambiente herdado antigo, arquivo ausente e entrada como módulo.
+Ruff/format passaram. O teste de contexto real não alterou o run. CI global
+continua com pendências anteriores de lint; aceite UI/E2E segue pendente.
+A mensagem genérica de cadastro duplicado no frontend continua inadequada para
+este 409 e não deve ser interpretada como evidência de negócio duplicado.
+
+
+## 17/11/2026 — aprovação bloqueada por ambiente antigo da API
+
+O checkpoint photo permaneceu `awaiting_approval` após dois cliques com
+`MOTION_CONTEXT_CHANGED`. Verificação sob RLS confirmou fingerprint íntegro e
+recaptura idêntica com o `.env` vigente: nenhuma divergência no plano/material.
+A comparação allowlisted do processo API na porta 8000 identificou dois overrides
+antigos em memória: renderer `sha256:e9884862762529bf49086fb579676a7be15a108a5ac1bb88c7c0f44496a6bf51`
+e tarifa de entrada IA `2000000` micros/milhão. Plano e `.env` atual usam renderer
+`sha256:33f0703c51d90bf69f30c359e8eb71fa68a98b10b568265966c3c8d5025c080a`
+e tarifa `2500000`, já configurada antes desta investigação.
+
+A proteção de contexto está correta: não remover a conferência nem reescrever
+fingerprint/checkpoint para contorná-la. Necessário parar/iniciar o backend pelo
+launcher do titular, que carrega `.env`; refresh do navegador não atualiza o
+ambiente do processo. Depois, aprovar o mesmo plano, sem recriar a geração.
+O processo de backend do titular não foi encerrado pelo agente. Worker do lab já
+usa configuração vigente. Sem alteração de tarifas, aprovação programática,
+retry pago ou edição do run nesta investigação. Não houve mudança de código;
+validação foi comparação de contexto e ambiente, somente leitura.
+
+A mensagem de cadastro duplicado vem do fallback HTTP 409 do frontend e não
+representa este caso; não há evidência de negócio duplicado. Aceite E2E permanece
+pendente até o titular reiniciar o backend e continuar a aprovação.
+
+
+## 17/11/2026 — correção de cobertura do plano photo no schema do provedor
+
+Ensaio posterior superou a etapa Music (`music_v2_5`, efeito recebido) e falhou
+no plano com `MOTION_QUALITY_COVERAGE_INVALID`. Inspeção local do trace confirmou:
+os oito requisitos esperados estavam presentes, com disposition e referências
+válidas, mas o modelo adicionou `brief_alignment`, `motion_role` e
+`narrative_progression`. Esses são checks de revisão, não requisitos adicionais
+de `audiovisual.functions`. O schema genérico anterior aceitava IDs livres e até
+24 entradas, embora o validador exigisse exatamente o conjunto do contrato.
+
+O schema enviado ao provedor agora deriva os IDs permitidos de
+`quality_contract.requirements`, fixa disposition em `satisfy_requirement` e
+limita min/max de entradas ao total exigido. `planning_input.quality_coverage`
+explicita uma entrada por ID e separa checks de revisão. Modelos/schemas Pydantic
+compartilhados e snapshots anteriores não são mutados; sem quality_contract,
+a projeção histórica permanece livre. Unicidade e referências continuam
+verificadas no servidor. Não apagar extras de respostas existentes nem relaxar
+a validação; isso é integridade de contrato, não gate estético A5b.
+
+Validação: 90 testes focados passaram (schema/provider real com transporte fake,
+qualidade, geração e regressões A2/A3/A5a). Regressão sintética reproduz os três
+IDs extras; testes mantêm rejeição de duplicatas/referências inválidas e garantem
+que o schema compartilhado não muda. Ruff/format dos arquivos alterados passaram;
+`make ci` continua bloqueado por 70 ocorrências no lint global. Sem retry pago,
+reset do run, edição do plano armazenado ou mudança de orçamento/cache/ledger.
+Worker do lab atualizado após verificar ausência de geração ativa/pendente.
+Aceite UI/MP4 e escuta humana continuam pendentes; novo ensaio é iniciado pelo titular.
+
+
+## 17/11/2026 — falha Music no ensaio: diagnóstico seguro de HTTP
+
+O ensaio do titular chegou à geração `music_v2_5` e terminou `run.uncertain`
+com `MOTION_MUSIC_PROVIDER_FAILED`; reserva Music de US$ 0,10 permanece incerta.
+O adapter anterior descartou status/corpo HTTP, impedindo determinar a causa
+retrospectivamente. Não houve retry, geração diagnóstica, reset de run/cache ou
+liberação de reserva. Não presumir cobrança nem ausência de cobrança.
+
+Consulta gratuita `GET /v1/user/subscription` retornou HTTP 401 com categoria
+`missing_permissions`: falta permissão para essa consulta. Isso não comprova
+falta de permissão Music; titular deve verificar a permissão de geração na chave.
+Contrato de compose revisado na documentação oficial; causa original permanece
+não confirmada, sem atribuí-la a formato/modelo/plano por inferência.
+
+Adapter agora conserva códigos estáveis `MOTION_MUSIC_HTTP_<status>` e sufixos
+somente de categorias em allowlist (permissão/chave/quota/formato etc.). Leitura
+de erro limitada a 16 KiB; texto livre, headers e secrets não são persistidos
+nem exibidos. O código seguro percorre o tratamento de erro existente até o
+trace. Falhas de transporte continuam incertas; nenhuma repetição automática.
+A correção melhora o diagnóstico de respostas futuras, não recupera a resposta
+perdida nem resolve a causa do provedor por si só.
+
+Validação: 47 testes locais passaram, cobertura de linhas/ramos de 100% no
+adapter; ruff/format passaram. Sem gasto nesta investigação. Orçamentos, cache,
+ledger e estado do run preservados. CI global mantém pendências anteriores.
+
+
+## 17/11/2026 — preparação operacional para aceite A1–A5a
+
+Titular autorizou rebuild local/digest e, em confirmação explícita, Music:
+reserva `100000` micros (US$ 0,10), tarifa `150000` micros/min (US$ 0,15/min),
+teto mensal `1000000` micros (US$ 1). Valores aplicados somente no `.env`;
+orçamentos OpenAI preservados. Flag Music/direitos já autorizadas permanecem on.
+Nenhuma chamada paga foi feita nesta preparação; gasto começa com ensaio do titular.
+
+Migração **somente 0133_motion_music** aplicada ao banco local do lab, antes em
+0132; tabela presente com RLS e FORCE RLS. Sem limpeza, dados de teste ou migração
+para outras revisões nesse banco. Renderer reconstruído com contexto isolado,
+dependências locais e build sem rede; `.env` usa `sha256:33f0703c51d90bf69f30c359e8eb71fa68a98b10b568265966c3c8d5025c080a`.
+
+Novas gerações e ledger usam `music_v2_5`; cache existente continua reutilizável.
+Fontes verificadas: [modelo vigente](https://elevenlabs.io/docs/overview/capabilities/music)
+e [preço API](https://elevenlabs.io/pricing/api). O preço é referência de configuração,
+não reconciliação de fatura. Testes locais do adapter/serviço: 37 passaram;
+Ruff/format dos arquivos alterados passaram. CI global continua com pendência
+anterior de lint; não declarar verde nesta rodada operacional.
+
+Verificação local concluída: a imagem nova produziu MP4 sintético de 2s,
+20 frames de evidência decodificados e `music_integrity` com áudio de 2000ms,
+além de pico não vazio. Artefatos locais em `.local/reel-acceptance-20261117/`.
+Isso valida integração técnica, não qualidade artística ou escuta de ElevenLabs.
+Worker dedicado do lab reiniciado com virtualenv/código/configuração novos e
+poller de atividades confirmado no Temporal. Nenhum pedido de geração foi enviado;
+os eventos pendentes encontrados eram `creation_lab.piece_approved`, fora do
+conjunto consumido pelo worker do lab. Backend/frontend ficam para o titular iniciar.
+
+Checklist do titular: iniciar backend/front após esta atualização e criar **novo**
+ensaio Café Aurora (não retomar snapshot antigo). Usar fotos autorizadas e 15s.
+Conferir/aprovar plano no lab: fotos/relações, leitura, handoffs, SFX justificado
+ou omissão explícita. No MP4 ouvir trilha/fades, conferir leitura/progressão e
+adequação dos efeitos; inspecionar `music_integrity`, `audio_measurements` e
+`photo_metrics` no diagnóstico. Depois repetir calmo/energético/poucas fotos.
+Cache pode evitar nova geração Music; não presumir três cobranças. Aprovação
+humana ainda pendente; A5b/TTS/avatar fora do escopo e sem limiares estéticos.
+
+
+## 17/11/2026 — A5a: SFX opcionais no planejamento photo compartilhado
+
+Novos photo reels montados por `planned_photo_request` (lab e WhatsApp) passam
+`sound_library_id=public-cc0-v1` ao caminho audiovisual autorizado. O loader
+carrega os dois arquivos locais com hashes fixados: `coffee-pour` e `cup-contact`.
+Nenhum download, catálogo de trilha ou escolha de faixa pelo cliente foi criado.
+Photo reel sem esse planejamento/seleção não carrega a biblioteca. Pedidos de
+silêncio reconhecidos pela política existente A1 (inclusive sem música/trilha)
+ficam sem SFX; pedidos históricos sem biblioteca não são promovidos implicitamente.
+
+Cada candidato exige seleção justificada em `audiovisual.sounds` ou omissão
+explícita com motivo em `omitted_sounds`. Seleção exige hash autorizado, ação,
+elemento/beat não estático e intervalo compatíveis; não é obrigatório usar efeitos.
+As regras capturadas esclarecem que servir/contato são representações editoriais
+planejadas, nunca prova de ação/som ocorrido dentro da fotografia. Ausência de
+justificativa ou de ação exige omissão, não invenção de movimento na foto.
+
+O mix existente adiciona `role=effect` e conserva a faixa ElevenLabs `role=music`
+integralmente. SFX não substituem Music nem preenchem a duração para disfarçar
+sua indisponibilidade. Com Music off/sem reserva, efeitos pontuais justificados
+continuam opcionais; omitir ambos mantém silêncio. A1–A4, aprovação humana do
+lab, validação automática WA, orçamento sem auto-upgrade, staging photo, intent,
+diagnósticos informativos e `MOTION_RENDER_MUSIC_INVALID` permanecem preservados.
+
+Validação: 174 testes unitários focados passaram, incluindo A1–A4 e A5a,
+com 100% de cobertura de linhas/ramos em `motion_photos` e `motion_sound_library`.
+Ruff/format dos seis arquivos Python alterados e mypy dos dois serviços acima
+passaram. A primeira execução detectou um import em escopo incorreto, corrigido
+antes da repetição. Seis testes de integração PostgreSQL `_test` passaram
+(photo lab/WhatsApp, cache/ledger Music e decode sintético, sem API externa). `make ci` continua bloqueado no lint global
+(70 ocorrências fora desta fatia); não há CI global verde nem aceite E2E.
+
+Não houve rebuild, chamada paga, download, mudança de tarifa/reserva/`.env` ou
+migração operacional. Aceite E2E/escuta continua pendente. Próxima rodada exige
+autorização operacional para rebuild do renderer, configurar reserva/tarifa/teto
+Music, verificar migração 0133/modelo Music vigente e ensaiar UI/MP4 com escuta.
+A5b só após amostra e calibração humana; TTS/Voice/avatar fora desta mudança.
+
+
+## 17/11/2026 — A4: diagnóstico informativo e integridade da música no MP4
+
+Photo reels persistem `motion-photo-diagnostics-v1` em `diagnostics.photo_metrics`,
+no recibo durável do render e na versão criptografada, disponível no diagnóstico
+do lab. Diferença média normalizada de pixels RGB (amostras reduzidas a 64×64)
+e percentual de pares quase estáticos (< 0,01) são **descritivos**, nunca gates.
+Os tempos amostrados acompanham os valores: percentual de pares não significa
+percentual da duração nem prova de movimento contínuo. Variedade de transições
+conta descrições distintas do plano, não efeitos observados. Força narrativa
+registra quantidade de momentos declarados e fica **sem score**, dependente de
+calibração humana. Sem pares suficientes, medidas visuais são nulas.
+
+Essas métricas ficam fora da entrada de revisão/correção automática, impedindo
+que sejam convertidas em requisito de aprovação. Holds, peças calmas e frames
+idênticos continuam permitidos. Não há A5b, SFX, TTS/Voice ou avatar nesta fatia.
+
+Integridade: o renderer mantém validação/decode de MP4, codec, resolução, fps,
+duração e contagem de frames. Com trilha autorizada de papel `music`, exige uma
+stream de áudio cobrindo o término planejado (tolerância técnica de 25 ms) e pico
+não vazio medido no áudio decodificado. O serviço exige esse comprovante antes
+do upload; falha estável `MOTION_RENDER_MUSIC_INVALID`. Não há mínimo estético de
+volume: sinal baixo válido passa. A medida é do mix, não prova de atribuição de
+cada fonte. Material, contratos e orçamento continuam nos validadores existentes.
+Silêncio autorizado por A1 off/sem reserva continua válido.
+
+**Operação:** é necessário reconstruir/usar a imagem do renderer com esta mudança
+antes do ensaio com Music; imagens anteriores sem comprovante de integridade da
+trilha serão recusadas pelo serviço. Nenhuma imagem foi publicada/reconfigurada,
+nenhuma chamada paga, migração do lab ou alteração de `.env`/tarifa/reserva ocorreu.
+Persistem: reserva/tarifa/teto Music, verificar migração 0133 no lab, verificar
+`music_v2_5` antes da primeira geração paga e obter teto explícito. A1–A4 não
+estão aceitos E2E: falta ensaio UI/MP4, avaliação visual e escuta humana.
+
+Validação: 127 testes unitários focados passaram (A1–A4, orquestração e correções),
+com 100% de linhas/ramos no novo serviço de diagnóstico. Os 190 testes Node do
+renderer passaram com 100% de linhas/ramos/funções, incluindo sinais sintéticos
+FFmpeg e regressões de MP4 inválido, áudio ausente/vazio/curto. Seis integrações
+PostgreSQL `_test` passaram (cache/ledger Music e photo lab/WhatsApp). Ruff/format
+dos arquivos Python alterados e mypy do novo serviço passaram. `make ci` continua
+bloqueado no lint global: 70 ocorrências fora dos arquivos desta fatia; não há
+CI global verde nem afirmação de cobertura global de 100%.
+
+
+## 17/11/2026 — A3: implementação visual e tipografia pela intenção
+
+Novos planos photo capturam `motion-photo-intent-v1` no serviço compartilhado.
+O contrato orienta planejamento, implementação e revisão/correção por progressão
+perceptível, hierarquia/contraste/quebras de texto e tempo de leitura, além de
+handoffs justificados por origem, travessia e destino. Holds podem sustentar
+leitura ou contemplação; não há obrigação de scale, zoom, MotionV1, efeitos,
+quantidade de cortes ou CTA. Sem novos gates estéticos ou métricas A4.
+
+Na implementação, `photo_implementation_intent` projeta os tempos, beats de texto,
+direção, desenvolvimento e transições do plano validado, vinculado ao seu hash.
+A projeção não replaneja nem altera áudio. O contrato fica no snapshot; replay
+anterior sem A3 não ganha regras novas. Lab mantém checkpoint humano e WhatsApp
+validação automática de A2; trilha/cache A1 permanecem intactos.
+
+Validação local: 13 testes unitários A2 passaram. A suíte focada A2/A3/staging
+passou com 42 testes e cobertura de linhas/ramos de 100% no novo serviço A3.
+A integração A2 revelou fixture sem chave de criptografia; adicionada chave
+sintética efêmera, sem credencial real. Repetição: 3 testes de integração passaram
+no PostgreSQL dedicado `_test` (isolamento das fotos e origens lab/WhatsApp).
+Ruff dos arquivos alterados passou. `make ci` parou no lint global (70 ocorrências);
+o gate global continua pendente e não equivale à cobertura localizada.
+
+Sem chamada paga, alteração de tarifa/reserva, migração do banco do lab ou
+mudança no `.env`. A1/A2/A3 não estão aceitos E2E: faltam ensaio UI com plano e
+MP4, progressão/leitura verificadas e escuta humana. Music segue dependente da
+configuração de reserva/tarifa/teto e autorização explícita de gasto; migração
+0133 operacional e escolha do modelo Music vigente continuam pendentes de
+verificação na rodada própria. A4/A5, TTS/Voice e avatar fora desta mudança.
+
+
+## 17/11/2026 — A2: planejamento photo compartilhado; testes adiados pelo titular
+
+Escopo final desta rodada: **somente A2**, conforme a última instrução do
+titular. A3–A5, TTS/Voice, avatar e gates estéticos não foram implementados.
+O titular dispensou merge como pré-requisito, confirmou plano ElevenLabs
+Starter+ e chave local e autorizou Music no `.env`. Foram habilitadas somente
+as flags de execução Music e confirmação de direitos; credencial, tarifas e
+orçamentos preservados. Sem reload de worker, migração operacional, chamada
+paga ou teste de ponta a ponta. A ativação local da flag não comprova que os
+outros requisitos de execução estejam configurados.
+
+Novos photo reels do fluxo compartilhado por lab/WhatsApp usam preparação
+vinculada às fotografias autorizadas, plano audiovisual separado do código e
+contratos versionados `proposed-photo-output-v1`, `motion-photo-quality-v1` e
+`motion-staging-photo-v1`. `photo_dominant` exige fotografia autorizada como
+protagonista; `integrated` exige uma fotografia autorizada no conjunto visual.
+`graphic` continua disponível para cenas gráficas, sem classificar toda foto
+como grafismo. Não se aceita `recording_dominant` no contrato photo nem se
+inventa vídeo, voz ou transcrição. Schema enviado ao modelo fixa versão e
+relações válidas do contrato; snapshots antigos conservam seus contratos.
+
+A origem do pedido, não o modo da UI, define a aprovação: lab sempre captura
+checkpoint humano de plano (inclusive modo “automatic”); WhatsApp usa
+`automatic_plan` e implementa após os validadores compartilhados, sem emitir
+`motion.plan_approved`. O plano continua imutável na implementação. Esta
+mudança cobre novos pedidos de fotos; não reescreve tentativas históricas.
+
+Admissão photo exige capacidade para plan + implement + review e os pares
+correct/review configurados: `(3 + 2*max_corrections) * reserva`. Antes de
+implementar, revalida o saldo para implementação/revisões/correções e imagens
+declaradas. Insuficiência produz `MOTION_CONSTRUCTION_BUDGET_REQUIRED`; nenhum
+teto é ampliado. A seleção/cache/mix de ElevenLabs Music permanece em A1.
+Não foi habilitada biblioteca Freesound para novos pedidos nesta fatia.
+
+Validação desta rodada: revisão de código, Ruff e formatação dos arquivos
+alterados; `git diff --check`. Adicionados testes unitários de semântica,
+schema, orçamento e roteamento lab/WhatsApp, mais integração do assembler
+compartilhado com anexos privados/RLS. **Testes não executados**, por instrução
+expressa do titular; não há resultado novo de cobertura, CI ou aceite de A2.
+Pendentes: executar os testes da fatia/CI e ensaio de ponta a ponta posterior,
+com teto explícito antes de qualquer chamada paga; avaliar plano e MP4 pela
+UI. Os resultados antigos de A1 abaixo são evidências históricas separadas.
+
+## 17/11/2026 — A1 implementada: Music privado, execução desativada
+
+Autorização desta rodada: implementar somente A1. Adapter ElevenLabs Music
+(`music_v1`, instrumental, MP3, uma tentativa, resposta limitada a 1 MiB),
+seleção determinística de mood por pedido/fatos confirmados e cache interno
+criptografado em PostgreSQL. Cache por negócio + mood + duração, com hash e
+vínculo à operação; sem catálogo ou escolha/download de faixa pelo cliente.
+Freesound continua reservado ao caminho existente de SFX. A2–A5, TTS e avatar
+não fazem parte desta mudança.
+
+O serviço compartilhado prepara a trilha e a reutiliza nas retomadas de plano,
+storyboard e recuperação. Mix `motion-audio-v2`: volume 0,18, fade-in 500 ms,
+fade-out 800 ms; preserva música quando o caminho existente acrescenta SFX.
+Gera pelo menos 15s e cobre a duração do reel (até 60s); não inventa vídeo-fonte.
+Novos snapshots usam política `elevenlabs-music-v1`; os antigos conservam o
+caminho de biblioteca capturado.
+
+Flag `elevenlabs_music_execution_enabled=false`, chave SecretStr, confirmação
+explícita de direitos comerciais, tarifa e reserva/teto mensal inicialmente
+zero. O teto Music é por tenant/mês UTC, compartilhado entre lab e produção;
+os limites de pedido e o ledger administrativo/comercial continuam aplicáveis.
+Reservas são duráveis antes da API; valor estimado não é tratado como fatura.
+Falha incerta mantém hold e impede repetição automática. Cache/mês usam RLS,
+login restrito, auditoria/outbox e transações curtas sem rede sob locks.
+Pedido de silêncio ou configuração/orçamento indisponível mantém silêncio com
+status interno; áudio selecionado vazio, alterado ou curto falha explicitamente.
+
+Migração `0133_motion_music` aplicada somente ao banco dedicado `_test`.
+Nenhuma leitura/exposição de chave real, chamada paga, download Freesound,
+ativação de flag, reload de worker ou migração do banco do projeto.
+
+Validação: 40 testes A1 aprovados com provider fake, HTTP simulado, cache/RLS,
+concorrência do teto mensal, ledger real e MP4 sintético de 15s produzido pelo
+mixer de produção. Áudio final decodificado com duração, energia não nula,
+fades e ausência de clipping verificados. Módulos novos com 100% linhas/branches.
+O CI global permanece bloqueado: `make ci` para em 74 erros de lint; mypy
+aponta 183 erros em 31 arquivos. Suíte ampliada de motion: 1.395 passaram e
+19 falharam; as mesmas 19 falhas foram reproduzidas carregando o código de
+`motion_context.py` do HEAD (sem substituir arquivos do workspace). Os oito
+testes Node do mixer passaram. Não declarar cobertura global de 100% nem
+mudança pronta para merge.
+
+Pendente: resolver gates globais; migração operacional planejada; confirmar com
+o titular chave local, plano Starter+/direitos e teto antes de qualquer ensaio
+pago. Escuta/aceite de trilha real ElevenLabs e avaliação criativa do MP4 ainda
+não realizados. A prova sintética verifica integração, não qualidade musical.
+Contrato HTTP consultado: https://elevenlabs.io/docs/api-reference/music/compose
+(não confirma preço, assinatura ou autorização de geração).
+
+## 17/11/2026 — trilha photo reel: ElevenLabs Music (decisão)
+
+Titular rejeitou Freesound CC0 para jazz/café e escolheu **ElevenLabs Music**
+para trilhas: o sistema escolhe no cache interno ou gera; o cliente não vê nem
+escolhe faixas. SFX continuam em Freesound CC0. Voice/clonagem ElevenLabs
+permanece fatia posterior. Decisão em `docs/DECISIONS.md`; plano A1 atualizado
+em [motion-plano-reels-15s-foto-2026-11-17.md](design/motion-plano-reels-15s-foto-2026-11-17.md).
+Integração/código e chamada paga ainda não autorizadas neste registro — falta
+conta, plano comercial e API key local.
+
+## 17/11/2026 — plano documentado: reels 15s de fotos (A0–A5 + TTS)
+
+Após análise do MP4 `versao-1` (silêncio, holds, dois cortes), do pipeline photo
+reel e revisão cruzada do plano, o titular validou decisões em entrevista e
+pediu apenas o registro documental — sem executar A0 operacional, sem código
+novo, sem download de música e sem chamada paga neste ato.
+
+Plano vigente:
+[motion-plano-reels-15s-foto-2026-11-17.md](design/motion-plano-reels-15s-foto-2026-11-17.md).
+A0 = checklist manual (sem script). Silêncio se pedido ou sem faixa elegível.
+Lab com checkpoint de plano; WhatsApp com validação automática do plano.
+Narração TTS para photo reel é fatia extra (N), com provedor/orçamento ainda
+abertos. Variedade musical continua pendência. Primeira prova OpenAI autorizável
+depois: teto ≤ US$ 5 com OK explícito na hora. Candidatos Freesound CC0 devem
+ser apresentados antes de pinagem (A1).
+
 ## 17/11/2026 — schema de geração respeita habilitação de staging
 
 Tentativa af31c6b3-b273-5871-a2f5-64e0cab96944 falhou com

@@ -94,6 +94,9 @@ async def plan_motion(
     require_quality_readiness(prepared.context)
     reserve = effects.requests.settings.motion_ai_reservation_usd_micros
     required = reserve if prepared.context.get("request", {}).get("review_checkpoints") else 3 * reserve
+    if prepared.context.get("photo_motion", {}).get("planning_policy") == "photo-production-v1":
+        # Admit the complete configured path before paying for its plan; never increase the ceiling.
+        required = (3 + 2 * row["max_corrections"]) * reserve
     if not await effects.capacity(row, token, required):
         raise AuthError("MOTION_CONSTRUCTION_BUDGET_REQUIRED", 409)
     job = replace(construction_job(row, prepared), operation_id=uuid5(row["operation_id"], "generate:plan:0"))
@@ -124,6 +127,8 @@ async def implement_motion(
     reserve = effects.requests.settings.motion_ai_reservation_usd_micros
     image_reserve = (prepared.context.get("illustration_generation") or {}).get("reservation_usd_micros", 0)
     calls = 1 if prepared.context.get("request", {}).get("review_checkpoints") else 2
+    if prepared.context.get("photo_motion", {}).get("planning_policy") == "photo-production-v1":
+        calls = 2 + 2 * row["max_corrections"]
     if not await effects.capacity(row, token, calls * reserve + len(plan.illustrations) * image_reserve):
         raise AuthError("MOTION_CONSTRUCTION_BUDGET_REQUIRED", 409)
     if asset_informed_enabled(prepared.context):

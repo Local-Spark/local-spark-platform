@@ -441,3 +441,22 @@ test('storyboard protocol seeks only requested scenes and never encodes video or
   assert.equal(env.commands.length,0);
   assert.equal(env.window.times.length,2);
 });
+
+test('authorized music requires a nonempty decoded output spanning its planned end', async () => {
+  const configure=cfg=>{
+    cfg.audio={version:'motion-audio-v2',mode:'mix',ducking:null,tracks:[
+      {asset_id:'assets/source.mp4',role:'music',trim_start_ms:0,trim_end_ms:100,offset_ms:0,volume:.1,fade_in_ms:0,fade_out_ms:0}]};
+  };
+  // A distinct authorized audio asset, never misclassify the original source branch.
+  const setup=cfg=>{configure(cfg);cfg.assets[1].mime_type='audio/wav';cfg.audio.tracks[0].asset_id='assets/image.png';};
+  const metadata=result=>result.streams.push({codec_type:'audio',duration:'0.100'});
+  const good=environment({configure:setup,metadata});
+  await good.run();
+  assert.equal(JSON.parse(good.stdout[0]).diagnostics.music_integrity.audio_duration_ms,100);
+  for(const options of [
+    {},
+    {metadata:result=>result.streams.push({codec_type:'audio',duration:'0.010'})},
+    {metadata:result=>result.streams.push({codec_type:'audio',duration:'0'})},
+    {metadata, audioMetricsText:'Summary:\nIntegrated loudness:\nI: -70 LUFS\nSample peak:\nPeak: -inf dBFS'},
+  ]) await assert.rejects(environment({configure:setup,...options}).run(),/MOTION_RENDER_MUSIC_INVALID/);
+});

@@ -9,6 +9,7 @@ from sqlalchemy import text
 from app.services.auth import AuthError
 from app.services.content_pieces import _event
 from app.services.motion_context import digest
+from app.services.motion_music import MotionMusic
 from app.services.motion_storyboards import MotionStoryboards
 from app.workflows.contracts import BusinessEvent
 
@@ -198,6 +199,7 @@ class MotionRenderRecovery:
         row["render_namespace"] = recovery_operation(operation)
         try:
             prepared = await self.runner.inputs.prepare(self.requests.context.open(row["snapshot_ciphertext"]))
+            prepared = await MotionMusic(self.runner.effects).prepare(row, token, prepared, restore=True)
             prepared, composition = await self.boards.restore(row, board, prepared)
             return await self.runner.produce(row, token, prepared, composition)
         except BaseException as exc:

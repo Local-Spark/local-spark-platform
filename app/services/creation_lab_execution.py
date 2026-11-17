@@ -22,9 +22,13 @@ class CreationLabExecution:
         self.settings, self.database = settings, database
         self.cipher = MotionContext(settings)
 
-    async def guard(self, session: AsyncSession, actor: UUID, run: UUID, action: str) -> Any:
+    async def guard(
+        self, session: AsyncSession, actor: UUID, run: UUID, action: str, *, read_only: bool = False
+    ) -> Any:
         await session.execute(text("SELECT set_config('app.creation_lab_run_id',:run,true)"), {"run": str(run)})
-        await session.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:key,120))"), {"key": str(run)})
+        # Readers may overlap; writers still fence effects, events and checkpoint decisions.
+        lock = "pg_advisory_xact_lock_shared" if read_only else "pg_advisory_xact_lock"
+        await session.execute(text(f"SELECT {lock}(hashtextextended(:key,120))"), {"key": str(run)})
         row = (
             (await session.execute(text("SELECT * FROM creation_lab_runs WHERE id=:run"), {"run": run}))
             .mappings()

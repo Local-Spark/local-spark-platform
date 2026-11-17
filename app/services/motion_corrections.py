@@ -42,7 +42,7 @@ def fingerprint(value: object) -> str:
 
 def review_diagnostics(diagnostics: dict[str, Any]) -> dict[str, Any]:
     """All-frame evidence stays durable locally, not repeated as model tokens."""
-    result = {key: value for key, value in diagnostics.items() if key != "frame_fingerprints"}
+    result = {key: value for key, value in diagnostics.items() if key not in {"frame_fingerprints", "photo_metrics"}}
     if "frame_fingerprints" in diagnostics:
         result["frame_fingerprints_sha256"] = fingerprint(diagnostics["frame_fingerprints"])
     return result

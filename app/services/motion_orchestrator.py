@@ -25,12 +25,14 @@ from app.services.motion_corrections import (
     review_diagnostics,
     validate_candidate,
 )
+from app.services.motion_diagnostics import diagnose_render
 from app.services.motion_effects import MotionEffects
 from app.services.motion_elements import elements_hash
 from app.services.motion_evolution import evolution_verdict
 from app.services.motion_generation import asset_informed_enabled
 from app.services.motion_illustrations import IllustrationProvider, MotionIllustrations
 from app.services.motion_movement import movement_hash
+from app.services.motion_music import MotionMusic
 from app.services.motion_plan import validate_motion_plan
 from app.services.motion_protocols import MotionModelProvider, MotionModelRequest, MotionRenderer
 from app.services.motion_requests import MotionRequestService
@@ -41,7 +43,6 @@ from app.services.motion_temporal import evidence_manifest, sample_times, tempor
 from app.services.visual_pending_changes import VisualPendingChanges
 from app.services.visual_pending_scripts import apply_pending_script_changes
 from app.workflows.contracts import BusinessEvent
-
 
 if TYPE_CHECKING:
     from app.services.motion_checkpoints import MotionCheckpoints
@@ -161,6 +162,7 @@ class MotionOrchestrator:
     async def prepare(self, row: dict[str, Any], token: UUID) -> PreparedMotionInput:
         """Shared source preparation, transcription and creative-contract guards."""
         prepared = await self.inputs.prepare(self.requests.context.open(row["snapshot_ciphertext"]))
+        prepared = await MotionMusic(self.effects).prepare(row, token, prepared)
         prepared = await MotionSpeechRecognition(self.effects, self.speech_recognizer).prepare(row, token, prepared)
         movement_hash(prepared.context)
         elements_hash(prepared.context)
@@ -190,6 +192,7 @@ class MotionOrchestrator:
                 await self.requests._admission(session, row["tenant_id"], row["business_id"])
                 await self.requests.locked_running(session, row, token)
             prepared = await self.inputs.prepare(self.requests.context.open(row["snapshot_ciphertext"]))
+            prepared = await MotionMusic(self.effects).prepare(row, token, prepared, restore=True)
             prepared, composition = await boards.restore(row, board, prepared)
             return await self.produce(row, token, prepared, composition)
         except BaseException as exc:
@@ -402,6 +405,7 @@ class MotionOrchestrator:
             or not 1 <= len(rendered.mp4) <= 50 * 1024 * 1024
         ):
             raise AuthError("MOTION_RENDER_BYTES_INVALID", 409)
+        rendered = diagnose_render(rendered, prepared, composition)
         await self.effects.received(
             row, token, render_operation, {"sha256": rendered.sha256, "diagnostics": rendered.diagnostics}
         )

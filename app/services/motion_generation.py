@@ -118,8 +118,26 @@ PRODUCTION_GENERATION_CONTRACT = {
 }
 
 
+PHOTO_GENERATION_CONTRACT = {
+    **PRODUCTION_GENERATION_CONTRACT,
+    "version": "proposed-photo-output-v1",
+    "direction_source": "validated_photo_plan",
+    "response_rules": PRODUCTION_GENERATION_CONTRACT["response_rules"].replace(
+        "Uma aprovação de plano permite apenas implementar, e o checkpoint seguinte antecede qualquer render.",
+        "request.review_checkpoints=true exige aprovação humana do plano no laboratório. "
+        "request.automatic_plan=true autoriza implementar após validação automática no WhatsApp; "
+        "não declare aprovação humana. Fotos não têm fala nem ação gravada. "
+        "Use photo_dominant/integrated conforme staging_contract e mantenha authorized_soundtrack.",
+    ),
+}
+
+
 def proposed_generation_enabled(context: dict[str, Any]) -> bool:
-    return context.get("generation_contract") in (PROPOSED_GENERATION_CONTRACT, PRODUCTION_GENERATION_CONTRACT)
+    return context.get("generation_contract") in (
+        PROPOSED_GENERATION_CONTRACT,
+        PRODUCTION_GENERATION_CONTRACT,
+        PHOTO_GENERATION_CONTRACT,
+    )
 
 
 def asset_informed_enabled(context: dict[str, Any]) -> bool:
@@ -127,6 +145,7 @@ def asset_informed_enabled(context: dict[str, Any]) -> bool:
         ASSET_INFORMED_GENERATION_CONTRACT,
         PROPOSED_GENERATION_CONTRACT,
         PRODUCTION_GENERATION_CONTRACT,
+        PHOTO_GENERATION_CONTRACT,
     )
 
 
@@ -137,6 +156,7 @@ def staged_generation_enabled(context: dict[str, Any]) -> bool:
         ASSET_INFORMED_GENERATION_CONTRACT,
         PROPOSED_GENERATION_CONTRACT,
         PRODUCTION_GENERATION_CONTRACT,
+        PHOTO_GENERATION_CONTRACT,
     )
 
 
@@ -201,16 +221,23 @@ def provided_output_enabled(context: dict[str, Any]) -> bool:
     contract = context.get("generation_contract")
     if contract is None:
         return False
-    if contract in (PROPOSED_GENERATION_CONTRACT, PRODUCTION_GENERATION_CONTRACT):
+    if contract in (PROPOSED_GENERATION_CONTRACT, PRODUCTION_GENERATION_CONTRACT, PHOTO_GENERATION_CONTRACT):
         request = context.get("request", {})
         if (
             not request.get("propose_direction")
-            or not request.get("review_checkpoints")
+            or not (
+                request.get("review_checkpoints")
+                or (
+                    contract == PHOTO_GENERATION_CONTRACT
+                    and request.get("automatic_plan")
+                    and request.get("source_asset_id") is None
+                )
+            )
             or request.get("scene_direction") is not None
             or not request.get("preparation")
         ):
             raise AuthError("MOTION_PROPOSED_DIRECTION_CONTEXT_REQUIRED", 409)
-        if contract == PRODUCTION_GENERATION_CONTRACT:
+        if contract in (PRODUCTION_GENERATION_CONTRACT, PHOTO_GENERATION_CONTRACT):
             from app.services.motion_quality import validate_quality_context
 
             if not validate_quality_context(context):

@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import Settings
 from app.db.session import Database
 from app.schemas.creation_lab import LabStart
-from app.schemas.motion_preparation import MotionPreparation
 from app.schemas.motion_production import MotionRequest
 from app.services.auth import AuthError
 from app.services.content_pieces import _event
@@ -124,7 +123,8 @@ class LabMotionRequests(MotionRequestService):
             committed = int(
                 await session.scalar(
                     text(
-                        "SELECT coalesce(sum(committed_usd_micros),0) FROM creation_lab_runs WHERE actor_id=:actor AND origin='lab'"
+                        "SELECT coalesce(sum(committed_usd_micros),0) FROM creation_lab_runs "
+                        "WHERE actor_id=:actor AND origin='lab'"
                     ),
                     {"actor": actor},
                 )
@@ -168,52 +168,20 @@ class LabMotionRequests(MotionRequestService):
         from app.services.message_creation import message_text
 
         message = message_text(self.context, row)
-        if row.get("flow_version") == 2:
-            from app.services.motion_photos import photo_duration_ms
+        from app.services.motion_photos import photo_duration_ms
 
-            request = MotionRequest(
-                operation_id=self.run_id,
-                instruction=message,
-                source_asset_id=body.source_attachment_id,
-                photo_duration_ms=photo_duration_ms(message) if body.source_attachment_id is None else None,
-            )
-            return await self.context.capture(session, row["tenant_id"], row["business_id"], request)
-        preparation = MotionPreparation.model_validate(
-            {
-                "client_message": message,
-                "decisions": [
-                    {
-                        "id": f"request-{i}",
-                        "kind": "requirement",
-                        "origin": "client",
-                        "source_excerpt": message[i : i + 1000],
-                        "interpretation": "Trecho literal do pedido; preservar seu sentido no planejamento.",
-                        "scope": "request",
-                    }
-                    for i in range(0, len(message), 1000)
-                ],
-                "evidence": [
-                    {
-                        "id": "source-start",
-                        "kind": "source",
-                        "at_ms": [0],
-                        "observation": "Vídeo anexado pelo administrador; conteúdo visual ainda será inspecionado pelo modelo.",
-                        "intended_use": "Usar a fonte e os frames extraídos pelo fluxo produtivo para planejar a peça.",
-                        "limitations": "Esta seleção inicial não representa aprovação estética nem análise do movimento.",
-                    }
-                ],
-            }
-        )
         request = MotionRequest(
             operation_id=self.run_id,
             instruction=message,
             source_asset_id=body.source_attachment_id,
-            storyboard=True,
-            review_checkpoints=True,
-            propose_direction=True,
-            preparation=preparation,
+            photo_duration_ms=photo_duration_ms(message) if body.source_attachment_id is None else None,
         )
         snapshot = await self.context.capture(session, row["tenant_id"], row["business_id"], request)
+        if request.source_asset_id is None:
+            from app.services.motion_photos import planned_photo_request
+
+            request = planned_photo_request(request, snapshot.get("collection_photos", []), human_review=False)
+            snapshot = await self.context.capture(session, row["tenant_id"], row["business_id"], request)
         return snapshot
 
     async def current(self, session: AsyncSession, row: Any) -> None:
@@ -256,7 +224,8 @@ class LabMotionRequests(MotionRequestService):
             token = uuid4()
             await session.execute(
                 text(
-                    "UPDATE creation_lab_runs SET state='running',execution_token=:token,execution_event_id=:event WHERE id=:run"
+                    "UPDATE creation_lab_runs SET state='running',execution_token=:token,"
+                    "execution_event_id=:event WHERE id=:run"
                 ),
                 {"run": self.run_id, "token": token, "event": event_id},
             )

@@ -22,11 +22,12 @@ class CreationLabResults:
 
     async def list(self, actor: UUID, run: UUID) -> dict[str, Any]:
         async with self.database.transaction(ZERO, actor) as session:
-            state = await self.execution.guard(session, actor, run, "admin.creation_lab.results.read")
+            state = await self.execution.guard(session, actor, run, "admin.creation_lab.results.read", read_only=True)
             versions = (
                 (
                     await session.execute(
-                        text("""SELECT v.id,v.run_id,r.attempt_number,v.number,v.sha256,v.mime_type,v.size_bytes,v.selected,
+                        text("""SELECT v.id,v.run_id,r.attempt_number,v.number,v.sha256,v.mime_type,v.size_bytes,
+              v.selected,
               v.review_verdict,v.copy_ciphertext,v.created_at,
               EXISTS(SELECT 1 FROM creation_lab_approvals a WHERE a.version_id=v.id) AS approved
               FROM creation_lab_versions v
@@ -60,25 +61,25 @@ class CreationLabResults:
                 .mappings()
                 .all()
             )
-            return {
-                "state": state["state"],
-                "trace_expires_at": state["trace_expires_at"],
-                "versions": [
-                    {k: v for k, v in item.items() if k != "copy_ciphertext"}
-                    | {"copy": self.execution.cipher.open(item["copy_ciphertext"]) if item["copy_ciphertext"] else None}
-                    for item in versions
-                ],
-                "feedback": [
-                    {
-                        "id": item["id"],
-                        "version_id": item["version_id"],
-                        "timestamp_ms": item["timestamp_ms"],
-                        "created_at": item["created_at"],
-                        **self.execution.cipher.open(item["note_ciphertext"]),
-                    }
-                    for item in feedback
-                ],
-            }
+        return {
+            "state": state["state"],
+            "trace_expires_at": state["trace_expires_at"],
+            "versions": [
+                {k: v for k, v in item.items() if k != "copy_ciphertext"}
+                | {"copy": self.execution.cipher.open(item["copy_ciphertext"]) if item["copy_ciphertext"] else None}
+                for item in versions
+            ],
+            "feedback": [
+                {
+                    "id": item["id"],
+                    "version_id": item["version_id"],
+                    "timestamp_ms": item["timestamp_ms"],
+                    "created_at": item["created_at"],
+                    **self.execution.cipher.open(item["note_ciphertext"]),
+                }
+                for item in feedback
+            ],
+        }
 
     async def feedback(self, actor: UUID, run: UUID, body: LabFeedback) -> dict[str, Any]:
         async with self.database.transaction(ZERO, actor) as session:
