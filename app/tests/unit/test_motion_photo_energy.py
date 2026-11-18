@@ -7,7 +7,8 @@ import pytest
 from app.schemas.motion_plan import MotionBeat
 from app.services.auth import AuthError
 from app.services.motion_photo_energy import energetic
-from app.services.motion_photo_intent import PHOTO_INTENT_CONTRACT, PHOTO_INTENT_CONTRACT_V5
+from app.services.motion_photo_intent import PHOTO_INTENT_CONTRACT_V5
+from app.services.motion_photo_intent import PHOTO_INTENT_CONTRACT_V6 as PHOTO_INTENT_CONTRACT
 from app.tests.unit.test_motion_photo_quality import quality_case, validate
 
 

@@ -102,7 +102,7 @@ def photo_case(*, human_review=False):
                         start_ms=scene["start_ms"],
                         end_ms=scene["end_ms"],
                         start_state="scale=1.04 x_pct=0 y_pct=0",
-                        end_state="scale=1.16 x_pct=0 y_pct=0",
+                        end_state="scale=1.28 x_pct=0 y_pct=0",
                         curve={"kind": "linear", "parameters": []},
                     )
                 ]

@@ -1,5 +1,50 @@
 # BL04 — contexto seletivo e produção visual com IA
 
+## 18/11/2026 — photo O1–O3: continuidade e magnitude declarada
+
+Implementado por autorização posterior ao diagnóstico v6. Novas capturas usam
+intent/regras photo v7, skill `instagram-reel-photo-v18` e repertório default
+`business-reel-v10`, com hashes pinados. O1 exige cover 9:16 em cada cena,
+inclusive miolo/fecho; contain+blur só por inviabilidade de crop documentada
+por cena (região essencial, alternativas e margem). Exceção não se propaga às
+outras cenas. Crop v5 continua prevalecendo sobre bleed/energia.
+
+O2 endurece apenas v7: transform linear precisa, no mesmo eixo, de velocidade
+de scale ≥0,02/s **e** amplitude ≥0,04, ou pan ≥1 ponto percentual/s **e**
+amplitude ≥2 pontos percentuais. Mantém união global, lacunas ≤2500 ms,
+overlays text/graphic relacionados na mesma cena e gates M3. Pulsos abaixo
+da amplitude não contam; snapshots v6 mantêm os mínimos anteriores. O exemplo
+v10 amplia KB, conserva seek absoluto/reversível e mantém CTA separado do
+wrapper que sai. Exige adaptação ao crop/plano, instanciação em scene_init e
+chamada em seek; não é auto-injetado.
+
+O3 reforça PNG overlay sobre foto, wrapper transparente sem placa/card creme,
+CTA com contraste local durante todo percurso e movimento de foto/logo até
+end. Não existe campo estruturado de layout no schema atual: O1/O3 são regras
+de planejamento/implementação e exemplo, não gates geométricos/DOM/pixels.
+O2 mede declarações, não visibilidade ou energia percebida no MP4.
+
+Preservados snapshots históricos, vídeo, Music/mix, renderer e alterações
+documentais já preparadas pelo titular. O4 adiado para manter esta fatia
+focada; sem TTS/avatar, A5b ou chamada paga.
+
+Validação: 229 unitários, 16 testes Node de exemplos photo e três integrações
+PostgreSQL dedicadas `_test` com logins restritos passaram. Intent/quality/energy
+com 100% de linhas e branches no recorte. Ruff dos arquivos alterados passou.
+`make ci` executado: bloqueado nas 66 ocorrências de lint preexistentes; CI
+integral e cobertura global 100% não estabelecidos. Sem exclusões ou gates
+relaxados. Pendente: novo MP4 autorizado e revisão audiovisual do titular;
+esta implementação não declara aceite E2E nem melhoria perceptiva comprovada.
+
+## 18/11/2026 — ensaio v6 Café Aurora: gaps O1–O4 (só docs)
+
+Ensaio `versao-1 (6).mp4`: melhorou (cover 9:16 na abertura; holds de 6+ s
+sumiram), mas miolo regressa a janela+blur, ~88% quase estático entre trocas,
+logo em placa creme no fecho, mix −31,6 LUFS. Diagnóstico e backlog O1–O4 com
+prompt em
+[motion-ensaio-cafe-aurora-v6-gaps-2026-11-18.md](../design/motion-ensaio-cafe-aurora-v6-gaps-2026-11-18.md).
+Sem implementação, chamada paga, A5b ou aceite E2E nesta mudança.
+
 ## 18/11/2026 — photo N1–N3: cover real, energia declarada e marca sem placa
 
 Implementação autorizada após o ensaio v5. Novas capturas usam intent/regras

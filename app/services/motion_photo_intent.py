@@ -147,9 +147,38 @@ PHOTO_ENERGY_RULES = (
     "tempos aprovados, sem replanejar. N1/N2/N3 refinam as orientações anteriores; exceção de contain "
     "exige inviabilidade de crop, não apenas preferência estética."
 )
-PHOTO_INTENT_CONTRACT = {
+PHOTO_INTENT_CONTRACT_V6 = {
     "version": "motion-photo-intent-v6",
     "rules": PHOTO_INTENT_CONTRACT_V5["rules"] + " " + PHOTO_ENERGY_RULES,
+}
+
+
+PHOTO_CONTINUITY_RULES = (
+    "O1: estas regras refinam N1–N3. Em TODAS as cenas fotográficas, inclusive miolo e fecho, use cover "
+    "9:16 contínuo com protagonista protegido. Não regresse a janela landscape + blur após abertura cover "
+    "com o mesmo material viável. Contain+blur não é estilo alternativo: por CADA cena excepcional, "
+    "registre em composition a região essencial cortada, alternativas de cover/foto examinadas e margem; "
+    "em development explique a inviabilidade e como manter energia. A exceção de uma cena não autoriza "
+    "contain nas outras. Crop v5 prevalece; não invente viabilidade nem corte protagonista para cumprir "
+    "energia. O2: para novas capturas, um transform energético linear exige no MESMO eixo velocidade de "
+    "scale >=0.02/s E amplitude >=0.04, OU pan >=1 ponto percentual/s E amplitude >=2 pontos percentuais. "
+    "Substitui os mínimos N2; mantém união global e lacunas <=2500 ms, M3 e overlays relacionados da "
+    "mesma cena. Pulsos mínimos fragmentados não contam. Exemplo de miolo em 4 s: scale=1.04 x_pct=0 "
+    "y_pct=0 até scale=1.16 x_pct=0 y_pct=0; adapte à margem real, nunca copie crop cegamente. Se "
+    "limitado, coordene text/graphic relacionado visível com amplitude suficiente e leitura preservada. "
+    "Execute os estados no seek: wrappers separados para KB contínuo e entrada/saída tipográfica com "
+    "deslocamento/máscara; opacity zero, camada oculta ou transform sobrescrito não realizam energia. O3: "
+    "no fecho renderize assets/logo.png em img overlay sobre foto, wrapper transparente sem background "
+    "creme, placa, card, borda ou padding editorial. Não incorpore placa ao redor do PNG. Use scrim "
+    "local/gradiente neutro sobre a foto para contraste da marca e CTA; confira CTA durante todo "
+    "percurso, reserve leitura, sem desaparecer antes de end. Foto(s), logo e CTA permanecem visíveis, "
+    "foto e logo em movimento até end conforme M3. Se o próprio asset impedir este acabamento, peça "
+    "revisão do plano; não redesenhe a marca. O1/O3 são instruções de composição e implementação, não "
+    "inspeção DOM/pixels; O2 valida declarações, sem A5b ou aceite audiovisual. "
+)
+PHOTO_INTENT_CONTRACT = {
+    "version": "motion-photo-intent-v7",
+    "rules": PHOTO_INTENT_CONTRACT_V6["rules"] + " " + PHOTO_CONTINUITY_RULES,
 }
 
 
@@ -163,6 +192,7 @@ def photo_intent_rules(context: dict[str, Any]) -> str:
         PHOTO_INTENT_CONTRACT_V3,
         PHOTO_INTENT_CONTRACT_V4,
         PHOTO_INTENT_CONTRACT_V5,
+        PHOTO_INTENT_CONTRACT_V6,
         PHOTO_INTENT_CONTRACT,
     ):
         raise AuthError("MOTION_PHOTO_INTENT_CONTRACT_INVALID", 409)

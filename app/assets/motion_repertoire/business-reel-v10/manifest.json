@@ -1,0 +1,103 @@
+{
+  "id": "business-reel-v10",
+  "version": 10,
+  "rules": "Exemplos originais qualificados no renderer; escolher somente mecanismos pertinentes, sem copiar composição, identidade ou conteúdo. Não são template obrigatório, assets da peça ou aprovação artística. Referências estudadas informam mecanismos; nenhum dos 41 vídeos é anexado. Extensão photo P1–P3 testada em seek sintético; não equivale a aceite audiovisual. L1: quando assets/logo.png estiver disponível, declare no plano pelo menos um elemento role=image com asset_id=assets/logo.png. No HTML do fecho, renderize obrigatoriamente <img src=\"assets/logo.png\"> visível, seguindo os tempos de fecho/handoff do plano; declarar o asset no plano não basta. brand_name tipográfico pode coexistir como copy, mas não substitui o PNG. Preserve proporções e legibilidade da logo. P4/L2: planeje holds de leitura curtos, de até ~2–2,5 s; divida copy longa em beats legíveis. Em 15 s, prefira gancho → acento → segundo material vivo → handoff → marca/CTA. Durante o fecho/handoff, nos tempos definidos pelo plano, mantenha Ken Burns nas fotos/díptico e micro-movimento de scale/assentamento na logo até o fim; nenhum fecho de ~2 s ou mais sem mudança perceptível. L3: foto dominante full-bleed 9:16 com object-fit:cover e foco protegido é a composição padrão. Evite janela landscape e faixas mortas; justifique inset na intenção quando necessário. Tipografia/overlay sobre foto com contraste e protagonista protegido, sem cartaz estático. Ritmo e composição são orientação forte, não gates automáticos A5b; preserve a trilha. M1: componha anúncio fotográfico, não cartaz editorial: default full-bleed 9:16 desde o gancho, foto cobrindo o quadro na maior parte do tempo útil, object-fit:cover e foco protegido. Texto/CTA são overlays sobre foto com contraste local (scrim/gradiente), nunca grandes faixas creme. Não aceite como default cartão creme com foto em janela ou abertura só tipográfica de vários segundos. Inset é exceção: justifique explicitamente em staging.development e scene_direction.composition por que ajuda a mensagem; não use margens vazias como estilo automático. Não há gate geométrico de área. M2: no fecho, assets/logo.png é âncora, não favicon ao lado do nome: use largura de referência 32–44% do frame, mínimo orientado de 28% (202 px num frame de 720 px), object-fit:contain, preservando proporção e área útil da marca. Compense padding transparente do PNG pelo preview; confira contraste e leitura mobile. brand_name pode acompanhar subordinado ao PNG. M3: o plano rejeita phase=hold contínuo acima de 2500 ms (inclusive holds consecutivos do mesmo elemento); prefira 2000–2500 ms para leitura, com entrada/saída e mudança de ideia reais. Não renomeie hold imóvel como transform nem fragmente hold sem ação só para passar validação. Cena pode durar mais com desenvolvimento; Ken Burns contínuo é phase=transform com estados distintos. No fecho use handoffEnd < end: handoffEnd é end_ms da transição staging que chega à última cena; sem essa transição, é o fim das entradas (phase=enter) da última cena, ou seu start_ms. Declare foto(s) no fecho e logo quando disponível; de handoffEnd até duration_ms, seus beats phase=transform devem cobrir toda a janela sem gaps e com start_state != end_state. Descreva Ken Burns nas fotos e scale contínuo na logo; mantenha visibilidade até end. Fecho com desenvolvimento pode durar mais que um hold. Tempos vêm do plano, nunca janela fixa 11–15s. Esses gates conferem declarações/tempos, não pixels, legibilidade, energia ou aceite audiovisual. N1: default real é foto dominante cover 9:16, desde o gancho, com foco e margem protegidos. Proibido usar janela landscape central + barras blur como estética automática; fundo blur não conta como foto cover. Contain sobre fundo fotográfico só é exceção por inviabilidade de crop: registre em staging.development e scene_direction.composition qual região essencial seria cortada, alternativas examinadas e margem disponível. Preservar protagonista continua precedendo bleed e números de movimento; não invente viabilidade. N2: planeje KB/overlays perceptíveis também no miolo. Para declarar energia use start_state/end_state no formato exato scale=1.04 x_pct=0 y_pct=0 (scale positivo; pan em porcentagem do quadro). Um transform energético requer curva linear e velocidade média de scale >=0.01/s OU pan em um eixo >=0.5 ponto percentual/s. O gate une intervalos energéticos de fotos e overlays text/graphic ligados por related_element_ids da foto, dentro da mesma cena; nenhuma lacuna de energia no plano pode exceder 2500 ms, inclusive começo/fim e entre cenas. Estados iguais, diferenças de prosa, drift abaixo do limiar, gaps e holds fragmentados não reiniciam essa janela. Exemplo em 2 s: scale=1.04 x_pct=0 y_pct=0 até scale=1.08 x_pct=0 y_pct=0. Se crop limitar KB, mantenha foto segura e planeje overlay relacionado com movimento perceptível, legível e contínuo; não aumente crop para passar o gate. Sem margem e sem alternativa coerente, revise o plano. M3 continua obrigatório no fecho, inclusive foto e logo até end. N3: logo PNG âncora sobre foto/fundo fotográfico, sem placa creme/editorial; CTA integrado como overlay com scrim local, não rodapé de cartaz. Micro-movimento da logo até end. Estes números validam declarações, não pixels, velocidade instantânea ou qualidade audiovisual; sem A5b. A implementação segue os estados e tempos aprovados, sem replanejar. N1/N2/N3 refinam as orientações anteriores; exceção de contain exige inviabilidade de crop, não apenas preferência estética. O1: estas regras refinam N1–N3. Em TODAS as cenas fotográficas, inclusive miolo e fecho, use cover 9:16 contínuo com protagonista protegido. Não regresse a janela landscape + blur após abertura cover com o mesmo material viável. Contain+blur não é estilo alternativo: por CADA cena excepcional, registre em composition a região essencial cortada, alternativas de cover/foto examinadas e margem; em development explique a inviabilidade e como manter energia. A exceção de uma cena não autoriza contain nas outras. Crop v5 prevalece; não invente viabilidade nem corte protagonista para cumprir energia. O2: para novas capturas, um transform energético linear exige no MESMO eixo velocidade de scale >=0.02/s E amplitude >=0.04, OU pan >=1 ponto percentual/s E amplitude >=2 pontos percentuais. Substitui os mínimos N2; mantém união global e lacunas <=2500 ms, M3 e overlays relacionados da mesma cena. Pulsos mínimos fragmentados não contam. Exemplo de miolo em 4 s: scale=1.04 x_pct=0 y_pct=0 até scale=1.16 x_pct=0 y_pct=0; adapte à margem real, nunca copie crop cegamente. Se limitado, coordene text/graphic relacionado visível com amplitude suficiente e leitura preservada. Execute os estados no seek: wrappers separados para KB contínuo e entrada/saída tipográfica com deslocamento/máscara; opacity zero, camada oculta ou transform sobrescrito não realizam energia. O3: no fecho renderize assets/logo.png em img overlay sobre foto, wrapper transparente sem background creme, placa, card, borda ou padding editorial. Não incorpore placa ao redor do PNG. Use scrim local/gradiente neutro sobre a foto para contraste da marca e CTA; confira CTA durante todo percurso, reserve leitura, sem desaparecer antes de end. Foto(s), logo e CTA permanecem visíveis, foto e logo em movimento até end conforme M3. Se o próprio asset impedir este acabamento, peça revisão do plano; não redesenhe a marca. O1/O3 são instruções de composição e implementação, não inspeção DOM/pixels; O2 valida declarações, sem A5b ou aceite audiovisual.",
+  "selection": "Photo O1–O3; v9 histórico preservado.",
+  "required_runtimes": {
+    "movement_runtime": {
+      "version": "motion-movement-v3",
+      "sha256": "7ad7561bab866543e7dbd9f0210b38ac1c426141219194312851b0914cd07908"
+    }
+  },
+  "licenses": [],
+  "examples": [
+    {
+      "id": "type-portal",
+      "source_id": "platform-original",
+      "file": "examples/type-portal.js",
+      "sha256": "3c47fb70fb3b31b6c5c7d424fe30d385011208f874563c35a2e5c5035f53c8e5",
+      "entrypoint": "makeTypePortal",
+      "mechanism": "Tipografia como abertura para mídia, seguida de revelação radial.",
+      "use_when": "Quando texto e mídia compartilham o mesmo assunto e a ação filmada pode ficar protegida fora da passagem.",
+      "limitations": "Exemplo sintético, sem certificação artística ou áudio. Não cria material, segmentação ou 3D. Adaptar dimensão, kit, conteúdo, ritmo e leitura.",
+      "integration": "Copiar/adaptar a função em scene_init e chamar seu retorno com o tempo absoluto em seek. Função não instalada automaticamente; não alterar o relógio do vídeo."
+    },
+    {
+      "id": "depth-handoff",
+      "source_id": "platform-original",
+      "file": "examples/depth-handoff.js",
+      "sha256": "b0b72efdf62a6b89c0b33c60dca0ab4e2fb4954a261612af7282d658ed0d6dbb",
+      "entrypoint": "makeDepthHandoff",
+      "mechanism": "Camada de origem cruza o quadro; destino e título assentam em profundidades diferentes.",
+      "use_when": "Quando a mudança revela informação nova e a oclusão motiva a passagem.",
+      "limitations": "Exemplo sintético, sem certificação artística ou áudio. Não cria material, segmentação ou 3D. Adaptar dimensão, kit, conteúdo, ritmo e leitura.",
+      "integration": "Copiar/adaptar a função em scene_init e chamar seu retorno com o tempo absoluto em seek. Função não instalada automaticamente; não alterar o relógio do vídeo."
+    },
+    {
+      "id": "photo-reel",
+      "source_id": "platform-photo-original",
+      "file": "examples/photo-reel.js",
+      "sha256": "ad7517dad21d57863d997f0c629dca3a8f90e25b15418bbf1d2e122138c7b9ee",
+      "entrypoint": "makePhotoReelMotion",
+      "mechanism": "Full-bleed com overlay, logo âncora 36% do frame, holds curtos e fecho vivo pelos tempos do plano.",
+      "use_when": "Reel de fotos com leitura e entrega à marca.",
+      "limitations": "Exemplo adaptável; não template. Proteger foco/crop e dimensionar leitura pelo texto. Sem prova comercial ou áudio.",
+      "integration": "Copiar/adaptar em scene_init; const animatePhoto = makePhotoReelMotion({...nós, ...temposDoPlano}); chamar animatePhoto(ms) no seek absoluto. Wrappers separados; não auto-injetado. Quando logo disponível, usar <img src=\"assets/logo.png\"> como brand; passar closingPhotos com os nós das fotos do fecho, em wrappers fora de outgoing. Manter closingPhotos visíveis durante o fecho. Layout full-bleed no exemplo; não estreitar foto em janela creme. Largura da logo 36%, mínimo orientado 28%; ajustar padding do PNG pelo preview. handoffEnd < end com movimento até end. Passar cta em wrapper separado de outgoing; scrim local para leitura até end."
+    }
+  ],
+  "reference_images": [
+    {
+      "id": "type-portal",
+      "file": "images/type-portal.jpg",
+      "sha256": "543bc1380f8b5801114267640d0769d76d78738f8c38d260de2116789a757a30",
+      "source_id": "platform-original",
+      "role": "finish_reference_only",
+      "mechanism": "Tipografia como abertura para mídia, seguida de revelação radial.",
+      "times_ms": [
+        0,
+        700,
+        1000,
+        1233,
+        1500,
+        1800
+      ],
+      "limitations": "Sequência de prova sintética no renderer, não referência comercial nem mídia de cliente."
+    },
+    {
+      "id": "depth-handoff",
+      "file": "images/depth-handoff.jpg",
+      "sha256": "e18e3bb387366d0a22d5b363df51b0526c58208f9e24914f88d854ef59b31402",
+      "source_id": "platform-original",
+      "role": "finish_reference_only",
+      "mechanism": "Camada de origem cruza o quadro; destino e título assentam em profundidades diferentes.",
+      "times_ms": [
+        2300,
+        2500,
+        2800,
+        3100,
+        3300,
+        3967
+      ],
+      "limitations": "Sequência de prova sintética no renderer, não referência comercial nem mídia de cliente."
+    }
+  ],
+  "reference_cards": [],
+  "sources": [
+    {
+      "id": "platform-original",
+      "origin": "Código original da plataforma; estudo seletivo R10/R12/R17 em docs/evals/referencias-motion-2026-11-12/anotacoes.md",
+      "version": "2026-11-13",
+      "permission": "Código e gráficos sintéticos próprios; nenhum pixel ou asset de terceiros copiado.",
+      "renderer_image": "sha256:e9884862762529bf49086fb579676a7be15a108a5ac1bb88c7c0f44496a6bf51",
+      "proof_sha256": "5ead5523a7d7b980906202f2f9ea2aa63518d028e533739b8fc96b466f77c3c2",
+      "inspection": "12 quadros decodificados inspecionados; sem escuta, sem certificação de fluidez integral ou qualidade comercial."
+    },
+    {
+      "id": "platform-photo-original",
+      "origin": "Código original local O1–O3 derivado de business-reel-v9.",
+      "version": "2026-11-18",
+      "permission": "Código próprio; sem material externo.",
+      "inspection": "Testes sintéticos de estado/seek; MP4 e revisão humana pendentes."
+    }
+  ]
+}

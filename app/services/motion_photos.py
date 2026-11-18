@@ -5,7 +5,13 @@ from typing import TYPE_CHECKING, Any
 
 from app.adapters.motion_html_renderer import RenderAsset
 from app.services.auth import AuthError
-from app.services.motion_photo_intent import PHOTO_AD_RULES, PHOTO_CROP_RULES, PHOTO_ENERGY_RULES, PHOTO_QUALITY_RULES
+from app.services.motion_photo_intent import (
+    PHOTO_AD_RULES,
+    PHOTO_CONTINUITY_RULES,
+    PHOTO_CROP_RULES,
+    PHOTO_ENERGY_RULES,
+    PHOTO_QUALITY_RULES,
+)
 from app.services.motion_sound_library import capture_sound_library, load_sound_library
 
 if TYPE_CHECKING:
@@ -34,6 +40,8 @@ PHOTO_MOTION_RULES_V3 = PHOTO_MOTION_RULES_V2 + " " + PHOTO_QUALITY_RULES
 PHOTO_MOTION_RULES_V4 = PHOTO_MOTION_RULES_V3 + " " + PHOTO_AD_RULES
 PHOTO_MOTION_RULES_V5 = PHOTO_MOTION_RULES_V4 + " " + PHOTO_CROP_RULES
 PHOTO_MOTION_RULES_V6 = PHOTO_MOTION_RULES_V5 + " " + PHOTO_ENERGY_RULES
+
+PHOTO_MOTION_RULES_V7 = PHOTO_MOTION_RULES_V6 + " " + PHOTO_CONTINUITY_RULES
 
 
 def photo_duration_ms(message: str) -> int:
