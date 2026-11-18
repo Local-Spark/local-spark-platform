@@ -62,14 +62,79 @@ PHOTO_QUALITY_RULES = (
     "Tipografia/overlay sobre foto com contraste e protagonista protegido, sem cartaz estático. "
     "Ritmo e composição são orientação forte, não gates automáticos A5b; preserve a trilha."
 )
-PHOTO_INTENT_CONTRACT = {"version": "motion-photo-intent-v3", "rules": PHOTO_VISUAL_RULES + " " + PHOTO_QUALITY_RULES}
+PHOTO_INTENT_CONTRACT_V3 = {
+    "version": "motion-photo-intent-v3",
+    "rules": PHOTO_VISUAL_RULES + " " + PHOTO_QUALITY_RULES,
+}
+
+
+PHOTO_AD_RULES = (
+    "M1: componha anúncio fotográfico, não cartaz editorial: default full-bleed 9:16 desde o gancho, "
+    "foto cobrindo o quadro na maior parte do tempo útil, object-fit:cover e foco protegido. "
+    "Texto/CTA são overlays sobre foto com contraste local (scrim/gradiente), nunca grandes faixas creme. "
+    "Não aceite como default cartão creme com foto em janela ou abertura só tipográfica de vários segundos. "
+    "Inset é exceção: justifique explicitamente em staging.development e scene_direction.composition por que "
+    "ajuda a mensagem; não use margens vazias como estilo automático. Não há gate geométrico de área. "
+    "M2: no fecho, assets/logo.png é âncora, não favicon ao lado do nome: use largura de referência "
+    "32–44% do frame, mínimo orientado de 28% (202 px num frame de 720 px), object-fit:contain, "
+    "preservando proporção e área útil da marca. Compense padding transparente do PNG pelo preview; "
+    "confira contraste e leitura mobile. brand_name pode acompanhar subordinado ao PNG. "
+    "M3: o plano rejeita phase=hold contínuo acima de 2500 ms (inclusive holds consecutivos do mesmo "
+    "elemento); prefira 2000–2500 ms para leitura, com entrada/saída e mudança de ideia reais. "
+    "Não renomeie hold imóvel como transform nem fragmente hold sem ação só para passar validação. "
+    "Cena pode durar mais com desenvolvimento; Ken Burns contínuo é phase=transform com estados distintos. "
+    "No fecho use handoffEnd < end: handoffEnd é end_ms da transição staging que chega à última cena; "
+    "sem essa transição, é o fim das entradas (phase=enter) da última cena, ou seu start_ms. "
+    "Declare foto(s) no fecho e logo quando disponível; de handoffEnd até duration_ms, seus beats "
+    "phase=transform devem cobrir toda a janela sem gaps e com start_state != end_state. "
+    "Descreva Ken Burns nas fotos e scale contínuo na logo; mantenha visibilidade até end. "
+    "Fecho com desenvolvimento pode durar mais que um hold. Tempos vêm do plano, nunca janela fixa 11–15s. "
+    "Esses gates conferem declarações/tempos, não pixels, legibilidade, energia ou aceite audiovisual."
+)
+PHOTO_INTENT_CONTRACT_V4 = {
+    "version": "motion-photo-intent-v4",
+    "rules": PHOTO_VISUAL_RULES + " " + PHOTO_QUALITY_RULES + " " + PHOTO_AD_RULES,
+}
+
+
+PHOTO_CROP_RULES = (
+    "Viabilidade de enquadramento (precede os exemplos genéricos de full-bleed/KB): antes de fechar o plano, "
+    "examine o preview de cada foto e sua proporção. Full-bleed é preferência, preservar o protagonista "
+    "é restrição; não prometa ambas se o recorte não comportar o objeto. Não invente coordenadas exatas "
+    "de foco nem preservação integral a partir de uma impressão do preview. "
+    "Em scene_direction.composition registre a região essencial a proteger, o enquadramento escolhido "
+    "e a margem de movimento; nos beats declare estados inicial/final compatíveis com essa região. "
+    "Cover elimina área da fonte quando as proporções diferem: object-position só desloca esse recorte, "
+    "não aumenta a área visível. Scale amplia o recorte; pan também consome margem. Verifique o percurso "
+    "inteiro, inclusive o maior scale, antes de fixar números no plano. Os valores 1.04→1.12 e focos do "
+    "exemplo não são mínimos obrigatórios. Reduza zoom/pan ou escolha outra foto autorizada quando preciso. "
+    "Se nenhum cover preservar a região essencial, use composição em camadas: a mesma foto ampliada "
+    "como fundo full-frame e foto principal em contain sobre ela, sem cartão creme ou faixas vazias. "
+    "Justifique essa exceção em staging.development e scene_direction.composition; mantenha overlay, "
+    "ritmo e movimento no fundo, e planeje movimento limitado da foto principal com margem real. "
+    "No fecho preserve os transforms contínuos exigidos sem cortar a foto principal; se não houver "
+    "margem, reveja a composição no planejamento. Não use objeto cortado como se estivesse inteiro. "
+    "Na implementação conserve o plano aprovado: estas alternativas devem ser decididas no planejamento, "
+    "não autorizam trocar crop, tempos ou materiais silenciosamente. Havendo incompatibilidade real, "
+    "continue retornando requires_plan_revision com motivo específico. Sem gate geométrico ou A5b."
+)
+PHOTO_INTENT_CONTRACT = {
+    "version": "motion-photo-intent-v5",
+    "rules": PHOTO_INTENT_CONTRACT_V4["rules"] + " " + PHOTO_CROP_RULES,
+}
 
 
 def photo_intent_rules(context: dict[str, Any]) -> str:
     contract = context.get("photo_intent_contract")
     if contract is None:
         return ""
-    if contract not in (PHOTO_INTENT_CONTRACT_V1, PHOTO_INTENT_CONTRACT_V2, PHOTO_INTENT_CONTRACT):
+    if contract not in (
+        PHOTO_INTENT_CONTRACT_V1,
+        PHOTO_INTENT_CONTRACT_V2,
+        PHOTO_INTENT_CONTRACT_V3,
+        PHOTO_INTENT_CONTRACT_V4,
+        PHOTO_INTENT_CONTRACT,
+    ):
         raise AuthError("MOTION_PHOTO_INTENT_CONTRACT_INVALID", 409)
     return str(contract["rules"])
 

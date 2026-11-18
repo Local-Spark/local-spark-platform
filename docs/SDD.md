@@ -1,5 +1,72 @@
 # SDD geral — Meu Braço Direito
 
+## 18/11/2026 — viabilidade de crop antes da implementação photo
+
+Run `a0a010f8-6ae0-5baf-9d74-514e1d23d8da` falhou com
+`MOTION_PLAN_REVISION_REQUIRED`: o implementador declarou que cover 9:16,
+foco 22%/50% e scale 1.04→1.112 cortariam xícara/pires, contrariando o plano.
+Isso é diagnóstico do modelo, não inspeção independente dos pixels.
+
+Correção: novas capturas usam intent/regras photo v5. Preservação do protagonista
+precede full-bleed; planejamento deve avaliar proporção, região essencial e
+margem durante todo zoom/pan. Object-position não recupera área perdida por cover.
+Reduzir movimento, escolher outra foto autorizada ou justificar foto principal
+em contain sobre fundo fotográfico full-frame; sem voltar ao cartão creme.
+A orientação precede exemplos numéricos genéricos; não fixa crop da foto real
+sem inspeção e não autoriza o implementador a modificar um plano aprovado.
+Skill v16/repertório v8 e snapshots v4 permanecem intactos. Gates M1–M3 mantidos
+para v4/v5; vídeo, Music/mix e renderer inalterados. Sem gate geométrico/A5b.
+
+109 unitários e três integrações PostgreSQL `_test` passaram; intent/validador
+com 100% linhas/branches no recorte. Ruff passou. `make ci` segue bloqueado
+nas 66 ocorrências de lint preexistentes. Execução falha não foi reescrita nem
+retomada. Sem chamada paga, novo MP4 ou aceite E2E; próxima geração requer
+nova captura e revisão visual para comprovar o enquadramento.
+
+## 17/11/2026 — photo M1–M3: anúncio full-bleed, marca âncora e ritmo validado
+
+Pedido do titular implementado em novas capturas: `motion-photo-intent-v4`,
+`instagram-reel-photo-v16`, regras photo v4 e default `business-reel-v8`, com
+hashes pinados. Full-bleed 9:16 desde o gancho, overlays com contraste local e
+foco protegido substituem o cartão creme como default. Inset exige justificativa
+na direção. Logo de referência a 32–44% da largura, mínimo orientado 28%
+(~202 px em 720); exemplo a 36%, contain/proporção e compensação de padding
+pelo preview. Nome tipográfico subordinado à marca.
+
+Gate do plano v4 rejeita `phase=hold` contínuo >2500 ms, somando holds
+consecutivos do mesmo elemento. O fecho exige fotos e, quando disponível,
+logo PNG na última cena. `handoffEnd` vem da transição staging que chega ao
+fecho; sem transição, do fim das entradas da última cena (ou início da cena).
+Exige `handoffEnd < duration_ms` e beats `transform` com estados distintos,
+sem gaps até end, em todas as fotos/logo do fecho. Cenas e fechos com
+desenvolvimento podem durar mais que um hold. Sem janela fixa 11–15 s.
+
+Composição, escala/contraste e tipo de movimento são instruções + exemplo;
+não há inspeção geométrica, A5b ou prova de pixels. O gate verifica declarações,
+não impede um modelo de descrever movimento sem executá-lo. Helpers exigem
+adaptação, instanciação em scene_init e chamada em seek; não são auto-injetados.
+Snapshots históricos (inclusive intent v3, skill v15 e repertório v7) mantêm
+bytes/semântica; seleção explícita permanece respeitada. Vídeo segue v13/v5.
+Music/mix preservados: M4 adiado para manter esta fatia focada em M1–M3.
+
+Validação: 286 unitários; 10 testes Node (v6/v7/v8, tempos variáveis e seek
+reverso); três integrações PostgreSQL lab/WhatsApp no banco dedicado `_test`,
+com runtime restrito. Intent e novo validador photo: 100% de linhas/branches
+no recorte. Ruff/formato dos arquivos Python alterados passaram. `make ci`
+executado: bloqueado nas 66 ocorrências de lint preexistentes; cobertura global
+100% e CI integral não estabelecidos, sem exclusões ou gates relaxados.
+Sem chamada paga, novo MP4 ou aceite E2E. Pendente: ensaio autorizado e revisão
+audiovisual do titular; TTS/avatar e renderer fora desta fatia.
+
+## 17/11/2026 — ensaio v4 Café Aurora: gaps M1–M4 (só docs)
+
+Ensaio `versao-1 (4).mp4`: logo PNG pequena no fecho (L1 parcial); energia de
+movimento pior que v3 (~82% quase estático vs ~76%); template editorial creme
+com fotos em janela; fecho ~4 s morto; mix −31,6 LUFS. Diagnóstico e backlog
+M1–M4 (full-bleed, logo âncora, ritmo no plano, mix) com prompt em
+[motion-ensaio-cafe-aurora-v4-gaps-2026-11-17.md](design/motion-ensaio-cafe-aurora-v4-gaps-2026-11-17.md).
+Sem implementação, chamada paga, A5b ou aceite E2E nesta mudança.
+
 ## 17/11/2026 — photo L1–L3: logo, ritmo do fecho e foto dominante
 
 Implementação autorizada pelo titular após o diagnóstico v3. Novas capturas

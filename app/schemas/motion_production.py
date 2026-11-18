@@ -78,6 +78,7 @@ class MotionRequest(MotionModel):
             "business-reel-v5",
             "business-reel-v6",
             "business-reel-v7",
+            "business-reel-v8",
         ]
         | None
     ) = Field(default=None, exclude_if=lambda value: value is None)

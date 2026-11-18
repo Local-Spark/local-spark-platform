@@ -1,5 +1,50 @@
 # Registro de mudanças
 
+## 18/11/2026 — viabilidade de crop antes da implementação photo
+
+Run `a0a010f8-6ae0-5baf-9d74-514e1d23d8da` falhou com
+`MOTION_PLAN_REVISION_REQUIRED`: o implementador declarou que cover 9:16,
+foco 22%/50% e scale 1.04→1.112 cortariam xícara/pires, contrariando o plano.
+Isso é diagnóstico do modelo, não inspeção independente dos pixels.
+
+Correção: novas capturas usam intent/regras photo v5. Preservação do protagonista
+precede full-bleed; planejamento deve avaliar proporção, região essencial e
+margem durante todo zoom/pan. Object-position não recupera área perdida por cover.
+Reduzir movimento, escolher outra foto autorizada ou justificar foto principal
+em contain sobre fundo fotográfico full-frame; sem voltar ao cartão creme.
+A orientação precede exemplos numéricos genéricos; não fixa crop da foto real
+sem inspeção e não autoriza o implementador a modificar um plano aprovado.
+Skill v16/repertório v8 e snapshots v4 permanecem intactos. Gates M1–M3 mantidos
+para v4/v5; vídeo, Music/mix e renderer inalterados. Sem gate geométrico/A5b.
+
+109 unitários e três integrações PostgreSQL `_test` passaram; intent/validador
+com 100% linhas/branches no recorte. Ruff passou. `make ci` segue bloqueado
+nas 66 ocorrências de lint preexistentes. Execução falha não foi reescrita nem
+retomada. Sem chamada paga, novo MP4 ou aceite E2E; próxima geração requer
+nova captura e revisão visual para comprovar o enquadramento.
+
+## 17/11/2026 — implementar photo M1–M3 (v4/v16/v8)
+
+Novos intent/skill/repertório pinados reforçam full-bleed/overlay e logo âncora
+(36% no exemplo; mínimo orientado 28%). Serviço valida holds contínuos de até
+2500 ms e fotos/logo com transforms distintos, sem gaps, de handoffEnd até end.
+Tempos derivados do plano; sem janela fixa ou limite arbitrário para cenas vivas.
+Contratos antigos e vídeo preservados; Music/mix (M4) não alterados.
+
+286 unitários, 10 Node e três integrações PostgreSQL `_test` passaram. Intent e
+validador com 100% de linhas/branches; Ruff/formato local aprovados. `make ci`
+parou nas 66 ocorrências de lint preexistentes; cobertura/CI global pendentes.
+Sem A5b, auto-injeção, mudança de renderer, TTS/avatar ou chamada paga.
+Acabamento full-bleed, legibilidade e energia ainda exigem novo MP4 autorizado
+e revisão do titular. Não há aceite E2E.
+
+## 17/11/2026 — ensaio v4 Café Aurora: gaps M1–M4 (só docs)
+
+Documentado diagnóstico de `versao-1 (4).mp4` (logo mínima no fecho; ~82% quase
+estático; cartaz editorial; fecho morto; mix fraco) e backlog M1–M4 em
+[motion-ensaio-cafe-aurora-v4-gaps-2026-11-17.md](design/motion-ensaio-cafe-aurora-v4-gaps-2026-11-17.md),
+com prompt para outro chat. Sem código, chamada paga ou aceite E2E.
+
 ## 17/11/2026 — photo L1–L3: logo, ritmo do fecho e foto dominante
 
 Implementação autorizada pelo titular após o diagnóstico v3. Novas capturas

@@ -69,6 +69,10 @@ def test_real_provider_receives_intent_for_planning_and_code(implementation):
         assert 'No HTML do fecho, renderize obrigatoriamente <img src="assets/logo.png"> visível' in rules
         assert "tempos de fecho/handoff do plano" in rules
         assert "declarar o asset no plano não basta" in rules
+        assert "M1:" in rules and "M2:" in rules and "M3:" in rules
+        assert "28%" in rules and "2500 ms" in rules
+        assert "cartão creme com foto em janela" in rules
+        assert "handoffEnd < end" in rules
     wire = json.dumps(payload, ensure_ascii=False)
     for conflicting in ("sem exigir movimento contínuo", "sem exigir zoom ou scale", "movimento suave quando pedido"):
         assert conflicting not in wire
@@ -119,10 +123,10 @@ def test_new_photo_snapshots_pin_executable_examples_without_changing_video_defa
     from app.services.motion_skills import resolve_html_motion_skill
 
     _, prepared, plan = photo_case()
-    assert prepared.context["skill"]["id"] == "instagram-reel-photo-v15"
+    assert prepared.context["skill"]["id"] == "instagram-reel-photo-v16"
     assert resolve_html_motion_skill("reel")[0] == "instagram-reel-v13"
     pack = prepared.context["repertoire"]
-    assert pack["id"] == "business-reel-v7"
+    assert pack["id"] == "business-reel-v8"
     example = next(e for e in pack["examples"] if e["id"] == "photo-reel")
     assert "window.makePhotoReelMotion" in example["content"]
     assert "animatePhoto(ms)" in example["integration"]
@@ -179,7 +183,11 @@ def test_new_photo_rules_also_cover_silent_non_staged_capture():
 @pytest.mark.parametrize("logo_available", [False, True])
 @pytest.mark.parametrize("declared", [False, True])
 def test_logo_required_only_for_new_contract_with_available_asset(version, logo_available, declared):
-    from app.services.motion_photo_intent import PHOTO_INTENT_CONTRACT_V1, PHOTO_INTENT_CONTRACT_V2
+    from app.services.motion_photo_intent import (
+        PHOTO_INTENT_CONTRACT_V1,
+        PHOTO_INTENT_CONTRACT_V2,
+        PHOTO_INTENT_CONTRACT_V3,
+    )
     from app.services.motion_plan import validate_motion_plan
 
     _, _, plan = photo_case()
@@ -188,7 +196,7 @@ def test_logo_required_only_for_new_contract_with_available_asset(version, logo_
     contracts = {
         "v1": PHOTO_INTENT_CONTRACT_V1,
         "v2": PHOTO_INTENT_CONTRACT_V2,
-        "v3": PHOTO_INTENT_CONTRACT,
+        "v3": PHOTO_INTENT_CONTRACT_V3,
         "absent": None,
     }
     context = {"photo_intent_contract": contracts[version]}
@@ -277,3 +285,103 @@ def test_new_photo_logo_rejects_missing_plan_and_text_substitute(role):
     )
     with pytest.raises(AuthError, match="MOTION_PHOTO_LOGO_REQUIRED"):
         validate_declarations(plan, prepared)
+
+
+def test_v3_replay_keeps_logo_only_gate_and_exact_assets():
+    from app.services.motion_photo_intent import PHOTO_INTENT_CONTRACT_V3
+    from app.services.motion_photos import PHOTO_MOTION_RULES_V3
+    from app.services.motion_repertoire import capture_repertoire
+    from app.services.motion_skills import _SKILLS, load_motion_skill
+
+    body, prepared, plan = photo_case()
+    identifier = "instagram-reel-photo-v15"
+    digest = _SKILLS[identifier][1]
+    old = {
+        **prepared.context,
+        "photo_intent_contract": PHOTO_INTENT_CONTRACT_V3,
+        "skill": {"id": identifier, "sha256": digest, "instructions": load_motion_skill(identifier, digest, "reel")},
+        "repertoire": capture_repertoire("business-reel-v7"),
+        "photo_motion": {**prepared.context["photo_motion"], "rules": PHOTO_MOTION_RULES_V3},
+    }
+    replay = capture_motion_guidance(body, previous=old)
+    for key in ("photo_intent_contract", "skill", "repertoire", "photo_motion"):
+        assert replay[key] == old[key]
+    assert (
+        implementation_intent(plan, PHOTO_INTENT_CONTRACT_V3)["visual_execution"] == PHOTO_INTENT_CONTRACT_V3["rules"]
+    )
+    assert "M1:" not in PHOTO_INTENT_CONTRACT_V3["rules"]
+    explicit = body.model_copy(update={"repertoire_id": "business-reel-v7"})
+    assert capture_motion_guidance(explicit)["repertoire"]["id"] == "business-reel-v7"
+    explicit = body.model_copy(update={"repertoire_id": "business-reel-v8"})
+    captured = capture_motion_guidance(explicit)
+    assert captured["repertoire"]["id"] == "business-reel-v8"
+    assert captured["staging_contract"] == prepared.context["staging_contract"]
+
+
+@pytest.mark.parametrize("implementation", [False, True])
+def test_crop_feasibility_reaches_provider_without_mutating_plan(implementation):
+    from app.services.motion_photo_intent import PHOTO_CROP_RULES
+
+    _, prepared, plan = photo_case()
+    before = construction_plan_hash(plan)
+    if implementation:
+        prepared = prepare_implementation_materials(plan, prepared)
+    job = replace(
+        request(),
+        context=prepared.context,
+        assets=prepared.assets,
+        source_frames=(),
+        asset_previews=prepared.asset_previews,
+        reference_images=prepared.reference_images,
+        construction_plan=plan if implementation else None,
+    )
+    payload = provider().build_request(job)
+    assert PHOTO_CROP_RULES in payload["instructions"]
+    for key in ("photo_motion", "executor_contract"):
+        assert PHOTO_CROP_RULES in prepared.context[key]["rules" if key == "photo_motion" else "integration_policy"]
+    assert construction_plan_hash(plan) == before
+    assert "object-position só desloca esse recorte" in PHOTO_CROP_RULES
+    assert "foto principal em contain" in PHOTO_CROP_RULES
+    assert "continue retornando requires_plan_revision" in PHOTO_CROP_RULES
+
+
+def test_v4_replay_preserves_crop_policy_and_quality_gates():
+    from app.services.motion_photo_intent import PHOTO_INTENT_CONTRACT_V4
+    from app.services.motion_photos import PHOTO_MOTION_RULES_V4
+    from app.services.motion_plan import validate_motion_plan
+
+    body, prepared, plan = photo_case()
+    old = {
+        **prepared.context,
+        "photo_intent_contract": PHOTO_INTENT_CONTRACT_V4,
+        "photo_motion": {**prepared.context["photo_motion"], "rules": PHOTO_MOTION_RULES_V4},
+        "executor_contract": {**prepared.context["executor_contract"], "integration_policy": PHOTO_MOTION_RULES_V4},
+    }
+    replay = capture_motion_guidance(body, previous=old)
+    for key in ("photo_intent_contract", "photo_motion", "executor_contract", "skill", "repertoire"):
+        assert replay[key] == old[key]
+    assert (
+        implementation_intent(plan, PHOTO_INTENT_CONTRACT_V4)["visual_execution"] == PHOTO_INTENT_CONTRACT_V4["rules"]
+    )
+    with pytest.raises(AuthError, match="MOTION_PHOTO_LOGO_REQUIRED"):
+        validate_motion_plan(plan, old, duration_ms=15000, asset_ids={"assets/logo.png"})
+    from app.services.motion_photo_quality import validate_photo_quality
+
+    validate_photo_quality(plan, old, asset_ids=set())
+    scene = plan.motion_plan.scenes[0]
+    element = scene.elements[0]
+    beat = element.beats[0].model_copy(update={"phase": "hold", "end_ms": 3000})
+    changed = plan.model_copy(
+        update={
+            "motion_plan": plan.motion_plan.model_copy(
+                update={
+                    "scenes": (
+                        scene.model_copy(update={"elements": (element.model_copy(update={"beats": (beat,)}),)}),
+                        *plan.motion_plan.scenes[1:],
+                    )
+                }
+            )
+        }
+    )
+    with pytest.raises(AuthError, match="MOTION_PHOTO_HOLD_TOO_LONG"):
+        validate_photo_quality(changed, old, asset_ids=set())

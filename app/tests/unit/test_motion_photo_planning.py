@@ -66,6 +66,22 @@ def photo_case(*, human_review=False):
     data["scene_direction"]["scenes"][0]["elements"][0]["construction"] = "authorized_asset"
     data["staging"]["version"] = PHOTO_STAGING_CONTRACT["version"]
     data["staging"]["moments"][0].update(media_relation="photo_dominant", material_element_ids=["title"])
+    data["staging"]["moments"][0]["transition"]["end_ms"] = 13000
+    closing = deepcopy(data["motion_plan"]["scenes"][0]["elements"][0])
+    closing.update(id="closing-photo", related_element_ids=[])
+    closing["beats"][0].update(
+        phase="transform",
+        start_ms=7500,
+        end_ms=15000,
+        start_state="scale=1.04 pan=-1%",
+        end_state="scale=1.12 pan=1%",
+        trajectory="Continuous Ken Burns on a full-bleed photograph",
+    )
+    data["motion_plan"]["scenes"][-1]["elements"].append(closing)
+    direction = deepcopy(data["scene_direction"]["scenes"][0]["elements"][0])
+    direction["element_id"] = "closing-photo"
+    data["scene_direction"]["scenes"][-1]["elements"].append(direction)
+    data["staging"]["moments"][-1].update(media_relation="integrated", material_element_ids=["closing-photo"])
     for function in data["audiovisual"]["functions"]:
         if function["function_id"] == "recording":
             function["function_id"] = "photographs"

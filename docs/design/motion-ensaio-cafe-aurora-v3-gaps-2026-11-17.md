@@ -1,5 +1,11 @@
 # Ensaio Café Aurora v3 — gaps e próxima fatia — 17/11/2026
 
+## Ensaio v4 — próximo backlog noutro doc
+
+Após L1–L3, o ensaio `versao-1 (4).mp4` e o backlog M1–M4 estão em
+[motion-ensaio-cafe-aurora-v4-gaps-2026-11-17.md](motion-ensaio-cafe-aurora-v4-gaps-2026-11-17.md).
+Este documento permanece o diagnóstico v3 + histórico L1–L4.
+
 ## Atualização — L1–L3 implementados; aceite audiovisual pendente
 
 Pedido posterior do titular autorizou esta fatia. Novas capturas usam intent

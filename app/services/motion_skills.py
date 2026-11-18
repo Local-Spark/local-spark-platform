@@ -6,6 +6,7 @@ from pathlib import Path
 from app.services.auth import AuthError
 
 _SKILLS = {
+    "instagram-reel-photo-v16": ("reel", "1ac3b66d788cb28e60d2907d12512ef9ebe54728a33ee4a7f1f6c139701c21fb"),
     "instagram-reel-photo-v15": ("reel", "bab4aa66ddc09f8c0326d518f43ff7789341c88af656c2b49c948b19ea803067"),
     "instagram-reel-photo-v14": ("reel", "b3ed00b5dfa5b973511042116b27d2d4ee1429d23fb062c4edc738a99a18b0f6"),
     "instagram-reel-v13": ("reel", "6d5ae9e0478756b1ef006f3babf6591c6c0bbe243d8cc6aee4a2d8f5dd754822"),
@@ -62,6 +63,6 @@ def resolve_html_motion_skill(format: str, *, photo: bool = False) -> tuple[str,
     """Resolve the version used by new HTML Reel captures, not legacy directions."""
     if format != "reel":
         raise AuthError("MOTION_SKILL_FORMAT_INVALID", 409)
-    skill_id = "instagram-reel-photo-v15" if photo else "instagram-reel-v13"
+    skill_id = "instagram-reel-photo-v16" if photo else "instagram-reel-v13"
     digest = _SKILLS[skill_id][1]
     return skill_id, digest, load_motion_skill(skill_id, digest, "reel")

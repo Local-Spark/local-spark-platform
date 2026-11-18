@@ -1,5 +1,72 @@
 # Decisões vigentes e pendências
 
+## 18/11/2026 — viabilidade de crop antes da implementação photo
+
+Run `a0a010f8-6ae0-5baf-9d74-514e1d23d8da` falhou com
+`MOTION_PLAN_REVISION_REQUIRED`: o implementador declarou que cover 9:16,
+foco 22%/50% e scale 1.04→1.112 cortariam xícara/pires, contrariando o plano.
+Isso é diagnóstico do modelo, não inspeção independente dos pixels.
+
+Correção: novas capturas usam intent/regras photo v5. Preservação do protagonista
+precede full-bleed; planejamento deve avaliar proporção, região essencial e
+margem durante todo zoom/pan. Object-position não recupera área perdida por cover.
+Reduzir movimento, escolher outra foto autorizada ou justificar foto principal
+em contain sobre fundo fotográfico full-frame; sem voltar ao cartão creme.
+A orientação precede exemplos numéricos genéricos; não fixa crop da foto real
+sem inspeção e não autoriza o implementador a modificar um plano aprovado.
+Skill v16/repertório v8 e snapshots v4 permanecem intactos. Gates M1–M3 mantidos
+para v4/v5; vídeo, Music/mix e renderer inalterados. Sem gate geométrico/A5b.
+
+109 unitários e três integrações PostgreSQL `_test` passaram; intent/validador
+com 100% linhas/branches no recorte. Ruff passou. `make ci` segue bloqueado
+nas 66 ocorrências de lint preexistentes. Execução falha não foi reescrita nem
+retomada. Sem chamada paga, novo MP4 ou aceite E2E; próxima geração requer
+nova captura e revisão visual para comprovar o enquadramento.
+
+## 17/11/2026 — M1–M3 versionados, gates de declaração e exemplo de anúncio
+
+O pedido atual autoriza implementar o backlog v4. Decisões:
+
+- Nova captura usa intent v4, skill photo v16 e default repertório v8. Não editar
+  bytes/hashes de v15/v7 nem o contrato v3: replay conserva sua regra de logo
+  declarada, sem receber os gates novos. Seleção explícita continua respeitada.
+- Full-bleed/overlay desde o gancho é default forte. Inset precisa de motivo em
+  staging.development e scene_direction.composition. Sem campo/schema novo nem
+  gate geométrico; instrução de rejeitar default editorial vai ao provedor.
+- Logo como âncora: referência 32–44% da largura (mínimo orientado 28%; exemplo
+  36%), proporção/contain, contraste e atenção à área transparente do PNG.
+  Sem alegar que largura CSS garante tamanho perceptivo da marca.
+- `motion_photo_quality` valida apenas intent v4, após vínculo de materiais e
+  staging. `MOTION_PHOTO_HOLD_TOO_LONG` para hold contínuo >2500 ms, incluindo
+  beats hold adjacentes do mesmo elemento. Transform não é hold; cenas vivas
+  e movimentos contínuos podem durar mais. Gaps/estados implícitos fora do fecho
+  e renomear um hold como transform não são detectados como congelamento.
+- Fecho: `MOTION_PHOTO_CLOSING_WINDOW_INVALID` se handoffEnd não estiver entre
+  início da última cena e end (exclusivo); deriva da transição staging de chegada,
+  ou fim das entradas/início da cena quando não há transição. Materiais ausentes
+  no fecho geram `MOTION_PHOTO_CLOSING_MATERIAL_REQUIRED`; presença em cena anterior
+  não basta. Todos os nós foto/logo do fecho precisam cobrir handoffEnd→end com
+  transforms e estados distintos, ou `MOTION_PHOTO_CLOSING_MOTION_REQUIRED`.
+  KB/scale e visibilidade são instruções, não semântica inferida de texto livre.
+- Exemplo v8 mostra markup full-frame, scrim local, logo e wrappers separados;
+  não instala helper automaticamente. M4/mix adiado; Music, vídeo, renderer,
+  TTS/avatar e A5b não mudam.
+
+Validação: 286 unitários, 10 Node e três integrações `_test`; intent/validador
+100% linhas/branches, Ruff/formato local aprovados. `make ci` permanece bloqueado
+nas 66 ocorrências de lint anteriores; não declarar cobertura global ou CI verde.
+Sem chamada paga ou novo MP4. Aceite E2E depende de ensaio autorizado e revisão
+do titular, inclusive enquadramento, tamanho útil da logo e energia percebida.
+
+## 17/11/2026 — pós-ensaio v4: documentar M1–M4, não implementar ainda
+
+Titular confirmou que v4 não retrocede em marca (logo pequena no fecho) mas
+permanece distante de propaganda / refs YouTube; pediu diagnóstico e docs para
+outro chat. Decisão desta mudança: **só docs** —
+[motion-ensaio-cafe-aurora-v4-gaps-2026-11-17.md](design/motion-ensaio-cafe-aurora-v4-gaps-2026-11-17.md).
+Próxima fatia alvo: M1 full-bleed, M2 logo âncora, M3 ritmo no plano; M4 mix
+opcional. A5b, TTS/avatar, renderer e tarifa Music fora até OK explícito.
+
 ## 17/11/2026 — photo L1–L3: logo, ritmo do fecho e foto dominante
 
 Implementação autorizada pelo titular após o diagnóstico v3. Novas capturas

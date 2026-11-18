@@ -1,12 +1,19 @@
 # Plano de execução — reels 15s de fotos (qualidade), 17/11/2026
 
-## 17/11/2026 — ensaio v3: próximo backlog L1–L4 (não implementado)
+## 17/11/2026 — ensaio v4: próximo backlog M1–M4 (não implementado)
 
-Após `versao-1 (3).mp4` (melhoria parcial; logo tipográfica; fecho frio), o
-próximo salto está em
-[motion-ensaio-cafe-aurora-v3-gaps-2026-11-17.md](motion-ensaio-cafe-aurora-v3-gaps-2026-11-17.md)
-(L1 logo, L2 ritmo/fecho, L3 bleed, L4 mix). A5b continua fora. Este plano
-A0–A5a não muda.
+Após `versao-1 (4).mp4` (logo mínima no fecho; energia pior que v3; cartaz
+editorial), o próximo salto está em
+[motion-ensaio-cafe-aurora-v4-gaps-2026-11-17.md](motion-ensaio-cafe-aurora-v4-gaps-2026-11-17.md)
+(M1 full-bleed, M2 logo âncora, M3 ritmo, M4 mix). A5b continua fora. Este
+plano A0–A5a não muda.
+
+## 17/11/2026 — ensaio v3: backlog L1–L4 (histórico; L1–L3 feitos)
+
+Após `versao-1 (3).mp4`, o salto L1–L4 ficou em
+[motion-ensaio-cafe-aurora-v3-gaps-2026-11-17.md](motion-ensaio-cafe-aurora-v3-gaps-2026-11-17.md).
+L1–L3 + ajuste fino foram implementados; ensaio v4 remeteu ao doc M1–M4 acima.
+A5b continua fora. Este plano A0–A5a não muda.
 
 ## 17/11/2026 — pós-ensaio: backlog visual documentado (não implementado)
 

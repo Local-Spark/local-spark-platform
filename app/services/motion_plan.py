@@ -104,9 +104,18 @@ def validate_motion_plan(
     duration_ms: int,
     asset_ids: set[str],
 ) -> None:
-    from app.services.motion_photo_intent import PHOTO_INTENT_CONTRACT
+    from app.services.motion_photo_intent import (
+        PHOTO_INTENT_CONTRACT,
+        PHOTO_INTENT_CONTRACT_V3,
+        PHOTO_INTENT_CONTRACT_V4,
+    )
+    from app.services.motion_photo_quality import validate_photo_quality
 
-    if context.get("photo_intent_contract") == PHOTO_INTENT_CONTRACT and "assets/logo.png" in asset_ids:
+    if (
+        context.get("photo_intent_contract")
+        in (PHOTO_INTENT_CONTRACT_V3, PHOTO_INTENT_CONTRACT_V4, PHOTO_INTENT_CONTRACT)
+        and "assets/logo.png" in asset_ids
+    ):
         if composition.motion_plan is None or not any(
             element.role == "image" and element.asset_id == "assets/logo.png"
             for scene in composition.motion_plan.scenes
@@ -124,6 +133,7 @@ def validate_motion_plan(
     if plan is None:
         if required:
             raise AuthError("MOTION_PLAN_REQUIRED", 409)
+        validate_photo_quality(composition, context, asset_ids=asset_ids)
         validate_scene_direction(composition, context)
         return
     validate_scene_direction(composition, context)
@@ -135,3 +145,5 @@ def validate_motion_plan(
         for element in scene.elements:
             if element.asset_id is not None and element.asset_id not in asset_ids:
                 raise AuthError("MOTION_PLAN_ASSET_UNAVAILABLE", 409)
+
+    validate_photo_quality(composition, context, asset_ids=asset_ids)
