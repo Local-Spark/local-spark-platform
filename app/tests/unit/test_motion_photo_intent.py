@@ -70,6 +70,10 @@ def test_real_provider_receives_intent_for_planning_and_code(implementation):
         assert "tempos de fecho/handoff do plano" in rules
         assert "declarar o asset no plano não basta" in rules
         assert "M1:" in rules and "M2:" in rules and "M3:" in rules
+        assert all(marker in rules for marker in ("N1:", "N2:", "N3:"))
+        assert "janela landscape central + barras blur" in rules
+        assert "sem placa creme/editorial" in rules
+        assert "scale=1.04 x_pct=0 y_pct=0" in rules
         assert "28%" in rules and "2500 ms" in rules
         assert "cartão creme com foto em janela" in rules
         assert "handoffEnd < end" in rules
@@ -123,10 +127,10 @@ def test_new_photo_snapshots_pin_executable_examples_without_changing_video_defa
     from app.services.motion_skills import resolve_html_motion_skill
 
     _, prepared, plan = photo_case()
-    assert prepared.context["skill"]["id"] == "instagram-reel-photo-v16"
+    assert prepared.context["skill"]["id"] == "instagram-reel-photo-v17"
     assert resolve_html_motion_skill("reel")[0] == "instagram-reel-v13"
     pack = prepared.context["repertoire"]
-    assert pack["id"] == "business-reel-v8"
+    assert pack["id"] == "business-reel-v9"
     example = next(e for e in pack["examples"] if e["id"] == "photo-reel")
     assert "window.makePhotoReelMotion" in example["content"]
     assert "animatePhoto(ms)" in example["integration"]
@@ -385,3 +389,27 @@ def test_v4_replay_preserves_crop_policy_and_quality_gates():
     )
     with pytest.raises(AuthError, match="MOTION_PHOTO_HOLD_TOO_LONG"):
         validate_photo_quality(changed, old, asset_ids=set())
+
+
+def test_v5_snapshot_replay_keeps_exact_crop_rules_skill_and_repertoire():
+    from app.services.motion_photo_intent import PHOTO_INTENT_CONTRACT_V5
+    from app.services.motion_photos import PHOTO_MOTION_RULES_V5
+    from app.services.motion_repertoire import capture_repertoire
+    from app.services.motion_skills import _SKILLS, load_motion_skill
+
+    body, prepared, plan = photo_case()
+    identifier = "instagram-reel-photo-v16"
+    digest = _SKILLS[identifier][1]
+    old = {
+        **prepared.context,
+        "photo_intent_contract": PHOTO_INTENT_CONTRACT_V5,
+        "skill": {"id": identifier, "sha256": digest, "instructions": load_motion_skill(identifier, digest, "reel")},
+        "repertoire": capture_repertoire("business-reel-v8"),
+        "photo_motion": {**prepared.context["photo_motion"], "rules": PHOTO_MOTION_RULES_V5},
+        "executor_contract": {**prepared.context["executor_contract"], "integration_policy": PHOTO_MOTION_RULES_V5},
+    }
+    replay = capture_motion_guidance(body, previous=old)
+    for key in ("photo_intent_contract", "skill", "repertoire", "photo_motion", "executor_contract"):
+        assert replay[key] == old[key]
+    assert photo_intent_rules(old) == PHOTO_INTENT_CONTRACT_V5["rules"]
+    assert implementation_intent(plan, PHOTO_INTENT_CONTRACT_V5)["version"] == "motion-photo-intent-v5"

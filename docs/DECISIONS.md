@@ -1,5 +1,51 @@
 # Decisões vigentes e pendências
 
+## 18/11/2026 — photo N1–N3: cover real, energia declarada e marca sem placa
+
+Implementação autorizada após o ensaio v5. Novas capturas usam intent/regras
+photo v6, skill `instagram-reel-photo-v17` e default `business-reel-v9`, com
+hashes pinados. Cover 9:16 é o default desde o gancho; janela landscape com
+barras blur não é default permitido. Contain sobre fundo fotográfico exige
+inviabilidade de crop e justificativa da região essencial, alternativas e margem
+em composition/development. Protagonista continua precedendo bleed e movimento.
+Logo PNG âncora e CTA são overlays sobre foto, com scrim local, sem placa creme;
+micro-movimento até end. N1/N3 são instruções de plano/implementação e exemplo,
+não gates geométricos ou inspeção de pixels.
+
+N2 acrescenta gate somente ao intent v6: estados numéricos canônicos
+`scale=1.04 x_pct=0 y_pct=0`, curva linear, velocidade média declarada de scale
+≥0,01/s OU pan em um eixo ≥0,5 ponto percentual/s. Une intervalos energéticos
+no plano inteiro; lacunas >2500 ms geram `MOTION_PHOTO_ENERGY_REQUIRED`, inclusive
+começo/fim e fronteiras entre cenas. Prosa diferente, estados iguais, microdrift,
+gaps ou fragmentação de beats/cenas não reiniciam a janela. Fotos com crop
+restrito podem coordenar overlays text/graphic via related_element_ids na mesma
+cena; logo isolada não substitui energia fotográfica. Isso mede declarações,
+não execução/visibilidade: não é A5b nem garantia de movimento no MP4.
+
+Gates M3 mantidos para v4/v5/v6, inclusive movimento de todas as fotos/logo no
+fecho. O exemplo v9 reforça KB no miolo e mantém seek absoluto/reversível;
+exige adaptação ao crop/plano, instanciação em scene_init e chamada em seek.
+Intent v1–v5, skill v16 e repertório v8 mantêm bytes/semântica e replay; seleção
+explícita continua respeitada. Vídeo, Music/mix e renderer preservados. N4 adiado
+para manter a fatia focada. Sem TTS/avatar, chamada paga ou alteração de run antiga.
+
+Validação: 217 unitários, 13 testes Node e três integrações PostgreSQL dedicadas
+`_test` com runtime restrito; intent/quality/energy com 100% de linhas e branches
+no recorte. Ruff dos arquivos alterados passou. `make ci` executado e bloqueado
+nas mesmas 66 ocorrências de lint preexistentes; CI integral e cobertura global
+100% não estabelecidos. Sem exclusões ou relaxamento de gates.
+Pendente: novo MP4 em ensaio autorizado e revisão audiovisual do titular.
+Não há aceite E2E nem comprovação de melhora perceptiva nesta mudança.
+
+## 18/11/2026 — pós-ensaio v5: documentar N1–N4, não implementar ainda
+
+Titular confirmou evolução em `versao-1 (5).mp4` sem nível máximo de propaganda;
+pediu diagnóstico e docs para outro chat. Decisão desta mudança: **só docs** —
+[motion-ensaio-cafe-aurora-v5-gaps-2026-11-18.md](design/motion-ensaio-cafe-aurora-v5-gaps-2026-11-18.md).
+Próxima fatia alvo: N1 full-bleed real, N2 energia no miolo, N3 fecho sem creme;
+N4 mix opcional. Crop v5 e gates M3 preservados. A5b, TTS/avatar, renderer e
+tarifa Music fora até OK explícito.
+
 ## 18/11/2026 — viabilidade de crop antes da implementação photo
 
 Run `a0a010f8-6ae0-5baf-9d74-514e1d23d8da` falhou com

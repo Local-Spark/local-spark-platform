@@ -92,6 +92,20 @@ def photo_case(*, human_review=False):
             for item in context["sound_library"]["items"]
         ],
     )
+    for scene in data["motion_plan"]["scenes"]:
+        for element in scene["elements"]:
+            if element["role"] == "image":
+                element["beats"] = [
+                    dict(
+                        element["beats"][0],
+                        phase="transform",
+                        start_ms=scene["start_ms"],
+                        end_ms=scene["end_ms"],
+                        start_state="scale=1.04 x_pct=0 y_pct=0",
+                        end_state="scale=1.16 x_pct=0 y_pct=0",
+                        curve={"kind": "linear", "parameters": []},
+                    )
+                ]
     plan = MotionConstructionPlan.model_validate(data)
     png = frame()
     asset = RenderAsset(ASSET_ID, "image/png", png.png, png.sha256)

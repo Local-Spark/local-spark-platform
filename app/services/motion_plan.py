@@ -108,12 +108,13 @@ def validate_motion_plan(
         PHOTO_INTENT_CONTRACT,
         PHOTO_INTENT_CONTRACT_V3,
         PHOTO_INTENT_CONTRACT_V4,
+        PHOTO_INTENT_CONTRACT_V5,
     )
     from app.services.motion_photo_quality import validate_photo_quality
 
     if (
         context.get("photo_intent_contract")
-        in (PHOTO_INTENT_CONTRACT_V3, PHOTO_INTENT_CONTRACT_V4, PHOTO_INTENT_CONTRACT)
+        in (PHOTO_INTENT_CONTRACT_V3, PHOTO_INTENT_CONTRACT_V4, PHOTO_INTENT_CONTRACT_V5, PHOTO_INTENT_CONTRACT)
         and "assets/logo.png" in asset_ids
     ):
         if composition.motion_plan is None or not any(

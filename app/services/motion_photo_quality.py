@@ -5,7 +5,8 @@ from typing import Any
 from app.schemas.motion_plan import MotionElementPlan
 from app.schemas.motion_production import HTMLMotionComposition, MotionConstructionPlan
 from app.services.auth import AuthError
-from app.services.motion_photo_intent import PHOTO_INTENT_CONTRACT, PHOTO_INTENT_CONTRACT_V4
+from app.services.motion_photo_energy import validate_photo_energy
+from app.services.motion_photo_intent import PHOTO_INTENT_CONTRACT, PHOTO_INTENT_CONTRACT_V4, PHOTO_INTENT_CONTRACT_V5
 
 
 def _moves_until(element: MotionElementPlan, start: int, end: int) -> bool:
@@ -25,7 +26,11 @@ def validate_photo_quality(
     *,
     asset_ids: set[str],
 ) -> None:
-    if context.get("photo_intent_contract") not in (PHOTO_INTENT_CONTRACT_V4, PHOTO_INTENT_CONTRACT):
+    if context.get("photo_intent_contract") not in (
+        PHOTO_INTENT_CONTRACT_V4,
+        PHOTO_INTENT_CONTRACT_V5,
+        PHOTO_INTENT_CONTRACT,
+    ):
         return
     plan = artifact.motion_plan
     if plan is None:
@@ -61,3 +66,6 @@ def validate_photo_quality(
         raise AuthError("MOTION_PHOTO_CLOSING_MATERIAL_REQUIRED", 409)
     if not all(_moves_until(e, handoff_end, plan.duration_ms) for e in photos + logos):
         raise AuthError("MOTION_PHOTO_CLOSING_MOTION_REQUIRED", 409)
+
+    if context.get("photo_intent_contract") == PHOTO_INTENT_CONTRACT:
+        validate_photo_energy(plan)

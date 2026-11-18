@@ -7,10 +7,12 @@ import pytest
 from app.schemas.motion_production import HTMLMotionComposition
 from app.services.auth import AuthError
 from app.services.motion_photo_intent import (
-    PHOTO_INTENT_CONTRACT,
     PHOTO_INTENT_CONTRACT_V1,
     PHOTO_INTENT_CONTRACT_V2,
     PHOTO_INTENT_CONTRACT_V3,
+)
+from app.services.motion_photo_intent import (
+    PHOTO_INTENT_CONTRACT_V5 as PHOTO_INTENT_CONTRACT,
 )
 from app.services.motion_plan import validate_motion_plan
 from app.tests.unit.test_motion_photo_planning import ASSET_ID, photo_case
