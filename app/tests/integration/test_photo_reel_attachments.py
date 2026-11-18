@@ -148,6 +148,8 @@ async def test_shared_photo_snapshot_uses_material_evidence_and_origin_approval(
     assert not body.storyboard
     assert body.automatic_plan
     assert body.preparation.evidence[0].asset_id == f"assets/photo-{photo}.png"
+    assert snapshot["photo_readability_contract"]["version"] == "motion-photo-readability-v1"
+    assert snapshot["photo_finish_contract"]["version"] == "motion-photo-finish-v1"
     assert snapshot["photo_intent_contract"]["version"] == "motion-photo-intent-v10"
     assert snapshot["skill"]["id"] == "instagram-reel-photo-v20"
     assert snapshot["repertoire"]["id"] == "business-reel-v12"

@@ -1,5 +1,11 @@
 # Ensaio Café Aurora v8 — gaps e próxima fatia — 18/11/2026
 
+## Ensaio v9 — próximo backlog noutro doc
+
+Após R1–R3 + guarda v2, o ensaio `versao-1 (9).mp4` e o backlog S1–S4 estão em
+[motion-ensaio-cafe-aurora-v9-gaps-2026-11-18.md](motion-ensaio-cafe-aurora-v9-gaps-2026-11-18.md).
+Este documento permanece o diagnóstico v8 + histórico R1–R4.
+
 ## Atualização — R1–R3 implementados; aceite audiovisual pendente
 
 Autorização posterior do titular: intent/regras v9, skill photo v20 e repertório

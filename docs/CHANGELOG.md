@@ -1,5 +1,146 @@
 # Registro de mudanças
 
+## 18/11/2026 — falha pós-upload: timeout ao gravar evidências
+
+Run `cefe9071-7fc5-553a-9de4-709fb802101e` terminou com
+`MOTION_EXECUTION_FAILED`. Snapshot contém S1–S3 e readability-v1. Render e
+upload têm recibos concluídos; nenhum efeito de revisão foi iniciado. Logs do
+PostgreSQL registram `statement timeout` no INSERT de `creation_lab_trace` às
+19:45:04 UTC, após o upload, e timeouts de lock de leitores durante a escrita.
+O prazo geral de 10 s era insuficiente para a persistência volumosa de evidências.
+Não foi outra rejeição das guardas photo nem falha de geração do MP4.
+
+`LabMotionOrchestrator.persist_render` agora prepara/cifra os três envelopes
+antes de adquirir o lock. Somente os INSERTs de evidências já limitadas pelo
+fluxo recebem `SET LOCAL statement_timeout = '60s'`; antes de emitir o evento,
+restaura 10 s. Lock timeout continua 3 s. Versão, traces e evento permanecem
+na mesma transação com autorização/RLS e fence; sem IO de rede sob lock.
+Cancelamento SQLSTATE 57014 nessa escrita vira código estável
+`CREATION_LAB_RENDER_EVIDENCE_TIMEOUT`, sem mensagem SQL ou dados privados.
+Outros erros continuam propagados. Não há retry automático ou descarte de frames.
+
+Validação: 268 unitários dirigidos passaram. Três integrações PostgreSQL `_test`
+passaram, incluindo operação sintética de 10,1 s sob o prazo específico, retorno
+ao prazo geral, evento/frames preservados, fence vencida sem registros parciais,
+isolamento de outro ator e concorrência de leitores/escritores. Ruff/formato do
+recorte passaram. `make ci` segue bloqueado nos 66 lints preexistentes; mypy do
+adapter mantém cinco erros preexistentes nas funções prepare/checkpoints/storyboards.
+Cobertura dirigida do adapter: 48% total; o método alterado persist_render teve
+todas as linhas e branches exercitadas. Cobertura global 100% continua pendente;
+não houve exclusões produtivas.
+
+O MP4 já enviado foi recuperado somente por leitura do armazenamento local:
+2.258.806 bytes, hash conferido com o recibo persistido. Cópia privada temporária
+em `/tmp/execution-failure-diagnostic/render-preservado.mp4`. Isso não registra
+uma versão, não executa a revisão automática nem aprova a peça. Run, snapshot,
+ledger e objeto remoto permanecem intactos. Sem chamada paga, reset, novo render,
+Music/mix ou mudança de gates. Recuperação produtiva/revisão continua pendente;
+não reenviar a geração só para recuperar o arquivo já existente. Sem aceite E2E.
+Worker dedicado recarregado após reconfirmar zero runs ativos; pollers de workflow
+e atividade verificados. Run relido continua failed com o código original.
+
+## 18/11/2026 — falso bloqueio do CTA com duas sombras pretas
+
+Run `9db92f5c-9ded-5d55-9ea9-b1b01b8ce329`, criado às 15h50 de São Paulo,
+falhou com `MOTION_RENDER_EXECUTION_FAILED`. Leitura restrita/read-only e replay
+local da composição salva reproduziram `MOTION_PHOTO_CTA_READABILITY_REQUIRED`
+em ~12567 ms. O hash do executor reconstruído confere com o efeito persistido.
+CTA visível, branco, 34 px e dentro do frame; CSS computado tinha duas sombras
+pretas opacas (`0 2px 6px`, `0 1px 1px`). A regex de v2 aceitava só uma sombra:
+falso bloqueio estrutural, não comprovação de falta de legibilidade nos pixels.
+
+O snapshot desse run tem intent v10/guarda v2, **sem o suplemento S1–S3**:
+a captura ainda foi feita com código anterior. Run, snapshot, custos e efeitos
+falhos ficam preservados; não houve retry, reset ou nova chamada paga.
+
+Correção para novas capturas: `motion-photo-readability-v1` seleciona guarda DOM
+v3 por hash. V3 aceita uma lista de sombras, todas pretas opacas e pelo menos
+uma com blur ≥2px; rejeita ausência, sombra clara/translúcida ou só blur <2px.
+Demais bytes lógicos de v2 permanecem: dissolve aprovada, inset zero, CTA desde
+cta_read_start com ≥1500 ms, layout, energia e marca. V1/v2 continuam imutáveis;
+replay sem a política nova não muda. S1–S3 continuam capturados separadamente,
+com intent v10, skill v20 e repertório v12 preservados. Sem renderer novo.
+
+Validação: 275 unitários dirigidos, 94 testes Node photo com guarda v3, duas
+integrações Chromium (13 cenários sintéticos) e três integrações PostgreSQL
+`_test` passaram. Serviço de seleção novo com 100% linhas/branches; Ruff e mypy
+dirigidos passaram. Replay da composição salva com v3 passou em todos os seeks
+amostrados a 30 fps, usando previews/fontes locais com rede interceptada; não é
+novo MP4 nem reexecução produtiva. `make ci` continua nos 66 lints preexistentes.
+
+Worker dedicado recarregado após reconfirmar zero runs queued/running;
+novo processo confirmado como poller das filas de workflow e atividade. O run
+falho foi relido e mantém estado/código originais. S1–S3 e a política de leitura
+nova estão carregados para futuras capturas; nenhuma execução foi iniciada.
+
+Sem alteração de Music/mix, identidade, TTS/avatar ou orçamento. Pendente novo
+pedido autorizado e revisão do MP4 pelo titular; sem aceite E2E.
+
+## 18/11/2026 — S1–S3 pós-v9: suplemento pinado para novas capturas
+
+Implementado por autorização posterior ao diagnóstico. Novas capturas photo
+adicionam `motion-photo-finish-v1`, com regras e hash do suplemento DOM pinados.
+Intent v10, guarda v2, skill v20 e repertório v12 continuam com os mesmos bytes;
+snapshots sem o suplemento não recebem upgrade no replay. Campos de inspeção
+nulos são omitidos na serialização histórica. Alterações documentais já staged
+foram preservadas.
+
+S1 mantém cover exclusivo ≥2/3 e no máximo uma exceção estruturada/1/3 das
+cenas; agora contain+blur dura **no máximo 2000 ms**, inclusive no miolo.
+Esse teto é uma decisão conservadora para impedir o beat Stories de ~4 s do v9,
+não uma medição estética. Crop v5 prevalece: selecionar outra foto/revisar plano
+quando inviável. O suplemento rejeita suporte pintado de texto com largura
+≥95% do viewport e altura <90%, no elemento ou ancestrais; scrim local permitido.
+
+S2 mantém M3/N2/O2/Q2/R1–R3 e exige em cada beat de foto/logo após handoffEnd
+velocidade mínima de scale 0,01/s ou pan 0,5 pp/s, linear, até end. Pelo menos
+um texto do fecho tem entrada/saída numérica linear com amplitude/velocidade O2;
+o suplemento confere transform interpolado, visibilidade e ancestrais por seek.
+Saída do CTA após handoff é rejeitada; leitura ≥1500 ms, dissolve aprovada,
+cta_read_start e inset zero continuam sob a guarda v2 intacta. O suplemento é
+instalado antes dela e não injeta animação. Hash do executor composto continua
+vinculado ao efeito existente, incluindo storyboard/correção.
+
+S3 exige `staging.photo_identity_reviews` para todas as fotos selecionadas
+quando o inventário contém logo do kit. Asset duplicado/estranho, inspeção
+faltante/vazia, `third_party` ou `uncertain` bloqueiam o plano; só `clean` segue.
+Escolhida rejeição conservadora em vez de crop de marca sem prova geométrica.
+Planejador observa os previews existentes, prefere materiais limpos e pede
+revisão se insuficientes. Não há OCR/classificador novo nem remoção de marca.
+Instrução explícita impede adicionar “Imagens ilustrativas.” por padrão ao CTA;
+texto solicitado pelo titular continua autorizado.
+
+Validação local: 273 unitários do recorte passaram; serviço novo com **100% de
+linhas e branches** (52 statements/28 branches). 87 testes Node photo passaram
+com guarda v2; duas integrações Chromium cobrem 12 cenários sintéticos, sem
+rede externa. Três integrações PostgreSQL no banco dedicado `_test` com roles
+restritas passaram, incluindo captura compartilhada lab/WhatsApp. `make ci`
+executado e bloqueado nos **66 erros de lint preexistentes**; não há alegação
+de CI integral/cobertura global 100%. Sem exclusões produtivas. Ruff/formato dos
+arquivos Python alterados passaram; mypy dos cinco módulos de validação/schema
+passou. `motion_context.py` conserva erro preexistente de `feedback_context`
+sem tipagem. Suíte ampliada de motion: 1.622 passaram e 20 falharam; os mesmos
+20 casos falharam numa cópia isolada de HEAD (context/feedback e áudio), sem as
+mudanças S1–S3. Essas pendências gerais não foram corrigidas nesta fatia.
+
+Limites: inspeção de terceiros é declaração vinculada ao plano, não prova nos
+pixels; a guarda não inspeciona oclusão arbitrária por irmãos/pseudo-elementos
+nem mede energia perceptiva/contraste. Sem A5b, chamadas pagas, novo MP4,
+recarga de worker, alteração de vídeo, Music/mix, TTS/avatar ou renderer novo.
+S4 segue fora do escopo. Pendente novo ensaio explicitamente autorizado,
+MP4 e revisão audiovisual do titular; **sem aceite E2E**.
+
+## 18/11/2026 — pós-ensaio v9: documentar S1–S4, não implementar ainda
+
+Titular pediu análise de `versao-1 (9).mp4` (evolução clara vs v8; ainda longe
+das refs “incríveis”). Decisão desta mudança: **só docs** —
+[motion-ensaio-cafe-aurora-v9-gaps-2026-11-18.md](design/motion-ensaio-cafe-aurora-v9-gaps-2026-11-18.md).
+Estimativa ~**55%** vs propaganda das refs (v8 ~35–40%). Cover no gancho/3º
+beat e logo transparente ok; miolo ainda Stories; fecho ~3 s estático; materiais
+com Belize/Mackbear/watermark; mix −31,5 LUFS. Próxima fatia alvo: S1 cover no
+miolo, S2 energia no fecho até end, S3 identidade dos assets; S4 mix opcional.
+Sem implementação, chamada paga, A5b, Music ou renderer nesta mudança.
+
 ## 18/11/2026 — correção versionada de transições e leitura na guarda DOM
 
 Pedido `3c142412-2331-5166-92ae-cca0724b94a6` encerrou com

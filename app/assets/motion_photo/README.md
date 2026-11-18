@@ -41,3 +41,25 @@ node --test app/tests/browser/motion_photo_hard.cjs
 O teste Chromium intercepta requisições com arte sintética e cobre cover válido,
 janela+contain, wrapper/pseudo com placa, foto imóvel, marca oculta e CTA pequeno.
 Não produz MP4 nem comprova aceite comercial.
+
+## Suplemento S1–S3
+
+Novas capturas acrescentam `motion-photo-finish-v1`, sem editar v10/v2.
+`motion_photo_finish.py` valida exceção ≤2000 ms, velocidade mínima de cada
+foto/logo do fecho, entrada/saída tipográfica e inspeção de identidade no staging.
+`photo-finish-v1.js` é instalado antes de v2: confere tipografia e suporte local
+de texto em seeks absolutos; v2 continua responsável por dissolve/CTA e fotos.
+O SHA do suplemento é pinado no contrato e o executor composto mantém seu hash.
+Snapshots antigos sem esse contrato não executam o suplemento.
+
+Inspeção semântica é declaração do planejador, não OCR. O teste Chromium usa
+somente fixtures sintéticas; não comprova qualidade de MP4 nem aceite E2E.
+
+## CTA com sombras múltiplas — v3
+
+`motion-photo-readability-v1` seleciona `photo-guard-v3.js` para novas capturas.
+V3 só amplia o parser de `text-shadow`: todas as camadas devem ser pretas
+opacas, com ao menos uma de blur ≥2px. Regressão: `0 2px 6px black, 0 1px 1px
+black` é válido, mas v2 bloqueava. Demais checks de v2 são preservados.
+V2 não foi editada; snapshots sem a política nova mantêm seu executor.
+Testar com `PHOTO_GUARD_VERSION=v3` nas suítes Node e Chromium acima.

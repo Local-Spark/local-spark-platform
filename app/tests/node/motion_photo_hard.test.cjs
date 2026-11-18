@@ -177,3 +177,70 @@ test('v2 recognizes only geometrically empty inset as an open mask',async()=>{
     s.nodes.photo.style.clipPath=value;await assert.rejects(s.context.window.seek(2000),/VISIBLE_REQUIRED/);
   }
 });
+
+const finishSource = fs.readFileSync('app/assets/motion_photo/photo-finish-v1.js','utf8');
+function finishSetup() {
+  const s=setup({guardSource:guardV2});
+  const original=s.original;
+  s.context.window.seek=ms=>{
+    original(ms);
+    if (s.nodes.cta) s.nodes.cta.style.transform=`matrix(1,0,0,1,0,${Math.max(0,1-ms/1000)*25.6})`;
+  };
+  s.finishPlan={scenes:[{start:0,end:5000,texts:['cta']}],
+    typography:[{id:'cta',start:0,end:1000,a:[1,0,2],z:[1,0,0]}]};
+  const install=s.install;
+  s.install=()=>{
+    vm.runInContext(`(${finishSource})(${JSON.stringify(s.finishPlan)})`,s.context);
+    install();
+  };
+  return s;
+}
+test('S2 executes typography and v2 photo/brand guard on absolute reverse and final seeks',async()=>{
+  const s=finishSetup();s.plan.scenes[0].cta_read_start=1000;s.install();
+  for(const ms of [0,500,1000,4000,5000,500,0]) await s.context.window.seek(ms);
+});
+for(const [name,mutate] of [
+  ['no-op typography',s=>s.context.window.seek=s.original],
+  ['missing typography',s=>delete s.nodes.cta],
+  ['hidden text',s=>s.nodes.cta.style.opacity='0'],
+  ['masked text',s=>s.nodes.cta.style.clipPath='inset(10px)'],
+  ['empty text',s=>s.nodes.cta.textContent=' '],
+  ['offscreen text',s=>s.nodes.cta.getBoundingClientRect=()=>box(900,0,100,100)],
+  ['canceling ancestor',s=>s.root.style.transform='matrix(1,0,0,1,0,-20)'],
+]) test(`S2 rejects ${name}`,async()=>{
+  const s=finishSetup();mutate(s);s.install();
+  await assert.rejects(s.context.window.seek(500),/TYPOGRAPHY_NOT_EXECUTED/);
+});
+test('S1 rejects full-width painted text bands; local scrim and old v2 retain behavior',async()=>{
+  const s=finishSetup();s.nodes.cta.style.backgroundColor='rgb(0, 0, 0)';
+  s.nodes.cta.getBoundingClientRect=()=>box(0,750,720,100);s.install();
+  await assert.rejects(s.context.window.seek(500),/LOCAL_SCRIM_REQUIRED/);
+  const local=finishSetup();local.nodes.cta.style.backgroundColor='rgb(0, 0, 0)';local.install();
+  await local.context.window.seek(500);
+  const old=setup({guardSource:guardV2});old.nodes.cta.style.backgroundColor='rgb(0, 0, 0)';
+  old.nodes.cta.getBoundingClientRect=()=>box(0,750,720,100);old.install();await old.context.window.seek(500);
+});
+
+test('S2 preserves v2 literal zero inset during typography entry',async()=>{
+  const s=finishSetup();s.nodes.cta.style.clipPath='inset(0px 0px 0px 0px)';s.install();
+  for(const ms of [0,500,1000,5000,500]) await s.context.window.seek(ms);
+});
+
+const guardV3=fs.readFileSync('app/assets/motion_photo/photo-guard-v3.js','utf8');
+for(const [shadow,valid] of [
+  ['rgb(0, 0, 0) 0px 2px 6px, rgb(0, 0, 0) 0px 1px 1px',true],
+  ['rgb(0, 0, 0) -1.5px 2px 0px, rgb(0, 0, 0) 0px 1px 2.5px',true],
+  ['rgb(0, 0, 0) 0px 2px 1px, rgb(0, 0, 0) 0px 1px 1px',false],
+  ['rgb(0, 0, 0) 0px 2px 6px, rgba(0, 0, 0, 0.5) 0px 1px 1px',false],
+  ['rgb(255, 255, 255) 0px 2px 6px',false],
+  ['none',false],
+]) test(`v3 CTA shadows ${shadow}`,async()=>{
+  const s=setup({guardSource:guardV3});s.nodes.cta.style.textShadow=shadow;s.install();
+  if(valid) for(const ms of [0,2500,4999,5000,2500,0]) await s.context.window.seek(ms);
+  else await assert.rejects(s.context.window.seek(2500),/CTA_READABILITY_REQUIRED/);
+});
+test('v2 historical capture still rejects the exact multi-shadow v9 regression',async()=>{
+  const s=setup({guardSource:guardV2});
+  s.nodes.cta.style.textShadow='rgb(0, 0, 0) 0px 2px 6px, rgb(0, 0, 0) 0px 1px 1px';s.install();
+  await assert.rejects(s.context.window.seek(2500),/CTA_READABILITY_REQUIRED/);
+});

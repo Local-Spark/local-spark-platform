@@ -115,6 +115,15 @@ def photo_case(*, human_review=False):
         "surface": "transparent_overlay",
         "cta_element_id": next(e["id"] for e in final["elements"] if e["role"] == "text"),
     }
+    for element in final["elements"]:
+        if element["role"] == "text":
+            for beat in element["beats"]:
+                if beat["phase"] == "enter":
+                    beat.update(
+                        start_state="scale=1 x_pct=0 y_pct=5",
+                        end_state="scale=1 x_pct=0 y_pct=0",
+                        curve={"kind": "linear", "parameters": []},
+                    )
     plan = MotionConstructionPlan.model_validate(data)
     png = frame()
     asset = RenderAsset(ASSET_ID, "image/png", png.png, png.sha256)

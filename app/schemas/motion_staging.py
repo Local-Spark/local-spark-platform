@@ -30,7 +30,16 @@ class StagedMoment(PlanModel):
     transition: StagedTransition | None
 
 
+class PhotoIdentityReview(PlanModel):
+    asset_id: str = Field(pattern=r"^assets/photo-[A-Za-z0-9_.-]+$")
+    verdict: Literal["clean", "third_party", "uncertain"]
+    evidence: Description
+
+
 class MotionStaging(PlanModel):
+    photo_identity_reviews: tuple[PhotoIdentityReview, ...] | None = Field(
+        default=None, exclude_if=lambda value: value is None, max_length=192
+    )
     version: Literal["motion-staging-v1", "motion-staging-photo-v1", "motion-staging-photo-v2"]
     moments: tuple[StagedMoment, ...] = Field(min_length=1, max_length=12)
     unavailable_materials: tuple[Description, ...] = Field(max_length=8)

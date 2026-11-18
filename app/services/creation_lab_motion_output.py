@@ -4,6 +4,7 @@ from typing import Any
 from uuid import UUID, uuid5
 
 from sqlalchemy import text
+from sqlalchemy.exc import DBAPIError
 
 from app.services.auth import AuthError
 from app.services.content_pieces import PieceArtifact
@@ -68,6 +69,9 @@ class LabMotionOrchestrator(MotionOrchestrator):
             "frames": self.requests.context.open(evidence_ciphertext),
             "diagnostics": self.requests.context.open(diagnostics_ciphertext),
         }
+        # Serialize/encrypt the bounded evidence before taking the writer lock.
+        # Frame evidence may approach 48 MiB; it is already bounded by persist_payload.
+        sealed_evidence = {slot: self.execution.cipher.seal({"value": payload}) for slot, payload in evidence.items()}
         async with self.requests.database.transaction(ZERO, row["actor_id"]) as session:
             current = await self.execution.guard(
                 session, row["actor_id"], self.run_id, "admin.creation_lab.artifact.create"
@@ -87,18 +91,27 @@ class LabMotionOrchestrator(MotionOrchestrator):
                     "size": artifact.size_bytes,
                 },
             )
-            for slot, payload in evidence.items():
-                await session.execute(
-                    text("""INSERT INTO creation_lab_trace(id,run_id,effect_id,stage,slot,payload_ciphertext)
-                  VALUES(:id,:run,:effect,:stage,'evidence',:payload)"""),
-                    {
-                        "id": uuid5(render_operation, f"render:{slot}"),
-                        "run": self.run_id,
-                        "effect": render_operation,
-                        "stage": slot,
-                        "payload": self.execution.cipher.seal({"value": payload}),
-                    },
-                )
+            # Keep lock acquisition at 3s and ordinary statements at 10s. Only the
+            # bounded diagnostic INSERTs get a larger, transaction-local deadline.
+            await session.execute(text("SET LOCAL statement_timeout = '60s'"))
+            try:
+                for slot, payload in sealed_evidence.items():
+                    await session.execute(
+                        text("""INSERT INTO creation_lab_trace(id,run_id,effect_id,stage,slot,payload_ciphertext)
+                      VALUES(:id,:run,:effect,:stage,'evidence',:payload)"""),
+                        {
+                            "id": uuid5(render_operation, f"render:{slot}"),
+                            "run": self.run_id,
+                            "effect": render_operation,
+                            "stage": slot,
+                            "payload": payload,
+                        },
+                    )
+            except DBAPIError as exc:
+                if getattr(exc.orig, "sqlstate", None) == "57014":
+                    raise AuthError("CREATION_LAB_RENDER_EVIDENCE_TIMEOUT", 409) from None
+                raise
+            await session.execute(text("SET LOCAL statement_timeout = '10s'"))
             await self.execution.event(
                 session,
                 self.run_id,

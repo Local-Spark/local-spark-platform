@@ -85,8 +85,18 @@ def guarded_photo_scene_init(composition: HTMLMotionComposition, context: dict[s
     contract = context.get("photo_intent_contract")
     if contract not in (PHOTO_INTENT_CONTRACT_V9, PHOTO_INTENT_CONTRACT):
         return composition.scene_init
-    source = (GUARD_PATH if contract == PHOTO_INTENT_CONTRACT_V9 else GUARD_V2_PATH).read_bytes()
-    if hashlib.sha256(source).hexdigest() != contract["dom_guard_sha256"]:
+    from app.services.motion_photo_readability import (
+        PHOTO_READABILITY_CONTRACT,
+        READABILITY_GUARD_PATH,
+        readability_enabled,
+    )
+
+    readability = readability_enabled(context)
+    source = (
+        READABILITY_GUARD_PATH if readability else GUARD_PATH if contract == PHOTO_INTENT_CONTRACT_V9 else GUARD_V2_PATH
+    ).read_bytes()
+    expected = PHOTO_READABILITY_CONTRACT if readability else contract
+    if hashlib.sha256(source).hexdigest() != expected["dom_guard_sha256"]:
         raise AuthError("MOTION_PHOTO_GUARD_CHANGED", 409)
     plan = composition.motion_plan
     assert plan is not None
@@ -139,7 +149,9 @@ def guarded_photo_scene_init(composition: HTMLMotionComposition, context: dict[s
             }
         )
     payload = json.dumps({"scenes": scenes, "handoff_end": handoff_end, "end": plan.duration_ms}, ensure_ascii=True)
-    return composition.scene_init + "\n;(" + source.decode() + ")(" + payload + ");"
+    from app.services.motion_photo_finish import finish_scene_init
+
+    return finish_scene_init(composition, context) + "\n;(" + source.decode() + ")(" + payload + ");"
 
 
 def _exit_handoff(composition: HTMLMotionComposition, scene_id: str, contract: dict[str, Any]) -> dict[str, Any]:

@@ -274,7 +274,9 @@ def photo_intent_rules(context: dict[str, Any]) -> str:
         PHOTO_INTENT_CONTRACT,
     ):
         raise AuthError("MOTION_PHOTO_INTENT_CONTRACT_INVALID", 409)
-    return str(contract["rules"])
+    from app.services.motion_photo_finish import PHOTO_FINISH_CONTRACT, finish_enabled
+
+    return str(contract["rules"]) + (" " + PHOTO_FINISH_CONTRACT["rules"] if finish_enabled(context) else "")
 
 
 def implementation_intent(

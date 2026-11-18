@@ -26,7 +26,9 @@ from app.services.motion_generation import (
     provided_output_enabled,
 )
 from app.services.motion_illustration_policy import illustration_policy
+from app.services.motion_photo_finish import PHOTO_FINISH_CONTRACT
 from app.services.motion_photo_intent import PHOTO_INTENT_CONTRACT, PHOTO_VISUAL_RULES
+from app.services.motion_photo_readability import PHOTO_READABILITY_CONTRACT
 from app.services.motion_preparation import PREPARATION_RULES, PRODUCTION_PREPARATION_RULES, PROPOSED_PREPARATION_RULES
 from app.services.motion_quality import PHOTO_QUALITY_CONTRACT, QUALITY_CONTRACT
 from app.services.motion_repertoire import capture_repertoire
@@ -264,6 +266,20 @@ def capture_motion_guidance(
             if previous is None and generation == PHOTO_GENERATION_CONTRACT
             else {"photo_intent_contract": previous["photo_intent_contract"]}
             if previous is not None and "photo_intent_contract" in previous
+            else {}
+        ),
+        **(
+            {"photo_finish_contract": dict(PHOTO_FINISH_CONTRACT)}
+            if previous is None and generation == PHOTO_GENERATION_CONTRACT
+            else {"photo_finish_contract": previous["photo_finish_contract"]}
+            if previous is not None and "photo_finish_contract" in previous
+            else {}
+        ),
+        **(
+            {"photo_readability_contract": dict(PHOTO_READABILITY_CONTRACT)}
+            if previous is None and generation == PHOTO_GENERATION_CONTRACT
+            else {"photo_readability_contract": previous["photo_readability_contract"]}
+            if previous is not None and "photo_readability_contract" in previous
             else {}
         ),
         **quality,
