@@ -1,5 +1,55 @@
 # BL04 — contexto seletivo e produção visual com IA
 
+## 18/11/2026 — photo Q1–Q3: cover por cena e energia densa
+
+Implementado por autorização posterior ao diagnóstico v7. Novas capturas usam
+intent/regras photo v8, skill `instagram-reel-photo-v19` e repertório default
+`business-reel-v11`, com hashes pinados. Q1 reforça cover 9:16 em TODAS as
+cenas fotográficas; seleção deve priorizar fotos enquadráveis. Contain+blur é
+exceção rara, documentada por cena com asset, região essencial, alternativas e
+margem; várias exceções exigem rever seleção/composição. Crop v5 prevalece.
+Sem campo estruturado de layout, Q1 é instrução e exemplo, não gate geométrico.
+
+Q2 mantém velocidade/amplitude O2, reduz lacunas globais para ≤500 ms e exige
+união de intervalos energéticos ≥80% de CADA cena fotográfica, sem contar
+sobreposição duas vezes. Energia de outra cena não compensa cena parada.
+Overlays text/graphic relacionados na mesma cena continuam disponíveis para
+crop restrito. M3 e suas exigências de fecho continuam; N2/O2 históricos não
+mudam. O gate verifica declarações, não execução ou visibilidade nos pixels.
+
+O exemplo v11 acrescenta `makePhotoSceneMotion` para cada cena, inclusive miolo:
+cover e transform linear durante a leitura, estados/tempos vindos do plano,
+seek absoluto/reversível. `preparePhotoBrandOverlay` prepara marca/wrapper
+transparentes e contraste do CTA. Q3 proíbe placa/card também em ancestrais e
+pseudo-elementos; scrim local pertence à foto. PNG com placa incorporada pede
+revisão do plano, não alteração da identidade. CTA separado da saída; fotos e
+logo continuam em movimento até end. Helpers exigem adaptação/instanciação em
+scene_init e chamada em seek; não são auto-injetados nem gates DOM/pixels.
+
+Preservados snapshots anteriores, seleção explícita, vídeo, Music/mix e renderer,
+além das alterações documentais já preparadas pelo titular. Q4 adiado para
+manter a fatia focada; sem TTS/avatar, A5b ou chamada paga.
+
+Validação: 273 unitários, 21 testes Node dos exemplos photo e três integrações
+PostgreSQL dedicadas `_test`, com logins restritos, passaram. Intent/quality/energy
+com 100% de linhas e branches no recorte. Ruff/lint e formato dos arquivos
+alterados passaram. `make ci` executado e bloqueado nas 66 ocorrências de lint
+preexistentes. Mypy dirigido encontrou o erro preexistente de chamada não tipada
+a `feedback_context` em motion_context.py; CI integral e cobertura global 100%
+não estabelecidos, sem exclusões ou gates relaxados.
+
+Pendente: novo MP4 em ensaio autorizado e revisão audiovisual do titular para
+comprovar cover no miolo, movimento perceptível, logo sem placa e CTA legível.
+Não há aceite E2E nem comprovação perceptiva nesta implementação.
+
+## 18/11/2026 — ensaio v7 Café Aurora: gaps Q1–Q4 (só docs)
+
+Ensaio `versao-1 (7).mp4`: melhorou (energia ~2× vs v6; cover no gancho; sem
+holds de 6+ s), mas miolo volta a janela+blur, logo em placa creme, mix
+−31,6 LUFS. Diagnóstico e backlog Q1–Q4 com prompt em
+[motion-ensaio-cafe-aurora-v7-gaps-2026-11-18.md](../design/motion-ensaio-cafe-aurora-v7-gaps-2026-11-18.md).
+Sem implementação, chamada paga, A5b ou aceite E2E nesta mudança.
+
 ## 18/11/2026 — photo O1–O3: continuidade e magnitude declarada
 
 Implementado por autorização posterior ao diagnóstico v6. Novas capturas usam

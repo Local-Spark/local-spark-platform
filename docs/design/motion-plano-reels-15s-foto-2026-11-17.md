@@ -1,12 +1,19 @@
 # Plano de execução — reels 15s de fotos (qualidade), 17/11/2026
 
-## 18/11/2026 — ensaio v6: próximo backlog O1–O4 (não implementado)
+## 18/11/2026 — ensaio v7: próximo backlog Q1–Q4 (não implementado)
 
-Após `versao-1 (6).mp4` (cover na abertura; miolo blur; logo em placa), o
-próximo salto está em
-[motion-ensaio-cafe-aurora-v6-gaps-2026-11-18.md](motion-ensaio-cafe-aurora-v6-gaps-2026-11-18.md)
-(O1 cover contínuo, O2 energia perceptível, O3 logo sem placa, O4 mix). A5b
+Após `versao-1 (7).mp4` (energia melhor; miolo blur; logo em placa), o próximo
+salto está em
+[motion-ensaio-cafe-aurora-v7-gaps-2026-11-18.md](motion-ensaio-cafe-aurora-v7-gaps-2026-11-18.md)
+(Q1 cover no miolo, Q2 energia contínua, Q3 logo sem placa, Q4 mix). A5b
 continua fora. Este plano A0–A5a não muda.
+
+## 18/11/2026 — ensaio v6: backlog O1–O4 (histórico; O1–O3 feitos)
+
+Após `versao-1 (6).mp4`, o salto O1–O4 ficou em
+[motion-ensaio-cafe-aurora-v6-gaps-2026-11-18.md](motion-ensaio-cafe-aurora-v6-gaps-2026-11-18.md).
+O1–O3 foram implementados; ensaio v7 remeteu ao doc Q1–Q4 acima. A5b continua
+fora. Este plano A0–A5a não muda.
 
 ## 18/11/2026 — ensaio v5: backlog N1–N4 (histórico; N1–N3 feitos)
 

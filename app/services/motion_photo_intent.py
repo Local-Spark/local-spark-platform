@@ -176,9 +176,35 @@ PHOTO_CONTINUITY_RULES = (
     "revisão do plano; não redesenhe a marca. O1/O3 são instruções de composição e implementação, não "
     "inspeção DOM/pixels; O2 valida declarações, sem A5b ou aceite audiovisual. "
 )
-PHOTO_INTENT_CONTRACT = {
+PHOTO_INTENT_CONTRACT_V7 = {
     "version": "motion-photo-intent-v7",
     "rules": PHOTO_INTENT_CONTRACT_V6["rules"] + " " + PHOTO_CONTINUITY_RULES,
+}
+
+
+PHOTO_DENSE_RULES = (
+    "Q1: cover 9:16 em TODAS as cenas fotográficas, inclusive cada cena do miolo e fecho. Prefira fotos "
+    "autorizadas cujo protagonista caiba em cover; não é obrigatório usar todas. Proibido alternar cover no "
+    "gancho com janela+blur no miolo por conveniência. Contain+blur é exceção rara por cena, nunca estilo: "
+    "composition deve identificar asset, região essencial, alternativas examinadas e margem no percurso; "
+    "development deve explicar por que outra foto autorizada não resolve. Se várias cenas exigirem exceção, "
+    "reveja seleção/composição antes de aprovar; não sacrifique crop v5. Q2: mantém velocidade/amplitude O2 e "
+    "M3; substitui a tolerância de lacunas por <=500 ms globalmente (inclusive início, fim e fronteiras) e "
+    "exige união energética >=80% da duração de CADA cena fotográfica. Sobreposições contam uma vez; energia "
+    "de outra cena não compensa miolo parado. KB contínuo durante leitura, com text/graphic relacionado "
+    "visível quando crop restringir movimento. Entradas/saídas claras e leitura legível; não conte apenas "
+    "pulsos nas trocas, opacity zero, camada oculta ou transform sobrescrito. Q3: fecho com img "
+    "assets/logo.png sobre foto; wrapper transparente, background:none, border:0, padding:0, box-shadow:none. "
+    "Proibido card/placa creme inclusive em ancestrais/pseudo-elementos. Scrim neutro local pertence à foto, "
+    "nunca caixa da marca. CTA separado do wrapper de saída, legível até end; foto/logo movem até end. Se o "
+    "PNG tiver placa incorporada, requires_plan_revision, sem editar identidade. Revise cada cena na "
+    "implementação, não apenas o gancho; helpers são adaptados/instanciados em scene_init e chamados por seek "
+    "absoluto. Q1/Q3 são instruções, não gates DOM/geométricos; Q2 mede declarações, não visibilidade nos "
+    "pixels. Sem A5b nem aceite E2E."
+)
+PHOTO_INTENT_CONTRACT = {
+    "version": "motion-photo-intent-v8",
+    "rules": PHOTO_INTENT_CONTRACT_V7["rules"] + " " + PHOTO_DENSE_RULES,
 }
 
 
@@ -193,6 +219,7 @@ def photo_intent_rules(context: dict[str, Any]) -> str:
         PHOTO_INTENT_CONTRACT_V4,
         PHOTO_INTENT_CONTRACT_V5,
         PHOTO_INTENT_CONTRACT_V6,
+        PHOTO_INTENT_CONTRACT_V7,
         PHOTO_INTENT_CONTRACT,
     ):
         raise AuthError("MOTION_PHOTO_INTENT_CONTRACT_INVALID", 409)

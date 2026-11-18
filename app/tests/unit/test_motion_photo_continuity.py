@@ -7,7 +7,8 @@ import pytest
 from app.services.auth import AuthError
 from app.services.motion_context import capture_motion_guidance
 from app.services.motion_photo_energy import energetic
-from app.services.motion_photo_intent import PHOTO_INTENT_CONTRACT, PHOTO_INTENT_CONTRACT_V6
+from app.services.motion_photo_intent import PHOTO_INTENT_CONTRACT_V6
+from app.services.motion_photo_intent import PHOTO_INTENT_CONTRACT_V7 as PHOTO_INTENT_CONTRACT
 from app.services.motion_photos import PHOTO_MOTION_RULES_V6
 from app.services.motion_repertoire import capture_repertoire
 from app.services.motion_skills import _SKILLS, load_motion_skill

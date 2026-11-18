@@ -35,20 +35,29 @@ def energetic(beat: MotionBeat, *, stronger: bool = False) -> bool:
     )
 
 
-def validate_photo_energy(plan: MotionPlan, *, stronger: bool = False) -> None:
+def validate_photo_energy(plan: MotionPlan, *, stronger: bool = False, dense: bool = False) -> None:
     intervals: list[tuple[int, int]] = []
     for scene in plan.scenes:
         photos = [e for e in scene.elements if e.role == "image" and (e.asset_id or "").startswith("assets/photo-")]
         related = {identifier for photo in photos for identifier in photo.related_element_ids}
         candidates = photos + [e for e in scene.elements if e.id in related and e.role in {"text", "graphic"}]
-        intervals.extend(
+        scene_intervals = [
             (beat.start_ms, beat.end_ms)
             for element in candidates
             for beat in element.beats
             if energetic(beat, stronger=stronger)
-        )
+        ]
+        if dense and photos:
+            covered_until = scene.start_ms
+            active_ms = 0
+            for start, end in sorted(scene_intervals):
+                active_ms += max(0, end - max(start, covered_until))
+                covered_until = max(covered_until, end)
+            if active_ms * 5 < (scene.end_ms - scene.start_ms) * 4:
+                raise AuthError("MOTION_PHOTO_ENERGY_REQUIRED", 409)
+        intervals.extend(scene_intervals)
     covered = 0
     for start, end in sorted(intervals) + [(plan.duration_ms, plan.duration_ms)]:
-        if start - covered > 2500:
+        if start - covered > (500 if dense else 2500):
             raise AuthError("MOTION_PHOTO_ENERGY_REQUIRED", 409)
         covered = max(covered, end)

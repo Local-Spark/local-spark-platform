@@ -1,5 +1,10 @@
 # Ensaio Café Aurora v6 — gaps e próxima fatia — 18/11/2026
 
+## Ensaio v7 — próximo backlog noutro doc
+
+Após O1–O3, o ensaio `versao-1 (7).mp4` e o backlog Q1–Q4 estão em
+[motion-ensaio-cafe-aurora-v7-gaps-2026-11-18.md](motion-ensaio-cafe-aurora-v7-gaps-2026-11-18.md).
+Este documento permanece o diagnóstico v6 + histórico O1–O4.
 
 ## Atualização — O1–O3 implementados; aceite audiovisual pendente
 

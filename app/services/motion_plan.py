@@ -110,6 +110,7 @@ def validate_motion_plan(
         PHOTO_INTENT_CONTRACT_V4,
         PHOTO_INTENT_CONTRACT_V5,
         PHOTO_INTENT_CONTRACT_V6,
+        PHOTO_INTENT_CONTRACT_V7,
     )
     from app.services.motion_photo_quality import validate_photo_quality
 
@@ -120,6 +121,7 @@ def validate_motion_plan(
             PHOTO_INTENT_CONTRACT_V4,
             PHOTO_INTENT_CONTRACT_V5,
             PHOTO_INTENT_CONTRACT_V6,
+            PHOTO_INTENT_CONTRACT_V7,
             PHOTO_INTENT_CONTRACT,
         )
         and "assets/logo.png" in asset_ids

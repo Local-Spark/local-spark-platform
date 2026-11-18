@@ -11,6 +11,7 @@ from app.services.motion_photo_intent import (
     PHOTO_INTENT_CONTRACT_V4,
     PHOTO_INTENT_CONTRACT_V5,
     PHOTO_INTENT_CONTRACT_V6,
+    PHOTO_INTENT_CONTRACT_V7,
 )
 
 
@@ -35,6 +36,7 @@ def validate_photo_quality(
         PHOTO_INTENT_CONTRACT_V4,
         PHOTO_INTENT_CONTRACT_V5,
         PHOTO_INTENT_CONTRACT_V6,
+        PHOTO_INTENT_CONTRACT_V7,
         PHOTO_INTENT_CONTRACT,
     ):
         return
@@ -73,5 +75,13 @@ def validate_photo_quality(
     if not all(_moves_until(e, handoff_end, plan.duration_ms) for e in photos + logos):
         raise AuthError("MOTION_PHOTO_CLOSING_MOTION_REQUIRED", 409)
 
-    if context.get("photo_intent_contract") in (PHOTO_INTENT_CONTRACT_V6, PHOTO_INTENT_CONTRACT):
-        validate_photo_energy(plan, stronger=context.get("photo_intent_contract") == PHOTO_INTENT_CONTRACT)
+    if context.get("photo_intent_contract") in (
+        PHOTO_INTENT_CONTRACT_V6,
+        PHOTO_INTENT_CONTRACT_V7,
+        PHOTO_INTENT_CONTRACT,
+    ):
+        validate_photo_energy(
+            plan,
+            stronger=context.get("photo_intent_contract") != PHOTO_INTENT_CONTRACT_V6,
+            dense=context.get("photo_intent_contract") == PHOTO_INTENT_CONTRACT,
+        )
