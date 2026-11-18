@@ -106,6 +106,15 @@ def photo_case(*, human_review=False):
                         curve={"kind": "linear", "parameters": []},
                     )
                 ]
+    for scene in data["motion_plan"]["scenes"]:
+        photo = next(e for e in scene["elements"] if e["role"] == "image")
+        scene["photo_layout"] = {"mode": "cover", "primary_element_id": photo["id"], "crop_exception": None}
+    final = data["motion_plan"]["scenes"][-1]
+    final["photo_closing"] = {
+        "brand_element_id": None,
+        "surface": "transparent_overlay",
+        "cta_element_id": next(e["id"] for e in final["elements"] if e["role"] == "text"),
+    }
     plan = MotionConstructionPlan.model_validate(data)
     png = frame()
     asset = RenderAsset(ASSET_ID, "image/png", png.png, png.sha256)
@@ -238,3 +247,25 @@ async def test_full_path_budget_is_checked_before_paid_steps(settings, stage):
             await implement_motion(effects, object(), row, token, prepared, plan, None)
     assert effects.capacity.call_args.args[-1] == (700 if stage == "plan" else 600)
     effects.model.assert_not_awaited()
+
+
+@pytest.mark.parametrize("number", [0, 1])
+async def test_photo_dom_guard_binds_render_effect_and_blocks_upload_on_failure(unit_case, number):  # noqa: F811
+    from app.adapters.motion_html_renderer import MotionRenderError
+    from app.services.motion_context import digest
+    from app.services.motion_photo_hard import guarded_photo_scene_init
+
+    c = unit_case
+    _, prepared, plan = photo_case()
+    composition = HTMLMotionComposition.model_validate(
+        {**plan.model_dump(mode="json"), "html": "<main></main>", "scene_init": "window.seek=()=>{}"}
+    )
+    c.runner.renderer.render.side_effect = MotionRenderError("MOTION_RENDER_EXECUTION_FAILED")
+    with pytest.raises(MotionRenderError):
+        await c.runner.render(c.row, c.token, prepared, number, composition)
+    bundle = c.runner.renderer.render.call_args.args[0]
+    assert bundle.scene_init == guarded_photo_scene_init(composition, prepared.context)
+    assert bundle.audio == prepared.audio
+    assert c.runner.effects.claim.call_args.args[-1]["executed_scene_init_sha256"] == digest(bundle.scene_init)
+    c.runner.store.put.assert_not_awaited()
+    c.runner.effects.received.assert_not_awaited()

@@ -198,6 +198,7 @@ def capture_motion_guidance(
             "business-reel-v9",
             "business-reel-v10",
             "business-reel-v11",
+            "business-reel-v12",
         )
         else {"staging_contract": previous["staging_contract"]}
         if previous is not None and "staging_contract" in previous
@@ -209,10 +210,10 @@ def capture_motion_guidance(
         previous.get("repertoire", {}).get("id")
         if previous is not None
         else request.repertoire_id
-        or (("business-reel-v11" if request.source_asset_id is None else "business-reel-v5") if staging else None)
+        or (("business-reel-v12" if request.source_asset_id is None else "business-reel-v5") if staging else None)
     )
     if request.source_asset_id is None:
-        from app.services.motion_photos import PHOTO_MOTION_RULES, PHOTO_MOTION_RULES_V8, photo_music
+        from app.services.motion_photos import PHOTO_MOTION_RULES, PHOTO_MOTION_RULES_V9, photo_music
 
         assert request.photo_duration_ms is not None
         music = (
@@ -220,7 +221,7 @@ def capture_motion_guidance(
             if previous is not None and not previous.get("photo_motion", {}).get("music_policy")
             else None
         )
-        base_photo_rules = PHOTO_MOTION_RULES_V8 if previous is None else PHOTO_MOTION_RULES
+        base_photo_rules = PHOTO_MOTION_RULES_V9 if previous is None else PHOTO_MOTION_RULES
         photo_rules = (
             base_photo_rules.replace(
                 "sem trilha disponível, mantenha silêncio.",
@@ -292,7 +293,7 @@ def capture_motion_guidance(
                 else {
                     **HTML_EXECUTOR_CONTRACT,
                     "version": "html-motion-executor-v2",
-                    "integration_policy": PHOTO_MOTION_RULES_V8
+                    "integration_policy": PHOTO_MOTION_RULES_V9
                     if request.source_asset_id is None
                     else MEDIA_VISIBILITY_POLICY,
                 }

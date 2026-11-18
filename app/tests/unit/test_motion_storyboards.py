@@ -513,3 +513,25 @@ async def test_resume_recompiles_planned_sound_and_refuses_a_different_captured_
     c.service.payloads.open = AsyncMock(return_value=payload)
     with pytest.raises(AuthError, match="STORYBOARD_BYTES_CHANGED"):
         await c.service.restore(c.row, c.board, prepared)
+
+
+async def test_photo_storyboard_uses_same_guard_and_never_uploads_failed_dom(board_case):
+    from app.services.motion_photo_hard import guarded_photo_scene_init
+    from app.tests.unit.test_motion_photo_planning import photo_case
+
+    c = board_case
+    _, prepared, plan = photo_case(human_review=True)
+    data = plan.model_dump(mode="json")
+    for scene in data["motion_plan"]["scenes"]:
+        scene["keyframe_ms"] = (scene["start_ms"] + scene["end_ms"]) // 2
+    composition = HTMLMotionComposition.model_validate(dict(data, html="<main/>", scene_init="window.seek=()=>{}"))
+    renderer = SimpleNamespace(render=AsyncMock(side_effect=MotionRenderError("MOTION_RENDER_EXECUTION_FAILED")))
+    effects = SimpleNamespace(claim=AsyncMock(), received=AsyncMock())
+    with pytest.raises(MotionRenderError):
+        await c.service.capture(c.row, c.row["execution_token"], prepared, composition, renderer, effects)
+    bundle = renderer.render.call_args.args[0]
+    assert bundle.frames_only
+    assert bundle.scene_init == guarded_photo_scene_init(composition, prepared.context)
+    assert effects.claim.call_args.args[-1]["executed_scene_init_sha256"] == digest(bundle.scene_init)
+    c.store.put.assert_not_awaited()
+    effects.received.assert_not_awaited()

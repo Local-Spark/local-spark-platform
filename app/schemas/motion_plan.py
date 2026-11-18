@@ -63,11 +63,32 @@ class MotionElementPlan(PlanModel):
     beats: tuple[MotionBeat, ...] = Field(min_length=1, max_length=12)
 
 
+class PhotoCropException(PlanModel):
+    asset_id: str = Field(pattern=r"^assets/photo-[A-Za-z0-9_.-]+$")
+    essential_region: Description
+    alternatives_rejected: Description
+    safe_motion: Description
+
+
+class PhotoLayout(PlanModel):
+    mode: Literal["cover", "contain_blur"]
+    primary_element_id: Identifier
+    crop_exception: PhotoCropException | None = None
+
+
+class PhotoClosing(PlanModel):
+    brand_element_id: Identifier | None
+    surface: Literal["transparent_overlay"]
+    cta_element_id: Identifier
+
+
 class MotionScenePlan(PlanModel):
     id: Identifier
     start_ms: Moment
     end_ms: Moment
     message: Description
+    photo_layout: PhotoLayout | None = Field(default=None, exclude_if=lambda value: value is None)
+    photo_closing: PhotoClosing | None = Field(default=None, exclude_if=lambda value: value is None)
     keyframe_ms: Moment | None = Field(
         default=None,
         exclude_if=lambda value: value is None,

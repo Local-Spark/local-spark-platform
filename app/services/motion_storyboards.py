@@ -23,6 +23,7 @@ from app.services.motion_elements import elements_hash
 from app.services.motion_illustrations import verified_preview
 from app.services.motion_movement import movement_hash
 from app.services.motion_payloads import MotionPayloads
+from app.services.motion_photo_hard import guarded_photo_scene_init
 from app.services.motion_plan import validate_motion_plan
 from app.services.motion_protocols import MotionRenderer
 from app.services.motion_requests import MotionRequestService
@@ -61,9 +62,10 @@ class MotionStoryboards:
         if composition.audio.model_dump(mode="json") != prepared.audio:
             raise AuthError("MOTION_ORIGINAL_AUDIO_CHANGED", 409)
         operation = capture_id or uuid5(row["operation_id"], "storyboard:0")
+        scene_init = guarded_photo_scene_init(composition, prepared.context)
         bundle = RenderBundle(
             composition.html,
-            composition.scene_init,
+            scene_init,
             prepared.assets,
             prepared.audio,
             720,
@@ -77,6 +79,7 @@ class MotionStoryboards:
         )
         signed = {
             "purpose": "storyboard",
+            **({"executed_scene_init_sha256": digest(scene_init)} if scene_init != composition.scene_init else {}),
             "composition": composition.model_dump(mode="json"),
             "moments": moments,
             "assets": [{"id": a.id, "sha256": a.sha256} for a in prepared.assets],

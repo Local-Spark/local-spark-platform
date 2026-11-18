@@ -233,10 +233,18 @@ class MotionInputLoader:
         materials = []
         if len(snapshot.get("collection_photos", [])) > 4:
             raise AuthError("MOTION_COLLECTION_PHOTO_LIMIT", 409)
-        from app.services.motion_photo_intent import PHOTO_INTENT_CONTRACT, PHOTO_INTENT_CONTRACT_V6
+        from app.services.motion_photo_intent import (
+            PHOTO_INTENT_CONTRACT,
+            PHOTO_INTENT_CONTRACT_V6,
+            PHOTO_INTENT_CONTRACT_V9,
+        )
 
         planning_photos = list(snapshot.get("collection_photos", []))
-        if logo and snapshot.get("photo_intent_contract") in (PHOTO_INTENT_CONTRACT_V6, PHOTO_INTENT_CONTRACT):
+        if logo and snapshot.get("photo_intent_contract") in (
+            PHOTO_INTENT_CONTRACT_V6,
+            PHOTO_INTENT_CONTRACT_V9,
+            PHOTO_INTENT_CONTRACT,
+        ):
             planning_photos.append({**logo, "id": "logo", "title": "Logo", "version": 1, "item_id": None})
         for photo in planning_photos:
             raw = await self.store.get_image(photo["object_key"])

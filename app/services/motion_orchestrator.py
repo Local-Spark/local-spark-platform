@@ -33,6 +33,7 @@ from app.services.motion_generation import asset_informed_enabled
 from app.services.motion_illustrations import IllustrationProvider, MotionIllustrations
 from app.services.motion_movement import movement_hash
 from app.services.motion_music import MotionMusic
+from app.services.motion_photo_hard import guarded_photo_scene_init
 from app.services.motion_plan import validate_motion_plan
 from app.services.motion_protocols import MotionModelProvider, MotionModelRequest, MotionRenderer
 from app.services.motion_requests import MotionRequestService
@@ -362,6 +363,7 @@ class MotionOrchestrator:
             raise AuthError("MOTION_AUDIO_CONTEXT_CHANGED", 409)
         if prepared.soundtrack is not None:
             validate_original_branch(prepared.soundtrack, prepared.audio)
+        scene_init = guarded_photo_scene_init(composition, prepared.context)
         samples = sample_times(composition, prepared.context)
         operation = row.get("render_namespace", row["operation_id"])
         render_operation = uuid5(operation, f"render:{number}")
@@ -373,6 +375,11 @@ class MotionOrchestrator:
             "render",
             {
                 "composition": composition.model_dump(mode="json"),
+                **(
+                    {"executed_scene_init_sha256": fingerprint(scene_init)}
+                    if scene_init != composition.scene_init
+                    else {}
+                ),
                 "profile": profile,
                 **({"movement_runtime_sha256": runtime_hash} if runtime_hash is not None else {}),
                 **({"element_runtime_sha256": element_hash} if element_hash is not None else {}),
@@ -385,7 +392,7 @@ class MotionOrchestrator:
         rendered = await self.renderer.render(
             RenderBundle(
                 html=composition.html,
-                scene_init=composition.scene_init,
+                scene_init=scene_init,
                 assets=prepared.assets,
                 audio=output_audio,
                 width=720,

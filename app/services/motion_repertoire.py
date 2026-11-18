@@ -11,6 +11,7 @@ from app.services.motion_movement import movement_contract, movement_v2_contract
 
 ROOT = Path(__file__).resolve().parents[1] / "assets/motion_repertoire"
 PACKS = {
+    "business-reel-v12": "f2b972c5960f250cb5b33ba92cd2313eb3ba92967d93d5e608b0684e399e2e05",
     "business-reel-v11": "4c1e300eecebb20e052ffdc85c7e850d5d3a0cd1ee47a6d45c49fc6836d9cb1b",
     "business-reel-v10": "2a4751fb36bd97ac8bdc4eb247acfc47fa32e58524dfdb13ec4b84cd818661e3",
     "business-reel-v9": "0cbbfab211cebe37c9172759518e98e42e3498fde7ac7ae4558b6c2e2a6527b5",
@@ -24,6 +25,7 @@ PACKS = {
     "business-reel-v2": "2fbcc52870d0e2a788873f2aebb49c916161fcc6c7f0975d6b19f60522eaf9d6",
 }
 CAPTURE_HASHES = {
+    "business-reel-v12": "f923174d7a2d96e7ca5df1d573ef566b25af6ea40444d0255daf0cff02193633",
     "business-reel-v11": "277ad86240dd001e26a6ca1bb2ec44a2b668b989b8c7690205f624c8afce4c1e",
     "business-reel-v10": "8a6065d13b6bc29042cbeb77fcb6adbe9898acaf8a365f8da0ab64979e5bad8d",
     "business-reel-v9": "f995dee235ca9359fd34d9621be87063632829f35400ec90c82eb1c6dfa23e6c",

@@ -1,5 +1,163 @@
 # Registro de mudanças
 
+## 18/11/2026 — correção versionada de transições e leitura na guarda DOM
+
+Pedido `3c142412-2331-5166-92ae-cca0724b94a6` encerrou com
+`MOTION_RENDER_EXECUTION_FAILED`. Replay local da composição salva em Chromium,
+com previews/fontes autorizados, isolou `MOTION_PHOTO_VISIBLE_REQUIRED` em
+~3233 ms: a guarda v1 cobrava opacity ≥95% da foto de saída durante dissolução
+3200–3600 aprovada, embora a foto de destino já estivesse totalmente visível.
+Outro falso bloqueio ocorria em 11100 ms: CTA tinha entrada aprovada
+12100–12500, mas era cobrado no fim do handoff; inset zero também era tratado
+como recorte. São erros da guarda, não ausência da nova logo transparente.
+
+Novas capturas usam intent v10/guarda DOM v2 pinada. V9/v1 mantêm bytes e
+execução originais; skill v20/repertório v12 permanecem pinados. A exceção de
+saída só é compilada de staging aprovado, integralmente no overlap e ≤500 ms.
+Somente a foto de origem pode perder opacidade: destino precisa estar visível
+≥95% e cumprir os gates normais de layout/movimento. Fora da janela, fades
+continuam rejeitados; máscara real, janela, energia ausente e placa continuam
+bloqueados. M3/fotos/logo até end preservados.
+
+CTA é conferido do maior entre handoffEnd e fim da entrada aprovada até end;
+o plano exige ≥1500 ms de leitura contínua. Só inset literalmente zero é
+considerado máscara aberta. Não houve correção automática da composição,
+replanejamento, nova chamada paga, troca de renderer ou mudança de Music.
+O snapshot e o estado falho do pedido foram preservados.
+
+Validação: 409 unitários, 77 testes Node photo e 56 casos rodados com guarda v2,
+três integrações PostgreSQL `_test` e sete cenários sintéticos em Chromium
+passaram. Recorte intent/quality/energy/hard: 100% linhas/branches. Todos os
+seeks da composição salva passaram na comparação local com v2; isso não é
+novo MP4, execução produtiva nem aceite audiovisual. Ruff/formato passaram;
+mypy dos quatro serviços passou. Adapter mantém erro de tipagem preexistente
+na inferência de `frames`. `make ci` segue bloqueado nos 66 lints preexistentes.
+Worker dedicado recarregado após confirmar ausência de pedidos ativos.
+Pendente nova captura autorizada com intent v10 e revisão audiovisual do titular.
+
+## 18/11/2026 — logo sintética Aurora transparente e execução nova
+
+Correção de procedência: a logo do Café Aurora foi criada pela própria
+plataforma como fixture sintética; não dependia de arquivo novo do titular.
+Localizado `scripts/fixtures/demo-businesses/cafe-aurora.svg`, o retângulo de
+fundo foi removido numa variante `cafe-aurora-transparent-v1.svg`, preservando
+literalmente todos os demais elementos. PNG rasterizado localmente em Chromium,
+sem geração por IA; arquivos originais mantidos. Inspeção visual e validação
+estrutural/alpha passaram: 1000×400, alpha 0–255, 384.612 pixels transparentes.
+
+Pelos serviços de marca, upload e confirmação com autorização/RLS/auditoria:
+logo `1b45cfc7-576a-5852-abbc-79d622ff9e35`, kit confirmado v4. Apenas a
+referência à logo mudou; demais escolhas do kit preservadas. O PNG normalizado
+recuperado do armazenamento também conserva transparência. Não houve alteração
+de gate, credenciais, Music ou renderer.
+
+Nova execução autorizada `3c142412-2331-5166-92ae-cca0724b94a6`, com briefing
+anterior e orçamento de US$ 3. Snapshot novo
+`fedf00b4-99da-578c-bf44-aa1fc2a9bc3f` confirmou intent v9 e a nova logo;
+nenhum snapshot/estado do pedido falho foi reutilizado ou reescrito. Validação
+operacional: `running`, catálogo/preparação recebidos e planejamento submetido.
+MP4 ainda pendente; não há aceite E2E. Sem mudança de código de produção nesta
+intervenção; verificações de artefatos e serviços, sem repetir CI da fatia R1–R3.
+
+## 18/11/2026 — pedido recuperado bloqueado por logo com fundo incorporado
+
+O pedido `ddf87bad-38a7-509e-a7a9-803560351d72` saiu da fila, mas encerrou
+`failed` com `MOTION_STAGING_REQUIRES_PLAN_REVISION`. O planejamento registrou
+em `staging.unavailable_materials` que `assets/logo.png` contém placa creme
+incorporada e necessita de versão autorizada compatível com overlay transparente.
+
+Conferência local do preview exato enviado ao modelo (512×205): retângulo creme
+visível, canal alpha integralmente 255. O loader preserva RGBA ao redimensionar;
+a placa não foi acrescentada pelo HTML desta execução. O bloqueio ocorreu antes
+da implementação, conforme R3 e `require_staging_materials`; não foi falha do
+renderer nem nova paralisação da fila.
+
+Nenhum gate relaxado, identidade editada, retry pago ou estado histórico alterado
+neste diagnóstico. Pendente fornecer/cadastrar logo transparente autorizada e
+então preparar nova execução; não reaproveitar silenciosamente snapshot antigo.
+Sem mudança de código ou testes adicionais; evidência por leitura do trace e
+inspeção do anexo. Nenhum MP4 novo ou aceite E2E.
+
+## 18/11/2026 — recuperação autorizada da fila do laboratório
+
+Pedido `ddf87bad-38a7-509e-a7a9-803560351d72`: outbox entregue,
+atividade recebida pelo worker antigo, mas banco ainda em `queued`, sem efeitos
+registrados. Causa interna da paralisação não confirmada. Titular autorizou
+recuperar a execução com possíveis chamadas pagas dentro do orçamento existente.
+
+Após reconfirmar ausência de efeitos e de outros pedidos queued/running do
+operador, o worker dedicado foi substituído e o mesmo workflow Temporal foi
+resetado ao primeiro workflow-task concluído. Identidade do pedido, histórico,
+outbox e orçamento preservados; nenhuma edição direta do estado do run.
+Nova execução Temporal: `0f033008-9fbf-48ca-931c-a81aee948402`.
+
+Validação operacional: às 14:03 de São Paulo, o banco confirmou `running`,
+`catalog=received` e `preparation=claimed`. Pedido saiu da fila; geração ainda
+em andamento. Sem mudança de código ou migração nesta intervenção; testes da
+fatia R1–R3 não foram repetidos. Não comprova MP4 concluído nem aceite E2E.
+
+## 18/11/2026 — photo R1–R3: enforcement de plano e DOM
+
+Implementado por autorização posterior ao diagnóstico v8. Novas capturas usam
+intent/regras photo v9, skill `instagram-reel-photo-v20` e repertório default
+`business-reel-v12`, com hashes pinados. Snapshots v1–v8 mantêm contratos,
+bytes e execução; campos novos ausentes não entram na serialização histórica.
+
+R1: `photo_layout` obrigatório por cena fotográfica, com foto primária vinculada
+a um elemento real. `contain_blur` exige asset, região essencial, alternativas
+rejeitadas e movimento seguro; no máximo uma cena e 1/3 das cenas fotográficas.
+Cover deve ocupar ≥2/3 da duração total, pela união exclusiva dos intervalos,
+descontando sobreposição com exceção. Campo ausente, exceção vazia, Stories
+como default ou tentativa de inflar duração por sobreposição bloqueiam o plano.
+Crop v5 prevalece: se os materiais não comportam o contrato, revisar o plano.
+
+R2: Q2/O2 permanecem (≥80% por cena, gaps ≤500 ms e magnitude/velocidade).
+Helper v12 por cena/beat usa estados aprovados e pan em porcentagem do viewport,
+com seek absoluto/reversível. Guarda de DOM versionada envolve o seek existente
+no serviço, antes de enviar ao renderer atual; não anima nem corrige crop.
+Em cada seek verifica candidato energético visível e matriz CSS interpolada,
+rejeitando no-op, ocultação e transforms de ancestrais que possam cancelar motion.
+Não basta citar/instanciar helper: o estado executado precisa corresponder ao plano.
+
+R3: `photo_closing` vincula marca e CTA da última cena; só aceita
+`transparent_overlay`. Fotos/logo do fecho exigem estados numéricos distintos e
+curva linear até end, além de M3. No DOM, fotos cover precisam preencher o frame
+9:16 sem janela/clipping; logos são img do PNG autorizado, sem fundo, borda,
+padding, sombra ou pseudo-elemento em si/ancestrais. CTA dentro do frame,
+visível, fonte ≥24px em 720px, branco com sombra preta local. Contrato deliberadamente
+restrito; HTML que não permite comprovar essas condições é rejeitado.
+
+A mesma guarda atende render inicial, correções e storyboard. Hash do executor
+composto integra a identidade do efeito; falha interrompe antes de upload/aceite.
+O renderer mantém seu erro genérico de execução para exceções JS, sem imprimir
+HTML/conteúdo. Sem renderer novo, alteração de vídeo, Music/mix, TTS/avatar ou
+A5b. R4 adiado para manter a fatia focada. Alterações documentais previamente
+preparadas pelo titular foram preservadas.
+
+Validação: 401 unitários, 65 testes Node photo, três integrações PostgreSQL
+no banco dedicado `_test` com logins restritos e uma integração Chromium real
+(sete cenários sintéticos, sem rede externa) passaram. Cobertura de linhas e
+branches 100% no recorte intent/quality/energy/hard; Ruff e formato dos 18
+arquivos Python alterados passaram. `make ci` executado com cache local:
+bloqueado nas mesmas 66 ocorrências de lint preexistentes. Mypy dirigido
+(12 arquivos) encontrou apenas o erro preexistente de chamada não tipada a
+`feedback_context` em motion_context.py. CI integral e cobertura global 100%
+continuam pendentes; sem exclusões ou relaxamento de gates.
+
+Limites: são verificações de plano/DOM, não medição perceptiva de energia,
+contraste nos pixels, oclusão arbitrária por irmãos ou transparência embutida
+no PNG. Placa incorporada ao asset exige revisão do plano, sem editar identidade.
+Pendente novo MP4 em ensaio autorizado e revisão audiovisual do titular; sem
+chamada paga, novo MP4 ou aceite E2E nesta implementação.
+
+## 18/11/2026 — ensaio v8 Café Aurora: gaps R1–R4 (só docs)
+
+Documentado diagnóstico de `versao-1 (8).mp4` (regressão Stories; energia pior
+que v7; placa creme; ~35–40% vs propaganda incrível) e backlog R1–R4
+(enforcement hard) em
+[motion-ensaio-cafe-aurora-v8-gaps-2026-11-18.md](design/motion-ensaio-cafe-aurora-v8-gaps-2026-11-18.md),
+com prompt para outro chat. Sem código, chamada paga ou aceite E2E.
+
 ## 18/11/2026 — photo Q1–Q3: cover por cena e energia densa
 
 Implementado por autorização posterior ao diagnóstico v7. Novas capturas usam

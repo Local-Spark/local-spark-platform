@@ -12,6 +12,8 @@ from app.services.motion_photo_intent import (
     PHOTO_INTENT_CONTRACT_V5,
     PHOTO_INTENT_CONTRACT_V6,
     PHOTO_INTENT_CONTRACT_V7,
+    PHOTO_INTENT_CONTRACT_V8,
+    PHOTO_INTENT_CONTRACT_V9,
 )
 
 
@@ -37,6 +39,8 @@ def validate_photo_quality(
         PHOTO_INTENT_CONTRACT_V5,
         PHOTO_INTENT_CONTRACT_V6,
         PHOTO_INTENT_CONTRACT_V7,
+        PHOTO_INTENT_CONTRACT_V8,
+        PHOTO_INTENT_CONTRACT_V9,
         PHOTO_INTENT_CONTRACT,
     ):
         return
@@ -78,10 +82,23 @@ def validate_photo_quality(
     if context.get("photo_intent_contract") in (
         PHOTO_INTENT_CONTRACT_V6,
         PHOTO_INTENT_CONTRACT_V7,
+        PHOTO_INTENT_CONTRACT_V8,
+        PHOTO_INTENT_CONTRACT_V9,
         PHOTO_INTENT_CONTRACT,
     ):
         validate_photo_energy(
             plan,
             stronger=context.get("photo_intent_contract") != PHOTO_INTENT_CONTRACT_V6,
-            dense=context.get("photo_intent_contract") == PHOTO_INTENT_CONTRACT,
+            dense=context.get("photo_intent_contract")
+            in (PHOTO_INTENT_CONTRACT_V8, PHOTO_INTENT_CONTRACT_V9, PHOTO_INTENT_CONTRACT),
         )
+
+    if context.get("photo_intent_contract") in (PHOTO_INTENT_CONTRACT_V9, PHOTO_INTENT_CONTRACT):
+        from app.services.motion_photo_hard import validate_photo_layout
+
+        validate_photo_layout(artifact, handoff_end=handoff_end)
+
+    if context.get("photo_intent_contract") == PHOTO_INTENT_CONTRACT:
+        from app.services.motion_photo_hard import photo_cta_read_start
+
+        photo_cta_read_start(artifact, handoff_end)

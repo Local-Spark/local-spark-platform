@@ -202,9 +202,58 @@ PHOTO_DENSE_RULES = (
     "absoluto. Q1/Q3 são instruções, não gates DOM/geométricos; Q2 mede declarações, não visibilidade nos "
     "pixels. Sem A5b nem aceite E2E."
 )
-PHOTO_INTENT_CONTRACT = {
+PHOTO_INTENT_CONTRACT_V8 = {
     "version": "motion-photo-intent-v8",
     "rules": PHOTO_INTENT_CONTRACT_V7["rules"] + " " + PHOTO_DENSE_RULES,
+}
+
+
+PHOTO_HARD_RULES = (
+    "R1–R3 substituem as ressalvas soft de Q1/Q3: validação obrigatória do plano e DOM em cada seek. "
+    "Cada cena fotográfica declara photo_layout={mode:cover|contain_blur, primary_element_id, "
+    "crop_exception:null|{asset_id,essential_region,alternatives_rejected,safe_motion}}. Cover sem exceção; "
+    "contain_blur exige todos os campos não vazios e asset da foto primária. No máximo UMA exceção, "
+    "em no máximo 1/3 das cenas fotográficas; cover exclusivo ocupa >=2/3 da duração total, "
+    "descontando sobreposições com exceções. Se inviável, revise seleção/plano; crop v5 prevalece. "
+    "Cada elemento verificado usa id DOM idêntico ao id do plano; fotos/logo são img com src do asset. "
+    "Foto cover ocupa todo viewport 9:16, object-fit:cover, sem clipping/janela em ancestrais. "
+    "Use makePhotoSceneMotion por cena e chame cada retorno em seek(ms), com estados numéricos "
+    "canônicos de todos os transforms energéticos. O DOM deve executar translate em px equivalentes "
+    "a x_pct/y_pct do VIEWPORT, seguido de scale uniforme no nó identificado, sem rotação/skew. "
+    "Wrappers de entrada/saída separados. A guarda não anima nem corrige crop. Q2/O2 e M3 continuam. "
+    "Toda cena com energia exige ao menos um candidato visível executando o estado interpolado exato; "
+    "overlays relacionados continuam disponíveis para crop restrito. "
+    "Última cena declara photo_closing={brand_element_id:id|null,surface:transparent_overlay, "
+    "cta_element_id:id de text autorizado}. Logo disponível exige referência à img assets/logo.png. "
+    "Logo e ancestrais: background transparente, sem background-image, borda, padding, sombra ou "
+    "pseudo-elemento pintado. CTA separado, branco com text-shadow preto opaco, fonte >=24px em 720px, "
+    "dentro do quadro e visível até end. Contraste local não autoriza inventar CTA/copy. "
+    "De handoffEnd até end, fotos/logo têm transforms lineares numéricos distintos, e ficam visíveis. "
+    "Sem placa embutida no PNG; nesse caso requires_plan_revision. A guarda DOM rejeita divergências "
+    "na execução, não mede pixels/energia percebida ou transparência interna do PNG. Sem A5b/aceite E2E."
+)
+PHOTO_INTENT_CONTRACT_V9 = {
+    "version": "motion-photo-intent-v9",
+    "dom_guard_sha256": "613ab2765a44d194793ef44c888709e9acfec68660e1e75d4ee88ef941c649f8",
+    "rules": PHOTO_INTENT_CONTRACT_V8["rules"] + " " + PHOTO_HARD_RULES,
+}
+
+
+PHOTO_INTENT_CONTRACT = {
+    "version": "motion-photo-intent-v10",
+    "dom_guard_sha256": "91523765064601fa9156cdad7e3c9ada00b95821071bc7332455c3d66553ba3b",
+    "rules": PHOTO_INTENT_CONTRACT_V9["rules"]
+    + (
+        " R3.1: durante dissolução de saída aprovada em staging, de no máximo 500 ms e inteiramente "
+        "no overlap das duas cenas, somente a foto de origem pode ficar abaixo de 95% de opacidade. "
+        "A foto primária de destino já deve estar totalmente visível (>=95% em cada ancestral), "
+        "executando seu layout e energia aprovados. Sem essa cobertura, a saída continua bloqueada. "
+        "Não dissolve ambas para zero; entrada com fotografia coberta pela origem, seguida de fade "
+        "apenas da origem. Fora dessa janela permanece o gate integral. M3/logo até end intactos. "
+        "CTA: entrada segue os beats aprovados; legibilidade integral desde o fim da entrada ou "
+        "handoffEnd (o maior), com pelo menos 1500 ms de leitura contínua até end. Inset zero é "
+        "máscara aberta, não clipping; inset não zero continua bloqueado durante leitura."
+    ),
 }
 
 
@@ -220,6 +269,8 @@ def photo_intent_rules(context: dict[str, Any]) -> str:
         PHOTO_INTENT_CONTRACT_V5,
         PHOTO_INTENT_CONTRACT_V6,
         PHOTO_INTENT_CONTRACT_V7,
+        PHOTO_INTENT_CONTRACT_V8,
+        PHOTO_INTENT_CONTRACT_V9,
         PHOTO_INTENT_CONTRACT,
     ):
         raise AuthError("MOTION_PHOTO_INTENT_CONTRACT_INVALID", 409)
@@ -244,6 +295,8 @@ def implementation_intent(
                 "start_ms": scene.start_ms,
                 "end_ms": scene.end_ms,
                 "message": scene.message,
+                **({"photo_layout": scene.photo_layout.model_dump(mode="json")} if scene.photo_layout else {}),
+                **({"photo_closing": scene.photo_closing.model_dump(mode="json")} if scene.photo_closing else {}),
                 "direction": directions[scene.id].model_dump(mode="json"),
                 "progression_and_handoff": moments[scene.id].model_dump(mode="json"),
                 "typography": [element.model_dump(mode="json") for element in scene.elements if element.role == "text"],

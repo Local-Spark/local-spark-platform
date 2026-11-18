@@ -148,9 +148,9 @@ async def test_shared_photo_snapshot_uses_material_evidence_and_origin_approval(
     assert not body.storyboard
     assert body.automatic_plan
     assert body.preparation.evidence[0].asset_id == f"assets/photo-{photo}.png"
-    assert snapshot["photo_intent_contract"]["version"] == "motion-photo-intent-v8"
-    assert snapshot["skill"]["id"] == "instagram-reel-photo-v19"
-    assert snapshot["repertoire"]["id"] == "business-reel-v11"
+    assert snapshot["photo_intent_contract"]["version"] == "motion-photo-intent-v10"
+    assert snapshot["skill"]["id"] == "instagram-reel-photo-v20"
+    assert snapshot["repertoire"]["id"] == "business-reel-v12"
     assert "makePhotoReelMotion" in snapshot["repertoire"]["examples"][-1]["content"]
     assert snapshot["staging_contract"]["version"] == "motion-staging-photo-v2"
     assert snapshot["photo_motion"]["music_policy"] == "elevenlabs-music-v1"
