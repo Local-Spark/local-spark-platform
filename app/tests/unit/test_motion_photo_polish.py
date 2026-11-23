@@ -253,7 +253,13 @@ def test_primary_continuity_boundary_and_clipping_do_not_mutate_plan():
     beat = data["motion_plan"]["scenes"][1]["elements"][0]["beats"][0]
     beat.update(start_ms=5500, end_ms=9500, end_state="scale=1.08 x_pct=0 y_pct=0")
     before = deepcopy(data)
-    check(data, ids)  # exactly 80%, gaps 500ms and scale 0.01/s
+    from app.services.motion_photo_polish import PHOTO_POLISH_CONTRACT_V5
+
+    validate_photo_polish(
+        artifact(data), {**CONTEXT, "photo_polish_contract": PHOTO_POLISH_CONTRACT_V5}, asset_ids=ids
+    )  # historical boundary: exactly 80%, gaps 500ms and scale 0.01/s
+    with pytest.raises(AuthError, match="CONTINUOUS_TRANSFORM_REQUIRED"):
+        check(data, ids)
     assert data == before
     beat.update(start_ms=4500, end_ms=10500, end_state="scale=1.10 x_pct=0 y_pct=0")
     with pytest.raises(ValidationError, match="inside the scene"):

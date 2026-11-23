@@ -26,7 +26,7 @@ def test_v1_replay_keeps_exact_rules_while_new_capture_sends_latest_to_planner()
     assert photo_intent_rules(old).endswith(PHOTO_POLISH_CONTRACT_V1["rules"])
     new = capture_motion_guidance(body)
     assert new["photo_polish_contract"] == PHOTO_POLISH_CONTRACT
-    assert PHOTO_POLISH_CONTRACT["version"] == "motion-photo-polish-v5"
+    assert PHOTO_POLISH_CONTRACT["version"] == "motion-photo-polish-v6"
     for key in ("photo_motion", "photo_intent_contract", "photo_finish_contract", "photo_readability_contract"):
         assert replay[key] == new[key]
     job = construction_job({"operation_id": uuid4()}, prepared)

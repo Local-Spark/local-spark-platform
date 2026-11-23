@@ -1,5 +1,74 @@
 # BL04 — contexto seletivo e produção visual com IA
 
+## 23/11/2026 — photo-reel Café congelado; próximo = Reel vídeo do cliente
+
+Titular aceitou congelar o loop de qualidade do **reel com fotos** no Café
+Aurora após `versao-1 (12).mp4` (hash `35d26da0…`) com polish-v6: **cover
+full-bleed ok** (Stories do `(11)` corrigido); **energia ainda fraca** (~86%
+quase-estático / holds ~2 s no pipeline local), abaixo de `cefe9071` no olho.
+Tipografia/copy/fecho ok; mix −31,5 intacto. Estimativa ~60–65% propaganda /
+~70–75% briefing soft. Go de parar = cover + sem regressão tipográfica, não
+80% nem = cefe em movimento. **Sem V2**, sem nova rodada de polish, sem mudar
+briefing. Próximo ensaio de formato: Reel com **vídeo enviado pelo cliente**
+(testes de criação). Depois: 4 cenários nos outros 2 negócios; só então story
+vídeo + carrosséis. Teto/energia/U4 adiados. Detalhe em
+[motion-ensaio-cafe-aurora-v13-freeze-2026-11-23.md](../design/motion-ensaio-cafe-aurora-v13-freeze-2026-11-23.md).
+Só documentação nesta mudança.
+
+## 23/11/2026 — última rodada Café V1 implementada: polish-v6
+
+Autorização do titular para V1 cover+energia, preservando o briefing de pausa
+aconchegante. Novas capturas usam `motion-photo-polish-v6` e a guarda pinada
+`photo-polish-v4.js`. Replays v1–v5 conservam regras, admissão e bytes do
+executor; cinco hashes históricos são conferidos em regressão. Timing-v1,
+finish-v1, readability-v1, intent v10, crop v5 e demais gates permanecem.
+
+V6 fecha a exceção S1: todas as cenas exigem cover, inclusive gancho e último
+frame; não há contain_blur nem exceção por foto paisagem. DOM verifica IMG
+primária carregada, object-fit, geometria full-bleed e ancestrais, inclusive
+na entrada do destino durante overlap. U2 passa a exigir transforms N2
+lineares sem lacunas em toda a cena, com estados iguais entre beats; só a
+dissolução de saída validada até o fim da cena dispensa seu movimento.
+O destino já deve estar cover e em movimento. Texto energético não substitui
+foto; O2/Q2 continuam independentes. Plano inviável exige outro material ou
+revisão, sem relaxar crop/S3. Ambiente somente quando elegível no inventário.
+
+Orientação favorece conversão por cover imediato, ritmo suave, leitura e
+convite CTA, sem reescrever pedido, inventar oferta/urgência ou hard-sell.
+U1 e Music preservados; sem U4, TTS/avatar ou renderer novo.
+
+Validação local: 278 unitários photo, 94 testes Node, oito testes Chromium
+e três integrações PostgreSQL dedicado `_test` com roles restritas passaram.
+Chromium v6 cobre 451 seeks a 30fps, fronteiras/reversos/overlap e rejeições
+de contain, janela horizontal, recorte/blur ancestral, foto oculta/duplicada,
+hold, execução só nos endpoints e cancelamento por ancestral; imagens
+sintéticas e rede interceptada. Serviço polish: 100% linhas (108 statements)
+e branches (64), sem exclusões; Ruff/formato e mypy do recorte aprovados.
+`make ci` executado com cache temporário, bloqueado nos 66 lints preexistentes.
+CI integral/cobertura global 100% continuam pendentes. Provas DOM não medem
+qualidade perceptual nem substituem comparação audiovisual com cefe.
+
+Sem chamada paga, novo MP4, reload de worker ou aceite E2E. Ainda falta
+ensaio audiovisual autorizado e revisão do titular: go = pelo menos
+`cefe9071` no olho em cover + movimento, não 80% propaganda. V2 estreito
+somente se o titular pedir; depois congelar Café. Não iniciar outra rodada
+automaticamente. Alterações documentais preexistentes foram preservadas.
+
+
+## 23/11/2026 — pós-ensaio v12: documentar V1 cover+energia, não implementar ainda
+
+Titular rejeitou o caminho de mudar o briefing só para subir propaganda.
+Ensaio `versao-1 (11).mp4` (hash `456928a6…`) fechou o render com polish-v5,
+melhorou tipografia vs v11 (sem blob) e copy de pausa, mas regrediu o gancho
+para Stories/letterbox e manteve holds (~84% quase-estático no pipeline
+local). Estimativa ~55–60% vs propaganda / ~65–70% vs briefing soft; referência
+positiva continua `cefe9071`. Quase 1 semana de rodadas: no máximo **uma**
+fatia V1 (cover full-bleed + energia suave no miolo); V2 estreito só se V1
+falhar no aceite; depois congelar Café e abrir outros conteúdos/negócios.
+U4/mix e reescrita do pedido ficam fora. Detalhe e prompt em
+[motion-ensaio-cafe-aurora-v12-gaps-2026-11-23.md](../design/motion-ensaio-cafe-aurora-v12-gaps-2026-11-23.md).
+Só documentação nesta mudança; sem código, chamada paga ou novo MP4.
+
 ## 23/11/2026 — corrigir timing de handoff e endpoint: polish-v5
 
 Run `8d3e45a9-9814-5d9d-87ae-221bf3a12911` usou v4 e falhou no render.

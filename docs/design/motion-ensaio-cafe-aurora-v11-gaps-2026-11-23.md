@@ -1,5 +1,12 @@
 # Ensaio Café Aurora v11 — gaps e próxima fatia — 23/11/2026
 
+## Ensaio v12 — próximo backlog noutro doc
+
+Após U1–U3/polish-v4–v5, o ensaio `versao-1 (11).mp4` (Stories no gancho +
+holds; tipografia ok) e o backlog V1–V2 (última rodada) estão em
+[motion-ensaio-cafe-aurora-v12-gaps-2026-11-23.md](motion-ensaio-cafe-aurora-v12-gaps-2026-11-23.md).
+Este documento permanece o diagnóstico v11 + histórico U1–U4.
+
 ## Correção posterior — timing v5
 
 O run `8d3e45a9…` com v4 revelou uma transição fora do overlap e um wrapper

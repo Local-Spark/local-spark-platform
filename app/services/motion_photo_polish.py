@@ -9,7 +9,8 @@ from app.schemas.motion_production import HTMLMotionComposition, MotionConstruct
 from app.services.auth import AuthError
 from app.services.motion_photo_energy import _state, energetic
 
-POLISH_PATH = Path(__file__).resolve().parents[1] / "assets/motion_photo/photo-polish-v3.js"
+POLISH_PATH = Path(__file__).resolve().parents[1] / "assets/motion_photo/photo-polish-v4.js"
+V4_POLISH_PATH = POLISH_PATH.with_name("photo-polish-v3.js")
 V3_POLISH_PATH = POLISH_PATH.with_name("photo-polish-v2.js")
 LEGACY_POLISH_PATH = POLISH_PATH.with_name("photo-polish-v1.js")
 PHOTO_POLISH_CONTRACT_V1 = {
@@ -117,7 +118,7 @@ PHOTO_POLISH_CONTRACT_V4 = {
 
 
 TIMING_PATH = POLISH_PATH.with_name("photo-timing-v1.js")
-PHOTO_POLISH_CONTRACT = {
+PHOTO_POLISH_CONTRACT_V5 = {
     **PHOTO_POLISH_CONTRACT_V4,
     "version": "motion-photo-polish-v5",
     "timing_sha256": "f32be2f98c207d96f77b0098240a19eb7cf3442dfc867f8ea6cce3391fc77b08",
@@ -141,6 +142,32 @@ PHOTO_POLISH_CONTRACT = {
 }
 
 
+PHOTO_POLISH_CONTRACT = {
+    **PHOTO_POLISH_CONTRACT_V5,
+    "version": "motion-photo-polish-v6",
+    "dom_guard_sha256": "dee896303ba595fda012f54b29ec4137b83dcc90c89521771c1923144e2e050e",
+    "rules": PHOTO_POLISH_CONTRACT_V5["rules"]
+    + (
+        " V1 cover+energia restringe a exceção contain_blur de S1 e o piso de cobertura U2: "
+        "todas as cenas, do primeiro ao último frame, devem declarar photo_layout.mode=cover. "
+        "Proibido Stories/letterbox, janela horizontal com blur, mesmo por 1ms ou foto paisagem. "
+        "IMG primária com object-fit:cover ocupa todo 9:16; ancestrais não recortam uma janela. "
+        "Se cover não preservar região essencial/crop v5, escolha outro material elegível ou "
+        "requires_plan_revision; nunca invente fotos. Ambiente somente se elegível no inventário. "
+        "Foto primária: transforms N2 lineares por 100% da cena, sem holds nem lacunas, "
+        "estados contíguos iguais nos encontros dos beats. Única exceção: exit de dissolução "
+        "validado por timing v1; destino já entra cover opaco e em movimento desde start. "
+        "Exemplo: cena 0–5000, transform scale=1.04 até 1.09 em 0–5000, sem enter/hold; "
+        "confira crop nos extremos. Não anime só wrapper, texto ou foto escondida; aplique "
+        "o transform à IMG declarada e mantenha geometria CSS estável, sem compensar movimento. "
+        "O2/Q2 continuam separados e obrigatórios. Viés de conversão: cover imediato, ritmo "
+        "suave contínuo, frases curtas legíveis e convite CTA no fecho, respeitando intenção "
+        "e tom do pedido original. Aconchegante não significa estático nem autoriza hard-sell. "
+        "Não reescreva briefing, não invente oferta/urgência. Preserve U1, Music e demais gates."
+    ),
+}
+
+
 def polish_enabled(context: dict[str, Any]) -> bool:
     contract = context.get("photo_polish_contract")
     if contract is None:
@@ -150,6 +177,7 @@ def polish_enabled(context: dict[str, Any]) -> bool:
         PHOTO_POLISH_CONTRACT_V2,
         PHOTO_POLISH_CONTRACT_V3,
         PHOTO_POLISH_CONTRACT_V4,
+        PHOTO_POLISH_CONTRACT_V5,
         PHOTO_POLISH_CONTRACT,
     ):
         raise AuthError("MOTION_PHOTO_POLISH_CONTRACT_CHANGED", 409)
@@ -195,7 +223,7 @@ def validate_photo_polish(
     if environment and not selected & environment:
         raise AuthError("MOTION_PHOTO_ENVIRONMENT_BEAT_REQUIRED", 409)
 
-    if context["photo_polish_contract"] in (PHOTO_POLISH_CONTRACT_V4, PHOTO_POLISH_CONTRACT):
+    if context["photo_polish_contract"] in (PHOTO_POLISH_CONTRACT_V4, PHOTO_POLISH_CONTRACT_V5, PHOTO_POLISH_CONTRACT):
         for scene in plan.scenes:
             primary = next(
                 (e for e in scene.elements if scene.photo_layout and e.id == scene.photo_layout.primary_element_id),
@@ -219,7 +247,7 @@ def validate_photo_polish(
             if active * 5 < (scene.end_ms - scene.start_ms) * 4:
                 raise AuthError("MOTION_PHOTO_CONTINUITY_REQUIRED", 409)
 
-    if context["photo_polish_contract"] == PHOTO_POLISH_CONTRACT:
+    if context["photo_polish_contract"] in (PHOTO_POLISH_CONTRACT_V5, PHOTO_POLISH_CONTRACT):
         assert artifact.staging is not None
         for scene in plan.scenes:
             for element in scene.elements:
@@ -243,6 +271,24 @@ def validate_photo_polish(
                     ):
                         raise AuthError("MOTION_PHOTO_HANDOFF_WINDOW_INVALID", 409)
 
+    if context["photo_polish_contract"] == PHOTO_POLISH_CONTRACT:
+        for scene in plan.scenes:
+            if scene.photo_layout is None or scene.photo_layout.mode != "cover":
+                raise AuthError("MOTION_PHOTO_FULL_BLEED_REQUIRED", 409)
+            primary = next(e for e in scene.elements if e.id == scene.photo_layout.primary_element_id)
+            end = min(
+                [scene.end_ms] + [b.start_ms for b in primary.beats if b.phase == "exit" and b.end_ms == scene.end_ms]
+            )
+            covered = scene.start_ms
+            previous = None
+            for beat in sorted((b for b in primary.beats if energetic(b)), key=lambda b: b.start_ms):
+                if beat.start_ms > covered or (previous is not None and _state(beat.start_state) != previous):
+                    raise AuthError("MOTION_PHOTO_CONTINUOUS_TRANSFORM_REQUIRED", 409)
+                covered = beat.end_ms
+                previous = _state(beat.end_state)
+            if covered < end:
+                raise AuthError("MOTION_PHOTO_CONTINUOUS_TRANSFORM_REQUIRED", 409)
+
 
 def polish_scene_init(composition: HTMLMotionComposition, context: dict[str, Any], scene_init: str) -> str:
     if not polish_enabled(context):
@@ -250,7 +296,9 @@ def polish_scene_init(composition: HTMLMotionComposition, context: dict[str, Any
     contract = context["photo_polish_contract"]
     path = (
         POLISH_PATH
-        if contract in (PHOTO_POLISH_CONTRACT_V4, PHOTO_POLISH_CONTRACT)
+        if contract == PHOTO_POLISH_CONTRACT
+        else V4_POLISH_PATH
+        if contract in (PHOTO_POLISH_CONTRACT_V4, PHOTO_POLISH_CONTRACT_V5)
         else V3_POLISH_PATH
         if contract == PHOTO_POLISH_CONTRACT_V3
         else LEGACY_POLISH_PATH
@@ -261,6 +309,18 @@ def polish_scene_init(composition: HTMLMotionComposition, context: dict[str, Any
     assert composition.motion_plan is not None
     payload = json.dumps(
         {
+            **(
+                {
+                    "cover": [
+                        {"id": s.photo_layout.primary_element_id, "start": s.start_ms, "end": s.end_ms}
+                        for s in composition.motion_plan.scenes
+                        if s.photo_layout
+                    ],
+                    "end": composition.motion_plan.duration_ms,
+                }
+                if contract == PHOTO_POLISH_CONTRACT
+                else {}
+            ),
             "images": sorted({e.id for s in composition.motion_plan.scenes for e in s.elements if e.role == "image"}),
             "texts": sorted({e.id for s in composition.motion_plan.scenes for e in s.elements if e.role == "text"}),
             **(
@@ -280,12 +340,12 @@ def polish_scene_init(composition: HTMLMotionComposition, context: dict[str, Any
                         if energetic(b)
                     ]
                 }
-                if contract in (PHOTO_POLISH_CONTRACT_V4, PHOTO_POLISH_CONTRACT)
+                if contract in (PHOTO_POLISH_CONTRACT_V4, PHOTO_POLISH_CONTRACT_V5, PHOTO_POLISH_CONTRACT)
                 else {}
             ),
         }
     )
-    if contract == PHOTO_POLISH_CONTRACT:
+    if contract in (PHOTO_POLISH_CONTRACT_V5, PHOTO_POLISH_CONTRACT):
         timing = TIMING_PATH.read_bytes()
         if hashlib.sha256(timing).hexdigest() != contract["timing_sha256"]:
             raise AuthError("MOTION_PHOTO_TIMING_CHANGED", 409)

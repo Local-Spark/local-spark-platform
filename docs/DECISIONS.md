@@ -1,5 +1,67 @@
 # Decisões vigentes e pendências
 
+## 23/11/2026 — congelar photo-reel Café; abrir Reel vídeo do cliente
+
+Após `versao-1 (12).mp4` com polish-v6: cover full-bleed passou; energia
+perceptual/pipeline ainda falha vs `cefe9071`. Titular decide **não**
+implementar V2 nem mais polish neste modo no Café; **não** mudar o briefing
+soft. Congela o loop reel-foto; próximo teste de criação = Reel com **vídeo
+do cliente**. Energia/U4/variedade ficam teto conhecido adiado. Reabrir
+photo-reel polish só com pedido explícito. Ver
+[motion-ensaio-cafe-aurora-v13-freeze-2026-11-23.md](design/motion-ensaio-cafe-aurora-v13-freeze-2026-11-23.md).
+
+## 23/11/2026 — última rodada Café V1 implementada: polish-v6
+
+Autorização do titular para V1 cover+energia, preservando o briefing de pausa
+aconchegante. Novas capturas usam `motion-photo-polish-v6` e a guarda pinada
+`photo-polish-v4.js`. Replays v1–v5 conservam regras, admissão e bytes do
+executor; cinco hashes históricos são conferidos em regressão. Timing-v1,
+finish-v1, readability-v1, intent v10, crop v5 e demais gates permanecem.
+
+V6 fecha a exceção S1: todas as cenas exigem cover, inclusive gancho e último
+frame; não há contain_blur nem exceção por foto paisagem. DOM verifica IMG
+primária carregada, object-fit, geometria full-bleed e ancestrais, inclusive
+na entrada do destino durante overlap. U2 passa a exigir transforms N2
+lineares sem lacunas em toda a cena, com estados iguais entre beats; só a
+dissolução de saída validada até o fim da cena dispensa seu movimento.
+O destino já deve estar cover e em movimento. Texto energético não substitui
+foto; O2/Q2 continuam independentes. Plano inviável exige outro material ou
+revisão, sem relaxar crop/S3. Ambiente somente quando elegível no inventário.
+
+Orientação favorece conversão por cover imediato, ritmo suave, leitura e
+convite CTA, sem reescrever pedido, inventar oferta/urgência ou hard-sell.
+U1 e Music preservados; sem U4, TTS/avatar ou renderer novo.
+
+Validação local: 278 unitários photo, 94 testes Node, oito testes Chromium
+e três integrações PostgreSQL dedicado `_test` com roles restritas passaram.
+Chromium v6 cobre 451 seeks a 30fps, fronteiras/reversos/overlap e rejeições
+de contain, janela horizontal, recorte/blur ancestral, foto oculta/duplicada,
+hold, execução só nos endpoints e cancelamento por ancestral; imagens
+sintéticas e rede interceptada. Serviço polish: 100% linhas (108 statements)
+e branches (64), sem exclusões; Ruff/formato e mypy do recorte aprovados.
+`make ci` executado com cache temporário, bloqueado nos 66 lints preexistentes.
+CI integral/cobertura global 100% continuam pendentes. Provas DOM não medem
+qualidade perceptual nem substituem comparação audiovisual com cefe.
+
+Sem chamada paga, novo MP4, reload de worker ou aceite E2E. Ainda falta
+ensaio audiovisual autorizado e revisão do titular: go = pelo menos
+`cefe9071` no olho em cover + movimento, não 80% propaganda. V2 estreito
+somente se o titular pedir; depois congelar Café. Não iniciar outra rodada
+automaticamente. Alterações documentais preexistentes foram preservadas.
+
+
+## 23/11/2026 — pós-ensaio v12: última rodada V1, não mudar briefing
+
+Titular: cliente será leigo; viesar conversão sem trair pedido soft. Não
+reescrever o briefing do Café só para testar propaganda. Quase 1 semana de
+loops: no máximo uma fatia V1 (cover 9:16 full-bleed do 1º ao último frame +
+energia suave no miolo, matar Stories do `versao-1 (11)`); V2 estreito só se
+V1 falhar no aceite; depois congelar este ensaio e abrir outros
+conteúdos/negócios. Go = ≥ `cefe9071` no olho (cover + vivo), não 80%
+propaganda dura. U4/mix fora. Só docs nesta mudança; implementação na próxima
+autorização. Ver
+[motion-ensaio-cafe-aurora-v12-gaps-2026-11-23.md](design/motion-ensaio-cafe-aurora-v12-gaps-2026-11-23.md).
+
 ## 23/11/2026 — corrigir timing de handoff e endpoint: polish-v5
 
 Run `8d3e45a9-9814-5d9d-87ae-221bf3a12911` usou v4 e falhou no render.
