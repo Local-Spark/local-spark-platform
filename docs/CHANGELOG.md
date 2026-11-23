@@ -1,5 +1,69 @@
 # Registro de mudanças
 
+## 23/11/2026 — corrigir timing de handoff e endpoint: polish-v5
+
+Run `8d3e45a9-9814-5d9d-87ae-221bf3a12911` usou v4 e falhou no render.
+Replay local com fingerprint canônico idêntico reproduziu
+`MOTION_PHOTO_VISIBLE_REQUIRED` em 5033,33ms: transition 4900–5200 começava
+antes do destino (5000), portanto não autorizava fade. Ajustando só essa
+janela em memória, apareceu `MOTION_PHOTO_TYPOGRAPHY_NOT_EXECUTED` em 13400ms:
+wrapper da tagline usava janela exclusiva no fim, ocultando o endpoint do exit.
+
+Correção produtiva para novas capturas: `motion-photo-polish-v5` mantém v4 e
+acrescenta gate de exit da foto primária: transition deve coincidir com o beat,
+ter duração >0/≤500ms e estar inteiramente na interseção das cenas. Plano
+inválido é recusado antes de implementação/render, sem correção silenciosa.
+`photo-timing-v1.js`, pinado por hash e instalado antes do scene_init, fornece
+`PhotoTimingV1.textVisible` (fim inclusivo), `photoVisible` (fim exclusivo,
+exceto fim do reel) e `outgoingOpacity` absoluto/clampado. Orientação ao gerador
+exige seu uso nos wrappers, separa preparação narrativa de overlap e inclui
+exemplos 5000–5200 e 13200–13400. Não força visibilidade nem relaxa guardas;
+implementações que ignorem as regras continuam sujeitas a rejeição.
+
+Contratos e bytes de replay v1–v4 preservados; comparação do executor v4
+com a versão staged confirmou igualdade byte a byte. Sem alteração de
+finish-v1, intent v10, crop, guardas DOM, Music, TTS/avatar ou renderer.
+
+Validação: 263 unitários photo, 94 Node, sete Chromium e três integrações
+PostgreSQL `_test` com roles restritas passaram. Serviço polish: 100% linhas
+(91 statements) e branches (52); Ruff/mypy do recorte aprovados. Cópia local
+corrigida do run passou pelos 451 seeks a 30fps e seeks reversos/de fronteira,
+com previews/fontes locais e rede interceptada. Isso comprova a execução DOM
+nessa cópia, não qualidade audiovisual nem recuperação produtiva do run.
+`make ci` continua bloqueado pelos 66 lints preexistentes; CI/cobertura global
+permanecem pendentes. Sem chamada paga, novo MP4 ou aceite E2E.
+
+Worker dedicado recarregado após confirmar zero runs queued/running. Novo
+PID 83474 confirmado como poller de workflow e atividade; run original relido
+continua failed com o mesmo código, sem reenviar efeitos.
+
+## 23/11/2026 — U1–U3: polish-v4 para novas capturas
+
+- U1: guarda versionada limita sombra/alpha/geometria e rejeita radial/glow;
+  T2, texto visível durante o beat, CTA ≥1500ms e finish-v1 preservados.
+- U2: continuidade N2 da foto primária ≥80% por cena, lacunas ≤500ms;
+  verificação DOM de interpolação nos seeks, sem substituir O2/Q2 ou A5b.
+- U3: orientação de progressão ambiente/detalhes; diversidade e ambiente
+  elegível continuam obrigatórios, sem imagens inventadas ou mudança de crop.
+- Replay polish v1–v3 usa regras/bytes originais. Music/U4 intacto.
+- 258 unitários photo, 94 Node, seis Chromium e três integrações `_test`
+  passaram; serviço polish 100% linhas/branches, Ruff/formato/mypy do recorte.
+  `make ci` para nos 66 lints preexistentes; cobertura global pendente.
+- Sem chamada paga, MP4, reload ou aceite E2E; revisão do titular pendente.
+
+## 23/11/2026 — pós-ensaio v11: documentar U1–U4, não implementar ainda
+
+Titular pediu análise de `versao-1 (10).mp4` e julgou a peça fraca/pior que
+`Cafe-Aurora-render-recuperado-cefe9071.mp4`. Decisão desta mudança: **só docs**
+—
+[motion-ensaio-cafe-aurora-v11-gaps-2026-11-23.md](design/motion-ensaio-cafe-aurora-v11-gaps-2026-11-23.md).
+Regressão confirmada: ~70% quase-estático (v10 0%); scrim radial/glow preto
+passando T2/`polish-v3` mas antiestético; tipografia inconsistente; loop de
+closes. Estimativa ~50–55% vs propaganda / ~55–60% vs briefing (v10 ~60–65 /
+~70–75). Próxima fatia alvo: U1 legibilidade sem blob, U2 energia contínua de
+volta, U3 variedade/ambiente; U4 mix opcional. Melhorias do gerador photo, não
+template Aurora. Sem implementação, chamada paga, A5b, Music ou renderer.
+
 ## 23/11/2026 — render: scrim local confundido com decoração, polish-v3
 
 Run `0af57d58-b917-59a0-8b0a-c1de66841022` passou pelo planejamento e falhou

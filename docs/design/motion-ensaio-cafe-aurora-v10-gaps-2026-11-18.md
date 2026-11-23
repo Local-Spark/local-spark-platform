@@ -1,5 +1,12 @@
 # Ensaio Café Aurora v10 — gaps e próxima fatia — 18/11/2026
 
+## Ensaio v11 — próximo backlog noutro doc
+
+Após T1–T3/`polish-v3`, o ensaio `versao-1 (10).mp4` (regressão vs `cefe9071`)
+e o backlog U1–U4 estão em
+[motion-ensaio-cafe-aurora-v11-gaps-2026-11-23.md](motion-ensaio-cafe-aurora-v11-gaps-2026-11-23.md).
+Este documento permanece o diagnóstico v10 + histórico T1–T4.
+
 ## Atualização — T1–T3 implementados, aceite audiovisual pendente
 
 Autorização posterior ao diagnóstico: suplemento `motion-photo-polish-v1`

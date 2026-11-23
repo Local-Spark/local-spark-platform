@@ -1,5 +1,98 @@
 # SDD geral — Meu Braço Direito
 
+## 23/11/2026 — corrigir timing de handoff e endpoint: polish-v5
+
+Run `8d3e45a9-9814-5d9d-87ae-221bf3a12911` usou v4 e falhou no render.
+Replay local com fingerprint canônico idêntico reproduziu
+`MOTION_PHOTO_VISIBLE_REQUIRED` em 5033,33ms: transition 4900–5200 começava
+antes do destino (5000), portanto não autorizava fade. Ajustando só essa
+janela em memória, apareceu `MOTION_PHOTO_TYPOGRAPHY_NOT_EXECUTED` em 13400ms:
+wrapper da tagline usava janela exclusiva no fim, ocultando o endpoint do exit.
+
+Correção produtiva para novas capturas: `motion-photo-polish-v5` mantém v4 e
+acrescenta gate de exit da foto primária: transition deve coincidir com o beat,
+ter duração >0/≤500ms e estar inteiramente na interseção das cenas. Plano
+inválido é recusado antes de implementação/render, sem correção silenciosa.
+`photo-timing-v1.js`, pinado por hash e instalado antes do scene_init, fornece
+`PhotoTimingV1.textVisible` (fim inclusivo), `photoVisible` (fim exclusivo,
+exceto fim do reel) e `outgoingOpacity` absoluto/clampado. Orientação ao gerador
+exige seu uso nos wrappers, separa preparação narrativa de overlap e inclui
+exemplos 5000–5200 e 13200–13400. Não força visibilidade nem relaxa guardas;
+implementações que ignorem as regras continuam sujeitas a rejeição.
+
+Contratos e bytes de replay v1–v4 preservados; comparação do executor v4
+com a versão staged confirmou igualdade byte a byte. Sem alteração de
+finish-v1, intent v10, crop, guardas DOM, Music, TTS/avatar ou renderer.
+
+Validação: 263 unitários photo, 94 Node, sete Chromium e três integrações
+PostgreSQL `_test` com roles restritas passaram. Serviço polish: 100% linhas
+(91 statements) e branches (52); Ruff/mypy do recorte aprovados. Cópia local
+corrigida do run passou pelos 451 seeks a 30fps e seeks reversos/de fronteira,
+com previews/fontes locais e rede interceptada. Isso comprova a execução DOM
+nessa cópia, não qualidade audiovisual nem recuperação produtiva do run.
+`make ci` continua bloqueado pelos 66 lints preexistentes; CI/cobertura global
+permanecem pendentes. Sem chamada paga, novo MP4 ou aceite E2E.
+
+Worker dedicado recarregado após confirmar zero runs queued/running. Novo
+PID 83474 confirmado como poller de workflow e atividade; run original relido
+continua failed com o mesmo código, sem reenviar efeitos.
+
+## 23/11/2026 — U1–U3 implementados: polish-v4, revisão audiovisual pendente
+
+Autorização posterior ao diagnóstico v11: novas capturas usam
+`motion-photo-polish-v4`, com `photo-polish-v3.js` pinado por hash. Contratos,
+regras e arquivos DOM de polish v1–v3 permanecem intactos e selecionados no
+replay. Preservados intent v10, crop v5, M3/N2/O2/Q2/R1–R3/S1–S3/T1–T3,
+finish-v1, readability-v1 e guardas v2/v3. Alterações documentais preexistentes
+preservadas; esta entrada sucede o diagnóstico, não apaga seu histórico.
+
+U1 limita sombra a uma preta opaca, blur 2–4px e offsets absolutos ≤2px,
+mesmo com outro fundo válido. Rejeita radial/gradientes, glow empilhado,
+box-shadow/filtro e scrim arredondado. Fundo preto local: alpha ≤0,8,
+≤16px além do retângulo do texto por lado, largura <95% e altura <40% do frame.
+Sem sombra, T2 ainda exige alpha ≥0,75 no texto/ancestral. Irmão exato
+`<texto>-scrim` pode ser mais suave, mas não substitui T2/CTA. Orientação:
+região escura → scrim local suave → sombra discreta; família/pesos coerentes.
+Não mede contraste de pixels nem garante estética; texto permanece visível
+no beat inteiro e CTA conserva ≥1500ms, sem faixa full-width.
+
+U2 acrescenta continuidade da foto primária em cada cena: união ≥80%,
+lacunas ≤500ms inclusive bordas, transforms lineares N2 (scale ≥0,01/s ou
+pan ≥0,5%/s). Texto relacionado não substitui essa continuidade; O2/Q2
+continuam exigidos à parte. DOM confere interpolação absoluta desses beats
+nos seeks, inclusive miolo/reverso/final, e rejeita transform ancestral que
+cancele movimento. Não mede diff de frames/A5b nem injeta animação. Se o crop
+não permitir, o plano precisa de outro material/revisão, sem acelerar à força.
+U3 reforça orientação de progressão ambiente/detalhes e mantém os gates T1:
+≥min(3,elegíveis) primárias e ambiente elegível por ≥1500ms exclusivos;
+sem inventar fotos ou relaxar S3/crop. Classificações seguem declarações
+sobre previews, não nova visão/OCR.
+
+Validação: 258 unitários photo, 94 testes Node, seis testes Chromium
+(quatro históricos + dois U1/U2 com HTML sintético/rede interceptada) e três
+integrações PostgreSQL dedicado `_test`/roles restritas passaram. Serviço
+polish com 100% de linhas/branches; Ruff/formato e mypy do recorte aprovados.
+`make ci` executado e bloqueado pelos 66 lints preexistentes: CI integral e
+cobertura global 100% permanecem pendentes, sem exclusões de produção.
+
+Sem chamadas pagas, novo MP4, reload de worker, alteração de Music/U4,
+TTS/avatar ou renderer. Referência positiva continua `cefe9071`; não há
+aceite E2E nem recuperação estética comprovada. Próximo ensaio exige nova
+autorização e revisão audiovisual do titular.
+
+## 23/11/2026 — pós-ensaio v11: documentar U1–U4, não implementar ainda
+
+Titular pediu análise de `versao-1 (10).mp4` e julgou a peça fraca/pior que
+`Cafe-Aurora-render-recuperado-cefe9071.mp4`. Decisão desta mudança: **só docs**
+—
+[motion-ensaio-cafe-aurora-v11-gaps-2026-11-23.md](design/motion-ensaio-cafe-aurora-v11-gaps-2026-11-23.md).
+Regressão confirmada: ~70% quase-estático (v10 0%); scrim radial/glow preto
+passando T2/`polish-v3` mas antiestético; tipografia inconsistente; loop de
+closes. Estimativa ~50–55% vs propaganda / ~55–60% vs briefing (v10 ~60–65 /
+~70–75). Próxima fatia alvo: U1 legibilidade sem blob, U2 energia contínua de
+volta, U3 variedade/ambiente; U4 mix opcional. Melhorias do gerador photo, não
+template Aurora. Sem implementação, chamada paga, A5b, Music ou renderer.
+
 ## 23/11/2026 — render: scrim local confundido com decoração, polish-v3
 
 Run `0af57d58-b917-59a0-8b0a-c1de66841022` passou pelo planejamento e falhou

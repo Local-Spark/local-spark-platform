@@ -7,8 +7,10 @@ from typing import Any
 
 from app.schemas.motion_production import HTMLMotionComposition, MotionConstructionPlan
 from app.services.auth import AuthError
+from app.services.motion_photo_energy import _state, energetic
 
-POLISH_PATH = Path(__file__).resolve().parents[1] / "assets/motion_photo/photo-polish-v2.js"
+POLISH_PATH = Path(__file__).resolve().parents[1] / "assets/motion_photo/photo-polish-v3.js"
+V3_POLISH_PATH = POLISH_PATH.with_name("photo-polish-v2.js")
 LEGACY_POLISH_PATH = POLISH_PATH.with_name("photo-polish-v1.js")
 PHOTO_POLISH_CONTRACT_V1 = {
     "version": "motion-photo-polish-v1",
@@ -63,7 +65,7 @@ PHOTO_POLISH_CONTRACT_V2 = {
 }
 
 
-PHOTO_POLISH_CONTRACT = {
+PHOTO_POLISH_CONTRACT_V3 = {
     **PHOTO_POLISH_CONTRACT_V2,
     "version": "motion-photo-polish-v3",
     "dom_guard_sha256": "9de1d5ff1c7f5a0e2f7b0169a66f77f7e0481b456f0589934a4b7e9e88f0e124",
@@ -83,11 +85,73 @@ PHOTO_POLISH_CONTRACT = {
 }
 
 
+PHOTO_POLISH_CONTRACT_V4 = {
+    **PHOTO_POLISH_CONTRACT_V2,
+    "version": "motion-photo-polish-v4",
+    "dom_guard_sha256": "a7d4949c427cb65ccdb1ec10e149e99a06d1a3947a73f01dd76b86cbb2c11c5c",
+    "rules": PHOTO_POLISH_CONTRACT_V2["rules"]
+    + (
+        " U1 restringe T2: prefira região já escura da foto, depois scrim local suave, depois sombra discreta. "
+        "Posição sozinha não comprova contraste: mantenha proteção T2. Use uma única sombra preta opaca "
+        "com blur entre 2 e 4px e offsets absolutos <=2px. Não empilhe sombras nem use glow/box-shadow/filtro. "
+        "Scrim apenas retangular preto sólido/translúcido, alpha <=0.8, sem radial/gradiente/mancha/raio; "
+        "margens externas ao retângulo do texto <=16px por lado, largura <95% e altura <40% do frame. "
+        "Para substituir sombra, fundo no texto/ancestral deve manter alpha >=0.75; suporte irmão "
+        "<id-do-texto>-scrim vazio pode ter alpha menor mas não dispensa T2 nem CTA v3. "
+        "Mantenha família/pesos tipográficos coerentes entre frases. Texto integralmente visível durante "
+        "TODO enter/transform/exit, inclusive endpoints: sem máscara/revelação, opacity <0.95 ou hidden. "
+        "CTA >=1500ms sem saída durante leitura; finish-v1 e proibição de faixa full-width intactos. "
+        "U2: além de O2/Q2, foto PRIMÁRIA deve ter transforms lineares contínuos em >=80% de cada cena, "
+        "sem lacuna >500ms inclusive bordas. No mesmo eixo: scale >=0.01/s OU x_pct/y_pct >=0.5/s (N2). "
+        "Texto energético não substitui essa continuidade da foto. Exemplo: cena 5000ms, foto transform "
+        "linear 0–5000ms scale=1.04 até 1.09: 100% de continuidade N2; texto relacionado ainda precisa "
+        "cobrir O2/Q2 como no exemplo anterior. Confira crop v5 nos extremos, não acelere foto insegura. "
+        "Sem holds de ~2s no miolo; se crop inviabilizar movimento, selecione outra foto/revise plano. "
+        "U3: ordene ambiente elegível e detalhes como progressão do lugar à pausa, não loop de closes. "
+        "Revise TODO inventário pelos previews e justifique cada exclusão; >=min(3,elegíveis) primárias "
+        "e ambiente elegível por >=1500ms exclusivos permanecem obrigatórios. Não invente imagens, "
+        "não marque ambiente inviável só para repetir produto; S3/crop v5 prevalecem. "
+        "Preserve tom suave e aconchegante, sem hard-sell, A5b, Music/mix, TTS ou avatar."
+    ),
+}
+
+
+TIMING_PATH = POLISH_PATH.with_name("photo-timing-v1.js")
+PHOTO_POLISH_CONTRACT = {
+    **PHOTO_POLISH_CONTRACT_V4,
+    "version": "motion-photo-polish-v5",
+    "timing_sha256": "f32be2f98c207d96f77b0098240a19eb7cf3442dfc867f8ea6cce3391fc77b08",
+    "rules": PHOTO_POLISH_CONTRACT_V4["rules"]
+    + (
+        " Timing v1: PhotoTimingV1 já é instalado antes de scene_init; não o redefina. "
+        "Use PhotoTimingV1.textVisible(t,start,end) para display de texto E seu wrapper: "
+        "é inclusivo nos dois endpoints (t>=start && t<=end), também no exit. "
+        "Exemplo: exit 13200–13400 permanece display:block em 13400; esconda só em t>13400. "
+        "Não reutilize janelas half-open de fotos para texto. Agrupe beats contíguos do texto "
+        "numa janela do primeiro start ao último end; CTA permanece até duration_ms. "
+        "Use PhotoTimingV1.photoVisible(t,start,end,duration_ms) para wrappers de fotos. "
+        "Dissolução: declare phase=exit na foto de origem e staging.transition com a MESMA "
+        "janela contida na interseção das cenas, duração >0 e <=500ms. "
+        "Exemplo: origem 0–5200, destino 5000–11200: transition 5000–5200, nunca 4900–5200. "
+        "Preparação narrativa anterior ao overlap não pertence a transition.start_ms. "
+        "Só wrapper da origem usa PhotoTimingV1.outgoingOpacity(t,start,end); destino fica "
+        "opaco/cover desde seu start. Sem overlap, corte seco sem fade. Não esconda texto "
+        "dentro de wrapper fotográfico que dissolve. Teste seeks start,end,end+1 e reversos."
+    ),
+}
+
+
 def polish_enabled(context: dict[str, Any]) -> bool:
     contract = context.get("photo_polish_contract")
     if contract is None:
         return False
-    if contract not in (PHOTO_POLISH_CONTRACT_V1, PHOTO_POLISH_CONTRACT_V2, PHOTO_POLISH_CONTRACT):
+    if contract not in (
+        PHOTO_POLISH_CONTRACT_V1,
+        PHOTO_POLISH_CONTRACT_V2,
+        PHOTO_POLISH_CONTRACT_V3,
+        PHOTO_POLISH_CONTRACT_V4,
+        PHOTO_POLISH_CONTRACT,
+    ):
         raise AuthError("MOTION_PHOTO_POLISH_CONTRACT_CHANGED", 409)
     return True
 
@@ -131,12 +195,66 @@ def validate_photo_polish(
     if environment and not selected & environment:
         raise AuthError("MOTION_PHOTO_ENVIRONMENT_BEAT_REQUIRED", 409)
 
+    if context["photo_polish_contract"] in (PHOTO_POLISH_CONTRACT_V4, PHOTO_POLISH_CONTRACT):
+        for scene in plan.scenes:
+            primary = next(
+                (e for e in scene.elements if scene.photo_layout and e.id == scene.photo_layout.primary_element_id),
+                None,
+            )
+            intervals = (
+                []
+                if primary is None
+                else [
+                    (max(scene.start_ms, b.start_ms), min(scene.end_ms, b.end_ms))
+                    for b in primary.beats
+                    if energetic(b) and b.end_ms > scene.start_ms and b.start_ms < scene.end_ms
+                ]
+            )
+            covered, active = scene.start_ms, 0
+            for start, end in sorted(intervals) + [(scene.end_ms, scene.end_ms)]:
+                if start - covered > 500:
+                    raise AuthError("MOTION_PHOTO_CONTINUITY_REQUIRED", 409)
+                active += max(0, end - max(start, covered))
+                covered = max(covered, end)
+            if active * 5 < (scene.end_ms - scene.start_ms) * 4:
+                raise AuthError("MOTION_PHOTO_CONTINUITY_REQUIRED", 409)
+
+    if context["photo_polish_contract"] == PHOTO_POLISH_CONTRACT:
+        assert artifact.staging is not None
+        for scene in plan.scenes:
+            for element in scene.elements:
+                if scene.photo_layout is None or element.id != scene.photo_layout.primary_element_id:
+                    continue
+                exits = [b for b in element.beats if b.phase == "exit"]
+                for beat in exits:
+                    transition = next((m.transition for m in artifact.staging.moments if m.scene_id == scene.id), None)
+                    destination = next(
+                        (s for s in plan.scenes if transition and s.id == transition.next_scene_id), None
+                    )
+                    if (
+                        transition is None
+                        or destination is None
+                        or not 0 < transition.end_ms - transition.start_ms <= 500
+                        or not max(scene.start_ms, destination.start_ms)
+                        <= transition.start_ms
+                        < transition.end_ms
+                        <= min(scene.end_ms, destination.end_ms)
+                        or (beat.start_ms, beat.end_ms) != (transition.start_ms, transition.end_ms)
+                    ):
+                        raise AuthError("MOTION_PHOTO_HANDOFF_WINDOW_INVALID", 409)
+
 
 def polish_scene_init(composition: HTMLMotionComposition, context: dict[str, Any], scene_init: str) -> str:
     if not polish_enabled(context):
         return scene_init
     contract = context["photo_polish_contract"]
-    path = POLISH_PATH if contract == PHOTO_POLISH_CONTRACT else LEGACY_POLISH_PATH
+    path = (
+        POLISH_PATH
+        if contract in (PHOTO_POLISH_CONTRACT_V4, PHOTO_POLISH_CONTRACT)
+        else V3_POLISH_PATH
+        if contract == PHOTO_POLISH_CONTRACT_V3
+        else LEGACY_POLISH_PATH
+    )
     source = path.read_bytes()
     if hashlib.sha256(source).hexdigest() != contract["dom_guard_sha256"]:
         raise AuthError("MOTION_PHOTO_POLISH_GUARD_CHANGED", 409)
@@ -145,6 +263,31 @@ def polish_scene_init(composition: HTMLMotionComposition, context: dict[str, Any
         {
             "images": sorted({e.id for s in composition.motion_plan.scenes for e in s.elements if e.role == "image"}),
             "texts": sorted({e.id for s in composition.motion_plan.scenes for e in s.elements if e.role == "text"}),
+            **(
+                {
+                    "continuity": [
+                        {
+                            "id": e.id,
+                            "start": b.start_ms,
+                            "end": b.end_ms,
+                            "a": _state(b.start_state),
+                            "z": _state(b.end_state),
+                        }
+                        for s in composition.motion_plan.scenes
+                        for e in s.elements
+                        if s.photo_layout and e.id == s.photo_layout.primary_element_id
+                        for b in e.beats
+                        if energetic(b)
+                    ]
+                }
+                if contract in (PHOTO_POLISH_CONTRACT_V4, PHOTO_POLISH_CONTRACT)
+                else {}
+            ),
         }
     )
+    if contract == PHOTO_POLISH_CONTRACT:
+        timing = TIMING_PATH.read_bytes()
+        if hashlib.sha256(timing).hexdigest() != contract["timing_sha256"]:
+            raise AuthError("MOTION_PHOTO_TIMING_CHANGED", 409)
+        scene_init = timing.decode() + "\n" + scene_init
     return scene_init + "\n;(" + source.decode() + ")(" + payload + ");"

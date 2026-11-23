@@ -3,6 +3,7 @@
 from copy import deepcopy
 
 import pytest
+from pydantic import ValidationError
 
 from app.services.auth import AuthError
 from app.services.motion_context import capture_motion_guidance
@@ -200,3 +201,109 @@ def test_historical_v1_v2_keep_their_guard_and_rules():
         assert photo_intent_rules(old).endswith(contract["rules"])
         assert "const localScrim" not in polish_scene_init(comp, old, comp.scene_init)
     assert "const localScrim" in polish_scene_init(comp, CONTEXT, comp.scene_init)
+
+
+def test_v3_replay_keeps_exact_rules_guard_and_old_energy_admission():
+    from app.services.motion_photo_polish import PHOTO_POLISH_CONTRACT_V3, V3_POLISH_PATH
+
+    body, prepared, _ = photo_case()
+    context = {**prepared.context, "photo_polish_contract": PHOTO_POLISH_CONTRACT_V3}
+    assert capture_motion_guidance(body, previous=context)["photo_polish_contract"] == PHOTO_POLISH_CONTRACT_V3
+    assert photo_intent_rules(context).endswith(PHOTO_POLISH_CONTRACT_V3["rules"])
+    data, ids = case()
+    data["motion_plan"]["scenes"][1]["elements"][0]["beats"][0]["phase"] = "hold"
+    comp = artifact(data)
+    validate_photo_polish(comp, context, asset_ids=ids)
+    assert V3_POLISH_PATH.read_text() in polish_scene_init(comp, context, "original")
+    with pytest.raises(AuthError, match="CONTINUITY_REQUIRED"):
+        check(data, ids)
+
+
+@pytest.mark.parametrize("change", ["slow", "gap", "coverage", "overlap", "edge", "no_primary"])
+def test_primary_continuity_cannot_be_replaced_by_text_or_overlapping_beats(change):
+    data, ids = case(1)
+    scene = data["motion_plan"]["scenes"][1]
+    photo = scene["elements"][0]
+    beat = photo["beats"][0]
+    text = deepcopy(photo)
+    text.update(id="moving-text", role="text", asset_id=None)
+    photo["related_element_ids"] = [text["id"]]
+    scene["elements"].append(text)
+    if change == "slow":
+        beat["end_state"] = "scale=1.041 x_pct=0 y_pct=0"
+    elif change == "gap":
+        beat["end_ms"] = 7000
+        photo["beats"].append(dict(beat, start_ms=9000, end_ms=10000))
+    elif change == "edge":
+        beat["start_ms"] = 5501
+    elif change == "no_primary":
+        scene["photo_layout"] = None
+    else:
+        # Three 400ms gaps pass the gap cap but fail 80% total coverage.
+        beat.update(start_ms=5400, end_ms=7000)
+        photo["beats"].append(dict(beat, start_ms=7400, end_ms=9600))
+        if change == "overlap":
+            photo["beats"].append(deepcopy(beat))
+    with pytest.raises(ValidationError if change == "overlap" else AuthError):
+        check(data, ids)
+
+
+def test_primary_continuity_boundary_and_clipping_do_not_mutate_plan():
+    data, ids = case()
+    beat = data["motion_plan"]["scenes"][1]["elements"][0]["beats"][0]
+    beat.update(start_ms=5500, end_ms=9500, end_state="scale=1.08 x_pct=0 y_pct=0")
+    before = deepcopy(data)
+    check(data, ids)  # exactly 80%, gaps 500ms and scale 0.01/s
+    assert data == before
+    beat.update(start_ms=4500, end_ms=10500, end_state="scale=1.10 x_pct=0 y_pct=0")
+    with pytest.raises(ValidationError, match="inside the scene"):
+        check(data, ids)
+
+
+def handoff_case():
+    data, ids = case()
+    scene = data["motion_plan"]["scenes"][0]
+    scene["end_ms"] = 5200
+    beat = scene["elements"][0]["beats"][0]
+    scene["elements"][0]["beats"].append(dict(beat, phase="exit", start_ms=5000, end_ms=5200))
+    moment = data["staging"]["moments"][0]
+    moment["scene_id"] = scene["id"]
+    moment["transition"].update(start_ms=5000, end_ms=5200, next_scene_id=data["motion_plan"]["scenes"][1]["id"])
+    return data, ids
+
+
+@pytest.mark.parametrize("change", ["early", "mismatch", "absent", "long"])
+def test_new_capture_rejects_unexecutable_handoff_before_implementation(change):
+    data, ids = handoff_case()
+    h = data["staging"]["moments"][0]["transition"]
+    if change == "early":
+        h["start_ms"] = 4900
+    elif change == "mismatch":
+        h["start_ms"] = 5050
+    elif change == "absent":
+        data["staging"]["moments"][0]["transition"] = None
+    else:
+        h["end_ms"] = 5600
+    with pytest.raises(AuthError, match="HANDOFF_WINDOW_INVALID"):
+        check(data, ids)
+
+
+def test_handoff_valid_and_v4_replay_keeps_exact_executor(monkeypatch, tmp_path):
+    from app.services.motion_photo_polish import PHOTO_POLISH_CONTRACT_V4
+
+    data, ids = handoff_case()
+    check(data, ids)
+    data["staging"]["moments"][0]["transition"]["start_ms"] = 4900
+    comp = artifact(data)
+    old = {**CONTEXT, "photo_polish_contract": PHOTO_POLISH_CONTRACT_V4}
+    validate_photo_polish(comp, old, asset_ids=ids)
+    previous = polish_scene_init(comp, old, comp.scene_init)
+    assert "PhotoTimingV1" not in previous
+    assert '"continuity":' in previous
+    new = polish_scene_init(comp, CONTEXT, comp.scene_init)
+    assert new.index("PhotoTimingV1") < new.index(comp.scene_init)
+    fake = tmp_path / "bad-timing.js"
+    fake.write_text("changed")
+    monkeypatch.setattr("app.services.motion_photo_polish.TIMING_PATH", fake)
+    with pytest.raises(AuthError, match="TIMING_CHANGED"):
+        polish_scene_init(comp, CONTEXT, comp.scene_init)
