@@ -506,11 +506,21 @@ class OpenAIMotionProvider:
                 "motion-temporal-v2",
                 "motion-temporal-v3",
                 "motion-temporal-v4",
+                "motion-temporal-v5",
             }:
                 instructions += (
                     " No manifesto v2, se houver passagens omitidas ou cenas sem cobertura, os checks temporais "
                     "não podem passar: use uncertain quando faltar evidência, ou fail apenas para problema "
                     "observado em sequência completa. Declare omissões; não invente defeitos."
+                )
+            if request.context["creative_contract"]["temporal_review"]["version"] == "motion-temporal-v5":
+                instructions += (
+                    " O evento reading do CTA inclui entrada, meio e fim. Observe os pixels e os tempos: "
+                    "start_ms/end_ms são intenção, não prova de visibilidade. last_frame_end_ms informa "
+                    "o fim da exposição do último frame; 15s a 30fps termina no frame de 14967ms, "
+                    "não existe frame em 15000ms. Não exija esse frame inexistente. Confirme >=1500ms "
+                    "de leitura usando a sequência, mantendo uncertain se a evidência não bastar. "
+                    "Não confunda ausência de amostra com defeito observado, nem aprove por plano apenas."
                 )
         if planned:
             instructions += (

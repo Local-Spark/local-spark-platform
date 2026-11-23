@@ -1,5 +1,41 @@
 # Meu Braço Direito — contexto vigente
 
+## 23/11/2026 — revisão photo: evidência de leitura do CTA, temporal-v5
+
+Diagnóstico read-only sob RLS do run `f939401c…`: MP4 `35d26da0…`
+registrado (2.054.826 bytes), mas review `insufficient_evidence`, sem issues.
+A revisão só observou CTA em 13767/14967ms (1200ms), marcou reading_time
+uncertain e não selecionou candidato; daí `MOTION_MANDATORY_REVIEW_FAILED`.
+Isso não comprova CTA curto nem falha do render. Run/MP4 não foram alterados.
+
+Novas capturas photo com staging usam `motion-temporal-v5`: evento reading
+vinculado ao CTA final, amostras antes/na entrada, primeiro frame a partir
+dela, meio e último frame real. O manifesto mantém limite 48 frames/16 eventos,
+lista omissões e exige cobertura para checks pass. Informa janela planejada,
+mínimo 1500ms e fim da exposição do último frame; orientação distingue esses
+dados da evidência visual e não exige frame inexistente em 15000ms.
+Plano não aprova pixels; evidência insuficiente continua uncertain.
+Storyboard e revisão usam a mesma seleção. Capturas vídeo e replays temporais
+v1–v4 permanecem intactos; comparação local confirmou tempos/manifestos
+históricos idênticos. Polish-v6 e demais gates não foram modificados.
+
+Validação: 430 unitários passaram, incluindo entrada do CTA em limite de
+frame e fora dele, janela mínima, ausência de amostra bloqueando pass, replay
+v4 e uso dos mesmos índices no storyboard. `motion_temporal.py`: 100% de
+linhas (142 statements) e branches (66), sem exclusões. Ruff/formato do recorte
+passaram; mypy dos três serviços temporais passou. Mypy dos cinco módulos
+reporta quatro erros em trechos não alterados de motion_context/motion_ai.
+`make ci` continua bloqueado pelos 66 lints preexistentes; cobertura global
+100%/CI integral pendentes. Nove integrações de captura/staging passaram
+com PostgreSQL dedicado _test, roles restritas e fornecedores simulados.
+
+Correção de evidência, sem reabrir qualidade/polish do Café congelado.
+Sem fornecedores pagos, render novo, reload de worker, reenvio do run ou aceite E2E. A nova
+política vale para novas capturas; não recupera automaticamente o run
+histórico. Reavaliação produtiva paga e recuperação explícita continuam fora
+desta execução. `run.failed` ainda usa o código genérico existente.
+
+
 ## 23/11/2026 — photo-reel Café congelado; próximo = Reel vídeo do cliente
 
 Titular aceitou congelar o loop de qualidade do **reel com fotos** no Café

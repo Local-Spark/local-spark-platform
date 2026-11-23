@@ -307,7 +307,7 @@ def validate_temporal_review(request: MotionModelRequest, review: MotionReview) 
     for check in review.temporal_checks:
         if (
             check.status == "pass"
-            and manifest["current"]["policy"]["version"] == "motion-temporal-v4"
+            and manifest["current"]["policy"]["version"] in {"motion-temporal-v4", "motion-temporal-v5"}
             and not manifest["current"]["coverage_complete"]
         ):
             raise MotionReviewError("MOTION_TEMPORAL_COVERAGE_REQUIRED")
@@ -323,7 +323,7 @@ def validate_temporal_review(request: MotionModelRequest, review: MotionReview) 
             if (
                 check.status == "pass"
                 and manifest["current"]["policy"]["version"]
-                in {"motion-temporal-v2", "motion-temporal-v3", "motion-temporal-v4"}
+                in {"motion-temporal-v2", "motion-temporal-v3", "motion-temporal-v4", "motion-temporal-v5"}
                 and (manifest["current"]["omitted_transitions"] or manifest["current"]["uncovered_scene_ids"])
             ):
                 raise MotionReviewError("MOTION_TEMPORAL_COVERAGE_REQUIRED")

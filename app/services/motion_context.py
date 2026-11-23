@@ -40,7 +40,7 @@ from app.services.motion_sound_library import PHOTO_SFX_RULES, capture_sound_lib
 from app.services.motion_speech_policy import speech_policy
 from app.services.motion_staging import PHOTO_STAGING_CONTRACT, STAGING_CONTRACT
 from app.services.motion_styles import html_style_card, list_motion_styles
-from app.services.motion_temporal import POLICY_V3, POLICY_V4
+from app.services.motion_temporal import POLICY_V3, POLICY_V4, POLICY_V5
 from app.services.motion_visual_direction import supplied_direction
 from app.services.reference_generation_context import ReferenceGenerationSnapshot, capture_generation_context
 
@@ -208,7 +208,10 @@ def capture_motion_guidance(
         else {}
     )
     if staging and previous is None:
-        creative = {**cast(dict[str, Any], creative), "temporal_review": dict(POLICY_V4)}
+        creative = {
+            **cast(dict[str, Any], creative),
+            "temporal_review": dict(POLICY_V5 if request.source_asset_id is None else POLICY_V4),
+        }
     repertoire_id = (
         previous.get("repertoire", {}).get("id")
         if previous is not None

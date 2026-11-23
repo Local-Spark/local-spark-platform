@@ -4,7 +4,7 @@ from typing import Any, NotRequired, TypedDict
 
 from app.schemas.motion_production import HTMLMotionComposition, MotionConstructionPlan
 from app.services.auth import AuthError
-from app.services.motion_temporal import POLICY_V2, POLICY_V3, POLICY_V4, events, sample_times
+from app.services.motion_temporal import POLICY_V2, POLICY_V3, POLICY_V4, POLICY_V5, events, sample_times
 
 
 class StoryboardMoment(TypedDict):
@@ -39,7 +39,7 @@ def storyboard_moments(
         indexes.add(index)
         result.append({"scene_id": scene.id, "message": scene.message, "requested_ms": ms, "frame_index": index})
     policy = ((context or {}).get("creative_contract") or {}).get("temporal_review")
-    if policy not in (POLICY_V2, POLICY_V3, POLICY_V4) or not isinstance(composition, HTMLMotionComposition):
+    if policy not in (POLICY_V2, POLICY_V3, POLICY_V4, POLICY_V5) or not isinstance(composition, HTMLMotionComposition):
         return tuple(result)
     selected, _ = events(composition, policy)
     by_index: dict[int, StoryboardMoment] = {}
@@ -59,7 +59,7 @@ def storyboard_moments(
                     "kind": event.kind,
                 },
             )
-    if policy in (POLICY_V3, POLICY_V4):
+    if policy in (POLICY_V3, POLICY_V4, POLICY_V5):
         for ms in sample_times(composition, context or {}):
             index = ms * 30 // 1000
             scene = next((s for s in plan.scenes if s.start_ms <= ms < s.end_ms), plan.scenes[-1])
