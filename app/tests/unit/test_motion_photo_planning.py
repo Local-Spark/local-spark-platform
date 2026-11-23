@@ -124,6 +124,15 @@ def photo_case(*, human_review=False):
                         end_state="scale=1 x_pct=0 y_pct=0",
                         curve={"kind": "linear", "parameters": []},
                     )
+    data["staging"]["photo_material_reviews"] = [
+        {
+            "asset_id": ASSET_ID,
+            "subject": "environment",
+            "identity": "clean",
+            "crop_safe": True,
+            "evidence": "Synthetic wide café, no marks, safe full-bleed crop.",
+        }
+    ]
     plan = MotionConstructionPlan.model_validate(data)
     png = frame()
     asset = RenderAsset(ASSET_ID, "image/png", png.png, png.sha256)

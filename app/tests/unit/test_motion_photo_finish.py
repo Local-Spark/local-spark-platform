@@ -42,6 +42,7 @@ def check(data, *, context=CTX, logo=True):
 def test_new_capture_and_old_replay_preserve_v10_bytes_and_music():
     body, prepared, _ = photo_case()
     old = deepcopy(prepared.context)
+    old.pop("photo_polish_contract", None)
     old.pop("photo_finish_contract")
     replay = capture_motion_guidance(body, previous=old)
     assert "photo_finish_contract" not in replay

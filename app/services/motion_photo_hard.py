@@ -150,8 +150,16 @@ def guarded_photo_scene_init(composition: HTMLMotionComposition, context: dict[s
         )
     payload = json.dumps({"scenes": scenes, "handoff_end": handoff_end, "end": plan.duration_ms}, ensure_ascii=True)
     from app.services.motion_photo_finish import finish_scene_init
+    from app.services.motion_photo_polish import polish_scene_init
 
-    return finish_scene_init(composition, context) + "\n;(" + source.decode() + ")(" + payload + ");"
+    return (
+        polish_scene_init(composition, context, finish_scene_init(composition, context))
+        + "\n;("
+        + source.decode()
+        + ")("
+        + payload
+        + ");"
+    )
 
 
 def _exit_handoff(composition: HTMLMotionComposition, scene_id: str, contract: dict[str, Any]) -> dict[str, Any]:

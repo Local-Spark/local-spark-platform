@@ -1,5 +1,12 @@
 # Ensaio Café Aurora v9 — gaps e próxima fatia — 18/11/2026
 
+## Ensaio v10 — próximo backlog noutro doc
+
+Após S1–S3 + recuperação do MP4 `cefe9071`, o ensaio v10 e o backlog T1–T4
+estão em
+[motion-ensaio-cafe-aurora-v10-gaps-2026-11-18.md](motion-ensaio-cafe-aurora-v10-gaps-2026-11-18.md).
+Este documento permanece o diagnóstico v9 + histórico S1–S4.
+
 ## Atualização — S1–S3 implementados, aceite audiovisual pendente
 
 Autorização posterior: suplemento `motion-photo-finish-v1` em novas capturas,

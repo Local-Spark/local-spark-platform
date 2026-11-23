@@ -1,5 +1,177 @@
 # Decisões vigentes e pendências
 
+## 23/11/2026 — render: scrim local confundido com decoração, polish-v3
+
+Run `0af57d58-b917-59a0-8b0a-c1de66841022` passou pelo planejamento e falhou
+no render com `MOTION_RENDER_EXECUTION_FAILED`. Evidências lidas sob escopo do
+titular/RLS; executor reconstruído confere com `executed_scene_init_sha256` do
+recibo. Replay de seeks em Chromium, com previews/fontes locais e rede
+interceptada, reproduziu `MOTION_PHOTO_DECORATION_FORBIDDEN` em 33,33 ms: um
+scrim radial preto local, irmão do texto, era classificado como folha decorativa
+sem vínculo. O renderer retorna código genérico para essa exceção DOM; não foi
+falha de fila, revisão de inventário ou energia do plano.
+
+Novas capturas usam `motion-photo-polish-v3` e `photo-polish-v2.js`, pinado por
+hash. Scrim irmão só é admitido com id exato `<id-do-texto>-scrim` associado a
+texto declarado e visível, contendo seu retângulo, largura <95% e altura <40%
+do frame, vazio/sem filhos, bordas, outlines, pseudo-elementos, sombra, filtro
+ou máscara. Pintura limitada a preto sólido/translúcido ou gradiente radial
+elíptico preto; considera a serialização Chromium que omite `ellipse` padrão.
+Cor, geometria ou nome inválido continuam rejeitados. Scrim irmão não substitui
+a proteção T2 do texto/sombra nem a guarda CTA v3. Isso admite suporte local de
+leitura, não libera acentos residuais. V1/V2 e guarda anterior permanecem com os
+mesmos bytes; replay escolhe o hash/arquivo da versão persistida.
+
+Segundo achado: com a correção aplicada somente em memória, replay passa pelos
+scrims e chega a `MOTION_PHOTO_TYPOGRAPHY_NOT_EXECUTED` em 10200 ms. O wrapper do
+texto de fecho está com `clip-path: inset(0px 0px 100%)`, escondendo o texto no
+início do beat. É violação de finish-v1, que permanece intacto. V3 explicita ao
+gerador a visibilidade integral durante enter/exit, incluindo endpoints, sem
+máscara/revelação e sem saída de CTA na janela de leitura. **O run salvo ainda
+não é renderizável sob todos os gates**; não houve edição automática de HTML,
+relaxamento de finish-v1, reexecução produtiva ou recuperação declarada.
+
+Validação: 250 unitários photo, 94 testes Node photo e três integrações
+PostgreSQL `_test` com roles restritas passaram. Serviço polish: 100% de linhas
+e branches (57 statements/26 branches), sem exclusões. Quatro testes Chromium
+passaram, incluindo aceitação de scrims locais e rejeição de nome falso, cor,
+faixa, borda, máscara, pseudo-elemento e texto desprotegido, mais regressões de
+legibilidade/finish/guardas antigas. Ruff/formato e mypy do recorte passaram.
+`make ci` segue bloqueado nos 66 lints preexistentes; CI e cobertura global
+permanecem pendentes.
+
+Worker dedicado recarregado após confirmar zero runs queued/running; novo
+PID 16391 confirmado como poller de workflow e atividade. Run relido preserva
+failed e o código original, sem reenviar efeitos.
+Documentos e alterações staged anteriores preservados. Sem chamada paga, novo
+MP4, Music/mix, TTS/avatar ou troca de renderer. Sem aceite E2E; nova geração e
+revisão audiovisual continuam dependendo de autorização do titular.
+
+## 19/11/2026 — plano rejeitado por energia; orientação numérica polish-v2
+
+Run `5a2a1152-cba8-503b-ba9b-ed5e1ac92b2a` falhou com
+`MOTION_PHOTO_ENERGY_REQUIRED` na admissão do plano, antes de implementação/render.
+Leitura restrita e replay local com o contexto preparado exato reproduziram a
+rejeição: as cenas têm cobertura O2/Q2 de 3550/5000 ms (71%), 3850/5500 ms
+(70%) e 3800/4900 ms (77,6%), abaixo de 80%. Lacunas globais chegam a 800 ms,
+acima de 500 ms. As fotos têm zoom lento demais para O2; enter/exit dos textos
+não contam como transforms energéticos. O mínimo S2 do fecho não substitui O2.
+É rejeição válida, diferente do falso positivo da trilha no inventário T1.
+
+Novas capturas recebem `motion-photo-polish-v2`: preserva T1–T3 e acrescenta
+orientação para calcular união por cena/global, fases elegíveis, amplitude e
+velocidade no mesmo eixo e um exemplo numérico de texto relacionado com 90%
+de cobertura em 5 s. A exceção do CTA é explícita: leitura ≥1500 ms e sem saída
+até end. Não acelera fotos nem modifica beats automaticamente; crop v5 e tom
+aconchegante continuam prevalecendo. Sem reintroduzir gráficos residuais.
+`polish-v1` permanece aceito com suas regras exatas; a seleção das instruções
+agora usa a versão pinada no snapshot. Novas regras não entram em replay v1.
+Gates M3/N2/O2/Q2/R1–R3/S1–S3, intent v10, finish-v1, readability-v1 e bytes/hashes
+DOM não mudaram. A mudança melhora a orientação, não garante obediência do modelo
+nem torna válido o plano rejeitado. Não há retry automático ou nova chamada paga.
+
+Validação: 249 unitários photo passaram; serviço polish com 100% linhas/branches
+(53 statements/26 branches). Regressões sintéticas mantêm rejeitadas as três
+agendas deficientes, verificam o exemplo de 90% sem acelerar a foto e o envio
+das instruções v2 ao planejador, preservando v1. Três integrações PostgreSQL
+`_test` passaram, incluindo pin v2 em lab/WhatsApp. Ruff/formato e mypy do recorte
+passaram. `make ci` continua nos 66 lints preexistentes; CI integral/cobertura
+global continuam pendentes, sem exclusões produtivas.
+
+Após a interrupção, Docker e dependências locais foram restaurados. Confirmados
+zero runs queued/running antes de iniciar o worker atualizado. Processo PID 77326
+confirmado como poller de workflow e atividade; o run relido mantém estado failed
+e o código original. Nenhum pedido foi reenviado.
+Run, snapshot e custos preservados. Sem novo MP4, Music/mix ou aceite E2E.
+Próximo ensaio pago continua dependendo de pedido autorizado pelo titular.
+
+## 19/11/2026 — T1: trilha photo-music não é fotografia
+
+Run `badce3e3-1ecc-50eb-bb79-544da8260bfc` falhou com
+`MOTION_PHOTO_INVENTORY_REVIEW_REQUIRED` após gerar o plano. Leitura restrita
+mostrou quatro fotos e quatro revisões completas; o inventário também continha
+`assets/photo-music.mp3`. O gate T1 contava o prefixo `photo-` sem distinguir
+fotografia de trilha e cobrava indevidamente uma quinta revisão.
+
+Corrigida a classificação no serviço: entram no inventário T1 apenas os caminhos
+`assets/photo-*.png`, formato normalizado pelo preparo fotográfico. Music/mix,
+contratos pinados, guardas DOM, S1–S3 e demais gates permanecem inalterados.
+Revisão de fotografia faltante continua bloqueada mesmo com trilha presente.
+Não há revisão inventada, novo snapshot, retry ou alteração do run falho.
+
+Validação: 244 unitários photo passaram, incluindo regressões com 1/2/3 fotos
+mais trilha e admissão integrada do plano; serviço com 100% linhas/branches.
+Três integrações PostgreSQL `_test` com roles restritas passaram. Replay local
+do plano salvo com o contexto preparado exato passou em todos os gates de plano,
+sem rede, render ou persistência. Ruff/formato e mypy do recorte passaram.
+`make ci` permanece bloqueado nos 66 lints preexistentes; cobertura global e CI
+integral continuam pendentes, sem exclusões produtivas.
+
+Worker dedicado recarregado após confirmar zero runs queued/running. Novo
+processo confirmado como poller de workflow e atividade; run relido continua
+failed com o código original.
+Sem nova chamada paga, MP4 ou aceite E2E. A validação local do plano não prova
+qualidade audiovisual; próximo ensaio depende de pedido autorizado pelo titular.
+
+## 18/11/2026 — T1–T3 pós-v10: variedade, leitura e limpeza gráfica
+
+Implementação autorizada pelo titular: novas capturas photo recebem
+`motion-photo-polish-v1`, com regras e hash da guarda suplementar pinados.
+Preservados os bytes de intent v10, guardas v2/v3, readability-v1, finish-v1,
+crop v5, skill v20 e repertório v12; todos os gates anteriores continuam.
+Replay sem o novo contrato não ganha regras nem executor novo. O campo opcional
+`staging.photo_material_reviews` é omitido quando ausente, preservando a
+serialização histórica. Alterações documentais já staged foram preservadas.
+
+T1 revisa **todo** o inventário fotográfico, incluindo materiais não usados:
+assunto (`environment/detail/people/other`), identidade, viabilidade de crop e
+evidência textual não vazia. Só `clean` + `crop_safe` é elegível. Plano e
+composição exigem ≥min(3, elegíveis) fotos primárias distintas, cada uma com
+≥1500 ms fora de overlaps; ambiente elegível exige um desses beats. Inventário
+insuficiente usa os elegíveis sem inventar imagens; zero elegíveis pede revisão.
+Inspeção faltante/duplicada/estranha, seleção inelegível e loop de dois closes
+quando há terceiro material elegível são rejeitados. S3/crop v5 prevalecem;
+a classificação é declaração do planejador sobre previews, não visão/OCR novo.
+
+T2 verifica todas as frases visíveis e seus descendentes em cada seek: texto
+claro ≥24px, sombra(s) preta(s) opaca(s), pelo menos uma com blur ≥2px e offsets
+≤4px, ou scrim preto local alpha ≥0,75 que contenha o texto. Reposicionamento
+sozinho não constitui evidência DOM suficiente. É uma decisão conservadora de
+admissão, não medição de contraste dos pixels. Full-width permanece proibido
+por finish-v1; CTA conserva janela ≥1500 ms e readability-v1/v3 integralmente.
+T3 restringe esta fatia a fotos/logo/tipografia e scrim CSS: rejeita `graphic`
+no plano, bordas/outlines, pseudo-elementos decorativos, SVG/canvas/HR e nós
+visíveis sem relação com texto/imagens declarados. Não é classificador estético
+nem prova contra oclusão arbitrária; revisão audiovisual continua necessária.
+
+Validação: 240 unitários photo passaram; serviço novo com 100% de linhas e
+branches (52 statements/26 branches), sem exclusões produtivas. Três testes
+Chromium passaram (23 cenários T2/T3 + 13 regressões anteriores; rede
+interceptada, HTML sintético, seeks reversos/finais); 94 testes Node photo com
+v3 passaram. Três integrações PostgreSQL no banco dedicado `_test`, com roles
+restritas, passaram incluindo captura lab/WhatsApp com o novo pin. Ruff/formato
+do recorte e mypy dos cinco módulos de validação/schema passaram. `make ci`
+continua bloqueado nos 66 lints preexistentes. A ampliação para testes de
+contexto encontrou 18 falhas; as mesmas 18 foram reproduzidas em cópia isolada
+de HEAD, sem T1–T3 (19 casos de contexto passaram). CI integral e cobertura
+global 100% permanecem pendentes; não há alegação de aprovação global.
+
+Sem chamada paga, A5b, novo MP4, reload de worker, alteração de vídeo,
+Music/mix (T4 não autorizado), TTS/avatar ou renderer. Persistência pós-upload,
+run failed, objeto recuperado e snapshots históricos intactos. Preservado o
+briefing aconchegante/suave de pausa no dia, sem hard-sell. Pendente novo pedido
+explicitamente autorizado e revisão do MP4 pelo titular; **sem aceite E2E**.
+
+## 18/11/2026 — pós-ensaio v10: documentar T1–T4, não implementar ainda
+
+Titular pediu análise do MP4 recuperado do run `cefe9071…` (S1–S3 ok no
+audiovisual; falha só na persistência). Decisão desta mudança: **só docs** —
+[motion-ensaio-cafe-aurora-v10-gaps-2026-11-18.md](design/motion-ensaio-cafe-aurora-v10-gaps-2026-11-18.md).
+Próxima fatia alvo: T1 variedade/clima, T2 legibilidade tipográfica, T3 limpeza
+de acentos residuais; T4 mix opcional. Preservar S1–S3, intent v10, guarda
+v2/v3 e o tom soft do briefing. Sem código, chamada paga, A5b ou aceite E2E
+nesta mudança. Arquivo recuperado ≠ versão aprovada.
+
 ## 18/11/2026 — falha pós-upload: timeout ao gravar evidências
 
 Run `cefe9071-7fc5-553a-9de4-709fb802101e` terminou com

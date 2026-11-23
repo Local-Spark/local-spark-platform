@@ -106,3 +106,7 @@ def validate_photo_quality(
     from app.services.motion_photo_finish import validate_photo_finish
 
     validate_photo_finish(artifact, context, handoff_end=handoff_end, asset_ids=asset_ids)
+
+    from app.services.motion_photo_polish import validate_photo_polish
+
+    validate_photo_polish(artifact, context, asset_ids=asset_ids)

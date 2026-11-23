@@ -102,6 +102,7 @@ def test_v1_snapshot_replay_and_provider_projection_keep_original_contract():
         "repertoire": capture_repertoire("business-reel-v5"),
         "skill": {"id": skill_id, "sha256": digest, "instructions": instructions},
     }
+    old.pop("photo_polish_contract", None)
     old.pop("photo_finish_contract", None)
     replay = capture_motion_guidance(body, previous=old)
     for key in ("photo_intent_contract", "repertoire", "skill", "photo_motion"):
@@ -153,6 +154,7 @@ def test_historical_photo_staging_and_rules_replay_without_upgrade(legacy_intent
         "executor_contract": {**prepared.context["executor_contract"], "integration_policy": PHOTO_MOTION_RULES},
         "photo_intent_contract": PHOTO_INTENT_CONTRACT_V1 if legacy_intent else PHOTO_INTENT_CONTRACT,
     }
+    old.pop("photo_polish_contract", None)
     old.pop("photo_finish_contract", None)
     replay = capture_motion_guidance(body, previous=old)
     for key in ("staging_contract", "photo_motion", "executor_contract", "photo_intent_contract"):
@@ -254,6 +256,7 @@ def test_v2_replay_keeps_original_rules_skill_and_repertoire():
         "repertoire": capture_repertoire("business-reel-v6"),
         "photo_motion": {**prepared.context["photo_motion"], "rules": PHOTO_MOTION_RULES_V2},
     }
+    old.pop("photo_polish_contract", None)
     old.pop("photo_finish_contract", None)
     replay = capture_motion_guidance(body, previous=old)
     for key in ("photo_intent_contract", "skill", "repertoire", "photo_motion"):
@@ -310,6 +313,7 @@ def test_v3_replay_keeps_logo_only_gate_and_exact_assets():
         "repertoire": capture_repertoire("business-reel-v7"),
         "photo_motion": {**prepared.context["photo_motion"], "rules": PHOTO_MOTION_RULES_V3},
     }
+    old.pop("photo_polish_contract", None)
     old.pop("photo_finish_contract", None)
     replay = capture_motion_guidance(body, previous=old)
     for key in ("photo_intent_contract", "skill", "repertoire", "photo_motion"):
@@ -365,6 +369,7 @@ def test_v4_replay_preserves_crop_policy_and_quality_gates():
         "photo_motion": {**prepared.context["photo_motion"], "rules": PHOTO_MOTION_RULES_V4},
         "executor_contract": {**prepared.context["executor_contract"], "integration_policy": PHOTO_MOTION_RULES_V4},
     }
+    old.pop("photo_polish_contract", None)
     old.pop("photo_finish_contract", None)
     replay = capture_motion_guidance(body, previous=old)
     for key in ("photo_intent_contract", "photo_motion", "executor_contract", "skill", "repertoire"):
@@ -413,6 +418,7 @@ def test_v5_snapshot_replay_keeps_exact_crop_rules_skill_and_repertoire():
         "photo_motion": {**prepared.context["photo_motion"], "rules": PHOTO_MOTION_RULES_V5},
         "executor_contract": {**prepared.context["executor_contract"], "integration_policy": PHOTO_MOTION_RULES_V5},
     }
+    old.pop("photo_polish_contract", None)
     old.pop("photo_finish_contract", None)
     replay = capture_motion_guidance(body, previous=old)
     for key in ("photo_intent_contract", "skill", "repertoire", "photo_motion", "executor_contract"):

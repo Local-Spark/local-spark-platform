@@ -36,7 +36,18 @@ class PhotoIdentityReview(PlanModel):
     evidence: Description
 
 
+class PhotoMaterialReview(PlanModel):
+    asset_id: str = Field(pattern=r"^assets/photo-[A-Za-z0-9_.-]+$")
+    subject: Literal["environment", "detail", "people", "other"]
+    identity: Literal["clean", "third_party", "uncertain"]
+    crop_safe: bool
+    evidence: Description
+
+
 class MotionStaging(PlanModel):
+    photo_material_reviews: tuple[PhotoMaterialReview, ...] | None = Field(
+        default=None, exclude_if=lambda value: value is None, max_length=192
+    )
     photo_identity_reviews: tuple[PhotoIdentityReview, ...] | None = Field(
         default=None, exclude_if=lambda value: value is None, max_length=192
     )

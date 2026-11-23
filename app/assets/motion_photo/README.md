@@ -63,3 +63,23 @@ opacas, com ao menos uma de blur ≥2px. Regressão: `0 2px 6px black, 0 1px 1px
 black` é válido, mas v2 bloqueava. Demais checks de v2 são preservados.
 V2 não foi editada; snapshots sem a política nova mantêm seu executor.
 Testar com `PHOTO_GUARD_VERSION=v3` nas suítes Node e Chromium acima.
+
+T1–T3: `motion_photo_polish.py` / `photo-polish-v1.js` são um suplemento pinado
+apenas em novas capturas (`photo_polish_contract`). Inventário completo e
+primárias com ≥1500 ms exclusivos sustentam diversidade e ambiente elegível;
+texto claro com sombra preta ou scrim local e ausência de adornos são conferidos
+por seek. Não reescreve intent v10/guardas/finish-v1 nem comprova contraste nos
+pixels. Integração sintética: `app/tests/browser/motion_photo_polish.cjs`, usando
+`MOTION_PLAYWRIGHT_PATH` e, opcionalmente, `MOTION_CHROMIUM_PATH` locais. Sem MP4.
+
+`motion-photo-polish-v2` mantém o mesmo suplemento DOM e acrescenta orientação
+numérica O2/Q2 para novas capturas: enter/exit não contam na cobertura, S2 não
+substitui O2, união ≥80% por cena e lacunas globais ≤500ms. V1 mantém regras
+exatas no replay; não há normalização de beats nem relaxamento do gate.
+
+`motion-photo-polish-v3` seleciona `photo-polish-v2.js` por hash para aceitar
+scrim irmão local `<texto>-scrim` com pintura preta e geometria vinculadas ao
+texto. V1/V2 usam `photo-polish-v1.js` intacto. Novas instruções também explicitam
+que a tipografia do fecho deve continuar visível durante todo enter/exit, sem
+revelação por máscara; finish-v1 não foi alterado. Regressões sintéticas em
+`app/tests/browser/motion_photo_scrim.cjs`.
