@@ -483,3 +483,19 @@ async def test_output_overflow_reaps_child_with_more_than_a_pipe_buffer():
 def test_fingerprints_require_full_decoded_video_not_storyboard_or_truthy_flags(tmp_path, changes):
     with pytest.raises(motion.MotionRenderError, match="INVALID_INPUT"):
         motion._prepare(bundle(**changes), tmp_path / "invalid-fingerprint")
+
+
+@pytest.mark.parametrize("code", sorted(c for c in motion.RUNNER_FAILURES if c.startswith("MOTION_VIDEO_")))
+async def test_video_guard_codes_cross_the_process_boundary_without_details(code):
+    notice = {"event": "motion.render.failed", "code": code}
+    script = "import sys; sys.stderr.write(" + repr(json.dumps(notice)) + "); raise SystemExit(1)"
+    with pytest.raises(motion.MotionRenderError) as error:
+        await motion._command([sys.executable, "-c", script], env={"PATH": "/usr/bin:/bin"}, timeout=5, limit=10)
+    assert error.value.code == code
+    assert str(error.value) == code
+
+
+@pytest.mark.parametrize("changes", [{"frames_only": 1}, {"frames_only": True, "sample_times_ms": ()}])
+def test_storyboard_mode_requires_boolean_and_explicit_evidence_samples(tmp_path, changes):
+    with pytest.raises(motion.MotionRenderError, match="MOTION_RENDER_INVALID_INPUT"):
+        motion._prepare(bundle(**changes), tmp_path / "invalid-storyboard")

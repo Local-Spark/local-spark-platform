@@ -5,7 +5,16 @@ from typing import Literal, Self
 from pydantic import Field, model_validator
 
 from app.schemas.motion_audiovisual import MotionAudiovisualDesign
-from app.schemas.motion_plan import Description, Identifier, Moment, MotionCurve, MotionPlan, PhotoClosing, PhotoLayout
+from app.schemas.motion_plan import (
+    Description,
+    Identifier,
+    Moment,
+    MotionCurve,
+    MotionPlan,
+    PhotoClosing,
+    PhotoLayout,
+    VideoLayout,
+)
 from app.schemas.motion_production import MotionAudio, MotionIllustration, MotionModel
 from app.schemas.motion_scene_direction import MotionSceneDirection
 from app.schemas.motion_staging import MotionStaging
@@ -51,6 +60,7 @@ class CompactMotionScene(MotionModel):
     start_ms: Moment
     end_ms: Moment
     message: Description
+    video_layout: VideoLayout | None = Field(default=None, exclude_if=lambda value: value is None)
     photo_layout: PhotoLayout | None = Field(default=None, exclude_if=lambda value: value is None)
     photo_closing: PhotoClosing | None = Field(default=None, exclude_if=lambda value: value is None)
     keyframe_ms: Moment | None

@@ -176,6 +176,10 @@ class LabMotionRequests(MotionRequestService):
             source_asset_id=body.source_attachment_id,
             photo_duration_ms=photo_duration_ms(message) if body.source_attachment_id is None else None,
         )
+        if request.source_asset_id is not None:
+            from app.services.motion_video_requests import planned_video_request
+
+            request = planned_video_request(request)
         snapshot = await self.context.capture(session, row["tenant_id"], row["business_id"], request)
         if request.source_asset_id is None:
             from app.services.motion_photos import planned_photo_request

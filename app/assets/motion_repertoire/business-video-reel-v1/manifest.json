@@ -1,0 +1,31 @@
+{
+  "id": "business-video-reel-v1",
+  "version": 1,
+  "rules": "VR1–VR3: gravação assets/source.mp4 full-bleed cover 9:16 do primeiro ao último frame; sem janela, cartaz, letterbox, moldura ou ocultação. Preserve uma gravação inteira e seu áudio, até 60s/50MiB. Sem EDL, música nova, TTS, avatar ou novo renderer. Cada cena declara video_layout={mode:cover,video_element_id,brand_element_id,text_element_ids,cta_element_id:null|id}. Marca é IMG assets/logo.png discreta sobre a ação, nunca nome fixo como hero. Sem logo autorizado, solicitar material; não fabricar logo nem substituir por label. Todos os textos são declarados em text_element_ids e relacionados ao vídeo via related_element_ids. Frases curtas conforme briefing, sem hard-sell inventado. Enter, transform e exit suaves, lineares; start_state/end_state são JSON exato {x:number,y:number,opacity:number}, em px, sem escala/rotação. Beats contíguos com estados contínuos, cobrindo a cena; enter parte de opacity=0 e termina em 1, exit termina em 0; transform desloca pelo menos 4px. Execute translate(xpx,ypx) e opacity no próprio nó de texto, com interpolação absoluta, inclusive após seeks reversos. Texto legível sobre ação: fonte >=28px no canvas 720, cor branca, scrim preto local opacidade .75–.8 no pai direto, padding <=16px, largura <90% e altura <25% do quadro. Sem sombra/blur/placa/rodapé. Limites do texto entre 12% e 78% da altura; marca <=25% largura e <=12% altura. Última cena declara CTA com hold estável opacity=1 de pelo menos 1500ms antes da saída. A guarda confere plano e execução, não qualidade perceptual; revisão humana continua necessária.",
+  "selection": "Fatia A: ação full-bleed, marca discreta e tipografia sobre ação. Sem cortes ou nova música.",
+  "required_runtimes": {},
+  "licenses": [],
+  "examples": [
+    {
+      "id": "action-type",
+      "source_id": "platform-original",
+      "file": "examples/action-type.js",
+      "sha256": "27ccd8a399d4f8ed2d050f2a580b4a832f25351cfdbe2fe0ed2f3941a7427f48",
+      "entrypoint": "videoTextSeek",
+      "mechanism": "Entrada, deslocamento suave, leitura e saída sobre gravação full-bleed.",
+      "use_when": "Frases curtas conforme briefing e kit.",
+      "limitations": "Prova de execução, não aceite artístico; preservar áreas essenciais da fonte.",
+      "integration": "Copiar em scene_init e chamar com tempo absoluto; não modifica vídeo nem áudio."
+    }
+  ],
+  "reference_images": [],
+  "reference_cards": [],
+  "sources": [
+    {
+      "id": "platform-original",
+      "origin": "Código próprio; referências analisadas em docs/evals/analise-41-referencias-motion-2026-11-12.md",
+      "version": "2026-11-23",
+      "permission": "Código original, sem conteúdo de terceiros."
+    }
+  ]
+}

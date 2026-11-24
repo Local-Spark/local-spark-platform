@@ -29,6 +29,8 @@ from app.services.motion_protocols import MotionRenderer
 from app.services.motion_requests import MotionRequestService
 from app.services.motion_storyboard_frames import StoryboardMoment, storyboard_moments, storyboard_upload_name
 from app.services.motion_temporal import evidence_manifest
+from app.services.motion_video_reel import guarded_video_scene_init
+from app.services.motion_video_scene_visibility import scoped_video_scene_init
 from app.services.visual_pending_changes import VisualPendingChanges
 from app.services.visual_pending_scripts import apply_pending_script_changes
 from app.services.whatsapp_materials import WhatsAppMaterialsService
@@ -62,7 +64,13 @@ class MotionStoryboards:
         if composition.audio.model_dump(mode="json") != prepared.audio:
             raise AuthError("MOTION_ORIGINAL_AUDIO_CHANGED", 409)
         operation = capture_id or uuid5(row["operation_id"], "storyboard:0")
-        scene_init = guarded_photo_scene_init(composition, prepared.context)
+        scene_init = guarded_video_scene_init(
+            composition,
+            prepared.context,
+            scoped_video_scene_init(
+                composition, prepared.context, guarded_photo_scene_init(composition, prepared.context)
+            ),
+        )
         bundle = RenderBundle(
             composition.html,
             scene_init,

@@ -130,7 +130,7 @@ def test_new_photo_snapshots_pin_executable_examples_without_changing_video_defa
 
     _, prepared, plan = photo_case()
     assert prepared.context["skill"]["id"] == "instagram-reel-photo-v20"
-    assert resolve_html_motion_skill("reel")[0] == "instagram-reel-v13"
+    assert resolve_html_motion_skill("reel")[0] == "instagram-reel-video-v19"
     pack = prepared.context["repertoire"]
     assert pack["id"] == "business-reel-v12"
     example = next(e for e in pack["examples"] if e["id"] == "photo-reel")

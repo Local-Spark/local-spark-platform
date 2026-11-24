@@ -75,6 +75,8 @@ class MotionRequest(MotionModel):
             "business-reel-v2",
             "business-reel-v3",
             "business-reel-v4",
+            "business-video-reel-v1",
+            "business-video-reel-v2",
             "business-reel-v5",
             "business-reel-v6",
             "business-reel-v7",
@@ -106,9 +108,9 @@ class MotionRequest(MotionModel):
         if self.source_asset_id is None and (self.speech_timing is not None or self.evolution is not None):
             raise ValueError("Photo motion has no recorded speech or source-video evolution")
         if self.automatic_plan and (
-            self.source_asset_id is not None or not self.propose_direction or self.review_checkpoints or self.storyboard
+            self.evolution is not None or not self.propose_direction or self.review_checkpoints or self.storyboard
         ):
-            raise ValueError("Automatic planning is exclusive to photo motion without human checkpoints")
+            raise ValueError("Automatic planning requires a new production without human checkpoints")
         if self.review_checkpoints and (
             self.preparation is None
             or (self.scene_direction is None and not self.propose_direction)

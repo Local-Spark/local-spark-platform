@@ -28,9 +28,12 @@ from app.tests.unit.test_motion_audiovisual import (
 
 
 def staged_context():
+    # Replay fixture for business-reel-v5, before VR1–VR3.
+    guidance = capture_motion_guidance(natural_body(repertoire_id="business-reel-v5"))
+    guidance.pop("video_reel_contract")
     return {
         **natural_context(),
-        **capture_motion_guidance(natural_body(repertoire_id="business-reel-v5")),
+        **guidance,
         "styles": [{"id": "editorial"}],
     }
 
@@ -123,7 +126,7 @@ def test_new_default_and_recapture_preserve_versions_and_old_plan_hash():
     before = construction_plan_hash(old)
     body = natural_body(repertoire_id=None)
     new = capture_motion_guidance(body)
-    assert staging_enabled(new) and new["repertoire"]["id"] == "business-reel-v5"
+    assert staging_enabled(new) and new["repertoire"]["id"] == "business-video-reel-v2"
     assert capture_motion_guidance(body, previous=new) == new
     legacy = capture_motion_guidance(natural_body())
     assert not staging_enabled(legacy)

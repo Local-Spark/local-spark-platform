@@ -196,11 +196,17 @@ def _format(
     model: type[BaseModel],
     *,
     allow_staging: bool,
+    allow_video_layout: bool = False,
     staging_version: str | None = None,
     quality_function_ids: tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
     schema = model.model_json_schema()
     definitions = schema.get("$defs", {})
+    if not allow_video_layout:
+        definitions.pop("VideoLayout", None)
+        for name in ("MotionScenePlan", "CompactMotionScene"):
+            if name in definitions:
+                definitions[name]["properties"].pop("video_layout", None)
     if quality_function_ids is not None and "MotionFunctionCoverage" in definitions:
         fields = definitions["MotionFunctionCoverage"]["properties"]
         fields["function_id"] = {"type": "string", "enum": list(quality_function_ids)}
@@ -272,8 +278,10 @@ class OpenAIMotionProvider:
         from app.services.motion_preparation import evidence_bindings
         from app.services.motion_quality import planning_input, validate_quality_input
         from app.services.motion_sound_library import verify_sound_assets
+        from app.services.motion_video_reel import video_reel_rules
 
         intent_rules = photo_intent_rules(request.context)
+        video_rules = video_reel_rules(request.context)
         validate_quality_input(request)
         verify_sound_assets(request.context, request.assets)
         bindings = evidence_bindings(request)
@@ -448,6 +456,8 @@ class OpenAIMotionProvider:
         instructions = REVIEW_RULES if request.kind == "review" else CREATIVE_RULES
         if intent_rules:
             instructions += " " + intent_rules
+        if video_rules:
+            instructions += video_rules
         if request.context.get("customer_feedback"):
             instructions += (
                 " Comentários em customer_feedback são referências flexíveis de gosto, não regras fixas "
@@ -581,6 +591,7 @@ class OpenAIMotionProvider:
                     if planned
                     else HTMLMotionComposition,
                     allow_staging=staging_enabled(request.context),
+                    allow_video_layout=bool(video_reel_rules(request.context)),
                     staging_version=request.context.get("staging_contract", {}).get("version"),
                     quality_function_ids=tuple(
                         item["id"] for item in request.context["quality_contract"]["requirements"]

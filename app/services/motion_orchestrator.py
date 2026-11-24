@@ -41,6 +41,8 @@ from app.services.motion_review import validate_review
 from app.services.motion_speech_recognition import MotionSpeechRecognition, SpeechRecognizer
 from app.services.motion_storyboards import MotionStoryboards
 from app.services.motion_temporal import evidence_manifest, sample_times, temporal_enabled
+from app.services.motion_video_reel import guarded_video_scene_init
+from app.services.motion_video_scene_visibility import scoped_video_scene_init
 from app.services.visual_pending_changes import VisualPendingChanges
 from app.services.visual_pending_scripts import apply_pending_script_changes
 from app.workflows.contracts import BusinessEvent
@@ -363,7 +365,13 @@ class MotionOrchestrator:
             raise AuthError("MOTION_AUDIO_CONTEXT_CHANGED", 409)
         if prepared.soundtrack is not None:
             validate_original_branch(prepared.soundtrack, prepared.audio)
-        scene_init = guarded_photo_scene_init(composition, prepared.context)
+        scene_init = guarded_video_scene_init(
+            composition,
+            prepared.context,
+            scoped_video_scene_init(
+                composition, prepared.context, guarded_photo_scene_init(composition, prepared.context)
+            ),
+        )
         samples = sample_times(composition, prepared.context)
         operation = row.get("render_namespace", row["operation_id"])
         render_operation = uuid5(operation, f"render:{number}")

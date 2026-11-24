@@ -6,6 +6,12 @@ from pathlib import Path
 from app.services.auth import AuthError
 
 _SKILLS = {
+    "instagram-reel-video-v19": ("reel", "4e0e215756d46ddea93092f0d7c3e15c68b0832e25404480045c8c2fd813e0d0"),
+    "instagram-reel-video-v18": ("reel", "85ec2a90ef59884655b45b5714aca9303e7ea2154fa5049cbc9403b10acba5cc"),
+    "instagram-reel-video-v17": ("reel", "4fbb4a9da2cdd69d92ce6c6297dd56376acbd340bbb516742054319204a9d20f"),
+    "instagram-reel-video-v16": ("reel", "0d0a2b9907693d98cfdd9152411fc2036301942c3b5d027858c8bcbb0bef06a4"),
+    "instagram-reel-video-v15": ("reel", "5c350dd500788a3dee36bbec6f47d8bc07e3eed4974ec6627141047d19fc6cac"),
+    "instagram-reel-video-v14": ("reel", "adb2b90b2e60883bd7fa0e1b59ddd92c3dcee47401710aa89447de1e80c8208f"),
     "instagram-reel-photo-v20": ("reel", "0ef040bd03aee6e12a98f75ace84a862ac2ba265eaefc776485a5856203e68d5"),
     "instagram-reel-photo-v19": ("reel", "236712e50cc231e6980123b215e438a529d50b252353de6241e0f5cf66318ea1"),
     "instagram-reel-photo-v18": ("reel", "41ea47460314cfa6c68e2582d921e7a02c1e27d238d2293fbf9f05c2a6ca03b4"),
@@ -67,6 +73,6 @@ def resolve_html_motion_skill(format: str, *, photo: bool = False) -> tuple[str,
     """Resolve the version used by new HTML Reel captures, not legacy directions."""
     if format != "reel":
         raise AuthError("MOTION_SKILL_FORMAT_INVALID", 409)
-    skill_id = "instagram-reel-photo-v20" if photo else "instagram-reel-v13"
+    skill_id = "instagram-reel-photo-v20" if photo else "instagram-reel-video-v19"
     digest = _SKILLS[skill_id][1]
     return skill_id, digest, load_motion_skill(skill_id, digest, "reel")

@@ -386,8 +386,8 @@ async def test_html_context_serializes_compatible_contract_and_preserves_histori
     assert transmitted["executor_contract"]["version"] == "html-motion-executor-v2"
     capabilities = transmitted["executor_contract"]["capabilities"]
     assert all(term in capabilities for term in ("HTML", "JavaScript", "SVG", "Canvas", "misturar", "cut/fade"))
-    assert "não exige vídeo sempre visível" in transmitted["executor_contract"]["integration_policy"]
-    assert transmitted["skill"]["id"] == "instagram-reel-v13"
+    assert "full-bleed cover 9:16" in transmitted["executor_contract"]["integration_policy"]
+    assert transmitted["skill"]["id"] == "instagram-reel-video-v19"
     assert "escolha os trechos" not in transmitted["skill"]["instructions"]
     for item in transmitted["styles"]:
         assert item["projection"] == "html-executor-style-v1"
@@ -500,7 +500,7 @@ async def test_construction_skill_reaches_the_exact_counted_request(context_case
     assert authorized == job.context
     assert authorized["request"]["scene_direction"] == direction_data()
     instructions = authorized["skill"]["instructions"]
-    assert authorized["skill"]["id"] == "instagram-reel-v13"
+    assert authorized["skill"]["id"] == "instagram-reel-video-v19"
     assert "function makeCompositionPassage" in instructions
     assert "function makeReadingReveal" in instructions
     assert "MotionV1.stagger" in instructions
@@ -570,11 +570,11 @@ def test_new_guidance_coordinates_background_video_and_objects_without_new_capab
 
     body = MotionRequest(operation_id=uuid4(), source_asset_id=uuid4(), instruction="Elaborated motion")
     guidance = capture_motion_guidance(body)
-    assert guidance["skill"]["id"] == "instagram-reel-v13"
+    assert guidance["skill"]["id"] == "instagram-reel-video-v19"
     text = guidance["skill"]["instructions"]
-    assert "Fundo vivo significa participação na narrativa" in text
-    assert "mesma janela de tamanho fixo" in text
-    assert "não prometa geometria 3D" in text
+    assert "full-bleed" in text
+    assert "Nunca use cartaz creme" in text
+    assert "sem label fixo hero" in text
     assert "illustration_generation" not in guidance
 
 
@@ -596,8 +596,8 @@ def test_v7_with_v2_movement_recaptures_without_upgrading_historical_frames():
     }
     previous["creative_contract"]["movement_runtime"] = movement_v2_contract()
     assert capture_motion_guidance(body, previous=previous) == previous
-    assert current["skill"]["id"] == "instagram-reel-v13"
-    assert "makeVideoFrameTreatment" in current["skill"]["instructions"]
+    assert current["skill"]["id"] == "instagram-reel-video-v19"
+    assert "full-bleed" in current["skill"]["instructions"]
 
 
 def test_v11_guidance_is_preserved_when_recapturing_after_v12():
@@ -650,8 +650,8 @@ def test_background_skill_recapture_preserves_the_previous_video_treatment_versi
         "instructions": load_motion_skill("instagram-reel-v8", digest, "reel"),
     }
     assert capture_motion_guidance(body, previous=previous) == previous
-    assert "makeNarrativeBackdrop" in current["skill"]["instructions"]
-    assert "makeVideoFrameTreatment" in current["skill"]["instructions"]
+    assert "Nunca use cartaz creme" in current["skill"]["instructions"]
+    assert "full-bleed" in current["skill"]["instructions"]
     assert "makeNarrativeBackdrop" not in previous["skill"]["instructions"]
     for key in ("creative_contract", "review_contract", "executor_contract"):
         assert current[key] == previous[key]
@@ -673,7 +673,7 @@ def test_realistic_object_guidance_preserves_v9_snapshot_and_does_not_grant_imag
         "instructions": load_motion_skill("instagram-reel-v9", digest, "reel"),
     }
     assert capture_motion_guidance(body, previous=previous) == previous
-    assert "makeCutoutObject" in current["skill"]["instructions"]
+    assert "não fabrique identidade" in current["skill"]["instructions"]
     assert "makeCutoutObject" not in previous["skill"]["instructions"]
     assert "illustration_generation" not in current
     for key in ("creative_contract", "executor_contract", "review_contract"):

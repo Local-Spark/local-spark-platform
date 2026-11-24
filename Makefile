@@ -18,7 +18,7 @@ motion-eval-test:
 	uv run pytest scripts/evals/test_motion*.py -q
 	node --test scripts/evals/motion_audio.test.cjs
 motion-test: motion-eval-test
-	node --test --experimental-test-coverage --test-coverage-include='app/assets/motion*_renderer/*.cjs' --test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100 app/tests/node/*.test.cjs
+	node --test --experimental-test-coverage --test-coverage-include='app/assets/motion*_renderer/*.cjs' --test-coverage-include='app/assets/motion_video/scene-visibility-*.js' --test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100 app/tests/node/*.test.cjs
 motion-eval:
 	.venv/bin/python scripts/evals/motion_eval.py --case "$(MOTION_CASE)" --budget-usd "$(BUDGET_USD)" $(if $(filter 1,$(EXECUTE)),--execute --open,) $(if $(filter 1,$(RETRY_REJECTED)),--retry-rejected,) $(if $(RESPONSE),--from-response "$(RESPONSE)",)
 motion-diversity-eval: BUDGET_USD = 2.25

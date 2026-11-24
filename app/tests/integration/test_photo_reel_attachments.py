@@ -76,9 +76,10 @@ async def test_photo_reel_without_video_reads_only_its_authorized_run(admin, dat
             await context.capture(session, seeded["t1"], business, request)
 
 
+@pytest.mark.parametrize("video", [False, True])
 @pytest.mark.parametrize("origin", ["lab", "whatsapp"])
 async def test_shared_photo_snapshot_uses_material_evidence_and_origin_approval(
-    admin, database, seeded, settings, monkeypatch, origin
+    admin, database, seeded, settings, monkeypatch, origin, video
 ):
     from app.schemas.creation_lab import LabStart
     from app.services.creation_lab_motion_requests import LabMotionRequests
@@ -93,7 +94,9 @@ async def test_shared_photo_snapshot_uses_material_evidence_and_origin_approval(
 
     # Real shared request assembler + restricted attachment SQL; no provider or storage IO.
     monkeypatch.setattr(MotionContext, "capture", factual_capture)
-    encrypted = requests.context.seal({"instruction": "Reel de 15 segundos com estas fotos"})
+    encrypted = requests.context.seal(
+        {"instruction": "Reel com pausa suave" if video else "Reel de 15 segundos com estas fotos"}
+    )
     async with admin.begin() as session:
         if origin == "lab":
             await session.execute(text("INSERT INTO platform_staff(actor_id) VALUES(:actor)"), {"actor": actor})
@@ -120,9 +123,11 @@ async def test_shared_photo_snapshot_uses_material_evidence_and_origin_approval(
             text("""INSERT INTO creation_lab_attachments
             (id,run_id,operation_id,request_hash,name_ciphertext,object_key,kind,mime_type,
              sha256,byte_size,rights_confirmed,state)
-            VALUES(:id,:run,:id,:hash,:name,:key,'image','image/png',:hash,100,true,'ready')"""),
+            VALUES(:id,:run,:id,:hash,:name,:key,:kind,:mime,:hash,100,true,'ready')"""),
             {
                 "id": photo,
+                "kind": "video" if video else "image",
+                "mime": "video/mp4" if video else "image/png",
                 "run": run,
                 "hash": "b" * 64,
                 "name": requests.context.seal({"name": "Synthetic photo"}),
@@ -141,25 +146,43 @@ async def test_shared_photo_snapshot_uses_material_evidence_and_origin_approval(
                 "business_id": business,
                 "instruction_ciphertext": encrypted,
             },
-            LabStart(operation_id=run),
+            LabStart(operation_id=run, source_attachment_id=photo if video else None),
         )
     body = MotionRequest.model_validate(snapshot["request"])
     assert not body.review_checkpoints
     assert not body.storyboard
     assert body.automatic_plan
-    assert body.preparation.evidence[0].asset_id == f"assets/photo-{photo}.png"
-    assert snapshot["photo_readability_contract"]["version"] == "motion-photo-readability-v1"
-    assert snapshot["photo_polish_contract"]["version"] == "motion-photo-polish-v6"
-    assert snapshot["creative_contract"]["temporal_review"]["version"] == "motion-temporal-v5"
-    assert snapshot["photo_finish_contract"]["version"] == "motion-photo-finish-v1"
-    assert snapshot["photo_intent_contract"]["version"] == "motion-photo-intent-v10"
-    assert snapshot["skill"]["id"] == "instagram-reel-photo-v20"
-    assert snapshot["repertoire"]["id"] == "business-reel-v12"
-    assert "makePhotoReelMotion" in snapshot["repertoire"]["examples"][-1]["content"]
-    assert snapshot["staging_contract"]["version"] == "motion-staging-photo-v2"
-    assert snapshot["photo_motion"]["music_policy"] == "elevenlabs-music-v1"
-    assert snapshot["sound_library"]["id"] == "public-cc0-v1"
-    assert {item["id"] for item in snapshot["sound_library"]["items"]} == {"coffee-pour", "cup-contact"}
+    if video:
+        from app.services.motion_generation import VIDEO_GENERATION_CONTRACT, staged_generation_enabled
+        from app.services.motion_quality import QUALITY_CONTRACT
+        from app.services.motion_staging import STAGING_CONTRACT
+
+        assert body.preparation.evidence[0].kind == "source"
+        assert body.preparation.evidence[0].at_ms == (0,)
+        assert snapshot["generation_contract"] == VIDEO_GENERATION_CONTRACT
+        assert snapshot["quality_contract"] == QUALITY_CONTRACT
+        assert snapshot["staging_contract"] == STAGING_CONTRACT
+        assert snapshot["repertoire"]["id"] == "business-video-reel-v2"
+        assert snapshot["skill"]["id"] == "instagram-reel-video-v19"
+        assert staged_generation_enabled(snapshot)
+        assert capture_motion_guidance(body, previous=snapshot) == {
+            key: value for key, value in snapshot.items() if key != "source"
+        }
+    else:
+        assert "video_scene_visibility_contract" not in snapshot
+        assert body.preparation.evidence[0].asset_id == f"assets/photo-{photo}.png"
+        assert snapshot["photo_readability_contract"]["version"] == "motion-photo-readability-v1"
+        assert snapshot["photo_polish_contract"]["version"] == "motion-photo-polish-v6"
+        assert snapshot["creative_contract"]["temporal_review"]["version"] == "motion-temporal-v5"
+        assert snapshot["photo_finish_contract"]["version"] == "motion-photo-finish-v1"
+        assert snapshot["photo_intent_contract"]["version"] == "motion-photo-intent-v10"
+        assert snapshot["skill"]["id"] == "instagram-reel-photo-v20"
+        assert snapshot["repertoire"]["id"] == "business-reel-v12"
+        assert "makePhotoReelMotion" in snapshot["repertoire"]["examples"][-1]["content"]
+        assert snapshot["staging_contract"]["version"] == "motion-staging-photo-v2"
+        assert snapshot["photo_motion"]["music_policy"] == "elevenlabs-music-v1"
+        assert snapshot["sound_library"]["id"] == "public-cc0-v1"
+        assert {item["id"] for item in snapshot["sound_library"]["items"]} == {"coffee-pour", "cup-contact"}
     async with database.transaction(tenant, actor) as session:
         assert (
             await session.scalar(text("SELECT count(*) FROM outbox_events WHERE event_type='motion.plan_approved'"))

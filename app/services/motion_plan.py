@@ -136,6 +136,9 @@ def validate_motion_plan(
             for element in scene.elements
         ):
             raise AuthError("MOTION_PHOTO_LOGO_REQUIRED", 409)
+    from app.services.motion_video_reel import validate_video_reel
+
+    validate_video_reel(composition, context, asset_ids=asset_ids)
     validate_speech_plan(composition, context)
     required = requires_motion_plan(context)
     validate_direction_fidelity(composition, context)

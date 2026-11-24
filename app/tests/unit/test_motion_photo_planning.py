@@ -189,12 +189,11 @@ def test_photo_relations_are_not_a_video_or_graphic_workaround(change):
     validate_staging(MotionConstructionPlan.model_validate(data), prepared.context)
 
 
-def test_automatic_plan_does_not_disable_video_checkpoints_or_accept_missing_evidence():
+def test_automatic_plan_does_not_disable_checkpoints_or_accept_missing_evidence():
     body, _, _ = photo_case()
     for update in [
         dict(review_checkpoints=True),
         dict(storyboard=True),
-        dict(source_asset_id=uuid4(), photo_duration_ms=None),
         dict(preparation=None),
     ]:
         with pytest.raises(ValidationError):

@@ -18,6 +18,19 @@ class RenderFault extends Error {
   constructor(code) { super(code); this.code = code; }
 }
 const fail = code => { throw new RenderFault(code); };
+// Only known video guard codes cross the browser/process boundary. Never emit stacks or model text.
+const VIDEO_GUARD_FAILURES = new Set([
+  'MOTION_VIDEO_SCENE_SCOPE_INVALID',
+  'MOTION_VIDEO_DOM_ID_INVALID', 'MOTION_VIDEO_FULL_BLEED_REQUIRED',
+  'MOTION_VIDEO_KIT_OVERLAY_REQUIRED', 'MOTION_VIDEO_TEXT_NOT_EXECUTED',
+  'MOTION_VIDEO_READABLE_ACTION_OVERLAY_REQUIRED', 'MOTION_VIDEO_UNPLANNED_OVERLAY'
+]);
+function failureCode(error) {
+  if (error instanceof RenderFault) return error.code;
+  if (typeof error?.message !== 'string') return 'MOTION_RENDER_EXECUTION_FAILED';
+  const firstLine = error.message.split('\n', 1)[0].replace(/^page\.evaluate: (?:Error: )?/, '');
+  return VIDEO_GUARD_FAILURES.has(firstLine) ? firstLine : 'MOTION_RENDER_EXECUTION_FAILED';
+}
 function read(file, maximum, digest) {
   const stat = fs.lstatSync(file);
   if (!stat.isFile() || stat.size > maximum) fail('MOTION_RENDER_INPUT_LIMIT');
@@ -309,10 +322,10 @@ async function render() {
   } finally { if (browser) await browser.close(); }
 }
 
-module.exports = { RenderFault, hash, read, command, audioMetrics, deadline, status, isolation, browserSandbox, range, controls, render };
+module.exports = { RenderFault, failureCode, hash, read, command, audioMetrics, deadline, status, isolation, browserSandbox, range, controls, render };
 if (require.main === module) {
   render().catch(error => {
-    process.stderr.write(JSON.stringify({ event: 'motion.render.failed', code: error instanceof RenderFault ? error.code : 'MOTION_RENDER_EXECUTION_FAILED' }) + '\n');
+    process.stderr.write(JSON.stringify({ event: 'motion.render.failed', code: failureCode(error) }) + '\n');
     process.exitCode = 1;
   });
 }

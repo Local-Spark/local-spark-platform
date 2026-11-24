@@ -80,8 +80,11 @@ def natural_body(**updates):
 
 
 def natural_context():
+    # Historical audiovisual fixture predates the full-bleed video contract.
+    guidance = capture_motion_guidance(natural_body())
+    guidance.pop("video_reel_contract")
     return {
-        **capture_motion_guidance(natural_body()),
+        **guidance,
         "output": {"width": 720, "height": 1280, "fps": 30, "duration_ms": 1000},
         "authorized_audio": {"mode": "silent", "tracks": []},
         "source": {"asset_id": "assets/source.mp4", "sha256": "a" * 64, "duration_ms": 1000},

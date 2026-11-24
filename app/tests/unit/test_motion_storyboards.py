@@ -535,3 +535,42 @@ async def test_photo_storyboard_uses_same_guard_and_never_uploads_failed_dom(boa
     assert effects.claim.call_args.args[-1]["executed_scene_init_sha256"] == digest(bundle.scene_init)
     c.store.put.assert_not_awaited()
     effects.received.assert_not_awaited()
+
+
+@pytest.mark.parametrize("scoped", [False, True])
+async def test_video_storyboard_uses_same_pinned_guard_and_stops_failed_dom(board_case, scoped):
+    from app.adapters.motion_html_renderer import RenderAsset
+    from app.adapters.motion_inputs import PreparedMotionInput
+    from app.services.motion_video_reel import guarded_video_scene_init
+    from app.services.motion_video_scene_visibility import CONTRACT, scoped_video_scene_init
+    from app.tests.unit.test_motion_plan import direction_data
+    from app.tests.unit.test_motion_video_reel import CTX, artifact, video_case
+
+    context = {**CTX, **({"video_scene_visibility_contract": CONTRACT} if scoped else {})}
+    c = board_case
+    data = video_case()
+    data["motion_plan"]["scenes"][0]["keyframe_ms"] = 1500
+    data["scene_direction"] = direction_data(data["motion_plan"])
+    composition = artifact(data)
+    prepared = PreparedMotionInput(
+        context,
+        (
+            RenderAsset("assets/source.mp4", "video/mp4", b"synthetic", "a" * 64),
+            RenderAsset("assets/logo.png", "image/png", b"synthetic", "b" * 64),
+        ),
+        (),
+        3000,
+        {"mode": "silent", "tracks": []},
+    )
+    renderer = SimpleNamespace(render=AsyncMock(side_effect=MotionRenderError("MOTION_VIDEO_FULL_BLEED_REQUIRED")))
+    effects = SimpleNamespace(claim=AsyncMock(), received=AsyncMock())
+    with pytest.raises(MotionRenderError):
+        await c.service.capture(c.row, c.row["execution_token"], prepared, composition, renderer, effects)
+    bundle = renderer.render.call_args.args[0]
+    assert bundle.frames_only
+    assert bundle.scene_init == guarded_video_scene_init(
+        composition, context, scoped_video_scene_init(composition, context, composition.scene_init)
+    )
+    assert effects.claim.call_args.args[-1]["executed_scene_init_sha256"] == digest(bundle.scene_init)
+    c.store.put.assert_not_awaited()
+    effects.received.assert_not_awaited()

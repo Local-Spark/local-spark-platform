@@ -58,3 +58,17 @@ negócio travado no mesmo modo, ou fatia estreita de energia).
   / `source_asset_id`), via testes de criação — WhatsApp/Meta publish fora.
 - Não tratar este congelamento como homologação comercial do photo-reel nem
   como aceite E2E global.
+
+### Material de entrada — Reel vídeo (Café Aurora)
+
+Vídeo para simular envio do cliente (o pedido o titular escreve na UI):  
+`/Users/israelsilva/Downloads/cafe-aurora-cliente-preparacao.mp4`  
+(cópia de `.local/evals/motion-referencia-2026-11-05/assets/video-enviado-simulado.mp4`,
+hash `dd3f0265…`, ~11,2 s, 360×640, H.264+AAC).  
+Não usar `reel-pausas.mp4` do kit (peça composta, não gravação bruta).
+
+### Ensaio v1 rejeitado — ver gaps video-reel
+
+Saída `versao-1 (13).mp4` rejeitada (cartaz/inset/sem motion). Diagnóstico e
+backlog VR1–VR6 em
+[motion-ensaio-cafe-aurora-video-reel-v1-gaps-2026-11-23.md](motion-ensaio-cafe-aurora-video-reel-v1-gaps-2026-11-23.md).

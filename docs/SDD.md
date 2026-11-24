@@ -1,5 +1,280 @@
 # SDD geral — Meu Braço Direito
 
+## 24/11/2026 — Fatia B autorizada após rejeição criativa do MP4 Fatia A
+
+Titular rejeitou `versao-1 (15).mp4`
+(`f446d636d8ad24388c00603478f34153698ed195dc0ad2aa81962cda008550e9`),
+run `86990c48…`: Fatia A passou nos gates (cover, logo, tipografia, v19,
+scene-visibility) e a review automática marcou `adequate`, mas a peça é só
+gravação integral + textos com scrim — sem EDL, motion no vídeo, grafismos
+planejados, acervo de apoio ou trilha. Gate ≠ qualidade.
+
+Fatia A permanece; não desfazer VR1–VR3. Autorizada a **Fatia B** (VR4–VR5;
+VR6 só com biblioteca de áudio já existente ou estado explícito de
+indisponível). Escopo, critérios e prompt em
+[motion-video-reel-v1-slice-b.md](design/motion-video-reel-v1-slice-b.md).
+Photo-reel Café continua congelado. Sem implementação, chamada paga ou novo
+MP4 nesta mudança documental.
+
+## 24/11/2026 — runtime de visibilidade por cena, além da orientação
+
+Implementado `motion-video-scene-visibility-v1`, com código/hash pinados no
+snapshot de novas capturas vídeo. O executor aplica display:block no scrim da
+cena ativa e display:none nos demais, antes e depois do seek do modelo. Assim,
+o texto ativo é mensurável e o código gerado não deixa scrims de outras cenas
+sobrepostos. O runtime resolve todos os text_element_ids e exige pais exclusivos;
+DOM ausente/duplicado, pais compartilhados ou conteúdo extra falham com
+MOTION_VIDEO_SCENE_SCOPE_INVALID. Não oculta nós desconhecidos nem modifica
+beats, opacidade, fonte, posição, vídeo, logo ou o plano.
+
+Storyboard e render usam o mesmo serviço de montagem: implementação → escopo
+de cena → guarda vídeo v1 intacta. O hash do scene_init executado continua na
+identidade durável do efeito. Contrato ausente preserva bytes de execução antigos;
+previous não ganha o runtime retroativamente. Photo não recebe esse contrato.
+Skill v19 e repertório v2 permanecem pinados sem mudança de bytes. Não é mais
+uma tentativa de resolver esta falha apenas por prompt.
+
+Validação: 451 testes Python, 291 Node e oito integrações em PostgreSQL `_test`
+com roles restritas/fornecedores simulados. 100% linhas/branches nos seis módulos
+Python medidos (551 statements/238 branches), incluindo o novo serviço; 100%
+linhas/branches/funções no novo JS e nos quatro módulos Node do renderer. O
+Makefile inclui o runtime novo na cobertura, sem exclusões. Chromium reproduz
+o problema em duas cenas, cobre 337 instantes e seeks reversos/fronteiras,
+e mantém rejeições de BR, grafismo desconhecido e pai não exclusivo. Prova local
+adicional com o código capturado do run `3e690872…`, mídia sintética e runtime
+pinado: 345 seeks passaram, sem MP4. Isso não é aceite audiovisual.
+
+Ruff/formato do recorte passaram. Mypy aponta somente a chamada preexistente sem
+tipo a feedback_context em motion_context; CI integral/cobertura global seguem
+pendentes. make ci continua bloqueado nos 66 lints preexistentes.
+Imagem local derivada do digest anterior foi construída copiando só runner.cjs,
+sem credenciais, conteúdo do cliente, novas dependências ou download de base.
+Hash interno e código específico de scope foram verificados em contêiner sem
+rede. Aplicada no lab após verificar zero runs queued/running: pin local atualizado
+para sha256:b4d0352f0403cfe5f1d2e4e387136f78afadf137a7e1dac19f8cfa92c498344b;
+worker dedicado reiniciado (PID 68650), com pollers workflow/activity confirmados.
+Imagem anterior preservada; nenhum run submetido ou repetido.
+Sem chamada paga, reenvio do run, alteração de snapshots ou Fatia B/VR4–VR6.
+
+## 24/11/2026 — video-reel v19: texto puro e diagnóstico seguro do renderer
+
+Run `360588a6…` com v18/v2 passou por plano/implementação e falhou no render.
+Simulação local com mídia sintética isolou `<br>` em cena2-convite/cena2-cta:
+a guarda exige children.length=0 e recusa os textos no primeiro frame visível.
+Substituir apenas os BR em memória eliminou a rejeição nos instantes examinados;
+nenhuma alteração foi feita no run. Fundo de leitura e ausência de hastes já
+estavam corretos nesta candidata.
+
+Nova skill pinada `instagram-reel-video-v19` exige textContent sem elementos
+filhos (incluindo BR/SPAN), com quebra natural ou nova linha real + pre-line
+quando houver múltiplas linhas. Mantém medições de texto/scrim, VR1–VR3 e CTA.
+Replay v16/v17/v18 permanece com seus pins. Repertório v2 e guarda DOM intactos.
+O runner agora traduz somente seis códigos exatos da guarda vídeo recebidos do
+Playwright para o protocolo de erro, e o adapter aceita os mesmos códigos.
+Prefixo conhecido de page.evaluate é tratado; stacks/conteúdo não são emitidos.
+Erros desconhecidos continuam MOTION_RENDER_EXECUTION_FAILED; photo não ganha
+novos códigos ou regras. Isso diagnostica a recusa, não aprova a composição.
+
+Validação: 405 unitários Python, 286 Node e oito integrações locais em PostgreSQL
+`_test` com roles restritas/fornecedores simulados. 100% linhas/branches nos cinco
+módulos Python medidos (adapter HTML, skills, repertoire, video_reel e
+video_requests: 522 statements/228 branches); 100% linhas/branches/funções nos
+quatro módulos Node medidos, incluindo runner. Sem exclusões novas. Chromium
+executa exemplo v19 com texto puro multilinha, todos os frames/seeks reversos,
+e recusa BR/SPAN; o erro real atravessa o mapeamento seguro. Duas falhas de áudio
+na seleção ampliada foram reproduzidas no índice anterior isolado; não mascaradas.
+Ruff/formato e mypy do recorte passaram; make ci segue bloqueado nos 66 lints
+preexistentes. CI integral/cobertura global continuam pendentes.
+
+Dos 184 arquivos históricos comparados, só runner.cjs mudou, para diagnóstico;
+183 assets/validador permanecem intactos, inclusive skills antigas, repertório,
+guarda e polish photo. Sem chamada paga, MP4, reload ou alteração de snapshots.
+Aplicação operacional requer worker com v19 e imagem do renderer reconstruída
+com o novo runner, usando seu digest explícito; não foi feito deploy. Imagem
+antiga mantém o diagnóstico genérico. Sem Fatia B/VR4–VR6 ou aceite E2E.
+
+## 24/11/2026 — video-reel v18: fundo de leitura e overlays compatíveis com DOM
+
+Run `c516f97b…` com v17/v2 passou pelo plano e implementação, mas terminou em
+MOTION_RENDER_EXECUTION_FAILED, sem versão MP4 registrada. Diagnóstico local em
+Chrome com mídia sintética reproduziu fundo de leitura alpha≈0,04 aos 33ms
+(mínimo 0,75) e hastes rejeitadas como UNPLANNED_OVERLAY aos 650ms. O fundo
+multiplicava seu alpha pelo fade do texto; declarar role=graphic não autoriza
+esse overlay na guarda vigente. O código genérico não identifica por si só
+qual foi a primeira falha no ambiente original.
+
+Nova skill pinada `instagram-reel-video-v18` orienta planejar apenas gravação,
+logo e textos com seus scrims, sem hastes/grafismos decorativos. A implementação
+mantém alpha do scrim em .75–.8 enquanto texto opacity>0 e opacity=1 no pai;
+fade só no próprio texto. Exemplo JS pinado na skill posiciona o fundo por
+left/top absolutos, preserva translate/opacity do texto e não acumula deslocamento
+em seeks reversos. Quando o texto é exatamente invisível, o fundo pode ser
+transparente. Não remover do HTML, às escondidas, elementos de um plano aprovado.
+
+Validação: 201 unitários, 100% de linhas/branches nos serviços motion_skills,
+motion_repertoire, motion_video_reel e motion_video_requests (178 statements,
+78 branches), sem exclusões. Teste Chromium executa o JS extraído da skill em
+todos os 91 instantes de frame e seeks reversos; rejeita scrim com fade, fade no
+pai e haste declarada no plano. Sem vídeo de cliente, MP4 ou provedor no teste.
+183 arquivos históricos de assets/validador comparados: bytes intactos, incluindo
+polish photo, repertório v2 e guarda DOM. Replay v16/v17 preservado.
+Oito integrações passaram em PostgreSQL dedicado `_test`, roles restritas e
+fornecedores simulados. Ruff/formato do recorte e mypy de motion_skills passaram.
+`make ci` continua bloqueado nos 66 lints preexistentes;
+CI integral e cobertura global 100% permanecem pendentes.
+
+Sem alteração de validate_video_reel/DOM, contratos, runner ou código do run.
+Sem VR4–VR6/Fatia B, chamada paga, reload ou novo MP4. Novas capturas precisam
+carregar o código atualizado; snapshots antigos não são promovidos. Aceite E2E
+continua dependendo de execução autorizada e revisão do titular. O diagnóstico
+genérico do renderer permanece; propagação segura de códigos é trabalho separado.
+
+## 24/11/2026 — video-reel v17: transform próprio em cada texto
+
+Run `028a10c5…` confirmou v16/v2 e wiring automático ativos, mas os dois textos
+da cena final usaram enter → hold → exit, sem transform. Deslocamentos de
+entrada/saída e das hastes não substituem essa fase no próprio texto.
+Nova skill pinada `instagram-reel-video-v17` explicita a obrigação para cada
+text_element_id, inclusive título/CTA finais, e inclui beats JSON canônicos
+com enter → transform → hold → exit. Transform linear/visível desloca ≥4px;
+CTA preserva hold ≥1500ms. Exemplo e plano de duas cenas passam pelo gate real.
+
+Validação: 199 unitários e oito integrações em PostgreSQL dedicado `_test`,
+roles restritas/fornecedores simulados; 100% linhas/branches nos serviços
+motion_skills, motion_repertoire, motion_video_reel e motion_video_requests
+(178 statements/78 branches), sem exclusões. Regressão recusa falta de transform
+em cada texto isolado e nos dois juntos, mesmo com grafismo animado e enter/exit
+com deslocamento. Payload real transmite a orientação; replay v16/v2 preservado.
+182 arquivos históricos de assets/validador conferidos byte a byte: intactos.
+Ruff do recorte passou; `make ci` permanece bloqueado nos 66 lints preexistentes.
+CI integral e cobertura global 100% continuam pendentes.
+
+Sem alteração do gate/DOM, repertório v2, contratos de captura ou photo polish.
+Sem VR4–VR6, nova chamada paga, alteração do run, reload ou MP4. A nova skill
+vale para novas capturas com código atualizado; replay não promove v16 para v17.
+Aceite audiovisual depende de execução autorizada e revisão do titular.
+
+## 23/11/2026 — video-reel: orientação por cena e captura automática do lab
+
+Implementado `instagram-reel-video-v16` com SHA fixo: cada cena declara VIDEO
+`assets/source.mp4` e IMG `assets/logo.png`, IDs locais em video_layout e
+staging; não herda nós da cena anterior. Briefing soft pode usar uma cena
+contínua. Multi-cena repete nós, preservando tempo absoluto/áudio da gravação.
+VR3 mantém enter/exit nas fronteiras, sem hold fantasma e CTA visível ≥1500ms.
+A orientação adicional de uso do repertório fica na skill v16: os bytes/pins
+já capturados de `business-video-reel-v2` permanecem intactos para replay.
+
+LabMotionRequests prepara novos pedidos com vídeo para planejamento automático;
+`proposed-video-output-v1` deriva do contrato produtivo da Fatia A, com validação
+automática antes da implementação, sem alegar aprovação humana ou inserir
+checkpoints. Captura quality-v2, staging-v1 e `business-video-reel-v2`. Evidência
+usa o frame inicial (0ms), já amostrado pelo preparador, sem inventar observações
+sobre o vídeo. `previous` não é promovido: v15 sem repertório, v15/v2 e v14/v1
+mantêm os snapshots. Photo e seus contratos/polish v1–v6 permanecem intactos.
+
+Validação: 192 unitários do recorte e oito integrações locais em PostgreSQL
+`_test`, roles restritas e fornecedores simulados. 100% de linhas/branches em
+motion_skills, motion_repertoire, motion_video_reel e motion_video_requests
+(178 statements/78 branches); motion_generation também atingiu 100% na suíte
+ampliada. Todas as linhas/ramificações alteradas em schema/capture/wiring foram
+exercitadas, sem exclusões. Isso não significa 100% dos módulos legados inteiros:
+a medição ampliada com lab/context/schema ficou em 85,79%. Suíte ampliada:
+1746 aprovados e 20 falhas, idênticas às reproduzidas no índice anterior isolado
+(1737 aprovados). `make ci` bloqueado nos mesmos 66 lints preexistentes;
+CI integral/cobertura global continuam pendentes. Ruff/formato do recorte passam.
+181 arquivos históricos (assets e validador vídeo) comparados: bytes intactos.
+
+Sem afrouxar validate_video_reel, DOM ou LAYOUT_REQUIRED; sem VR4–VR6/Fatia B,
+chamada paga, reload ou novo MP4. Aceite E2E continua pendente de captura
+explicitamente autorizada e revisão do titular.
+
+## 23/11/2026 — video-reel: LAYOUT_REQUIRED multi-cena + repertório lab (só docs)
+
+Run `da6dd899…` (skill v15) falhou: cenas 2+ sem video/logo nos `elements`;
+`repertoire=None` no snapshot lab (staging não arma sem `propose_direction`).
+Correção pendente: orientação por cena + wiring lab → v2. Sem afrouxar gate.
+Ver [layout-per-scene](design/motion-video-reel-v1-layout-per-scene-2026-11-23.md).
+
+## 23/11/2026 — reforço de orientação VR3, sem alteração do gate
+
+Novas capturas usam `instagram-reel-video-v15` e, no staging padrão, o
+`business-video-reel-v2` (revisão do v1). Pins de skill, manifesto e conteúdo
+foram adicionados; v14/v1 permanecem carregáveis para replay. Repertório
+explicitamente selecionado continua respeitado. As regras transmitidas exigem
+que cada texto cubra a cena: primeiro beat enter em scene.start_ms, último
+exit em scene.end_ms, continuidade, nenhum hold opacity=0 e invisibilidade
+somente via enter/exit. CTA final com hold estável visível ≥1500ms entre ambos.
+Exemplo canônico pinado no repertório é validado pelo gate existente.
+
+`VIDEO_REEL_CONTRACT`, validate_video_reel e DOM guard permanecem intactos;
+não há mudança nos bytes/replay photo polish v1–v6. Testes sintéticos reproduzem
+a topologia de pausa/tempo/cta do run `853327f8…`, isolada e conjuntamente,
+sem usar conteúdo do cliente nem alegar seus tempos intermediários exatos.
+Validação: 118 unitários aprovados; 100% de linhas e branches nos serviços
+motion_skills, motion_repertoire e motion_video_reel (174 statements/78 branches),
+sem exclusões novas. Três integrações aprovadas em PostgreSQL dedicado `_test`,
+roles restritas e fornecedores simulados. Ruff/formato do recorte e mypy desses
+três serviços passaram (cache temporário limpo). Os 175 assets existentes,
+contrato, validador e DOM guard foram comparados com o índice inicial: bytes
+intactos. A suíte adicional contexto/photo teve 52 aprovados e 18 falhas;
+as mesmas 18 falhas foram reproduzidas em checkout isolado do índice anterior.
+`make ci` executado, bloqueado nos 66 lints preexistentes. CI integral e
+cobertura global 100% continuam pendentes; não houve correções fora do escopo.
+
+Sem VR4–VR6/Fatia B, chamada paga, captura, reload, MP4 ou aceite E2E.
+Próximo passo depende de autorização para nova captura e revisão do titular.
+
+## 23/11/2026 — video-reel: gate cinético recusou generate (só docs)
+
+Run `853327f8…` com Fatia A ativa (`instagram-reel-video-v14` +
+`motion-video-reel-v1`) falhou em `MOTION_VIDEO_KINETIC_TEXT_REQUIRED`: cover e
+logo ok; textos com hold opacity-0 nas pontas. Sem afrouxar o gate; correção
+pendente via skill/repertório. Ver
+[kinetic-text-gate](design/motion-video-reel-v1-kinetic-text-gate-2026-11-23.md).
+
+## 23/11/2026 — web lab: prévia pós-review sem parecer falha de sistema
+
+No `local-spark-web`, copy do creation-lab deixa claro que
+`artifact.recorded` é prévia técnica e que `MOTION_MANDATORY_REVIEW_FAILED`
+mantém a versão para download sem seleção automática. Estados `failed` passam
+a “Sem conclusão automática”; sem mudança de API, Temporal ou seleção.
+
+## 23/11/2026 — video-reel Fatia A implementada: VR1–VR3; aceite pendente
+
+Novas capturas vídeo usam contrato `motion-video-reel-v1`, skill
+`instagram-reel-video-v14` e repertório staged `business-video-reel-v1`.
+Plano e DOM exigem gravação full-bleed cover 9:16, logo autorizado discreto,
+tipografia cinética legível sobre a ação e CTA estável ≥1500ms. Cartaz/janela,
+label fixo hero e rodapé de slide são recusados. O briefing de pausa aconchegante
+permanece soft. Storyboard e render usam a mesma guarda pinada e identidade de
+efeito existente; snapshots antigos e polish photo v1–v6 não mudam.
+
+Validação: 34 testes do contrato, serviço novo com 100% linhas/branches; Chromium
+com material sintético e seeks completos/reversos; 284 Node; três integrações
+PostgreSQL dedicado `_test` com roles restritas e fornecedores simulados. Ruff
+do recorte e mypy do serviço novo passaram. `make ci` bloqueado nos 66 lints
+preexistentes; os quatro erros mypy de context/AI e as 20 falhas existentes de
+fixtures/diagnóstico continuam pendentes. Comparação em HEAD isolado confirmou
+as falhas existentes; a suíte motion terminou com 1725 aprovados e essas 20 falhas.
+140 arquivos históricos de assets foram comparados byte a byte com HEAD.
+Não houve exclusões para elevar cobertura.
+
+Sem VR4–VR6, música nova, TTS/avatar/Remotion, chamada paga, novo MP4 do cliente,
+reload ou aceite E2E. Temporal e tetos 60s/50MiB/uma gravação preservados.
+Aguardar autorização para **uma captura** e revisão humana; Fatia B somente
+mediante novo pedido. Detalhes: [contrato da Fatia A](design/motion-video-reel-v1-slice-a.md).
+
+## 23/11/2026 — ensaio video-reel v1 rejeitado: gaps VR1–VR6 (só docs)
+
+Titular rejeitou `versao-1 (13).mp4` (hash `04973908…`, ~11,2 s): cartaz creme,
+nome “Café Aurora” fixo, vídeo inset, frase/CTA no rodapé, narração sem música
+nem transições/motion — longe das ~41 refs de propaganda e do briefing soft.
+Entrada `dd3f0265…`; run `0a24112c…` (review failed pós-MP4). Photo-reel Café
+permanece congelado. Backlog VR1–VR6 (cover full-bleed, marca kit, tipo sobre
+ação, EDL, motion suave, mix) e prompt em
+[motion-ensaio-cafe-aurora-video-reel-v1-gaps-2026-11-23.md](design/motion-ensaio-cafe-aurora-video-reel-v1-gaps-2026-11-23.md).
+Só documentação; sem código, chamada paga ou novo MP4.
+
 ## 23/11/2026 — revisão photo: evidência de leitura do CTA, temporal-v5
 
 Diagnóstico read-only sob RLS do run `f939401c…`: MP4 `35d26da0…`

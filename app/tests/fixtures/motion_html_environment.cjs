@@ -114,7 +114,7 @@ function environment(options = {}) {
   };
   const chromium = {async launch(config) {
     this.options = config;
-    if (options.launchError) throw Error('untrusted private launch detail');
+    if (options.launchError) throw Error(options.launchErrorMessage || 'untrusted private launch detail');
     return browser;
   }};
   const io = {

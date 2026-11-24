@@ -82,11 +82,20 @@ class PhotoClosing(PlanModel):
     cta_element_id: Identifier
 
 
+class VideoLayout(PlanModel):
+    mode: Literal["cover"]
+    video_element_id: Identifier
+    brand_element_id: Identifier
+    text_element_ids: tuple[Identifier, ...] = Field(min_length=1, max_length=8)
+    cta_element_id: Identifier | None = None
+
+
 class MotionScenePlan(PlanModel):
     id: Identifier
     start_ms: Moment
     end_ms: Moment
     message: Description
+    video_layout: VideoLayout | None = Field(default=None, exclude_if=lambda value: value is None)
     photo_layout: PhotoLayout | None = Field(default=None, exclude_if=lambda value: value is None)
     photo_closing: PhotoClosing | None = Field(default=None, exclude_if=lambda value: value is None)
     keyframe_ms: Moment | None = Field(

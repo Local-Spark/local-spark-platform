@@ -460,3 +460,35 @@ test('authorized music requires a nonempty decoded output spanning its planned e
     {metadata, audioMetricsText:'Summary:\nIntegrated loudness:\nI: -70 LUFS\nSample peak:\nPeak: -inf dBFS'},
   ]) await assert.rejects(environment({configure:setup,...options}).run(),/MOTION_RENDER_MUSIC_INVALID/);
 });
+
+test('video guard diagnostics expose only exact allowlisted codes, never model content or stacks', () => {
+  const codes=[
+    'MOTION_VIDEO_SCENE_SCOPE_INVALID',
+    'MOTION_VIDEO_DOM_ID_INVALID','MOTION_VIDEO_FULL_BLEED_REQUIRED',
+    'MOTION_VIDEO_KIT_OVERLAY_REQUIRED','MOTION_VIDEO_TEXT_NOT_EXECUTED',
+    'MOTION_VIDEO_READABLE_ACTION_OVERLAY_REQUIRED','MOTION_VIDEO_UNPLANNED_OVERLAY'
+  ];
+  for(const code of codes) {
+    assert.equal(renderer.failureCode(Error(code)),code);
+    assert.equal(renderer.failureCode(Error('page.evaluate: '+code+'\nprivate generated code')),code);
+    assert.equal(renderer.failureCode(Error('page.evaluate: Error: '+code+'\nprivate generated code')),code);
+    assert.equal(renderer.failureCode(Error(code+' private content')),'MOTION_RENDER_EXECUTION_FAILED');
+  }
+  for(const error of [null,undefined,{},'private',{message:42},Error('private'),
+    Error('prefix MOTION_VIDEO_TEXT_NOT_EXECUTED'),Error('MOTION_VIDEO_UNKNOWN'),
+    Error('private\nMOTION_VIDEO_TEXT_NOT_EXECUTED')])
+    assert.equal(renderer.failureCode(error),'MOTION_RENDER_EXECUTION_FAILED');
+  assert.equal(renderer.failureCode(new renderer.RenderFault('MOTION_RENDER_DEADLINE')),'MOTION_RENDER_DEADLINE');
+});
+
+test('entry point serializes a safe video code without browser error details', async () => {
+  const fixture=environment({main:true,launchError:true,
+    launchErrorMessage:'page.evaluate: MOTION_VIDEO_READABLE_ACTION_OVERLAY_REQUIRED\nprivate code and stack'});
+  await new Promise(resolve=>setImmediate(resolve));
+  const notice=JSON.parse(fixture.stderr.join(''));
+  assert.equal(notice.code,'MOTION_VIDEO_READABLE_ACTION_OVERLAY_REQUIRED');
+  assert.equal(notice.event,'motion.render.failed');
+  assert.equal(fixture.process.exitCode,1);
+  assert.equal(fixture.stdout.length,0);
+  assert.ok(!fixture.stderr.join('').includes('private'));
+});
