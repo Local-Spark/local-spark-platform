@@ -464,6 +464,7 @@ test('authorized music requires a nonempty decoded output spanning its planned e
 test('video guard diagnostics expose only exact allowlisted codes, never model content or stacks', () => {
   const codes=[
     'MOTION_VIDEO_SCENE_SCOPE_INVALID',
+        'MOTION_VIDEO_EDIT_NOT_EXECUTED',
     'MOTION_VIDEO_DOM_ID_INVALID','MOTION_VIDEO_FULL_BLEED_REQUIRED',
     'MOTION_VIDEO_KIT_OVERLAY_REQUIRED','MOTION_VIDEO_TEXT_NOT_EXECUTED',
     'MOTION_VIDEO_READABLE_ACTION_OVERLAY_REQUIRED','MOTION_VIDEO_UNPLANNED_OVERLAY'

@@ -153,17 +153,17 @@ async def test_shared_photo_snapshot_uses_material_evidence_and_origin_approval(
     assert not body.storyboard
     assert body.automatic_plan
     if video:
-        from app.services.motion_generation import VIDEO_GENERATION_CONTRACT, staged_generation_enabled
+        from app.services.motion_generation import VIDEO_EDIT_GENERATION_CONTRACT, staged_generation_enabled
         from app.services.motion_quality import QUALITY_CONTRACT
         from app.services.motion_staging import STAGING_CONTRACT
 
         assert body.preparation.evidence[0].kind == "source"
         assert body.preparation.evidence[0].at_ms == (0,)
-        assert snapshot["generation_contract"] == VIDEO_GENERATION_CONTRACT
+        assert snapshot["generation_contract"] == VIDEO_EDIT_GENERATION_CONTRACT
         assert snapshot["quality_contract"] == QUALITY_CONTRACT
         assert snapshot["staging_contract"] == STAGING_CONTRACT
-        assert snapshot["repertoire"]["id"] == "business-video-reel-v2"
-        assert snapshot["skill"]["id"] == "instagram-reel-video-v19"
+        assert snapshot["repertoire"]["id"] == "business-video-reel-v4"
+        assert snapshot["skill"]["id"] == "instagram-reel-video-v21"
         assert staged_generation_enabled(snapshot)
         assert capture_motion_guidance(body, previous=snapshot) == {
             key: value for key, value in snapshot.items() if key != "source"

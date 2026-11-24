@@ -1,5 +1,86 @@
 # Meu Braço Direito — contexto vigente
 
+## 24/11/2026 — correção do padding final da EDL (v2)
+
+Run `e5cbf795-c5a7-5506-a275-e184fa7470d3` falhou com
+`MOTION_VIDEO_EDL_INVALID`: saída 11200ms, fonte medida 11176ms; cena final
+6780–11200ms com in/out 6780–11176ms. A diferença de 24ms é arredondamento
+para frame de saída, não corte de fala. O runtime já limitava o seek ao fim
+real da fonte, mas o gate do plano v1 exigia durações exatamente iguais.
+
+Novas capturas usam `motion-video-edit-v2`, `instagram-reel-video-v21` e
+`business-video-reel-v4`. Somente a última cena pode terminar 1–34ms antes
+na fonte, com source_out_ms exatamente igual a source.duration_ms medido pelo
+servidor. Sem tolerância em cenas internas, fonte sem duração, fim inventado,
+speed ramp ou alteração do áudio. V1/v20/v3 e guarda JS mantêm bytes/pins;
+replay v1 continua com o gate original. VR1–VR3, scrim, texto puro, visibilidade
+e photo polish permanecem intactos. VR6 continua indisponível.
+
+Validação sintética: 154 testes, 100% linhas/branches nos cinco serviços
+medidos (277 statements/122 branches), sem exclusões. Casos de 1/24/34ms,
+fonte silenciosa/com áudio, replay v1 e rejeições de cortes internos/fins
+não verificados/35ms cobertos. Ruff e mypy do recorte passaram. Mais 32 testes
+de wiring/staging e 12
+integrações em PostgreSQL dedicado `_test` passaram, com roles restritas e
+fornecedores simulados. `make ci` segue nos 66 lints preexistentes. Todos os
+193 assets presentes no índice antes desta correção continuam byte a byte iguais.
+Revalidação somente em memória do plano capturado: v1 rejeita, v2 passa os
+gates de vídeo A+B; isso não é aceite audiovisual.
+Run e snapshots do cliente não foram alterados; sem chamada paga, reenvio,
+render ou novo MP4. Aceite audiovisual permanece pendente. Worker local
+reiniciado com zero runs
+ativos: PID 97278 → 3169, carregando v2/v21/v4. Imagem do renderer mantida,
+pois a guarda JS não mudou. Pollers workflow/activity do PID 3169 confirmados.
+Nenhum snapshot antigo foi promovido.
+
+## 24/11/2026 — lab: Fatia B aplicada (worker + renderer)
+
+Pins B já no disco. Aplicação local: worker creation-lab reiniciado
+(PID 97278, skill `instagram-reel-video-v20`, `motion-video-edit-v1`) e
+imagem do renderer derivada só com `runner.cjs` atualizado →
+`sha256:1e2ecee84e9df1e3b27faf0994dc036782eec67f0bff751301ac7c5d5cf30077`
+(inclui `MOTION_VIDEO_EDIT_NOT_EXECUTED`). Imagem `b4d0352f…` preservada.
+Fila vazia. Sem chamada paga nem MP4 nesta aplicação; aceite E2E pendente.
+
+## 24/11/2026 — Fatia B: EDL e crop declarados, VR6 indisponível
+
+Implementada extensão pinada `motion-video-edit-v1`, skill
+`instagram-reel-video-v20` e repertório `business-video-reel-v3` para novas
+capturas. O contrato/guarda VR1–VR3 e scene-visibility-v1 permanecem intactos;
+replay sem extensão B não recebe EDL nem regras novas. Photo-reel Café e bytes
+polish photo v1–v6 continuam congelados.
+
+B exige pelo menos duas cenas contíguas com funções editoriais distintas,
+in/out explícitos na fonte, intenção de crop e corte perceptível entre cenas.
+Cada segmento tem pan/scale linear declarado; play-through com só troca de
+texto falha. A guarda confere tempo real da fonte e matriz de crop em todo seek,
+inclusive reverso, além da guarda A de cover, logo, texto puro e scrim estável.
+Não libera grafismos ou assets extras. Storyboard e render compartilham a
+mesma montagem; hash do código executado permanece na identidade durável.
+
+Escopo conservador de fala: com áudio original, EDL usa intervalos contíguos
+da fonte e cortes de reenquadramento; não elimina palavras nem remixa a faixa.
+Sem áudio, permite remonte temporal. Duração final igual à original nesta
+versão. Trims/remonte temporal com fala e duração reduzida são trabalho futuro,
+não promessa desta entrega. VR6 tem estado capturado
+`unavailable / edl_music_mix_not_qualified`: sem música/SFX novos ou provedor.
+O mixer existente preserva uma única faixa original e não foi estendido nesta
+fatia; biblioteca existente não equivale a mix qualificado para EDL.
+
+Validação: 591 testes aprovados e duas falhas de áudio preexistentes,
+reproduzidas em checkout isolado de HEAD; 100% linhas/branches nos oito módulos
+Python medidos (696 statements/302 branches), sem exclusões novas. 295 testes
+Node aprovados, 100% linhas/branches/funções nos seis módulos medidos. Dez
+integrações em PostgreSQL dedicado `_test`, roles restritas e fornecedores
+simulados passaram. Três provas Chromium sintéticas passaram (B, A e
+scene-visibility), sem MP4. Ruff/formato do recorte e mypy de sete módulos
+passaram. `make ci` continua bloqueado nos mesmos 66 lints preexistentes;
+CI integral/cobertura global permanecem pendentes.
+
+Pins e limites detalhados em `docs/design/motion-video-reel-v1-slice-b.md`.
+Sem chamada paga, captura do cliente, deploy/reload ou novo MP4. Não há aceite
+E2E: depende de execução posteriormente autorizada e revisão do titular.
+
 ## 24/11/2026 — Fatia B autorizada após rejeição criativa do MP4 Fatia A
 
 Titular rejeitou `versao-1 (15).mp4`

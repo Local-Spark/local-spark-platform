@@ -387,7 +387,7 @@ async def test_html_context_serializes_compatible_contract_and_preserves_histori
     capabilities = transmitted["executor_contract"]["capabilities"]
     assert all(term in capabilities for term in ("HTML", "JavaScript", "SVG", "Canvas", "misturar", "cut/fade"))
     assert "full-bleed cover 9:16" in transmitted["executor_contract"]["integration_policy"]
-    assert transmitted["skill"]["id"] == "instagram-reel-video-v19"
+    assert transmitted["skill"]["id"] == "instagram-reel-video-v21"
     assert "escolha os trechos" not in transmitted["skill"]["instructions"]
     for item in transmitted["styles"]:
         assert item["projection"] == "html-executor-style-v1"
@@ -500,7 +500,7 @@ async def test_construction_skill_reaches_the_exact_counted_request(context_case
     assert authorized == job.context
     assert authorized["request"]["scene_direction"] == direction_data()
     instructions = authorized["skill"]["instructions"]
-    assert authorized["skill"]["id"] == "instagram-reel-video-v19"
+    assert authorized["skill"]["id"] == "instagram-reel-video-v21"
     assert "function makeCompositionPassage" in instructions
     assert "function makeReadingReveal" in instructions
     assert "MotionV1.stagger" in instructions
@@ -570,7 +570,7 @@ def test_new_guidance_coordinates_background_video_and_objects_without_new_capab
 
     body = MotionRequest(operation_id=uuid4(), source_asset_id=uuid4(), instruction="Elaborated motion")
     guidance = capture_motion_guidance(body)
-    assert guidance["skill"]["id"] == "instagram-reel-video-v19"
+    assert guidance["skill"]["id"] == "instagram-reel-video-v21"
     text = guidance["skill"]["instructions"]
     assert "full-bleed" in text
     assert "Nunca use cartaz creme" in text
@@ -596,7 +596,7 @@ def test_v7_with_v2_movement_recaptures_without_upgrading_historical_frames():
     }
     previous["creative_contract"]["movement_runtime"] = movement_v2_contract()
     assert capture_motion_guidance(body, previous=previous) == previous
-    assert current["skill"]["id"] == "instagram-reel-video-v19"
+    assert current["skill"]["id"] == "instagram-reel-video-v21"
     assert "full-bleed" in current["skill"]["instructions"]
 
 

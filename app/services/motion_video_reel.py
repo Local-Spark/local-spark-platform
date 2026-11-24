@@ -8,6 +8,7 @@ from typing import Any
 
 from app.schemas.motion_production import HTMLMotionComposition, MotionConstructionPlan
 from app.services.auth import AuthError
+from app.services.motion_video_edit import edit_rules, guarded_video_edit_init, validate_video_edit
 
 GUARD_PATH = Path(__file__).resolve().parents[1] / "assets/motion_video/video-reel-v1.js"
 VIDEO_REEL_CONTRACT = {
@@ -41,7 +42,18 @@ def video_reel_rules(context: dict[str, Any]) -> str:
         return ""
     if contract != VIDEO_REEL_CONTRACT:
         raise AuthError("MOTION_VIDEO_CONTRACT_CHANGED", 409)
-    return " " + str(VIDEO_REEL_CONTRACT["rules"])
+    rules = str(VIDEO_REEL_CONTRACT["rules"])
+    if edit_rules(context):
+        rules = (
+            rules.replace(
+                "Preserve uma gravação inteira e seu áudio, até 60s/50MiB. "
+                "Sem EDL, música nova, TTS, avatar ou novo renderer.",
+                "Uma gravação até 60s/50MiB; EDL conforme extensão B. Sem música nova, TTS, avatar ou novo renderer.",
+            )
+            + " "
+            + edit_rules(context)
+        )
+    return " " + rules
 
 
 def _state(value: str) -> dict[str, float]:
@@ -64,6 +76,7 @@ def validate_video_reel(
 ) -> None:
     if not video_reel_rules(context):
         return
+    validate_video_edit(artifact, context)
     plan = artifact.motion_plan
     if plan is None:
         raise AuthError("MOTION_VIDEO_PLAN_REQUIRED", 409)
@@ -133,4 +146,5 @@ def guarded_video_scene_init(composition: HTMLMotionComposition, context: dict[s
     validate_video_reel(composition, context, asset_ids={"assets/source.mp4", "assets/logo.png"})
     assert composition.motion_plan is not None
     payload = composition.motion_plan.model_dump(mode="json")
-    return original + "\n;(" + source.decode() + ")(" + json.dumps(payload, ensure_ascii=True) + ");"
+    guarded = original + "\n;(" + source.decode() + ")(" + json.dumps(payload, ensure_ascii=True) + ");"
+    return guarded_video_edit_init(composition, context, guarded)

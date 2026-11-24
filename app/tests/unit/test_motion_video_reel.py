@@ -102,11 +102,11 @@ def test_capture_pin_replay_and_legacy_schema():
     body = natural_body(repertoire_id=None)
     new = capture_motion_guidance(body)
     assert new["video_reel_contract"] == VIDEO_REEL_CONTRACT
-    assert new["executor_contract"]["integration_policy"] == VIDEO_REEL_CONTRACT["rules"]
+    assert new["executor_contract"]["integration_policy"] == video_reel_rules(new).strip()
     assert "proporção/contain" not in new["creative_contract"]["direction"]
     assert "não exige vídeo sempre visível" not in new["creative_contract"]["direction"]
-    assert new["skill"]["id"] == "instagram-reel-video-v19"
-    assert new["repertoire"]["id"] == "business-video-reel-v2"
+    assert new["skill"]["id"] == "instagram-reel-video-v21"
+    assert new["repertoire"]["id"] == "business-video-reel-v4"
     assert capture_motion_guidance(body, previous=new) == new
     old = deepcopy(new)
     old.pop("video_reel_contract")
@@ -434,7 +434,7 @@ def test_new_guidance_reaches_provider_and_v14_v1_replay_is_unchanged():
     assert capture_motion_guidance(body, previous=old) == old
     assert load_repertoire_images(old) == ()
     explicit = capture_motion_guidance(natural_body(repertoire_id="business-video-reel-v2"))
-    assert explicit["repertoire"] == new["repertoire"]
+    assert explicit["repertoire"] == capture_repertoire("business-video-reel-v2")
     assert "staging_contract" in explicit
 
 
@@ -499,6 +499,8 @@ def test_previous_replay_keeps_the_captured_guidance_and_repertoire(version):
 
     body = natural_body(repertoire_id=None)
     previous = capture_motion_guidance(body)
+    previous.pop("video_edit_contract")
+    previous["repertoire"] = capture_repertoire("business-video-reel-v2")
     identifier = f"instagram-reel-video-v{version}"
     digest = _SKILLS[identifier][1]
     previous["skill"] = {

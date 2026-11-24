@@ -33,7 +33,7 @@ async def test_video_draft_has_no_construction_approval(settings, fake_database,
 async def test_video_lab_capture_pins_contracts_and_preserves_previous(settings, fake_database, monkeypatch):
     from app.schemas.motion_production import MotionRequest
     from app.services.motion_context import capture_motion_guidance
-    from app.services.motion_generation import VIDEO_GENERATION_CONTRACT, staged_generation_enabled
+    from app.services.motion_generation import VIDEO_EDIT_GENERATION_CONTRACT, staged_generation_enabled
     from app.services.motion_quality import QUALITY_CONTRACT
     from app.services.motion_repertoire import capture_repertoire
     from app.services.motion_skills import _SKILLS, load_motion_skill
@@ -53,11 +53,11 @@ async def test_video_lab_capture_pins_contracts_and_preserves_previous(settings,
         {"tenant_id": uuid4(), "business_id": uuid4()},
         LabStart(operation_id=uuid4(), source_attachment_id=uuid4()),
     )
-    assert snapshot["generation_contract"] == VIDEO_GENERATION_CONTRACT
+    assert snapshot["generation_contract"] == VIDEO_EDIT_GENERATION_CONTRACT
     assert snapshot["quality_contract"] == QUALITY_CONTRACT
     assert snapshot["staging_contract"] == STAGING_CONTRACT
-    assert snapshot["repertoire"] == capture_repertoire("business-video-reel-v2")
-    assert snapshot["skill"]["id"] == "instagram-reel-video-v19"
+    assert snapshot["repertoire"] == capture_repertoire("business-video-reel-v4")
+    assert snapshot["skill"]["id"] == "instagram-reel-video-v21"
     assert staged_generation_enabled(snapshot)
     import json
     from dataclasses import replace

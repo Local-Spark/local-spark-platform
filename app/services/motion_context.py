@@ -23,6 +23,7 @@ from app.services.motion_generation import (
     PHOTO_GENERATION_CONTRACT,
     PRODUCTION_GENERATION_CONTRACT,
     PROPOSED_GENERATION_CONTRACT,
+    VIDEO_EDIT_GENERATION_CONTRACT,
     VIDEO_GENERATION_CONTRACT,
     provided_output_enabled,
 )
@@ -42,7 +43,8 @@ from app.services.motion_speech_policy import speech_policy
 from app.services.motion_staging import PHOTO_STAGING_CONTRACT, STAGING_CONTRACT
 from app.services.motion_styles import html_style_card, list_motion_styles
 from app.services.motion_temporal import POLICY_V3, POLICY_V4, POLICY_V5
-from app.services.motion_video_reel import VIDEO_REEL_CONTRACT
+from app.services.motion_video_edit import capture_video_edit
+from app.services.motion_video_reel import VIDEO_REEL_CONTRACT, video_reel_rules
 from app.services.motion_video_scene_visibility import capture_scene_visibility
 from app.services.motion_visual_direction import supplied_direction
 from app.services.reference_generation_context import ReferenceGenerationSnapshot, capture_generation_context
@@ -89,7 +91,7 @@ def capture_motion_guidance(
         if previous is not None
         else dict(PHOTO_GENERATION_CONTRACT)
         if request.propose_direction and request.source_asset_id is None
-        else dict(VIDEO_GENERATION_CONTRACT)
+        else dict(VIDEO_EDIT_GENERATION_CONTRACT)
         if request.propose_direction and request.automatic_plan
         else dict(PRODUCTION_GENERATION_CONTRACT)
         if request.propose_direction and request.evolution is None
@@ -138,7 +140,13 @@ def capture_motion_guidance(
             if previous is None
             else previous.get("quality_contract")
         }
-        if generation in (PRODUCTION_GENERATION_CONTRACT, PHOTO_GENERATION_CONTRACT, VIDEO_GENERATION_CONTRACT)
+        if generation
+        in (
+            PRODUCTION_GENERATION_CONTRACT,
+            PHOTO_GENERATION_CONTRACT,
+            VIDEO_GENERATION_CONTRACT,
+            VIDEO_EDIT_GENERATION_CONTRACT,
+        )
         else {}
     )
     if quality and previous is None:
@@ -201,6 +209,8 @@ def capture_motion_guidance(
             None,
             "business-video-reel-v1",
             "business-video-reel-v2",
+            "business-video-reel-v3",
+            "business-video-reel-v4",
             "business-reel-v5",
             "business-reel-v6",
             "business-reel-v7",
@@ -223,7 +233,7 @@ def capture_motion_guidance(
         previous.get("repertoire", {}).get("id")
         if previous is not None
         else request.repertoire_id
-        or (("business-reel-v12" if request.source_asset_id is None else "business-video-reel-v2") if staging else None)
+        or (("business-reel-v12" if request.source_asset_id is None else "business-video-reel-v4") if staging else None)
     )
     if request.source_asset_id is None:
         from app.services.motion_photos import PHOTO_MOTION_RULES, PHOTO_MOTION_RULES_V9, photo_music
@@ -255,16 +265,17 @@ def capture_motion_guidance(
         if previous is not None and "video_reel_contract" in previous
         else {}
     )
+    video_edit = capture_video_edit(video=bool(video_contract), previous=previous)
+    video_rules = video_reel_rules({**video_contract, **video_edit}).strip()
     if video_contract and previous is None:
         creative = {
             **cast(dict[str, Any], creative),
-            "media_visibility_policy": VIDEO_REEL_CONTRACT["rules"],
-            "direction": cast(dict[str, Any], creative)["direction"].replace(
-                MEDIA_VISIBILITY_POLICY, str(VIDEO_REEL_CONTRACT["rules"])
-            ),
+            "media_visibility_policy": video_rules,
+            "direction": cast(dict[str, Any], creative)["direction"].replace(MEDIA_VISIBILITY_POLICY, video_rules),
         }
     return {
         **video_contract,
+        **video_edit,
         **capture_scene_visibility(video=bool(video_contract), previous=previous),
         **(
             {
@@ -346,7 +357,7 @@ def capture_motion_guidance(
                     "version": "html-motion-executor-v2",
                     "integration_policy": PHOTO_MOTION_RULES_V9
                     if request.source_asset_id is None
-                    else VIDEO_REEL_CONTRACT["rules"]
+                    else video_rules
                     if video_contract
                     else MEDIA_VISIBILITY_POLICY,
                 }

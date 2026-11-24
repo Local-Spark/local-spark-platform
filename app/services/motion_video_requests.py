@@ -30,7 +30,9 @@ def planned_video_request(request: MotionRequest) -> MotionRequest:
                         "kind": "source",
                         "at_ms": [0],
                         "observation": "Frame inicial da gravação autorizada; observar as demais amostras ao planejar.",
-                        "intended_use": "Preservar a gravação inteira e seu áudio como fonte da peça.",
+                        "intended_use": (
+                            "Planejar segmentos com função e reenquadramento; preservar fala e áudio da fonte."
+                        ),
                         "limitations": "A seleção não comprova conteúdo, sincronismo ou escuta.",
                     }
                 ],

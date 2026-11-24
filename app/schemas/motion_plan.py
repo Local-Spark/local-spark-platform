@@ -82,7 +82,24 @@ class PhotoClosing(PlanModel):
     cta_element_id: Identifier
 
 
+class VideoCrop(PlanModel):
+    scale: float = Field(ge=1, le=1.35)
+    x: float = Field(ge=-0.175, le=0.175, description="Translation as fraction of canvas width")
+    y: float = Field(ge=-0.175, le=0.175, description="Translation as fraction of canvas height")
+
+
+class VideoEdit(PlanModel):
+    source_in_ms: Moment
+    source_out_ms: Moment
+    purpose: Literal["hook", "detail", "invitation"]
+    transition: Literal["cut"]
+    intent: Description
+    crop_from: VideoCrop
+    crop_to: VideoCrop
+
+
 class VideoLayout(PlanModel):
+    edit: VideoEdit | None = Field(default=None, exclude_if=lambda value: value is None)
     mode: Literal["cover"]
     video_element_id: Identifier
     brand_element_id: Identifier

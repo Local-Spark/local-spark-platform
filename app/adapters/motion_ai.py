@@ -197,11 +197,17 @@ def _format(
     *,
     allow_staging: bool,
     allow_video_layout: bool = False,
+    allow_video_edit: bool = False,
     staging_version: str | None = None,
     quality_function_ids: tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
     schema = model.model_json_schema()
     definitions = schema.get("$defs", {})
+    if not allow_video_edit:
+        definitions.pop("VideoEdit", None)
+        definitions.pop("VideoCrop", None)
+        if "VideoLayout" in definitions:
+            definitions["VideoLayout"]["properties"].pop("edit", None)
     if not allow_video_layout:
         definitions.pop("VideoLayout", None)
         for name in ("MotionScenePlan", "CompactMotionScene"):
@@ -592,6 +598,7 @@ class OpenAIMotionProvider:
                     else HTMLMotionComposition,
                     allow_staging=staging_enabled(request.context),
                     allow_video_layout=bool(video_reel_rules(request.context)),
+                    allow_video_edit=bool(request.context.get("video_edit_contract")),
                     staging_version=request.context.get("staging_contract", {}).get("version"),
                     quality_function_ids=tuple(
                         item["id"] for item in request.context["quality_contract"]["requirements"]

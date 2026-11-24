@@ -77,6 +77,8 @@ class MotionRequest(MotionModel):
             "business-reel-v4",
             "business-video-reel-v1",
             "business-video-reel-v2",
+            "business-video-reel-v3",
+            "business-video-reel-v4",
             "business-reel-v5",
             "business-reel-v6",
             "business-reel-v7",

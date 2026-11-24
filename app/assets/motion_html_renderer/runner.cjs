@@ -21,6 +21,7 @@ const fail = code => { throw new RenderFault(code); };
 // Only known video guard codes cross the browser/process boundary. Never emit stacks or model text.
 const VIDEO_GUARD_FAILURES = new Set([
   'MOTION_VIDEO_SCENE_SCOPE_INVALID',
+        'MOTION_VIDEO_EDIT_NOT_EXECUTED',
   'MOTION_VIDEO_DOM_ID_INVALID', 'MOTION_VIDEO_FULL_BLEED_REQUIRED',
   'MOTION_VIDEO_KIT_OVERLAY_REQUIRED', 'MOTION_VIDEO_TEXT_NOT_EXECUTED',
   'MOTION_VIDEO_READABLE_ACTION_OVERLAY_REQUIRED', 'MOTION_VIDEO_UNPLANNED_OVERLAY'

@@ -1,0 +1,64 @@
+{
+  "id": "business-video-reel-v4",
+  "version": 4,
+  "rules": "Fatia B VR4–VR5: cada video_layout declara edit={source_in_ms,source_out_ms,purpose,transition,intent,crop_from,crop_to}. purpose: hook/detail/invitation; >=2 funções distintas. transition=cut. Cenas contíguas, sem sobreposição; duração de cada segmento igual ao intervalo na fonte, sem speed ramp. Tempos na fonte dentro da duração original; duração final preservada nesta versão. Com áudio, source_in_ms=scene.start_ms: manter fala e áudio inteiros; cortes são de reenquadramento. Sem áudio, remonte temporal permitido. Cada corte muda escala >=.06 ou x/y >=.04. crop_from/crop_to={scale:1..1.35,x,y}; x/y são frações do canvas. Em cada segmento, variar escala >=.03 ou x/y >=.02 com intenção, linearmente. Cobertura: abs(x),abs(y)<=(scale-1)/2. VIDEO absoluto 0,0, dimensões do canvas, object-fit:cover, object-position:50% 50%, transform-origin:50% 50%; transform translate(x*width px,y*height px) scale(scale). Seek da fonte = source_in_ms + ms - scene.start_ms; aguardar seeked; clamp a min(out,duração real)-1ms, tolerando só padding final de até 34ms. Um único VIDEO, renomeado para o ID da cena ativa. Não duplicar mídia. VR1–VR3, texto puro, scrim estável e scene-visibility permanecem obrigatórios. Grafismos e assets adicionais não são habilitados nesta versão. Sem inventar materiais. VR6 unavailable: edl_music_mix_not_qualified. Não adicionar música/SFX nem chamar provedor. Briefing soft: pausa aconchegante, frases curtas e kit, sem hard-sell. Para cada text_element_id, beats cobre exatamente [scene.start_ms, scene.end_ms]: beats[0].phase=enter e beats[0].start_ms=scene.start_ms; beats[-1].phase=exit e beats[-1].end_ms=scene.end_ms. Beats contíguos, sem lacunas e com estados contínuos. Proibido hold com opacity=0, inclusive antes de enter ou depois de exit: hold exige start_state=end_state e opacity=1. Invisibilidade só via enter/exit; transform permanece visível (opacity=1) e desloca pelo menos 4px. CTA final mantém hold estável >=1500ms entre enter e exit. Não preencher pontas do timeline com holds fantasmas para adiar uma frase. Se a sequência de frases não couber nestas fronteiras, reformule a composição/plano dentro de VR1–VR3; use a EDL aprovada e preserve fala e áudio. Exceção final verificada: somente a última cena pode ter intervalo na fonte menor que sua duração por 1–34ms, quando source_out_ms é exatamente source.duration_ms medido pelo servidor. Esse restante é padding do último frame, não corte nem speed ramp. Nunca aplicar em cenas internas, com duração desconhecida ou fim inventado. Duração de saída e áudio autorizado permanecem intactos.",
+  "selection": "Fatia B: progressão hook → invitation, corte perceptível e crop linear; sem hard-sell. VR6 indisponível.",
+  "required_runtimes": {},
+  "licenses": [],
+  "examples": [
+    {
+      "id": "action-type",
+      "source_id": "platform-original",
+      "file": "examples/action-type.js",
+      "sha256": "27ccd8a399d4f8ed2d050f2a580b4a832f25351cfdbe2fe0ed2f3941a7427f48",
+      "entrypoint": "videoTextSeek",
+      "mechanism": "Entrada, deslocamento suave, leitura e saída sobre gravação full-bleed.",
+      "use_when": "Frases curtas conforme briefing e kit.",
+      "limitations": "Prova de execução, não aceite artístico; preservar áreas essenciais da fonte.",
+      "integration": "Copiar em scene_init e chamar com tempo absoluto; não modifica vídeo nem áudio."
+    },
+    {
+      "id": "cta-plan",
+      "source_id": "platform-original",
+      "file": "examples/cta-plan.json",
+      "sha256": "eac14a3a56424ae098941572dab60ac74d30c241f1c5d75021f4dc3324292fc2",
+      "entrypoint": "beats",
+      "mechanism": "Plano canônico VR3 com hold visível de exatamente 1500ms.",
+      "use_when": "Planejar cada texto, inclusive CTA final.",
+      "limitations": "Tempos ilustrativos relativos a cena 0–2500ms; adaptar às fronteiras reais da cena.",
+      "integration": "Copiar beats para o elemento de texto relacionado ao vídeo; executar com videoTextSeek."
+    },
+    {
+      "id": "edit",
+      "source_id": "platform-original",
+      "file": "examples/edit.js",
+      "sha256": "1f4d97550724f74cc1a8dc16b03964ad7b53545fb412ff4a6f4a9368221acf10",
+      "entrypoint": "videoEditSeek",
+      "mechanism": "Corte e reenquadramento declarados; seek absoluto.",
+      "use_when": "Fatia B, preservar identidade e fala.",
+      "limitations": "Não atesta qualidade perceptual. VR6 indisponível.",
+      "integration": "Executar seek da fonte e crop, mais texto/scrim/logo v19."
+    },
+    {
+      "id": "edl-plan",
+      "source_id": "platform-original",
+      "file": "examples/edl-plan.json",
+      "sha256": "6ff42e8804b19ef67d6b92159a67660dfa13e507169ae6855b67fd6d87fbf4f1",
+      "entrypoint": "motion_plan",
+      "mechanism": "Corte e reenquadramento declarados; seek absoluto.",
+      "use_when": "Fatia B, preservar identidade e fala.",
+      "limitations": "Não atesta qualidade perceptual. VR6 indisponível.",
+      "integration": "Executar seek da fonte e crop, mais texto/scrim/logo v19."
+    }
+  ],
+  "reference_images": [],
+  "reference_cards": [],
+  "sources": [
+    {
+      "id": "platform-original",
+      "origin": "Código próprio; referências analisadas em docs/evals/analise-41-referencias-motion-2026-11-12.md",
+      "version": "2026-11-23",
+      "permission": "Código original, sem conteúdo de terceiros."
+    }
+  ]
+}

@@ -145,12 +145,24 @@ VIDEO_GENERATION_CONTRACT = {
 }
 
 
+VIDEO_EDIT_GENERATION_CONTRACT = {
+    **VIDEO_GENERATION_CONTRACT,
+    "version": "proposed-video-output-v2",
+    "response_rules": VIDEO_GENERATION_CONTRACT["response_rules"].replace(
+        "Preserve a gravação inteira e seu áudio conforme motion-video-reel-v1; sem EDL ou nova música.",
+        "Execute a EDL e crop declarados em video_edit_contract, preservando VR1–VR3 e fala/áudio. "
+        "Sem música nova; VR6 indisponível nesta versão.",
+    ),
+}
+
+
 def proposed_generation_enabled(context: dict[str, Any]) -> bool:
     return context.get("generation_contract") in (
         PROPOSED_GENERATION_CONTRACT,
         PRODUCTION_GENERATION_CONTRACT,
         PHOTO_GENERATION_CONTRACT,
         VIDEO_GENERATION_CONTRACT,
+        VIDEO_EDIT_GENERATION_CONTRACT,
     )
 
 
@@ -161,6 +173,7 @@ def asset_informed_enabled(context: dict[str, Any]) -> bool:
         PRODUCTION_GENERATION_CONTRACT,
         PHOTO_GENERATION_CONTRACT,
         VIDEO_GENERATION_CONTRACT,
+        VIDEO_EDIT_GENERATION_CONTRACT,
     )
 
 
@@ -173,6 +186,7 @@ def staged_generation_enabled(context: dict[str, Any]) -> bool:
         PRODUCTION_GENERATION_CONTRACT,
         PHOTO_GENERATION_CONTRACT,
         VIDEO_GENERATION_CONTRACT,
+        VIDEO_EDIT_GENERATION_CONTRACT,
     )
 
 
@@ -242,6 +256,7 @@ def provided_output_enabled(context: dict[str, Any]) -> bool:
         PRODUCTION_GENERATION_CONTRACT,
         PHOTO_GENERATION_CONTRACT,
         VIDEO_GENERATION_CONTRACT,
+        VIDEO_EDIT_GENERATION_CONTRACT,
     ):
         request = context.get("request", {})
         if (
@@ -252,7 +267,10 @@ def provided_output_enabled(context: dict[str, Any]) -> bool:
                     request.get("automatic_plan")
                     and (
                         (contract == PHOTO_GENERATION_CONTRACT and request.get("source_asset_id") is None)
-                        or (contract == VIDEO_GENERATION_CONTRACT and request.get("source_asset_id") is not None)
+                        or (
+                            contract in (VIDEO_GENERATION_CONTRACT, VIDEO_EDIT_GENERATION_CONTRACT)
+                            and request.get("source_asset_id") is not None
+                        )
                     )
                 )
             )
@@ -260,7 +278,12 @@ def provided_output_enabled(context: dict[str, Any]) -> bool:
             or not request.get("preparation")
         ):
             raise AuthError("MOTION_PROPOSED_DIRECTION_CONTEXT_REQUIRED", 409)
-        if contract in (PRODUCTION_GENERATION_CONTRACT, PHOTO_GENERATION_CONTRACT, VIDEO_GENERATION_CONTRACT):
+        if contract in (
+            PRODUCTION_GENERATION_CONTRACT,
+            PHOTO_GENERATION_CONTRACT,
+            VIDEO_GENERATION_CONTRACT,
+            VIDEO_EDIT_GENERATION_CONTRACT,
+        ):
             from app.services.motion_quality import validate_quality_context
 
             if not validate_quality_context(context):
