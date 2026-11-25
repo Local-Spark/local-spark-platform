@@ -6,7 +6,7 @@ from pathlib import Path
 from app.services.auth import AuthError
 
 _SKILLS = {
-    "instagram-reel-video-v24": ("reel", "e61fcb2a77bcf0a08206fd54a2f143277fb1f1ac69d1a3c59dd5cde30b3c9f36"),
+    "instagram-reel-video-v24": ("reel", "d0162c22dfdd92974bab661eac97c505b4d4527c061a0c79d2653c210c974c1d"),
     "instagram-reel-video-v23": ("reel", "065294e82fa3cf9b6408c0416584586b00ff23da02236eeea719022832efa4ed"),
     "instagram-reel-video-v22": ("reel", "271cadda041917aac6e297a52b6f10cb86e01bc99bc6c1d5075996a218aa800a"),
     "instagram-reel-video-v21": ("reel", "db94aa9c5815be52208b08fe4145643e1d0a8c33b8bde193afe168c266e2fd43"),

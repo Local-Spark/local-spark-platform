@@ -61,6 +61,8 @@ def storyboard_moments(
             )
     if policy in (POLICY_V3, POLICY_V4, POLICY_V5):
         for ms in sample_times(composition, context or {}):
+            if len(by_index) >= policy["max_frames"]:
+                break
             index = ms * 30 // 1000
             scene = next((s for s in plan.scenes if s.start_ms <= ms < s.end_ms), plan.scenes[-1])
             by_index.setdefault(
@@ -77,4 +79,5 @@ def storyboard_moments(
         if len(by_index) >= policy["max_frames"]:
             break
         by_index.setdefault(moment["frame_index"], moment)
-    return tuple(by_index[index] for index in sorted(by_index))
+    ordered = tuple(by_index[index] for index in sorted(by_index))
+    return ordered[: int(policy["max_frames"])]

@@ -24,6 +24,7 @@ from app.services.motion_video_capabilities import (
     state,
     validate_development,
     validate_edl,
+    validate_frame_occupancy,
 )
 from app.services.motion_video_reel import VIDEO_REEL_CONTRACT_V2, guarded_video_scene_init, validate_video_reel
 from app.services.motion_video_scene_visibility import CONTRACT as VISIBILITY
@@ -626,3 +627,84 @@ def test_unlocked_design_version_and_cover_beat_gap():
     assert not _cover_opacity(artifact(d).motion_plan.scenes[1], pip["end_ms"])
     with pytest.raises(AuthError, match="HANDOFF_COVER_REQUIRED"):
         validate_handoff_cover(artifact(d).motion_plan)
+
+
+def test_frame_occupancy_rejects_weak_opening_and_wash_pip_canvas():
+    from copy import deepcopy
+
+    base = artifact()
+    short = base.motion_plan.scenes[0].model_copy(update={"end_ms": 500})
+    with pytest.raises(AuthError, match="FRAME_OCCUPANCY_REQUIRED"):
+        validate_frame_occupancy(base.motion_plan.model_copy(update={"scenes": (short, *base.motion_plan.scenes[1:])}))
+
+    pip_open = base.motion_plan.scenes[0].model_copy(
+        update={
+            "video_layout": base.motion_plan.scenes[0].video_layout.model_copy(
+                update={
+                    "mode": "pip",
+                    "design": base.motion_plan.scenes[0].video_layout.design.model_copy(
+                        update={"viewport": VideoViewport(x=0.2, y=0.2, width=0.5, height=0.5)}
+                    ),
+                }
+            )
+        }
+    )
+    with pytest.raises(AuthError, match="FRAME_OCCUPANCY_REQUIRED"):
+        validate_frame_occupancy(
+            base.motion_plan.model_copy(update={"scenes": (pip_open, *base.motion_plan.scenes[1:])})
+        )
+
+    d = deepcopy(case())
+    for scene in d["motion_plan"]["scenes"]:
+        scene["video_layout"]["design"]["version"] = "video-design-v2"
+    pip = d["motion_plan"]["scenes"][1]
+    pip["video_layout"]["design"]["viewport"] = {"x": 0.27, "y": 0.27, "width": 0.46, "height": 0.46}
+    pip["video_layout"]["design"]["layers"][0]["color"] = "#FFF8EC"
+    with pytest.raises(AuthError, match="COLLAGE_BACKGROUND_INVALID"):
+        validate_development(artifact(d).motion_plan, unlocked=True)
+
+    ok = deepcopy(case())
+    for scene in ok["motion_plan"]["scenes"]:
+        scene["video_layout"]["design"]["version"] = "video-design-v2"
+    validate_development(artifact(ok).motion_plan, unlocked=True)
+
+
+def test_edl_rejects_cosmetic_crop_without_perceptible_change():
+    from copy import deepcopy
+
+    from app.services.motion_video_capabilities import EDIT_CONTRACT_V5
+    from app.services.motion_video_reel import VIDEO_REEL_CONTRACT_V4
+
+    d = deepcopy(case())
+    for scene in d["motion_plan"]["scenes"]:
+        scene["video_layout"]["design"]["version"] = "video-design-v2"
+        edit = scene["video_layout"]["edit"]
+        edit["crop_from"] = {"scale": 1, "x": 0, "y": 0}
+        edit["crop_to"] = {"scale": 1, "x": 0, "y": 0}
+    ctx = {
+        "video_reel_contract": VIDEO_REEL_CONTRACT_V4,
+        "video_edit_contract": EDIT_CONTRACT_V5,
+        "source": deepcopy(CTX["source"]),
+    }
+    with pytest.raises(AuthError, match="EDL_COSMETIC"):
+        validate_edl(artifact(d), ctx)
+
+
+def test_dense_sample_times_stay_within_renderer_cap_for_unlocked_video():
+    from copy import deepcopy
+
+    from app.services.motion_temporal import POLICY_V2, sample_times
+    from app.services.motion_video_capabilities import EDIT_CONTRACT_V5
+    from app.services.motion_video_reel import VIDEO_REEL_CONTRACT_V4
+
+    comp = artifact()
+    ctx = {
+        "video_reel_contract": VIDEO_REEL_CONTRACT_V4,
+        "video_edit_contract": EDIT_CONTRACT_V5,
+        "creative_contract": {"temporal_review": POLICY_V2},
+        "source": deepcopy(CTX["source"]),
+    }
+    times = sample_times(comp, ctx)
+    assert times and len(times) <= 64 and times == tuple(sorted(set(times)))
+    mid = (comp.motion_plan.scenes[0].start_ms + comp.motion_plan.scenes[0].end_ms) // 2
+    assert any(abs(t - mid) <= 40 for t in times)

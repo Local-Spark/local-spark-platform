@@ -1,5 +1,27 @@
 # BL04 — contexto seletivo e produção visual com IA
 
+## 25/11/2026 — D1–D7 + galeria kit (docs)
+
+Specs de paridade de edição fechadas; sem código. Café pausado.
+[d1-d7](../design/motion-maestros-processo-paridade-d1-d7-2026-11-25.md) ·
+[gallery](../design/motion-creative-gallery-kit-envelope-2026-11-25.md).
+
+## 25/11/2026 — stock Pexels complemento gated
+
+Kit primeiro; Pexels só atmosfera com proveniência se inventário insuficiente
+(§7b fluxo-completo). Sem API. Café pausado.
+
+## 25/11/2026 — extração fluxo Maestros completo
+
+Inventário máximo (fases, formatos, edit styles, fiscal, áudio) em
+[fluxo-completo](../design/motion-maestros-fluxo-completo-extracao-2026-11-25.md).
+Café pausado; só docs.
+
+## 25/11/2026 — Programa A Maestros (piso + direção)
+
+Occupancy + anti-(21) + EDL cosmética + samples densos + repertoire
+cover→detalhe→CTA. Máscara de pessoa adiada. Reiniciar lab; regenerar Café.
+
 ## 25/11/2026 — UNPLANNED_OVERLAY chrome
 
 Normalize HTML transparente; regenerar Café.

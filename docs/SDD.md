@@ -1,5 +1,16 @@
 # SDD geral — Meu Braço Direito
 
+## 25/11/2026 — paridade processo Maestros docs fechados
+
+Galeria kit + D1–D7 especificados; Café pausado; sem código.
+[d1-d7](design/motion-maestros-processo-paridade-d1-d7-2026-11-25.md) ·
+[gallery](design/motion-creative-gallery-kit-envelope-2026-11-25.md).
+
+## 25/11/2026 — Programa A Maestros (HTML)
+
+Piso anti-colagem + direção + EDL perceptível + samples densos no runtime
+HTML/Chromium existente. Sem Remotion. Máscara de pessoa adiada.
+
 ## 25/11/2026 — video HTML chrome
 
 Documento (`html`/`body`/`main`) transparente; pintura de fundo só via layer

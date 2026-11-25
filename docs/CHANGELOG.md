@@ -1,5 +1,34 @@
 # Registro de mudanças
 
+## 25/11/2026 — D1–D7 + galeria (docs)
+
+- Galeria kit envelope + D1–D7 (design bar, archetypes, som, QCR, edit_plan,
+  scene-record, learning) especificados. Sem código.
+  [d1-d7](design/motion-maestros-processo-paridade-d1-d7-2026-11-25.md) ·
+  [gallery](design/motion-creative-gallery-kit-envelope-2026-11-25.md).
+
+## 25/11/2026 — stock Pexels complemento gated (docs)
+
+- Política: kit primeiro; Pexels/similares só atmosfera com proveniência se
+  inventário insuficiente; nunca identidade do cliente. Sem API nesta entrada.
+  [fluxo-completo §7b](design/motion-maestros-fluxo-completo-extracao-2026-11-25.md).
+
+## 25/11/2026 — extração fluxo Maestros completo (docs)
+
+- Inventário máximo: fases maestro-video→lab, Finalizador M01–M05,
+  SECTION/EDIT_STYLES, scene-record, Gauntlet/QCR/Veredito, áudio, checklist.
+- Geração Café suspensa. Sem código.
+  [fluxo-completo](design/motion-maestros-fluxo-completo-extracao-2026-11-25.md).
+
+## 25/11/2026 — Programa A Maestros (HTML quality floor)
+
+- `validate_frame_occupancy` no fim de `validate_development`: abertura cover
+  full-bleed ≥800ms; PIP área<0.55 sem fundo lavagem (`COLLAGE_BACKGROUND`).
+- Anti-(21) skill-v24 + review direction; `EDL_COSMETIC` exige crop perceptível.
+- `sample_times`: bordas de cena + densificação ≤64 em video unlocked.
+- repertoire-v7 `development-plan` cover→detalhe→CTA; hashes skill/repertoire.
+- Fatia 5 (máscara de pessoa) adiada até OK humano nos MP4s 1–4.
+
 ## 25/11/2026 — video-reel-v4: SVG case + readable fade/settle
 
 - Guard: graphic SVG via `tagName.toLowerCase()` (DOM devolve `svg`).

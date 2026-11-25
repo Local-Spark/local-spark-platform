@@ -1,8 +1,8 @@
 {
   "id": "business-video-reel-v7",
   "version": 7,
-  "rules": "Video handoff: motion-video-reel-v4 + motion-video-edit-v5, design video-design-v2 obrigatório em toda cena. O plano é allowlist: design.layers com shape rectangle|ellipse|rounded|bar. Layers/texto com beats contíguos start→end (hold nos buracos); texto related ao vídeo; CTA hold≥1500ms; bar/rounded width≥0.04; imagem auxiliar z>10 com box≥0.5×0.5. Runtime cria graphic como SVG. html/body/main transparentes — sem canvas creme; fundo só em layer. transition cut|dissolve|fade; dissolve/fade exige plano full-bleed sob o VIDEO. Silent 0.75–1.25; áudio 1:1 speech-safe com margem 120ms. Mix elevenlabs-music-v1 + duck. Anti: (12)(15)(16)(17)(18)(19)(20).",
-  "selection": "Handoff editorial; SVG graphic; design-v2; beats contíguos; trilha ElevenLabs; refs finish_reference_only.",
+  "rules": "Video handoff: motion-video-reel-v4 + motion-video-edit-v5, design video-design-v2 obrigatório em toda cena. O plano é allowlist: design.layers com shape rectangle|ellipse|rounded|bar. Layers/texto com beats contíguos start→end (hold nos buracos); texto related ao vídeo; CTA hold≥1500ms; bar/rounded width≥0.04; imagem auxiliar z>10 com box≥0.5×0.5. Runtime cria graphic como SVG. html/body/main transparentes — sem canvas creme; fundo só em layer. Abertura cover full-bleed ≥800ms; PIP área<0.55 sem fundo lavagem. Progressão cover→detalhe/crop→CTA; tipografia MotionV1.stagger; EDL ≥2 purpose com crop perceptível (sem EDL cosmética). transition cut|dissolve|fade; dissolve/fade exige plano full-bleed sob o VIDEO. Silent 0.75–1.25; áudio 1:1 speech-safe com margem 120ms. Mix elevenlabs-music-v1 + duck; SFX CC0 só em ação. Anti: (12)(15)(16)(17)(18)(19)(20)(21).",
+  "selection": "Cover→detalhe→CTA; handoff; SVG; anti-colagem; ElevenLabs; refs finish_reference_only.",
   "required_runtimes": {},
   "licenses": [],
   "examples": [
@@ -32,12 +32,12 @@
       "id": "development-plan",
       "source_id": "platform-original",
       "file": "examples/development-plan.json",
-      "sha256": "6866cb2206122eb84db378d76356863ec290378f974fccf280df0bd620b68c11",
+      "sha256": "f3f6092f4dc25b4218abf5525da92bca03893d936f1ad47048061b5011f53554",
       "entrypoint": "motion_plan",
-      "mechanism": "Cover → PIP com design video-design-v2, fundo e grafismo em layers; dissolve com plano full-bleed.",
+      "mechanism": "Cover dominante → detalhe/crop motivado (dissolve + plano full-bleed) → CTA/PIP sobre fundo de kit — sem canvas lavagem.",
       "use_when": "Desenvolver material e convite soft com handoff real; copiar a presença de design em toda cena.",
       "limitations": "Exemplo sintético, não aprovação de qualidade.",
-      "integration": "Runtime executa layers e EDL; implementar logo/textos. Nunca omita design."
+      "integration": "Runtime executa layers e EDL; tipografia pode usar MotionV1.stagger; nunca omita design."
     },
     {
       "id": "svg-accent",

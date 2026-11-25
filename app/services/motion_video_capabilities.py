@@ -70,6 +70,13 @@ RULES_V5 = (
     "Desenvolvimento editorial: >=2 funções, >=2 assinaturas de composição, e ao menos um de "
     "PIP>=800ms, imagem auxiliar sustentada, ou graphic exposto (deslocamento>=24px ou barra/rounded "
     "visível >=800ms). Take+texto+crop mínimo continua rejeitado. "
+    "Abertura (>=800ms) em cover full-bleed (viewport área>=0.95). PIP com área<0.55 não pode ter "
+    "só retângulo lavagem/creme (#FFF8EC-like) como fundo idle — use imagem de kit ou graphic de acento "
+    "(MOTION_VIDEO_FRAME_OCCUPANCY_REQUIRED / MOTION_VIDEO_COLLAGE_BACKGROUND_INVALID). "
+    "Anti-(21): colagem de conformidade (PIP pequeno + canvas lavagem + legenda sem mudança do que se vê) "
+    "exige replano de direção, não correct de CSS. "
+    "EDL: >=2 purpose com mudança perceptível de crop (intra-cena ou entre cenas); EDL cosmética → "
+    "MOTION_VIDEO_EDL_COSMETIC. "
     "Mix: elevenlabs-music-v1 (cache + geração com as mesmas gates da photo) + duck; "
     "sem compra pelo modelo; sem credencial fica cache/status explícito. "
     "Logo kit, texto legível (spans ok), scene-visibility, 60s/50MiB, sem Remotion/TTS/avatar/inventar assets."
@@ -160,6 +167,67 @@ def _exposed(layer: VideoLayer, design: VideoDesign, point: dict[str, float]) ->
 
 def _motion(a: dict[str, float], z: dict[str, float]) -> float:
     return math.hypot(z["x"] - a["x"], z["y"] - a["y"]) + 40 * abs(z.get("scale", 1) - a.get("scale", 1))
+
+
+def _is_wash_color(color: str) -> bool:
+    """Near-white low-saturation fills used as empty collage canvas (e.g. #FFF8EC)."""
+    raw = color[1:] if color.startswith("#") else color
+    if len(raw) not in {6, 8} or any(ch not in "0123456789abcdefABCDEF" for ch in raw):
+        return False
+    red, green, blue = int(raw[0:2], 16), int(raw[2:4], 16), int(raw[4:6], 16)
+    peak, floor = max(red, green, blue), min(red, green, blue)
+    luminance = (red + green + blue) / (3 * 255)
+    saturation = 0.0 if peak == 0 else (peak - floor) / peak
+    return luminance >= 0.85 and saturation <= 0.25
+
+
+def _full_box(box: dict[str, float]) -> bool:
+    return box == {"x": 0, "y": 0, "width": 1, "height": 1}
+
+
+def validate_frame_occupancy(plan: MotionPlan) -> None:
+    """Reject collage-of-compliance: weak opening or small PIP on a wash canvas."""
+    opening = plan.scenes[0]
+    layout = opening.video_layout
+    if layout is None or layout.design is None:
+        raise AuthError("MOTION_VIDEO_DESIGN_REQUIRED", 409)
+    viewport = layout.design.viewport.model_dump()
+    if (
+        opening.end_ms - opening.start_ms < 800
+        or layout.mode != "cover"
+        or viewport["width"] * viewport["height"] + 1e-9 < 0.95
+        or not _full_box(viewport)
+    ):
+        raise AuthError("MOTION_VIDEO_FRAME_OCCUPANCY_REQUIRED", 409)
+    for scene in plan.scenes:
+        scene_layout = scene.video_layout
+        if scene_layout is None or scene_layout.design is None or scene_layout.mode != "pip":
+            continue
+        design = scene_layout.design
+        area = design.viewport.width * design.viewport.height
+        if area + 1e-9 >= 0.55:
+            continue
+        elements = {e.id: e for e in scene.elements}
+
+        def idle(point: dict[str, float]) -> bool:
+            return point["x"] == 0 and point["y"] == 0 and point["opacity"] == 1 and point.get("scale", 1) == 1
+
+        backgrounds = [layer for layer in design.layers if _full_box(layer.box.model_dump())]
+        functional = False
+        for layer in backgrounds:
+            element = elements[layer.element_id]
+            if not all(idle(state(b.start_state)) and idle(state(b.end_state)) for b in element.beats):
+                continue
+            if element.role == "image":
+                functional = True
+                break
+            if element.role == "graphic" and (
+                layer.shape != "rectangle" or not _is_wash_color(layer.color)
+            ):
+                functional = True
+                break
+        if not functional:
+            raise AuthError("MOTION_VIDEO_COLLAGE_BACKGROUND_INVALID", 409)
 
 
 def validate_development(plan: MotionPlan | None, *, unlocked: bool = False) -> None:
@@ -253,6 +321,7 @@ def validate_development(plan: MotionPlan | None, *, unlocked: bool = False) -> 
     has_development = (developed or moving_graphic) if unlocked else (developed and moving_graphic)
     if not has_development or len(signatures) < 2:
         raise AuthError("MOTION_VIDEO_EDITORIAL_DEVELOPMENT_REQUIRED", 409)
+    validate_frame_occupancy(plan)
 
 
 def safe_boundary(at: int, context: dict[str, Any]) -> bool:
@@ -358,6 +427,16 @@ def validate_edl(artifact: Any, context: dict[str, Any]) -> None:
         edits.append(edit)
     if len(purposes) < 2:
         raise AuthError("MOTION_VIDEO_EDITORIAL_FUNCTION_REQUIRED", 409)
+
+    def _crop_travel(a, z) -> float:
+        return abs(a.scale - z.scale) + abs(a.x - z.x) + abs(a.y - z.y)
+
+    perceptible = sum(1 for edit in edits if _crop_travel(edit.crop_from, edit.crop_to) + 1e-9 >= 0.04)
+    for left, right in zip(edits, edits[1:], strict=False):
+        if _crop_travel(left.crop_to, right.crop_from) + 1e-9 >= 0.04:
+            perceptible += 1
+    if perceptible < 2:
+        raise AuthError("MOTION_VIDEO_EDL_COSMETIC", 409)
     if not silent:
         boundaries = [edits[0].source_in_ms, edits[-1].source_out_ms]
         for a, b in zip(edits, edits[1:], strict=False):

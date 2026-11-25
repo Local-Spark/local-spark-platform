@@ -1,5 +1,40 @@
 # Meu Braço Direito — contexto vigente
 
+## 25/11/2026 — D1–D7 processo Maestros documentados (só docs)
+
+Paridade de edição: design bar, archetypes Café, som layers, QCR subset,
+edit_plan verify, scene-record schema, learning. Spec:
+[processo-paridade-d1-d7](design/motion-maestros-processo-paridade-d1-d7-2026-11-25.md).
+Galeria:
+[gallery-kit-envelope](design/motion-creative-gallery-kit-envelope-2026-11-25.md).
+Sem código nesta entrada.
+
+## 25/11/2026 — stock Pexels como complemento gated (só docs)
+
+Kit/gravação primeiro. Pexels (e similares) permitido só como atmosfera/
+metáfora com proveniência quando o inventário é insuficiente — nunca como
+identidade do negócio. Política §7b em
+[fluxo-completo](design/motion-maestros-fluxo-completo-extracao-2026-11-25.md).
+Sem ligar API nesta entrada.
+
+## 25/11/2026 — extração fluxo Maestros completo (só docs)
+
+Geração Café pausada. Inventário máximo do fluxo (fases 0–12→lab, M01–M05,
+SECTION/EDIT_STYLES, scene-record, Gauntlet, QCR, áudio, checklist) a partir do
+acervo `Documents/Maestros da IA` + WuzMxEKJHkQ. Sem código.
+[fluxo-completo](design/motion-maestros-fluxo-completo-extracao-2026-11-25.md) ·
+[sequência B](design/motion-maestros-html-sequencia-pos-programa-a-2026-11-25.md).
+
+## 25/11/2026 — Programa A: piso Maestros (HTML/Chromium)
+
+Fatias 1–4 no lab HTML (sem Remotion): occupancy anti-colagem
+(`FRAME_OCCUPANCY` / `COLLAGE_BACKGROUND`), anti-(21) direction,
+`development-plan` cover→detalhe→CTA, `EDL_COSMETIC`, samples densos ≤64.
+Skill-v24 + repertoire-v7 hashes atualizados. Fatia 5 (máscara) aguarda OK
+após MP4s. Design:
+[motion-maestros-html-quality-program-a-2026-11-25.md](design/motion-maestros-html-quality-program-a-2026-11-25.md).
+Reiniciar `make creation-lab` e regenerar Café (Play) — MP4s para análise.
+
 ## 25/11/2026 — reel-v4 guard: SVG + readable em fade
 
 `LAYER` era `tagName!=='SVG'` vs DOM `svg`. Readable em enter/exit: budget

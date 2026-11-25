@@ -204,14 +204,56 @@ def sample_times(composition: HTMLMotionComposition, context: dict[str, Any]) ->
     selected, _ = events(composition, policy)
     assert composition.motion_plan is not None
     count = (composition.motion_plan.duration_ms * 30 + 999) // 1000
-    indices = {round(i * (count - 1) / 4) for i in range(5)}
-    indices.update(index for event in selected for index in event.indices)
-    # ceil(frame*1000/30) maps back to that frame in the renderer's floor conversion.
-    return tuple(
-        (index * 1000 + 29) // 30
-        for index in sorted(indices)
-        if (index * 1000 + 29) // 30 < composition.motion_plan.duration_ms
-    )
+    plan = composition.motion_plan
+    from app.services.motion_video_capabilities import enabled, quality_unlocked
+
+    dense = enabled(context) and quality_unlocked(context)
+    limit = 64 if dense else int(policy.get("max_frames", MAX_FRAMES))
+
+    def _ms(index: int) -> int | None:
+        value = (index * 1000 + 29) // 30
+        return value if 0 <= index < count and value < plan.duration_ms else None
+
+    # Event windows first so truncation never drops required temporal evidence.
+    primary: list[int] = []
+    seen: set[int] = set()
+    for event in selected:
+        for index in event.indices:
+            ms = _ms(index)
+            if ms is not None and ms not in seen:
+                seen.add(ms)
+                primary.append(ms)
+    secondary: list[int] = []
+    opening = plan.scenes[0]
+    extras = {round(i * (count - 1) / 4) for i in range(5)}
+    mid_ms = (opening.start_ms + opening.end_ms) // 2
+    extras.add(mid_ms * 30 // 1000)
+    for scene in plan.scenes:
+        extras.add(scene.start_ms * 30 // 1000)
+        extras.add(max(scene.start_ms, scene.end_ms - 1) * 30 // 1000)
+        if dense:
+            span = scene.end_ms - scene.start_ms
+            if span >= 800:
+                for frac in (0.25, 0.5, 0.75):
+                    extras.add(int(scene.start_ms + span * frac) * 30 // 1000)
+    for index in sorted(extras):
+        ms = _ms(max(0, min(count - 1, index)))
+        if ms is not None and ms not in seen:
+            seen.add(ms)
+            secondary.append(ms)
+    ordered = primary + secondary
+    if len(ordered) <= limit:
+        return tuple(sorted(ordered))
+    # Preserve all primary samples; fill remaining slots from secondary evenly.
+    kept = list(primary[:limit])
+    room = limit - len(kept)
+    if room > 0 and secondary:
+        step = max(1, (len(secondary) - 1) / max(1, room - 1)) if room > 1 else 0
+        for i in range(room):
+            candidate = secondary[round(i * step)]
+            if candidate not in kept:
+                kept.append(candidate)
+    return tuple(sorted(kept)[:limit])
 
 
 def evidence_manifest(

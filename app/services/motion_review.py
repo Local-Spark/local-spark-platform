@@ -37,7 +37,11 @@ REVIEW_CONTRACT: dict[str, Any] = {
         "brief_alignment": (
             "Conferir pedido e direção, fornecida ou proposta; sem inventar aprovação nem substituir direção fornecida."
         ),
-        "narrative_progression": "Observar mudança de função e passagem de atenção, não apenas troca de frase/cartela.",
+        "narrative_progression": (
+            "Observar mudança de função e passagem de atenção, não apenas troca de frase/cartela. "
+            "Se abertura e miolo mostram o mesmo quadro (só caption/PIP cosmética), not_met + "
+            "repair_kind=direction major — não implementation."
+        ),
         "motion_role": (
             "Relacionar transformação a revelação, conexão ou resultado; deslocamento/pixels não medem qualidade."
         ),
@@ -45,7 +49,9 @@ REVIEW_CONTRACT: dict[str, Any] = {
             "Observar hierarquia tipográfica, escala/profundidade, relações entre camadas e gravação e "
             "ação com resultado. "
             "Referências orientam mecanismos; não exigem sua identidade, órbita, neon, ícones ou desenho. "
-            "Acabamento infantil deve ser descrito por defeito observável, não pelo simples uso de ilustração."
+            "Acabamento infantil deve ser descrito por defeito observável, não pelo simples uso de ilustração. "
+            "Anti-(21): PIP pequeno sobre canvas lavagem/creme, legenda sem mudança do que se vê, ou abertura "
+            "só take+texto sem composição full-bleed → not_met com repair_kind=direction (não correct de CSS)."
         ),
         "temporal": (
             "Continuidade, oclusão, leitura e coordenação somente nos eventos amostrados; áudio permanece uncertain."
@@ -70,6 +76,8 @@ REVIEW_CONTRACT: dict[str, Any] = {
         "Se a solução exigir nova direção, fatos, materiais ou recursos não autorizados, não a marque acionável; "
         "registre a dependência e use reject ou insufficient_evidence conforme defeito demonstrado ou "
         "falta de evidência. "
+        "Colagem de conformidade (anti-21) e abertura sem full-bleed: needs_revision + repair_kind=direction "
+        "major/blocking, não implementation. "
         "Adequate não é aceite humano. Correção deve preservar direção fornecida, gravação, voz e kit."
     ),
     "input_projection": "review-composition-without-code-v1",
