@@ -29,6 +29,7 @@ from app.services.motion_protocols import MotionRenderer
 from app.services.motion_requests import MotionRequestService
 from app.services.motion_storyboard_frames import StoryboardMoment, storyboard_moments, storyboard_upload_name
 from app.services.motion_temporal import evidence_manifest
+from app.services.motion_video_continuity import maybe_normalize_video_html
 from app.services.motion_video_reel import guarded_video_scene_init
 from app.services.motion_video_scene_visibility import scoped_video_scene_init
 from app.services.visual_pending_changes import VisualPendingChanges
@@ -64,6 +65,10 @@ class MotionStoryboards:
         if composition.audio.model_dump(mode="json") != prepared.audio:
             raise AuthError("MOTION_ORIGINAL_AUDIO_CHANGED", 409)
         operation = capture_id or uuid5(row["operation_id"], "storyboard:0")
+        plan_data = composition.motion_plan.model_dump(mode="json") if composition.motion_plan is not None else None
+        chrome = maybe_normalize_video_html(composition.html, plan_data, prepared.context)
+        if chrome != composition.html:
+            composition = composition.model_copy(update={"html": chrome})
         scene_init = guarded_video_scene_init(
             composition,
             prepared.context,

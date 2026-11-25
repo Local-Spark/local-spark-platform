@@ -15,6 +15,7 @@ from app.schemas.motion_generation import (
 from app.schemas.motion_production import DirectedHTMLMotionComposition, MotionConstructionPlan
 from app.services.auth import AuthError
 from app.services.motion_staging import staging_enabled
+from app.services.motion_video_continuity import maybe_normalize_video_html, maybe_normalize_video_plan
 from app.services.motion_visual_direction import supplied_direction
 
 LEGACY_GENERATION_CONTRACT = {
@@ -156,6 +157,20 @@ VIDEO_EDIT_GENERATION_CONTRACT = {
 }
 
 
+VIDEO_CAPABILITY_GENERATION_CONTRACT = {
+    **VIDEO_EDIT_GENERATION_CONTRACT,
+    "version": "proposed-video-output-v3",
+    "response_rules": VIDEO_EDIT_GENERATION_CONTRACT["response_rules"].replace(
+        "Sem música nova; VR6 indisponível nesta versão.",
+        "Planeje camadas, grafismos e desenvolvimento editorial conforme video-design-v2 "
+        "(design obrigatório em toda video_layout). Beats de texto e layers: contíguos de "
+        "scene.start_ms a scene.end_ms, com hold nos intervalos; texto enter→transform→hold→exit, "
+        "related inclui o vídeo; CTA final hold≥1500ms; bar/rounded width≥0.04. "
+        "EDL speech-safe; mix elevenlabs-music-v1 com duck, sem compra pelo modelo.",
+    ),
+}
+
+
 def proposed_generation_enabled(context: dict[str, Any]) -> bool:
     return context.get("generation_contract") in (
         PROPOSED_GENERATION_CONTRACT,
@@ -163,6 +178,7 @@ def proposed_generation_enabled(context: dict[str, Any]) -> bool:
         PHOTO_GENERATION_CONTRACT,
         VIDEO_GENERATION_CONTRACT,
         VIDEO_EDIT_GENERATION_CONTRACT,
+        VIDEO_CAPABILITY_GENERATION_CONTRACT,
     )
 
 
@@ -174,6 +190,7 @@ def asset_informed_enabled(context: dict[str, Any]) -> bool:
         PHOTO_GENERATION_CONTRACT,
         VIDEO_GENERATION_CONTRACT,
         VIDEO_EDIT_GENERATION_CONTRACT,
+        VIDEO_CAPABILITY_GENERATION_CONTRACT,
     )
 
 
@@ -187,6 +204,7 @@ def staged_generation_enabled(context: dict[str, Any]) -> bool:
         PHOTO_GENERATION_CONTRACT,
         VIDEO_GENERATION_CONTRACT,
         VIDEO_EDIT_GENERATION_CONTRACT,
+        VIDEO_CAPABILITY_GENERATION_CONTRACT,
     )
 
 
@@ -199,8 +217,11 @@ def decode_construction_plan(text: str, context: dict[str, Any]) -> MotionConstr
     if proposed_generation_enabled(context):
         wire = MotionStagedPlanningOutput if staging_enabled(context) else MotionAudiovisualPlanningOutput
         data = wire.model_validate_json(text).model_dump(mode="json")
-        return MotionConstructionPlan.model_validate(expand_compact_output(data))
+        data = expand_compact_output(data)
+        data["motion_plan"] = maybe_normalize_video_plan(data["motion_plan"], context)
+        return MotionConstructionPlan.model_validate(data)
     data = expand_compact_output(MotionPlanningOutput.model_validate_json(text).model_dump(mode="json"))
+    data["motion_plan"] = maybe_normalize_video_plan(data["motion_plan"], context)
     return MotionConstructionPlan.model_validate({**data, "scene_direction": supplied_direction(context)})
 
 
@@ -208,9 +229,9 @@ def decode_implementation(text: str, plan: MotionConstructionPlan) -> DirectedHT
     output = MotionImplementationOutput.model_validate_json(text)
     if output.plan_sha256 != construction_plan_hash(plan):
         raise ValueError("Implementation must reference the supplied plan")
-    return DirectedHTMLMotionComposition.model_validate(
-        {**plan.model_dump(mode="json"), "html": output.html, "scene_init": output.scene_init}
-    )
+    payload = plan.model_dump(mode="json")
+    html = maybe_normalize_video_html(output.html, payload.get("motion_plan"))
+    return DirectedHTMLMotionComposition.model_validate({**payload, "html": html, "scene_init": output.scene_init})
 
 
 def generation_wire_model(
@@ -257,6 +278,7 @@ def provided_output_enabled(context: dict[str, Any]) -> bool:
         PHOTO_GENERATION_CONTRACT,
         VIDEO_GENERATION_CONTRACT,
         VIDEO_EDIT_GENERATION_CONTRACT,
+        VIDEO_CAPABILITY_GENERATION_CONTRACT,
     ):
         request = context.get("request", {})
         if (
@@ -268,7 +290,12 @@ def provided_output_enabled(context: dict[str, Any]) -> bool:
                     and (
                         (contract == PHOTO_GENERATION_CONTRACT and request.get("source_asset_id") is None)
                         or (
-                            contract in (VIDEO_GENERATION_CONTRACT, VIDEO_EDIT_GENERATION_CONTRACT)
+                            contract
+                            in (
+                                VIDEO_GENERATION_CONTRACT,
+                                VIDEO_EDIT_GENERATION_CONTRACT,
+                                VIDEO_CAPABILITY_GENERATION_CONTRACT,
+                            )
                             and request.get("source_asset_id") is not None
                         )
                     )
@@ -283,6 +310,7 @@ def provided_output_enabled(context: dict[str, Any]) -> bool:
             PHOTO_GENERATION_CONTRACT,
             VIDEO_GENERATION_CONTRACT,
             VIDEO_EDIT_GENERATION_CONTRACT,
+            VIDEO_CAPABILITY_GENERATION_CONTRACT,
         ):
             from app.services.motion_quality import validate_quality_context
 
@@ -308,4 +336,6 @@ def decode_provided_output(text: str, context: dict[str, Any]) -> DirectedHTMLMo
     data = wire.model_dump(mode="json")
     if isinstance(wire, CompactProvidedDirectionOutput):
         data = expand_compact_output(data)
+    data["motion_plan"] = maybe_normalize_video_plan(data["motion_plan"], context)
+    data["html"] = maybe_normalize_video_html(data["html"], data.get("motion_plan"), context)
     return DirectedHTMLMotionComposition.model_validate({**data, "scene_direction": supplied_direction(context)})

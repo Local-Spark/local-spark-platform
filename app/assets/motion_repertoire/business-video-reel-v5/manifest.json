@@ -1,0 +1,53 @@
+{
+  "id": "business-video-reel-v5",
+  "version": 5,
+  "rules": "Video C: motion-video-reel-v2 + motion-video-edit-v3, video_layout.design.version=video-design-v1. O plano é allowlist: declare TODOS os grafismos/imagens em design.layers com element_id, box {x,y,width,height} normalizado, z_index 0..18, shape rectangle/ellipse e color hexadecimal do kit. Cada layer aponta para role graphic ou image e beats lineares com JSON {x,y,opacity} em px. Grafismos puros sem filhos; imagens usam somente assets autorizados. O runtime cria essas layers, aplica beats e visibilidade; não duplique seus nós no HTML. Vídeo único e logo/textos ficam no HTML. design.viewport define retângulo normalizado do vídeo: mode cover exige 0,0,1,1; mode pip revela camada de fundo declarada. Vídeo z-index 10; texto e logo acima (20 ou mais). Layers 11..18 podem passar à frente da gravação; 0..9 são planos de fundo. O runtime executa EDL/crop e viewport; a guarda confere mídia, texto, logo e overlays. Corte com função: design.transition_reason relaciona origem/destino; >=2 funções editoriais, mudança de composição >=800ms, graphic com deslocamento >=48px e presença >=800ms. Take contínuo + texto + crop mínimo falha, mesmo em briefing soft; capacidade não prova qualidade. EDL in/out livres dentro da fonte, sem speed ramp; duração final <= output.duration_ms (teto). Pode encurtar sem repetir material; remonte com áudio exige fronteiras com margem 120ms em silêncio medido ou intervalo ASR completo com confiança >=.8; lacunas de transcrição parcial não provam silêncio. Cortes visuais contínuos não cortam áudio. Unsafe: MOTION_VIDEO_SPEECH_CUT_UNSAFE. O servidor monta áudio original na mesma EDL, aplica música autorizada/cache local e duck; SFX apenas biblioteca licenciada. Não comprar/gerar música. Ausência real fica explícita. Texto puro, scrim local estável, logo kit, scene-visibility, limites 60s/50MiB permanecem. Sem Remotion/TTS/avatar. Qualidade das refs 41/Maestros depende de MP4 e revisão humana autorizados.",
+  "selection": "Desenvolvimento cover → PIP/fundo do kit; grafismo com função; EDL e mix verificados.",
+  "required_runtimes": {},
+  "licenses": [],
+  "examples": [
+    {
+      "id": "action-type",
+      "source_id": "platform-original",
+      "file": "examples/action-type.js",
+      "sha256": "27ccd8a399d4f8ed2d050f2a580b4a832f25351cfdbe2fe0ed2f3941a7427f48",
+      "entrypoint": "videoTextSeek",
+      "mechanism": "Entrada, deslocamento suave, leitura e saída sobre gravação full-bleed.",
+      "use_when": "Frases curtas conforme briefing e kit.",
+      "limitations": "Prova de execução, não aceite artístico; preservar áreas essenciais da fonte.",
+      "integration": "Copiar em scene_init e chamar com tempo absoluto; não modifica vídeo nem áudio."
+    },
+    {
+      "id": "cta-plan",
+      "source_id": "platform-original",
+      "file": "examples/cta-plan.json",
+      "sha256": "eac14a3a56424ae098941572dab60ac74d30c241f1c5d75021f4dc3324292fc2",
+      "entrypoint": "beats",
+      "mechanism": "Plano canônico VR3 com hold visível de exatamente 1500ms.",
+      "use_when": "Planejar cada texto, inclusive CTA final.",
+      "limitations": "Tempos ilustrativos relativos a cena 0–2500ms; adaptar às fronteiras reais da cena.",
+      "integration": "Copiar beats para o elemento de texto relacionado ao vídeo; executar com videoTextSeek."
+    },
+    {
+      "id": "development-plan",
+      "source_id": "platform-original",
+      "file": "examples/development-plan.json",
+      "sha256": "770dd2986ab6180b4e24ad46805547d80cb6e73f466c8108ed492b2b3b7b2a0b",
+      "entrypoint": "motion_plan",
+      "mechanism": "Cover → PIP com fundo e grafismo declarados.",
+      "use_when": "Desenvolver material e convite soft.",
+      "limitations": "Exemplo sintético, não aprovação de qualidade.",
+      "integration": "Runtime executa layers e EDL; implementar logo/textos."
+    }
+  ],
+  "reference_images": [],
+  "reference_cards": [],
+  "sources": [
+    {
+      "id": "platform-original",
+      "origin": "Código próprio; referências analisadas em docs/evals/analise-41-referencias-motion-2026-11-12.md",
+      "version": "2026-11-23",
+      "permission": "Código original, sem conteúdo de terceiros."
+    }
+  ]
+}

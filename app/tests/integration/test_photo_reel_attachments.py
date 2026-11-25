@@ -153,17 +153,17 @@ async def test_shared_photo_snapshot_uses_material_evidence_and_origin_approval(
     assert not body.storyboard
     assert body.automatic_plan
     if video:
-        from app.services.motion_generation import VIDEO_EDIT_GENERATION_CONTRACT, staged_generation_enabled
+        from app.services.motion_generation import VIDEO_CAPABILITY_GENERATION_CONTRACT, staged_generation_enabled
         from app.services.motion_quality import QUALITY_CONTRACT
         from app.services.motion_staging import STAGING_CONTRACT
 
         assert body.preparation.evidence[0].kind == "source"
         assert body.preparation.evidence[0].at_ms == (0,)
-        assert snapshot["generation_contract"] == VIDEO_EDIT_GENERATION_CONTRACT
+        assert snapshot["generation_contract"] == VIDEO_CAPABILITY_GENERATION_CONTRACT
         assert snapshot["quality_contract"] == QUALITY_CONTRACT
         assert snapshot["staging_contract"] == STAGING_CONTRACT
-        assert snapshot["repertoire"]["id"] == "business-video-reel-v4"
-        assert snapshot["skill"]["id"] == "instagram-reel-video-v21"
+        assert snapshot["repertoire"]["id"] == "business-video-reel-v7"
+        assert snapshot["skill"]["id"] == "instagram-reel-video-v24"
         assert staged_generation_enabled(snapshot)
         assert capture_motion_guidance(body, previous=snapshot) == {
             key: value for key, value in snapshot.items() if key != "source"
@@ -172,12 +172,12 @@ async def test_shared_photo_snapshot_uses_material_evidence_and_origin_approval(
         assert "video_scene_visibility_contract" not in snapshot
         assert body.preparation.evidence[0].asset_id == f"assets/photo-{photo}.png"
         assert snapshot["photo_readability_contract"]["version"] == "motion-photo-readability-v1"
-        assert snapshot["photo_polish_contract"]["version"] == "motion-photo-polish-v6"
+        assert snapshot["photo_polish_contract"]["version"] == "motion-photo-polish-v8"
         assert snapshot["creative_contract"]["temporal_review"]["version"] == "motion-temporal-v5"
         assert snapshot["photo_finish_contract"]["version"] == "motion-photo-finish-v1"
         assert snapshot["photo_intent_contract"]["version"] == "motion-photo-intent-v10"
-        assert snapshot["skill"]["id"] == "instagram-reel-photo-v20"
-        assert snapshot["repertoire"]["id"] == "business-reel-v12"
+        assert snapshot["skill"]["id"] == "instagram-reel-photo-v23"
+        assert snapshot["repertoire"]["id"] == "business-reel-v13"
         assert "makePhotoReelMotion" in snapshot["repertoire"]["examples"][-1]["content"]
         assert snapshot["staging_contract"]["version"] == "motion-staging-photo-v2"
         assert snapshot["photo_motion"]["music_policy"] == "elevenlabs-music-v1"

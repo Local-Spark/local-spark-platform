@@ -109,7 +109,9 @@ Se não conseguir comprovar a sandbox, a execução falha.
 
 `docker/motion-renderer/Dockerfile` usa base Node 24.18.0/Bookworm ARM64 por digest;
 `dependencies.lock.json` registra os arquivos adquiridos. O contexto de build
-contém apenas dependências conferidas e estes arquivos do renderer. Os `.deb`
+contém apenas dependências conferidas e estes arquivos do renderer. Para
+`motion-audio-v3`, a imagem precisa de `audio.cjs` **e** `audio-video.cjs`
+(require do mix com ducking); pin sem o segundo módulo falha no encode. Os `.deb`
 são verificados por SHA-256 e instalados sem rede; Playwright 1.64.1, browser
 156.0.8078.4/revisão 1248 e FFmpeg/FFprobe 5.1.9 são fixados no pacote.
 

@@ -7,7 +7,12 @@ from typing import Any
 
 from app.schemas.motion_production import HTMLMotionComposition
 from app.services.auth import AuthError
-from app.services.motion_video_reel import VIDEO_REEL_CONTRACT
+from app.services.motion_video_reel import (
+    VIDEO_REEL_CONTRACT,
+    VIDEO_REEL_CONTRACT_V2,
+    VIDEO_REEL_CONTRACT_V3,
+    VIDEO_REEL_CONTRACT_V4,
+)
 
 SOURCE = Path(__file__).resolve().parents[1] / "assets/motion_video/scene-visibility-v1.js"
 CONTRACT = {
@@ -39,7 +44,12 @@ def scoped_video_scene_init(composition: HTMLMotionComposition, context: dict[st
     contract = context.get("video_scene_visibility_contract")
     if contract is None:
         return original
-    if contract != CONTRACT or context.get("video_reel_contract") != VIDEO_REEL_CONTRACT:
+    if contract != CONTRACT or context.get("video_reel_contract") not in (
+        VIDEO_REEL_CONTRACT,
+        VIDEO_REEL_CONTRACT_V2,
+        VIDEO_REEL_CONTRACT_V3,
+        VIDEO_REEL_CONTRACT_V4,
+    ):
         raise AuthError("MOTION_VIDEO_SCENE_CONTRACT_CHANGED", 409)
     if composition.motion_plan is None:
         raise AuthError("MOTION_VIDEO_PLAN_REQUIRED", 409)

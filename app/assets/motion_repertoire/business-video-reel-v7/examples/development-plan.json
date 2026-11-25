@@ -1,0 +1,380 @@
+{
+  "version": "motion-plan-v1",
+  "identity_source": "business_kit",
+  "duration_ms": 6000,
+  "scenes": [
+    {
+      "id": "scene0",
+      "start_ms": 0,
+      "end_ms": 3000,
+      "message": "pause",
+      "transition_to_next": "end",
+      "elements": [
+        {
+          "id": "recording0",
+          "role": "video",
+          "asset_id": "assets/source.mp4",
+          "purpose": "pause",
+          "coordination": "action first",
+          "related_element_ids": [],
+          "beats": [
+            {
+              "phase": "hold",
+              "start_ms": 0,
+              "end_ms": 3000,
+              "start_state": "visible",
+              "end_state": "visible",
+              "trajectory": "gentle",
+              "curve": {
+                "kind": "linear",
+                "parameters": []
+              }
+            }
+          ]
+        },
+        {
+          "id": "logo0",
+          "role": "image",
+          "asset_id": "assets/logo.png",
+          "purpose": "pause",
+          "coordination": "action first",
+          "related_element_ids": [],
+          "beats": [
+            {
+              "phase": "hold",
+              "start_ms": 0,
+              "end_ms": 3000,
+              "start_state": "visible",
+              "end_state": "visible",
+              "trajectory": "gentle",
+              "curve": {
+                "kind": "linear",
+                "parameters": []
+              }
+            }
+          ]
+        },
+        {
+          "id": "cta0",
+          "role": "text",
+          "asset_id": null,
+          "purpose": "pause",
+          "coordination": "action first",
+          "related_element_ids": [
+            "recording0"
+          ],
+          "beats": [
+            {
+              "phase": "enter",
+              "start_ms": 0,
+              "end_ms": 300,
+              "start_state": "{\"x\": 0, \"y\": 0, \"opacity\": 0}",
+              "end_state": "{\"x\": 0, \"y\": 0, \"opacity\": 1}",
+              "trajectory": "gentle",
+              "curve": {
+                "kind": "linear",
+                "parameters": []
+              }
+            },
+            {
+              "phase": "transform",
+              "start_ms": 300,
+              "end_ms": 700,
+              "start_state": "{\"x\": 0, \"y\": 0, \"opacity\": 1}",
+              "end_state": "{\"x\": 4, \"y\": 0, \"opacity\": 1}",
+              "trajectory": "gentle",
+              "curve": {
+                "kind": "linear",
+                "parameters": []
+              }
+            },
+            {
+              "phase": "hold",
+              "start_ms": 700,
+              "end_ms": 2700,
+              "start_state": "{\"x\": 4, \"y\": 0, \"opacity\": 1}",
+              "end_state": "{\"x\": 4, \"y\": 0, \"opacity\": 1}",
+              "trajectory": "gentle",
+              "curve": {
+                "kind": "linear",
+                "parameters": []
+              }
+            },
+            {
+              "phase": "exit",
+              "start_ms": 2700,
+              "end_ms": 3000,
+              "start_state": "{\"x\": 4, \"y\": 0, \"opacity\": 1}",
+              "end_state": "{\"x\": 4, \"y\": 0, \"opacity\": 0}",
+              "trajectory": "gentle",
+              "curve": {
+                "kind": "linear",
+                "parameters": []
+              }
+            }
+          ]
+        }
+      ],
+      "video_layout": {
+        "mode": "cover",
+        "video_element_id": "recording0",
+        "brand_element_id": "logo0",
+        "text_element_ids": [
+          "cta0"
+        ],
+        "cta_element_id": null,
+        "edit": {
+          "source_in_ms": 0,
+          "source_out_ms": 3000,
+          "purpose": "hook",
+          "transition": "cut",
+          "intent": "Aproximar o detalhe e abrir no convite",
+          "crop_from": {
+            "scale": 1,
+            "x": 0,
+            "y": 0
+          },
+          "crop_to": {
+            "scale": 1.06,
+            "x": 0,
+            "y": 0
+          }
+        },
+        "design": {
+          "version": "video-design-v2",
+          "viewport": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "layers": [],
+          "transition_reason": "Estabelecer a ação em cover"
+        }
+      }
+    },
+    {
+      "id": "scene1",
+      "start_ms": 3000,
+      "end_ms": 6000,
+      "message": "pause",
+      "transition_to_next": "end",
+      "elements": [
+        {
+          "id": "recording1",
+          "role": "video",
+          "asset_id": "assets/source.mp4",
+          "purpose": "pause",
+          "coordination": "action first",
+          "related_element_ids": [],
+          "beats": [
+            {
+              "phase": "hold",
+              "start_ms": 3000,
+              "end_ms": 6000,
+              "start_state": "visible",
+              "end_state": "visible",
+              "trajectory": "gentle",
+              "curve": {
+                "kind": "linear",
+                "parameters": []
+              }
+            }
+          ]
+        },
+        {
+          "id": "logo1",
+          "role": "image",
+          "asset_id": "assets/logo.png",
+          "purpose": "pause",
+          "coordination": "action first",
+          "related_element_ids": [],
+          "beats": [
+            {
+              "phase": "hold",
+              "start_ms": 3000,
+              "end_ms": 6000,
+              "start_state": "visible",
+              "end_state": "visible",
+              "trajectory": "gentle",
+              "curve": {
+                "kind": "linear",
+                "parameters": []
+              }
+            }
+          ]
+        },
+        {
+          "id": "cta1",
+          "role": "text",
+          "asset_id": null,
+          "purpose": "pause",
+          "coordination": "action first",
+          "related_element_ids": [
+            "recording1"
+          ],
+          "beats": [
+            {
+              "phase": "enter",
+              "start_ms": 3000,
+              "end_ms": 3300,
+              "start_state": "{\"x\": 0, \"y\": 0, \"opacity\": 0}",
+              "end_state": "{\"x\": 0, \"y\": 0, \"opacity\": 1}",
+              "trajectory": "gentle",
+              "curve": {
+                "kind": "linear",
+                "parameters": []
+              }
+            },
+            {
+              "phase": "transform",
+              "start_ms": 3300,
+              "end_ms": 3700,
+              "start_state": "{\"x\": 0, \"y\": 0, \"opacity\": 1}",
+              "end_state": "{\"x\": 4, \"y\": 0, \"opacity\": 1}",
+              "trajectory": "gentle",
+              "curve": {
+                "kind": "linear",
+                "parameters": []
+              }
+            },
+            {
+              "phase": "hold",
+              "start_ms": 3700,
+              "end_ms": 5700,
+              "start_state": "{\"x\": 4, \"y\": 0, \"opacity\": 1}",
+              "end_state": "{\"x\": 4, \"y\": 0, \"opacity\": 1}",
+              "trajectory": "gentle",
+              "curve": {
+                "kind": "linear",
+                "parameters": []
+              }
+            },
+            {
+              "phase": "exit",
+              "start_ms": 5700,
+              "end_ms": 6000,
+              "start_state": "{\"x\": 4, \"y\": 0, \"opacity\": 1}",
+              "end_state": "{\"x\": 4, \"y\": 0, \"opacity\": 0}",
+              "trajectory": "gentle",
+              "curve": {
+                "kind": "linear",
+                "parameters": []
+              }
+            }
+          ]
+        },
+        {
+          "id": "scene1-background",
+          "role": "graphic",
+          "asset_id": null,
+          "purpose": "Revelar segundo plano e conectar preparo ao convite",
+          "related_element_ids": [
+            "recording1"
+          ],
+          "coordination": "Passagem de atenção para o convite",
+          "beats": [
+            {
+              "phase": "hold",
+              "start_ms": 3000,
+              "end_ms": 6000,
+              "start_state": "{\"x\": 0, \"y\": 0, \"opacity\": 1}",
+              "end_state": "{\"x\": 0, \"y\": 0, \"opacity\": 1}",
+              "trajectory": "linear",
+              "curve": {
+                "kind": "linear",
+                "parameters": []
+              }
+            }
+          ]
+        },
+        {
+          "id": "scene1-ribbon",
+          "role": "graphic",
+          "asset_id": null,
+          "purpose": "Revelar segundo plano e conectar preparo ao convite",
+          "related_element_ids": [
+            "recording1"
+          ],
+          "coordination": "Passagem de atenção para o convite",
+          "beats": [
+            {
+              "phase": "transform",
+              "start_ms": 3000,
+              "end_ms": 6000,
+              "start_state": "{\"x\": 0, \"y\": 0, \"opacity\": 1}",
+              "end_state": "{\"x\": 60, \"y\": 0, \"opacity\": 1}",
+              "trajectory": "linear",
+              "curve": {
+                "kind": "linear",
+                "parameters": []
+              }
+            }
+          ]
+        }
+      ],
+      "video_layout": {
+        "mode": "pip",
+        "video_element_id": "recording1",
+        "brand_element_id": "logo1",
+        "text_element_ids": [
+          "cta1"
+        ],
+        "cta_element_id": "cta1",
+        "edit": {
+          "source_in_ms": 3000,
+          "source_out_ms": 6000,
+          "purpose": "invitation",
+          "transition": "cut",
+          "intent": "Aproximar o detalhe e abrir no convite",
+          "crop_from": {
+            "scale": 1.22,
+            "x": 0,
+            "y": 0
+          },
+          "crop_to": {
+            "scale": 1.16,
+            "x": 0,
+            "y": 0
+          }
+        },
+        "design": {
+          "version": "video-design-v2",
+          "viewport": {
+            "x": 0.15,
+            "y": 0.2,
+            "width": 0.7,
+            "height": 0.55
+          },
+          "layers": [
+            {
+              "element_id": "scene1-background",
+              "box": {
+                "x": 0,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "z_index": 0,
+              "shape": "rectangle",
+              "color": "#204030"
+            },
+            {
+              "element_id": "scene1-ribbon",
+              "box": {
+                "x": 0.1,
+                "y": 0.8,
+                "width": 0.4,
+                "height": 0.03
+              },
+              "z_index": 1,
+              "shape": "bar",
+              "color": "#c8a070"
+            }
+          ],
+          "transition_reason": "Preparação em cover cede espaço para convite no segundo plano"
+        }
+      }
+    }
+  ]
+}

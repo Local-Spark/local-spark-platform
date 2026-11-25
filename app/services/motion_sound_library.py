@@ -138,6 +138,11 @@ def apply_planned_sound(
     validate_sound_design(artifact, prepared.context)
     verify_sound_assets(prepared.context, prepared.assets)
     assert artifact.audiovisual is not None
+    from app.services.motion_video_audio import apply_video_audio
+    from app.services.motion_video_capabilities import enabled
+
+    if enabled(prepared.context):
+        return apply_video_audio(prepared, artifact)
     sounds = artifact.audiovisual.sounds
     if not sounds:
         return prepared

@@ -129,10 +129,10 @@ def test_new_photo_snapshots_pin_executable_examples_without_changing_video_defa
     from app.services.motion_skills import resolve_html_motion_skill
 
     _, prepared, plan = photo_case()
-    assert prepared.context["skill"]["id"] == "instagram-reel-photo-v20"
-    assert resolve_html_motion_skill("reel")[0] == "instagram-reel-video-v21"
+    assert prepared.context["skill"]["id"] == "instagram-reel-photo-v23"
+    assert resolve_html_motion_skill("reel")[0] == "instagram-reel-video-v24"
     pack = prepared.context["repertoire"]
-    assert pack["id"] == "business-reel-v12"
+    assert pack["id"] == "business-reel-v13"
     example = next(e for e in pack["examples"] if e["id"] == "photo-reel")
     assert "window.makePhotoReelMotion" in example["content"]
     assert "animatePhoto(ms)" in example["integration"]

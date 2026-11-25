@@ -1,0 +1,53 @@
+{
+  "id": "business-video-reel-v6",
+  "version": 6,
+  "rules": "Video qualidade: motion-video-reel-v3 + motion-video-edit-v4, design video-design-v2. O plano é allowlist: design.layers com shape rectangle|ellipse|rounded|bar e color #RRGGBB ou #RRGGBBAA do kit. Beats lineares JSON {x,y,opacity} ou {x,y,opacity,scale}. transition cut|dissolve|fade. Silent: rate 0.75–1.25; com áudio: 1:1 + speech-safe com margem 120ms. Mix biblioteca/cache + duck.",
+  "selection": "Desenvolvimento editorial rico; dissolve/fade; grafismo rounded/bar; mix biblioteca.",
+  "required_runtimes": {},
+  "licenses": [],
+  "examples": [
+    {
+      "id": "action-type",
+      "source_id": "platform-original",
+      "file": "examples/action-type.js",
+      "sha256": "27ccd8a399d4f8ed2d050f2a580b4a832f25351cfdbe2fe0ed2f3941a7427f48",
+      "entrypoint": "videoTextSeek",
+      "mechanism": "Entrada, deslocamento suave, leitura e saída sobre gravação full-bleed.",
+      "use_when": "Frases curtas conforme briefing e kit.",
+      "limitations": "Prova de execução, não aceite artístico; preservar áreas essenciais da fonte.",
+      "integration": "Copiar em scene_init e chamar com tempo absoluto; não modifica vídeo nem áudio."
+    },
+    {
+      "id": "cta-plan",
+      "source_id": "platform-original",
+      "file": "examples/cta-plan.json",
+      "sha256": "eac14a3a56424ae098941572dab60ac74d30c241f1c5d75021f4dc3324292fc2",
+      "entrypoint": "beats",
+      "mechanism": "Plano canônico VR3 com hold visível de exatamente 1500ms.",
+      "use_when": "Planejar cada texto, inclusive CTA final.",
+      "limitations": "Tempos ilustrativos relativos a cena 0–2500ms; adaptar às fronteiras reais da cena.",
+      "integration": "Copiar beats para o elemento de texto relacionado ao vídeo; executar com videoTextSeek."
+    },
+    {
+      "id": "development-plan",
+      "source_id": "platform-original",
+      "file": "examples/development-plan.json",
+      "sha256": "770dd2986ab6180b4e24ad46805547d80cb6e73f466c8108ed492b2b3b7b2a0b",
+      "entrypoint": "motion_plan",
+      "mechanism": "Cover → PIP com fundo e grafismo declarados.",
+      "use_when": "Desenvolver material e convite soft.",
+      "limitations": "Exemplo sintético, não aprovação de qualidade.",
+      "integration": "Runtime executa layers e EDL; implementar logo/textos."
+    }
+  ],
+  "reference_images": [],
+  "reference_cards": [],
+  "sources": [
+    {
+      "id": "platform-original",
+      "origin": "Código próprio; referências analisadas em docs/evals/analise-41-referencias-motion-2026-11-12.md",
+      "version": "2026-11-23",
+      "permission": "Código original, sem conteúdo de terceiros."
+    }
+  ]
+}

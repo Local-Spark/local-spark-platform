@@ -12,6 +12,10 @@ from app.tests.unit.test_motion_photo_hard import artifact, exception
 from app.tests.unit.test_motion_photo_planning import photo_case
 from app.tests.unit.test_motion_photo_polish import CONTEXT, case, check, handoff_case
 
+# v6/v7 cover+continuous gates; CONTEXT may pin a newer polish for new captures.
+V6_CONTEXT = {**CONTEXT, "photo_polish_contract": polish.PHOTO_POLISH_CONTRACT_V6}
+V7_CONTEXT = {**CONTEXT, "photo_polish_contract": polish.PHOTO_POLISH_CONTRACT_V7}
+
 
 @pytest.mark.parametrize(
     "version,digest",
@@ -42,7 +46,7 @@ def test_no_stories_exception_even_when_old_contract_accepts(index):
     old = {**CONTEXT, "photo_polish_contract": polish.PHOTO_POLISH_CONTRACT_V5}
     polish.validate_photo_polish(artifact(data), old, asset_ids=ids)
     with pytest.raises(AuthError, match="FULL_BLEED_REQUIRED"):
-        check(data, ids)
+        polish.validate_photo_polish(artifact(data), V6_CONTEXT, asset_ids=ids)
 
 
 @pytest.mark.parametrize("change", ["start", "end", "middle", "reset"])
@@ -63,7 +67,7 @@ def test_v6_closes_u2_gap_allowance_without_upgrading_v5(change):
         artifact(data), {**CONTEXT, "photo_polish_contract": polish.PHOTO_POLISH_CONTRACT_V5}, asset_ids=ids
     )
     with pytest.raises(AuthError, match="CONTINUOUS_TRANSFORM_REQUIRED"):
-        check(data, ids)
+        polish.validate_photo_polish(artifact(data), V6_CONTEXT, asset_ids=ids)
     assert before == data
 
 
@@ -74,12 +78,12 @@ def test_contiguous_beats_and_outgoing_handoff_are_allowed():
     second = dict(beat, start_ms=7500, start_state="scale=1.16 x_pct=0 y_pct=0")
     beat.update(end_ms=7500, end_state=second["start_state"])
     beats.append(second)
-    check(data, ids)
+    polish.validate_photo_polish(artifact(data), V6_CONTEXT, asset_ids=ids)
     # Layout absence on a scene must fail even if other scenes supply variety.
     data, ids = case(1)
     data["motion_plan"]["scenes"][1]["photo_layout"] = None
     with pytest.raises(AuthError, match="CONTINUITY_REQUIRED"):
-        check(data, ids)
+        polish.validate_photo_polish(artifact(data), V6_CONTEXT, asset_ids=ids)
 
 
 def test_new_guard_payload_is_bound_to_primary_and_timing():
@@ -96,4 +100,4 @@ def test_handoff_does_not_license_a_hold_after_dissolve():
     data["motion_plan"]["scenes"][0]["elements"][0]["beats"][-1]["end_ms"] = 5100
     data["staging"]["moments"][0]["transition"]["end_ms"] = 5100
     with pytest.raises(AuthError, match="CONTINUOUS_TRANSFORM_REQUIRED"):
-        check(data, ids)
+        polish.validate_photo_polish(artifact(data), V6_CONTEXT, asset_ids=ids)

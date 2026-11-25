@@ -55,7 +55,9 @@ def validate_photo_quality(
                 if beat.phase == "hold":
                     if hold_start is None or beat.start_ms != previous_end:
                         hold_start = beat.start_ms
-                    if beat.end_ms - hold_start > 2500:
+                    polish = context.get("photo_polish_contract") or {}
+                    limit = 4000 if polish.get("version") == "motion-photo-polish-v8" else 2500
+                    if beat.end_ms - hold_start > limit:
                         raise AuthError("MOTION_PHOTO_HOLD_TOO_LONG", 409)
                 else:
                     hold_start = None

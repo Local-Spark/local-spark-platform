@@ -28,10 +28,10 @@ def test_resolve_snapshot_for_each_motion_format(format: str, skill_id: str, req
 def test_html_reel_skill_preserves_recording_and_old_snapshot() -> None:
     skill_id, digest, instructions = motion_skills.resolve_html_motion_skill("reel")
 
-    assert skill_id == "instagram-reel-video-v21"
+    assert skill_id == "instagram-reel-video-v24"
     assert digest == hashlib.sha256(instructions.encode("utf-8")).hexdigest()
-    assert "full-bleed" in instructions and "1500ms" in instructions
-    assert "EDL e crop conforme contrato B" in instructions
+    assert "cover" in instructions and "1500ms" in instructions
+    assert "EDL speech-safe" in instructions
     old_v13 = motion_skills.load_motion_skill(
         "instagram-reel-v13", motion_skills._SKILLS["instagram-reel-v13"][1], "reel"
     )

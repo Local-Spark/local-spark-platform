@@ -387,7 +387,7 @@ async def test_html_context_serializes_compatible_contract_and_preserves_histori
     capabilities = transmitted["executor_contract"]["capabilities"]
     assert all(term in capabilities for term in ("HTML", "JavaScript", "SVG", "Canvas", "misturar", "cut/fade"))
     assert "full-bleed cover 9:16" in transmitted["executor_contract"]["integration_policy"]
-    assert transmitted["skill"]["id"] == "instagram-reel-video-v21"
+    assert transmitted["skill"]["id"] == "instagram-reel-video-v24"
     assert "escolha os trechos" not in transmitted["skill"]["instructions"]
     for item in transmitted["styles"]:
         assert item["projection"] == "html-executor-style-v1"
@@ -500,7 +500,7 @@ async def test_construction_skill_reaches_the_exact_counted_request(context_case
     assert authorized == job.context
     assert authorized["request"]["scene_direction"] == direction_data()
     instructions = authorized["skill"]["instructions"]
-    assert authorized["skill"]["id"] == "instagram-reel-video-v21"
+    assert authorized["skill"]["id"] == "instagram-reel-video-v24"
     assert "function makeCompositionPassage" in instructions
     assert "function makeReadingReveal" in instructions
     assert "MotionV1.stagger" in instructions
@@ -570,11 +570,11 @@ def test_new_guidance_coordinates_background_video_and_objects_without_new_capab
 
     body = MotionRequest(operation_id=uuid4(), source_asset_id=uuid4(), instruction="Elaborated motion")
     guidance = capture_motion_guidance(body)
-    assert guidance["skill"]["id"] == "instagram-reel-video-v21"
+    assert guidance["skill"]["id"] == "instagram-reel-video-v24"
     text = guidance["skill"]["instructions"]
-    assert "full-bleed" in text
-    assert "Nunca use cartaz creme" in text
-    assert "sem label fixo hero" in text
+    assert "mode cover exige" in text
+    assert "PIP" in text
+    assert "Logo IMG" in text
     assert "illustration_generation" not in guidance
 
 
@@ -596,8 +596,8 @@ def test_v7_with_v2_movement_recaptures_without_upgrading_historical_frames():
     }
     previous["creative_contract"]["movement_runtime"] = movement_v2_contract()
     assert capture_motion_guidance(body, previous=previous) == previous
-    assert current["skill"]["id"] == "instagram-reel-video-v21"
-    assert "full-bleed" in current["skill"]["instructions"]
+    assert current["skill"]["id"] == "instagram-reel-video-v24"
+    assert "mode cover exige" in current["skill"]["instructions"]
 
 
 def test_v11_guidance_is_preserved_when_recapturing_after_v12():
@@ -650,8 +650,8 @@ def test_background_skill_recapture_preserves_the_previous_video_treatment_versi
         "instructions": load_motion_skill("instagram-reel-v8", digest, "reel"),
     }
     assert capture_motion_guidance(body, previous=previous) == previous
-    assert "Nunca use cartaz creme" in current["skill"]["instructions"]
-    assert "full-bleed" in current["skill"]["instructions"]
+    assert "PIP" in current["skill"]["instructions"]
+    assert "mode cover exige" in current["skill"]["instructions"]
     assert "makeNarrativeBackdrop" not in previous["skill"]["instructions"]
     for key in ("creative_contract", "review_contract", "executor_contract"):
         assert current[key] == previous[key]
@@ -673,7 +673,7 @@ def test_realistic_object_guidance_preserves_v9_snapshot_and_does_not_grant_imag
         "instructions": load_motion_skill("instagram-reel-v9", digest, "reel"),
     }
     assert capture_motion_guidance(body, previous=previous) == previous
-    assert "não fabrique identidade" in current["skill"]["instructions"]
+    assert "sem fabricar identidade" in current["skill"]["instructions"]
     assert "makeCutoutObject" not in previous["skill"]["instructions"]
     assert "illustration_generation" not in current
     for key in ("creative_contract", "executor_contract", "review_contract"):
@@ -715,7 +715,7 @@ def test_speech_skill_keeps_v10_snapshots_unchanged():
         "instructions": load_motion_skill("instagram-reel-v10", digest, "reel"),
     }
     assert capture_motion_guidance(body, previous=previous) == previous
-    assert "speech_cue_id" in current["skill"]["instructions"]
+    assert "Cues de fala são da fonte" in current["skill"]["instructions"]
     assert "speech_cue_id" not in previous["skill"]["instructions"]
 
 

@@ -101,12 +101,12 @@ def artifact(data=None):
 def test_capture_pin_replay_and_legacy_schema():
     body = natural_body(repertoire_id=None)
     new = capture_motion_guidance(body)
-    assert new["video_reel_contract"] == VIDEO_REEL_CONTRACT
+    assert new["video_reel_contract"]["version"] == "motion-video-reel-v4"
     assert new["executor_contract"]["integration_policy"] == video_reel_rules(new).strip()
     assert "proporção/contain" not in new["creative_contract"]["direction"]
     assert "não exige vídeo sempre visível" not in new["creative_contract"]["direction"]
-    assert new["skill"]["id"] == "instagram-reel-video-v21"
-    assert new["repertoire"]["id"] == "business-video-reel-v4"
+    assert new["skill"]["id"] == "instagram-reel-video-v24"
+    assert new["repertoire"]["id"] == "business-video-reel-v7"
     assert capture_motion_guidance(body, previous=new) == new
     old = deepcopy(new)
     old.pop("video_reel_contract")
@@ -389,40 +389,19 @@ def test_new_guidance_reaches_provider_and_v14_v1_replay_is_unchanged():
     body = natural_body(repertoire_id=None)
     new = capture_motion_guidance(body)
     job = staged_job()
+    refs = load_repertoire_images(new)
+    assert len(refs) == 2
     context = {**job.context, **CTX, "skill": new["skill"], "repertoire": new["repertoire"]}
-    payload = provider().build_request(replace(job, context=context, reference_images=()))
+    payload = provider().build_request(replace(job, context=context, reference_images=refs))
     transmitted = json.loads(payload["input"][0]["content"][0]["text"])["authorized_context"]
     for instructions in (transmitted["skill"]["instructions"], transmitted["repertoire"]["rules"]):
-        for rule in (
-            "[scene.start_ms, scene.end_ms]",
-            "beats[0].phase=enter",
-            "beats[-1].phase=exit",
-            "Proibido hold com opacity=0",
-            "Invisibilidade só via enter/exit",
-            "hold estável >=1500ms entre enter e exit",
-        ):
-            assert rule in instructions
-    for rule in (
-        "Cada cena inclui em scene.elements",
-        "asset_id=assets/source.mp4 (VIDEO)",
-        "asset_id=assets/logo.png (IMG)",
-        "proibir IDs de outra cena",
-        "exatamente um VIDEO no DOM em cada seek",
-        "display:none não satisfaz a guarda",
-        "Transform obrigatório em CADA texto",
-        "enter → hold → exit é inválido",
-        "CTA com hold longo também precisa de transform",
-        "não conte enter/exit como transform",
-        "Nunca multiplique o alpha do scrim pela opacidade do texto",
-        "mesmo que estejam declarados com role=graphic",
-        "function videoTextWithScrim",
-        "node.children.length === 0",
-        "<br> é elemento filho",
-        "Use textContent",
-        "white-space:pre-line",
-    ):
-        assert rule in transmitted["skill"]["instructions"]
-    assert load_repertoire_images(new) == ()
+        assert "allowlist" in instructions and "margem 120ms" in instructions
+        assert "Não planeje hastes" not in instructions
+    assert "Use textContent" in transmitted["skill"]["instructions"]
+    assert [item["role"] for item in new["repertoire"]["reference_images"]] == [
+        "finish_reference_only",
+        "finish_reference_only",
+    ]
     old = deepcopy(new)
     digest = "adb2b90b2e60883bd7fa0e1b59ddd92c3dcee47401710aa89447de1e80c8208f"
     old["skill"] = {
@@ -442,9 +421,9 @@ def test_new_guidance_reaches_provider_and_v14_v1_replay_is_unchanged():
 def test_run_028a10c5_each_final_text_needs_its_own_transform(offender):
     """Recorded boundaries and missing-phase topology; synthetic states/content only."""
     from app.services.motion_plan import validate_motion_plan
-    from app.services.motion_skills import resolve_html_motion_skill
+    from app.services.motion_skills import _SKILLS, load_motion_skill
 
-    instructions = resolve_html_motion_skill("reel")[2]
+    instructions = load_motion_skill("instagram-reel-video-v21", _SKILLS["instagram-reel-video-v21"][1], "reel")
     canonical = json.loads(instructions.split("```json\n", 1)[1].split("```", 1)[0])
     data = video_case()
     first = data["motion_plan"]["scenes"][0]
@@ -500,6 +479,7 @@ def test_previous_replay_keeps_the_captured_guidance_and_repertoire(version):
     body = natural_body(repertoire_id=None)
     previous = capture_motion_guidance(body)
     previous.pop("video_edit_contract")
+    previous["video_reel_contract"] = VIDEO_REEL_CONTRACT
     previous["repertoire"] = capture_repertoire("business-video-reel-v2")
     identifier = f"instagram-reel-video-v{version}"
     digest = _SKILLS[identifier][1]

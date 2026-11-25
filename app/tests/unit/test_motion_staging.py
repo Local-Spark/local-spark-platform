@@ -126,7 +126,7 @@ def test_new_default_and_recapture_preserve_versions_and_old_plan_hash():
     before = construction_plan_hash(old)
     body = natural_body(repertoire_id=None)
     new = capture_motion_guidance(body)
-    assert staging_enabled(new) and new["repertoire"]["id"] == "business-video-reel-v4"
+    assert staging_enabled(new) and new["repertoire"]["id"] == "business-video-reel-v7"
     assert capture_motion_guidance(body, previous=new) == new
     legacy = capture_motion_guidance(natural_body())
     assert not staging_enabled(legacy)

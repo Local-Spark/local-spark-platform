@@ -1,5 +1,95 @@
 # Decisões vigentes e pendências
 
+## 24/11/2026 — trilha de video-reel via ElevenLabs (igual photo)
+
+Titular confirmou: não regredir qualidade de áudio; aplicar no reel com vídeo
+(e demais formatos com vídeo) o mesmo padrão `elevenlabs-music-v1` que já
+funcionou bem nos statics. Geração paga só com as gates explícitas de photo;
+sem credencial, cache existente ou status explícito — sem seed CC0 sintético
+como substituto de produto. SFX `public-cc0-v1` permanece separado.
+
+## 24/11/2026 — dissolve/fade = handoff com plano, não fade a preto
+
+Opacidade só no VIDEO era dissolve falso e conflitava com a guarda ≥0.99.
+Novas capturas exigem layer full-bleed (z<10, opacity≥.95) durante a borda;
+runtime/guard v4 permitem VIDEO soft só com essa cobertura.
+
+## 24/11/2026 — SVG graphic no video = forma do plano, não path livre
+
+Runtime cria `role=graphic` como SVG com rect/ellipse do shape+cor do kit.
+Filhos só sob o id allowlist; SVG residual continua UNPLANNED. Sem Remotion.
+
+## 24/11/2026 — desengessar qualidade sem afrouxar segurança
+
+Titular: manter só inventar-assets / Remotion-TTS-avatar / 60s-50MiB / logo /
+secrets / residual / crop inseguro. Todo o resto que engessava qualidade
+(video cut-only, layers pobres, photo cover+continuous cegos, holds curtos,
+etc.) sai do caminho das novas capturas. Speed-with-audio e música paga sem
+credencial ficam gated por dívida técnica/orçamento. Doc:
+[desengessar](design/motion-qualidade-desengessar-2026-11-24.md).
+
+## 24/11/2026 — video-reel C: capacidade declarada e verificação
+
+Implementado em código para novas capturas: `motion-video-reel-v2`,
+`motion-video-edit-v3`, `video-design-v1`, `instagram-reel-video-v22`,
+`business-video-reel-v5`, geração `proposed-video-output-v3` e mixer
+`motion-audio-v3`. A/B mantêm seus contratos e bytes; ausência de pin não
+promove replay. Esta mudança trata exclusivamente de vídeo; alterações
+paralelas de photo-polish no workspace são preservadas, fora deste recorte.
+
+O plano declara grafismos, imagens auxiliares e viewport/PIP. Runtime próprio
+executa essas camadas, crop e relógio da EDL; guarda V2 verifica execução e
+recusa pintura não declarada. Cover continua quando escolhido, além de logo do
+kit, texto puro legível/scrim e scene-visibility. Desenvolvimento exige mudança
+sustentada de composição e grafismo realmente exposto, não escondido atrás da
+fonte. Review `adequate` recusa o anti-padrão take+texto+crop mínimo.
+
+Remonte com áudio admite cortes com margem de 120ms em silêncio medido ou
+intervalos ASR confiáveis; risco retorna `MOTION_VIDEO_SPEECH_CUT_UNSAFE`.
+Saída pode encurtar: vídeo, áudio original, música e restauração do checkpoint
+usam a mesma duração/EDL. Mix usa seleção autorizada ou cache do mesmo negócio,
+com reserva zero, duck somente na música e SFX CC0 já existentes. Cache vazio
+registra indisponibilidade; este caminho nunca chama o provedor de música.
+
+Temporal, identidades duráveis, audit/outbox, RLS e HTML/Chromium/FFmpeg
+permanecem. Sem chamada paga, compra, captura do Café, deploy ou reload.
+Testes técnicos não constituem E2E nem nota perceptual. MP4 autorizado e revisão
+do titular vs 41 refs/Maestros continuam pendentes. Detalhes e validação no
+replanejamento de qualidade de 24/11.
+
+Validação: 179 testes Python do recorte (100% linhas/branches em cinco serviços),
+299 Node (100% linhas/branches/funções nos oito módulos medidos), 12 integrações
+PostgreSQL `_test`, quatro provas Chromium sintéticas e uma prova FFmpeg de áudio
+passaram. Ruff/formato do recorte e mypy de 11 módulos passaram. Trinta assets
+históricos A/B conferidos byte a byte, intactos. `make ci` segue bloqueado por
+66 lints preexistentes; 20 falhas unitárias antigas de feedback/áudio foram
+reproduzidas em HEAD isolado. Regressão ampla final: 1867 passaram e somente essas
+20 falharam (mesmo conjunto de HEAD). CI/cobertura globais e aceite audiovisual pendentes.
+
+## 24/11/2026 — photo-reel polish-v7: grafismo = allowlist do plano
+
+Reel estático ≠ video-reel. Removido o veto cego T3/`DECORATION_FORBIDDEN` para
+novas capturas photo: `role=graphic` declarado + id DOM; residual continua
+proibido. Soft brief, cover/crop/legibilidade e Music do kit permanecem.
+Implementação: polish-v7 / photo-polish-v5 / photo-v21.
+
+## 24/11/2026 — video-reel: qualidade das refs acima das proibições de gate
+
+Proibir grafismos (vídeo e photo-polish T3/`DECORATION_FORBIDDEN`) e remonte
+com áudio foi defesa de implementação, não pedido do titular. Autorizado
+remover e maximizar qualidade implementável (plano = allowlist; Café freeze
+reaberto para isso). Soft brief e crop/legibilidade permanecem. Detalhe:
+[motion-video-reel-qualidade-replanejamento-2026-11-24.md](design/motion-video-reel-qualidade-replanejamento-2026-11-24.md).
+
+## 24/11/2026 — Fatia C após rejeição do MP4 Fatia B (~30–40%, não 70%)
+
+Fatia B cumpriu EDL+crop mínimo e gerou MP4 (`8ab63903…` / `versao-1 (16)`),
+mas o titular rejeitou: peça ainda “parada”, sem camadas/grafismo/transição/
+trilha. Não desfazer A+B. Próxima implementação: **Fatia C** (C1–C5). Síntese
+atual vs refs de propaganda ~30–40%; 70% é meta de percepção pós-C + revisão
+humana, não status atual. Detalhe/prompt:
+[motion-video-reel-v1-slice-c.md](design/motion-video-reel-v1-slice-c.md).
+
 ## 24/11/2026 — correção do padding final da EDL (v2)
 
 Run `e5cbf795-c5a7-5506-a275-e184fa7470d3` falhou com

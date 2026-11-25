@@ -138,7 +138,24 @@ def test_environment_cannot_be_skipped_for_three_details_and_graphics_are_reject
         check(data, ids)
     data["motion_plan"]["scenes"][0]["elements"][0].update(role="graphic", asset_id=None)
     with pytest.raises(AuthError, match="DECORATION_FORBIDDEN"):
-        check(data, ids)
+        from app.services.motion_photo_polish import PHOTO_POLISH_CONTRACT_V6
+
+        validate_photo_polish(
+            artifact(data), {**CONTEXT, "photo_polish_contract": PHOTO_POLISH_CONTRACT_V6}, asset_ids=ids
+        )
+
+
+def test_v7_allows_declared_graphics_without_photo_asset():
+    data, ids = case(3)
+    graphic = deepcopy(data["motion_plan"]["scenes"][0]["elements"][0])
+    graphic.update(id="accent", role="graphic", asset_id=None, related_element_ids=[])
+    data["motion_plan"]["scenes"][0]["elements"].append(graphic)
+    check(data, ids)
+    code = polish_scene_init(artifact(data), CONTEXT, "scene_init")
+    assert '"graphics": ["accent"]' in code or '"graphics":["accent"]' in code
+    data["motion_plan"]["scenes"][0]["elements"][-1]["asset_id"] = "assets/photo-1.png"
+    with pytest.raises(ValidationError, match="authorized asset"):
+        artifact(data)
 
 
 def test_guard_composed_and_hash_checked(monkeypatch, tmp_path):
@@ -221,6 +238,8 @@ def test_v3_replay_keeps_exact_rules_guard_and_old_energy_admission():
 
 @pytest.mark.parametrize("change", ["slow", "gap", "coverage", "overlap", "edge", "no_primary"])
 def test_primary_continuity_cannot_be_replaced_by_text_or_overlapping_beats(change):
+    from app.services.motion_photo_polish import PHOTO_POLISH_CONTRACT_V7
+
     data, ids = case(1)
     scene = data["motion_plan"]["scenes"][1]
     photo = scene["elements"][0]
@@ -244,8 +263,9 @@ def test_primary_continuity_cannot_be_replaced_by_text_or_overlapping_beats(chan
         photo["beats"].append(dict(beat, start_ms=7400, end_ms=9600))
         if change == "overlap":
             photo["beats"].append(deepcopy(beat))
+    legacy = {**CONTEXT, "photo_polish_contract": PHOTO_POLISH_CONTRACT_V7}
     with pytest.raises(ValidationError if change == "overlap" else AuthError):
-        check(data, ids)
+        validate_photo_polish(artifact(data), legacy, asset_ids=ids)
 
 
 def test_primary_continuity_boundary_and_clipping_do_not_mutate_plan():
@@ -253,13 +273,15 @@ def test_primary_continuity_boundary_and_clipping_do_not_mutate_plan():
     beat = data["motion_plan"]["scenes"][1]["elements"][0]["beats"][0]
     beat.update(start_ms=5500, end_ms=9500, end_state="scale=1.08 x_pct=0 y_pct=0")
     before = deepcopy(data)
-    from app.services.motion_photo_polish import PHOTO_POLISH_CONTRACT_V5
+    from app.services.motion_photo_polish import PHOTO_POLISH_CONTRACT_V5, PHOTO_POLISH_CONTRACT_V7
 
     validate_photo_polish(
         artifact(data), {**CONTEXT, "photo_polish_contract": PHOTO_POLISH_CONTRACT_V5}, asset_ids=ids
     )  # historical boundary: exactly 80%, gaps 500ms and scale 0.01/s
     with pytest.raises(AuthError, match="CONTINUOUS_TRANSFORM_REQUIRED"):
-        check(data, ids)
+        validate_photo_polish(
+            artifact(data), {**CONTEXT, "photo_polish_contract": PHOTO_POLISH_CONTRACT_V7}, asset_ids=ids
+        )
     assert data == before
     beat.update(start_ms=4500, end_ms=10500, end_state="scale=1.10 x_pct=0 y_pct=0")
     with pytest.raises(ValidationError, match="inside the scene"):

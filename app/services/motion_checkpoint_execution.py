@@ -24,8 +24,25 @@ if TYPE_CHECKING:
 
 def restore_input(prepared: PreparedMotionInput, packet: dict[str, Any]) -> PreparedMotionInput:
     context = packet["context"]
+    from app.services.motion_video_capabilities import enabled as video_capabilities_enabled
+
+    if video_capabilities_enabled(context) and packet["stage"] == "render":
+        artifact = HTMLMotionComposition.model_validate(packet["artifact"])
+        if artifact.motion_plan is None or not 0 < artifact.motion_plan.duration_ms <= prepared.duration_ms:
+            raise AuthError("MOTION_CHECKPOINT_INPUT_CHANGED", 409)
+        prepared = replace(
+            prepared,
+            duration_ms=artifact.motion_plan.duration_ms,
+            context={
+                **prepared.context,
+                "output": {**prepared.context["output"], "duration_ms": artifact.motion_plan.duration_ms},
+            },
+        )
     for key in (
         "source",
+        "video_reel_contract",
+        "video_edit_contract",
+        "video_scene_visibility_contract",
         "kit",
         "request",
         "authorized_audio",

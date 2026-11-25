@@ -49,8 +49,18 @@ tipográfica, **não** igualdade a cefe em movimento nem 80% propaganda.
 - Interpretação “conversão sem trair pedido leigo” no gerador geral — fora
   desta série Café.
 
-Reabrir photo-reel polish somente com pedido explícito do titular (ex.: outro
-negócio travado no mesmo modo, ou fatia estreita de energia).
+**Atualização 24/11/2026:** titular reabriu explicitamente para remover o
+engessamento `DECORATION_FORBIDDEN`/T3 e capacitar grafismos/camadas
+declarados no photo-reel (qualidade máxima), sem afrouxar cover/crop-safe/
+legibilidade/tom soft. Ver
+[qualidade-replanejamento](motion-video-reel-qualidade-replanejamento-2026-11-24.md).
+
+**Implementado 24/11:** novas capturas photo usam `motion-photo-polish-v7` +
+`photo-polish-v5.js` + `instagram-reel-photo-v21` (allowlist de graphic).
+Replay do ensaio `(12)` / v6 permanece pinado. MP4 E2E Café com v7 ainda
+pendente.
+
+Reabrir rodada de ensaio Café photo somente com pedido explícito do titular.
 
 ## Próximo passo de formato
 

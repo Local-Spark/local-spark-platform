@@ -78,7 +78,14 @@ def validate_speech_plan(composition: HTMLMotionComposition | MotionConstruction
     cues = {cue.id: cue for cue in timing.cues} if timing else {}
     used: set[str] = set()
     scenes = composition.motion_plan.scenes if composition.motion_plan else ()
+    from app.services.motion_video_capabilities import enabled
+
     for scene in scenes:
+        offset = (
+            scene.start_ms - scene.video_layout.edit.source_in_ms
+            if enabled(context) and scene.video_layout and scene.video_layout.edit
+            else 0
+        )
         for element in scene.elements:
             for beat in element.beats:
                 if beat.speech_cue_id is None:
@@ -87,7 +94,7 @@ def validate_speech_plan(composition: HTMLMotionComposition | MotionConstruction
                 if (
                     cue is None
                     or beat.phase == "hold"
-                    or abs(beat.start_ms - cue.start_ms) > ONSET_TOLERANCE_MS
+                    or abs(beat.start_ms - (cue.start_ms + offset)) > ONSET_TOLERANCE_MS
                     or (
                         timing is not None
                         and timing.provenance == "local_asr_unreviewed"

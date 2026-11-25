@@ -23,6 +23,7 @@ from app.services.motion_generation import (
     PHOTO_GENERATION_CONTRACT,
     PRODUCTION_GENERATION_CONTRACT,
     PROPOSED_GENERATION_CONTRACT,
+    VIDEO_CAPABILITY_GENERATION_CONTRACT,
     VIDEO_EDIT_GENERATION_CONTRACT,
     VIDEO_GENERATION_CONTRACT,
     provided_output_enabled,
@@ -44,7 +45,7 @@ from app.services.motion_staging import PHOTO_STAGING_CONTRACT, STAGING_CONTRACT
 from app.services.motion_styles import html_style_card, list_motion_styles
 from app.services.motion_temporal import POLICY_V3, POLICY_V4, POLICY_V5
 from app.services.motion_video_edit import capture_video_edit
-from app.services.motion_video_reel import VIDEO_REEL_CONTRACT, video_reel_rules
+from app.services.motion_video_reel import VIDEO_REEL_CONTRACT_V4, video_reel_rules
 from app.services.motion_video_scene_visibility import capture_scene_visibility
 from app.services.motion_visual_direction import supplied_direction
 from app.services.reference_generation_context import ReferenceGenerationSnapshot, capture_generation_context
@@ -91,7 +92,7 @@ def capture_motion_guidance(
         if previous is not None
         else dict(PHOTO_GENERATION_CONTRACT)
         if request.propose_direction and request.source_asset_id is None
-        else dict(VIDEO_EDIT_GENERATION_CONTRACT)
+        else dict(VIDEO_CAPABILITY_GENERATION_CONTRACT)
         if request.propose_direction and request.automatic_plan
         else dict(PRODUCTION_GENERATION_CONTRACT)
         if request.propose_direction and request.evolution is None
@@ -146,6 +147,7 @@ def capture_motion_guidance(
             PHOTO_GENERATION_CONTRACT,
             VIDEO_GENERATION_CONTRACT,
             VIDEO_EDIT_GENERATION_CONTRACT,
+            VIDEO_CAPABILITY_GENERATION_CONTRACT,
         )
         else {}
     )
@@ -211,6 +213,9 @@ def capture_motion_guidance(
             "business-video-reel-v2",
             "business-video-reel-v3",
             "business-video-reel-v4",
+            "business-video-reel-v5",
+            "business-video-reel-v6",
+            "business-video-reel-v7",
             "business-reel-v5",
             "business-reel-v6",
             "business-reel-v7",
@@ -219,6 +224,7 @@ def capture_motion_guidance(
             "business-reel-v10",
             "business-reel-v11",
             "business-reel-v12",
+            "business-reel-v13",
         )
         else {"staging_contract": previous["staging_contract"]}
         if previous is not None and "staging_contract" in previous
@@ -233,7 +239,7 @@ def capture_motion_guidance(
         previous.get("repertoire", {}).get("id")
         if previous is not None
         else request.repertoire_id
-        or (("business-reel-v12" if request.source_asset_id is None else "business-video-reel-v4") if staging else None)
+        or (("business-reel-v13" if request.source_asset_id is None else "business-video-reel-v7") if staging else None)
     )
     if request.source_asset_id is None:
         from app.services.motion_photos import PHOTO_MOTION_RULES, PHOTO_MOTION_RULES_V9, photo_music
@@ -259,7 +265,7 @@ def capture_motion_guidance(
             photo_rules += " " + PHOTO_VISUAL_RULES
         creative = {**cast(dict[str, Any], creative), "media_visibility_policy": photo_rules}
     video_contract = (
-        {"video_reel_contract": dict(VIDEO_REEL_CONTRACT)}
+        {"video_reel_contract": dict(VIDEO_REEL_CONTRACT_V4)}
         if previous is None and request.source_asset_id is not None and html_contract
         else {"video_reel_contract": previous["video_reel_contract"]}
         if previous is not None and "video_reel_contract" in previous

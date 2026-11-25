@@ -34,6 +34,7 @@ function seconds(ms) {
  * No untrusted text is interpolated in the filter graph.
  */
 function buildAudioArgs(plan, assets, durationMs) {
+  if (plan && plan.version === 'motion-audio-v3') return require('./audio-video.cjs').buildVideoAudio(plan, assets, durationMs, buildAudioArgs);
   if (plan && plan.version === 'motion-audio-v2') return buildAudioV2(plan, assets, durationMs);
   objectWithKeys(plan, ['mode', 'tracks']);
   const duration = millis(durationMs);

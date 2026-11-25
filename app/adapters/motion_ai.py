@@ -56,6 +56,8 @@ from app.services.motion_review import (
 from app.services.motion_speech import validate_speech_input
 from app.services.motion_staging import staging_enabled, staging_input
 from app.services.motion_temporal import temporal_enabled, temporal_payload
+from app.services.motion_video_capabilities import design_schema_enabled, pinned_design_version
+from app.services.motion_video_reel import video_reel_rules
 from app.services.motion_visual_direction import direction_input, validate_direction_fidelity
 
 MAX_REQUEST_BYTES = 45 * 1024 * 1024
@@ -198,11 +200,25 @@ def _format(
     allow_staging: bool,
     allow_video_layout: bool = False,
     allow_video_edit: bool = False,
+    allow_video_design: bool = False,
+    video_design_version: str | None = None,
     staging_version: str | None = None,
     quality_function_ids: tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
     schema = model.model_json_schema()
     definitions = schema.get("$defs", {})
+    if not allow_video_design:
+        for name in ("VideoDesign", "VideoLayer", "VideoViewport"):
+            definitions.pop(name, None)
+        if "VideoLayout" in definitions:
+            definitions["VideoLayout"]["properties"].pop("design", None)
+            definitions["VideoLayout"]["properties"]["mode"] = {"const": "cover", "type": "string", "title": "Mode"}
+    elif video_design_version is not None and "VideoDesign" in definitions:
+        definitions["VideoDesign"]["properties"]["version"] = {
+            "type": "string",
+            "const": video_design_version,
+            "title": "Version",
+        }
     if not allow_video_edit:
         definitions.pop("VideoEdit", None)
         definitions.pop("VideoCrop", None)
@@ -599,6 +615,8 @@ class OpenAIMotionProvider:
                     allow_staging=staging_enabled(request.context),
                     allow_video_layout=bool(video_reel_rules(request.context)),
                     allow_video_edit=bool(request.context.get("video_edit_contract")),
+                    allow_video_design=design_schema_enabled(request.context),
+                    video_design_version=pinned_design_version(request.context),
                     staging_version=request.context.get("staging_contract", {}).get("version"),
                     quality_function_ids=tuple(
                         item["id"] for item in request.context["quality_contract"]["requirements"]

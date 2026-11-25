@@ -11,10 +11,14 @@ from app.services.motion_movement import movement_contract, movement_v2_contract
 
 ROOT = Path(__file__).resolve().parents[1] / "assets/motion_repertoire"
 PACKS = {
+    "business-video-reel-v7": "4cb5870f4f00dfc18226a8405136f62b8bdb0169eae0943bcfb4eb9f1e2900d7",
+    "business-video-reel-v6": "531e69f0457c15aed75c0affe051a8b7b85bdfe6c6dd89e8b2d3366ebf5dab08",
+    "business-video-reel-v5": "b96c880dc243b044f671e35506ed0a548597c046abca400d98ed34e6339bd7ce",
     "business-video-reel-v4": "90e590529195128ba77dcdfeea03354d67dbd1928ac341b7933d0a53974be7cb",
     "business-video-reel-v3": "59a8e97dd2f1b1c87aeee2f2e0ab8bf728eb95a17bd23522f690801558f063b6",
     "business-video-reel-v2": "91dde7adeaf76605dda4f32c0718ebefd8f517c7d4a379445bcd2fec828cae47",
     "business-video-reel-v1": "500e37c4be4561e0c621a647f50a2a800e439cc4dc83eaf5c8441016510f1a2e",
+    "business-reel-v13": "54132f201d33c1267fbfe07a3a393270ce7197860e5c64e288543d648e1a37bd",
     "business-reel-v12": "f2b972c5960f250cb5b33ba92cd2313eb3ba92967d93d5e608b0684e399e2e05",
     "business-reel-v11": "4c1e300eecebb20e052ffdc85c7e850d5d3a0cd1ee47a6d45c49fc6836d9cb1b",
     "business-reel-v10": "2a4751fb36bd97ac8bdc4eb247acfc47fa32e58524dfdb13ec4b84cd818661e3",
@@ -29,10 +33,14 @@ PACKS = {
     "business-reel-v2": "2fbcc52870d0e2a788873f2aebb49c916161fcc6c7f0975d6b19f60522eaf9d6",
 }
 CAPTURE_HASHES = {
+    "business-video-reel-v7": "3cd9c4792ceefe5b0d73a9604263ebcc4eacd47ba475e77b76c00ceb926fd51f",
+    "business-video-reel-v6": "0dfa3bf50d8dd34ab3cce4e946da4ca991ed86b48bd5edebb3627c35c436cb61",
+    "business-video-reel-v5": "9774837d90bb6d3d45e796a84e9f601b6f45aca8b1ff25d84e2b462376453b4c",
     "business-video-reel-v4": "8996cd7126f88ed42e79ad3dd7ea4795a3269baaca3d2ec3c282f27ac0d8a6a8",
     "business-video-reel-v3": "71090518340ac61222c40c2b1f4a0f5a8721304e95e7f43e90d5f9ce893be057",
     "business-video-reel-v2": "b6342cc78e5cbc590ce0802c9a697ce65df5d945ef80989448bf361d394247ca",
     "business-video-reel-v1": "bf2529e63c2e4490591b87dca2cdcd628707c4a2a9ccea3b81c0ae1565c5344e",
+    "business-reel-v13": "ed982b43bbee4f812771e1602308272f58d26a10459c0be04bab6af1bedf29ef",
     "business-reel-v12": "f923174d7a2d96e7ca5df1d573ef566b25af6ea40444d0255daf0cff02193633",
     "business-reel-v11": "277ad86240dd001e26a6ca1bb2ec44a2b668b989b8c7690205f624c8afce4c1e",
     "business-reel-v10": "8a6065d13b6bc29042cbeb77fcb6adbe9898acaf8a365f8da0ab64979e5bad8d",

@@ -5,10 +5,10 @@ porque o worker rodava código antigo (`instagram-reel-v13`, sem contrato). Com
 worker atualizado, run `853327f8…` pinou `v14` + `motion-video-reel-v1` e falhou
 em `MOTION_VIDEO_KINETIC_TEXT_REQUIRED` (holds fantasmas nas pontas dos textos) —
 ver [kinetic-text-gate](motion-video-reel-v1-kinetic-text-gate-2026-11-23.md).
-Fatia A implementada em [slice-a](motion-video-reel-v1-slice-a.md). Em 24/11 o
-titular rejeitou o primeiro MP4 A (`versao-1 (15)` / `86990c48…`) por qualidade
-rasa apesar dos gates; Fatia B autorizada em
-[slice-b](motion-video-reel-v1-slice-b.md). VR4–VR6 /
+Fatia A em [slice-a](motion-video-reel-v1-slice-a.md); B em
+[slice-b](motion-video-reel-v1-slice-b.md). Em 24/11 o titular rejeitou o MP4 B
+(`versao-1 (16)` / `8ab63903…`, ~30–40% vs propaganda); Fatia C autorizada em
+[slice-c](motion-video-reel-v1-slice-c.md). VR4–VR6 /
 aceite E2E / Fatia B continuam backlog. Diagnóstico histórico do `(13)` preservado.
 
 Estado: **diagnóstico e backlog documentados** a partir de

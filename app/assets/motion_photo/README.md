@@ -72,6 +72,12 @@ por seek. Não reescreve intent v10/guardas/finish-v1 nem comprova contraste nos
 pixels. Integração sintética: `app/tests/browser/motion_photo_polish.cjs`, usando
 `MOTION_PLAYWRIGHT_PATH` e, opcionalmente, `MOTION_CHROMIUM_PATH` locais. Sem MP4.
 
+`motion-photo-polish-v7` seleciona `photo-polish-v5.js` e substitui o veto cego
+T3 por allowlist: `role=graphic` com id no plano/DOM pode usar SVG/canvas/borda/
+pseudo; residual sem plano continua `MOTION_PHOTO_DECORATION_FORBIDDEN`. Skill
+nova: `instagram-reel-photo-v21`. Replay v1–v6 e `photo-polish-v4.js` intactos.
+Browser: `app/tests/browser/motion_photo_polish_v7.cjs`.
+
 `motion-photo-polish-v2` mantém o mesmo suplemento DOM e acrescenta orientação
 numérica O2/Q2 para novas capturas: enter/exit não contam na cobertura, S2 não
 substitui O2, união ≥80% por cena e lacunas globais ≤500ms. V1 mantém regras

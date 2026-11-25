@@ -170,3 +170,29 @@ async def test_real_audio_decode_cache_and_ledger_without_external_api(motion_ca
     assert rms(0, 0.1) < rms(1, 2) / 2
     assert rms(14.9, 15) < rms(1, 2) / 2
     assert max(abs(v) for v in samples) < 32767
+
+
+async def test_video_existing_library_is_durable_zero_cost_and_tenant_scoped(motion_case, seeded):  # noqa: F811
+    c = motion_case
+    row, token = await begin(c)
+    cache = MusicCache(c.runner.effects)
+    op = uuid5(row["operation_id"], "video-library-missing")
+    expected = ({"status": "no_eligible_music"}, False)
+    assert await cache.select(row, token, op, "missing", 0, restore=False, existing_only=True) == expected
+    assert await cache.select(row, token, op, "missing", 0, restore=True, existing_only=True) == expected
+    original = uuid5(row["operation_id"], "library-existing")
+    await cache.select(row, token, original, "existing", 50000, restore=False)
+    ready = {"status": "ready", "data": "synthetic", "sha256": "a" * 64}
+    await cache.save(row, token, original, ready)
+    copy = uuid5(row["operation_id"], "video-library-copy")
+    assert await cache.select(row, token, copy, "existing", 0, restore=False, existing_only=True) == (ready, False)
+    async with c.database.transaction(c.tenant, c.actor) as session:
+        assert (
+            await session.scalar(
+                text("SELECT reserved_usd_micros FROM motion_music WHERE operation_id=:id"), {"id": copy}
+            )
+            == 0
+        )
+        assert await session.scalar(text("SELECT ready FROM motion_music WHERE operation_id=:id"), {"id": op}) is False
+    async with c.database.transaction(seeded["t2"], seeded["a2"]) as session:
+        assert await session.scalar(text("SELECT count(*) FROM motion_music")) == 0

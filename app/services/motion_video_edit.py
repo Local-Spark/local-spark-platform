@@ -7,6 +7,13 @@ from typing import Any
 
 from app.schemas.motion_production import HTMLMotionComposition, MotionConstructionPlan
 from app.services.auth import AuthError
+from app.services.motion_video_capabilities import (
+    EDIT_CONTRACT_V3,
+    EDIT_CONTRACT_V4,
+    EDIT_CONTRACT_V5,
+    enabled,
+    validate_edl,
+)
 
 SOURCE = Path(__file__).resolve().parents[1] / "assets/motion_video/edit-v1.js"
 RULES = (
@@ -53,7 +60,7 @@ def edit_rules(context: dict[str, Any]) -> str:
     contract = context.get("video_edit_contract")
     if contract is None:
         return ""
-    if contract not in (CONTRACT, CONTRACT_V2):
+    if contract not in (CONTRACT, CONTRACT_V2, EDIT_CONTRACT_V3, EDIT_CONTRACT_V4, EDIT_CONTRACT_V5):
         raise AuthError("MOTION_VIDEO_EDIT_CONTRACT_CHANGED", 409)
     return str(contract["rules"])
 
@@ -61,7 +68,7 @@ def edit_rules(context: dict[str, Any]) -> str:
 def capture_video_edit(*, video: bool, previous: dict[str, Any] | None) -> dict[str, Any]:
     if previous is not None:
         return {"video_edit_contract": previous["video_edit_contract"]} if "video_edit_contract" in previous else {}
-    return {"video_edit_contract": dict(CONTRACT_V2)} if video else {}
+    return {"video_edit_contract": dict(EDIT_CONTRACT_V5)} if video else {}
 
 
 def _final_source_padding(scene: Any, plan: Any, context: dict[str, Any]) -> bool:
@@ -78,6 +85,9 @@ def _final_source_padding(scene: Any, plan: Any, context: dict[str, Any]) -> boo
 
 def validate_video_edit(artifact: HTMLMotionComposition | MotionConstructionPlan, context: dict[str, Any]) -> None:
     if not edit_rules(context):
+        return
+    if enabled(context):
+        validate_edl(artifact, context)
         return
     plan = artifact.motion_plan
     if plan is None or len(plan.scenes) < 2:

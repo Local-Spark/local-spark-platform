@@ -1,0 +1,55 @@
+{
+  "scene_start_ms": 0,
+  "scene_end_ms": 2500,
+  "text_element_id": "cta",
+  "beats": [
+    {
+      "phase": "enter",
+      "start_ms": 0,
+      "end_ms": 300,
+      "start_state": "{\"x\":0,\"y\":0,\"opacity\":0}",
+      "end_state": "{\"x\":0,\"y\":0,\"opacity\":1}",
+      "trajectory": "gentle",
+      "curve": {
+        "kind": "linear",
+        "parameters": []
+      }
+    },
+    {
+      "phase": "transform",
+      "start_ms": 300,
+      "end_ms": 700,
+      "start_state": "{\"x\":0,\"y\":0,\"opacity\":1}",
+      "end_state": "{\"x\":4,\"y\":0,\"opacity\":1}",
+      "trajectory": "gentle",
+      "curve": {
+        "kind": "linear",
+        "parameters": []
+      }
+    },
+    {
+      "phase": "hold",
+      "start_ms": 700,
+      "end_ms": 2200,
+      "start_state": "{\"x\":4,\"y\":0,\"opacity\":1}",
+      "end_state": "{\"x\":4,\"y\":0,\"opacity\":1}",
+      "trajectory": "gentle",
+      "curve": {
+        "kind": "linear",
+        "parameters": []
+      }
+    },
+    {
+      "phase": "exit",
+      "start_ms": 2200,
+      "end_ms": 2500,
+      "start_state": "{\"x\":4,\"y\":0,\"opacity\":1}",
+      "end_state": "{\"x\":4,\"y\":0,\"opacity\":0}",
+      "trajectory": "gentle",
+      "curve": {
+        "kind": "linear",
+        "parameters": []
+      }
+    }
+  ]
+}

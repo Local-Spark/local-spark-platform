@@ -5,11 +5,14 @@ from app.schemas.motion_production import MotionRequest
 
 def planned_video_request(request: MotionRequest) -> MotionRequest:
     """Bind source evidence before capture; never upgrade a previous snapshot."""
+    from app.services.motion_music import music_mood
+
     message = request.instruction
     return MotionRequest.model_validate(
         request.model_dump(mode="json")
         | {
             "propose_direction": True,
+            "sound_library_id": request.sound_library_id or ("public-cc0-v1" if music_mood(message) else None),
             "automatic_plan": True,
             "preparation": {
                 "client_message": message,

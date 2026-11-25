@@ -41,6 +41,7 @@ from app.services.motion_review import validate_review
 from app.services.motion_speech_recognition import MotionSpeechRecognition, SpeechRecognizer
 from app.services.motion_storyboards import MotionStoryboards
 from app.services.motion_temporal import evidence_manifest, sample_times, temporal_enabled
+from app.services.motion_video_continuity import maybe_normalize_video_html
 from app.services.motion_video_reel import guarded_video_scene_init
 from app.services.motion_video_scene_visibility import scoped_video_scene_init
 from app.services.visual_pending_changes import VisualPendingChanges
@@ -358,13 +359,28 @@ class MotionOrchestrator:
         )
         if composition.audio.model_dump(mode="json") != prepared.audio:
             raise AuthError("MOTION_ORIGINAL_AUDIO_CHANGED", 409)
+        from app.services.motion_video_audio import apply_video_audio, compile_video_audio
+        from app.services.motion_video_capabilities import enabled
+
+        if prepared.soundtrack is not None and prepared.context.get("authorized_soundtrack") != prepared.soundtrack:
+            raise AuthError("MOTION_AUDIO_CONTEXT_CHANGED", 409)
+        if enabled(prepared.context):
+            if "video_audio_edl" in prepared.context and prepared.soundtrack != compile_video_audio(
+                prepared, composition
+            ):
+                raise AuthError("MOTION_ORIGINAL_AUDIO_CHANGED", 409)
+            prepared = apply_video_audio(prepared, composition)
         runtime_hash = movement_hash(prepared.context)
         element_hash = elements_hash(prepared.context)
         output_audio = prepared.soundtrack if prepared.soundtrack is not None else prepared.audio
         if prepared.soundtrack is not None and prepared.context.get("authorized_soundtrack") != prepared.soundtrack:
             raise AuthError("MOTION_AUDIO_CONTEXT_CHANGED", 409)
         if prepared.soundtrack is not None:
-            validate_original_branch(prepared.soundtrack, prepared.audio)
+            validate_original_branch(prepared.soundtrack, prepared.audio, edl=prepared.context.get("video_audio_edl"))
+        plan_data = composition.motion_plan.model_dump(mode="json") if composition.motion_plan is not None else None
+        chrome = maybe_normalize_video_html(composition.html, plan_data, prepared.context)
+        if chrome != composition.html:
+            composition = composition.model_copy(update={"html": chrome})
         scene_init = guarded_video_scene_init(
             composition,
             prepared.context,

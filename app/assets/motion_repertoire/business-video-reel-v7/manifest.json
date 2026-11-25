@@ -1,0 +1,99 @@
+{
+  "id": "business-video-reel-v7",
+  "version": 7,
+  "rules": "Video handoff: motion-video-reel-v4 + motion-video-edit-v5, design video-design-v2 obrigatório em toda cena. O plano é allowlist: design.layers com shape rectangle|ellipse|rounded|bar. Layers/texto com beats contíguos start→end (hold nos buracos); texto related ao vídeo; CTA hold≥1500ms; bar/rounded width≥0.04; imagem auxiliar z>10 com box≥0.5×0.5. Runtime cria graphic como SVG. html/body/main transparentes — sem canvas creme; fundo só em layer. transition cut|dissolve|fade; dissolve/fade exige plano full-bleed sob o VIDEO. Silent 0.75–1.25; áudio 1:1 speech-safe com margem 120ms. Mix elevenlabs-music-v1 + duck. Anti: (12)(15)(16)(17)(18)(19)(20).",
+  "selection": "Handoff editorial; SVG graphic; design-v2; beats contíguos; trilha ElevenLabs; refs finish_reference_only.",
+  "required_runtimes": {},
+  "licenses": [],
+  "examples": [
+    {
+      "id": "action-type",
+      "source_id": "platform-original",
+      "file": "examples/action-type.js",
+      "sha256": "27ccd8a399d4f8ed2d050f2a580b4a832f25351cfdbe2fe0ed2f3941a7427f48",
+      "entrypoint": "videoTextSeek",
+      "mechanism": "Entrada, deslocamento suave, leitura e saída sobre gravação full-bleed.",
+      "use_when": "Frases curtas conforme briefing e kit.",
+      "limitations": "Prova de execução, não aceite artístico; preservar áreas essenciais da fonte.",
+      "integration": "Copiar em scene_init e chamar com tempo absoluto; não modifica vídeo nem áudio."
+    },
+    {
+      "id": "cta-plan",
+      "source_id": "platform-original",
+      "file": "examples/cta-plan.json",
+      "sha256": "eac14a3a56424ae098941572dab60ac74d30c241f1c5d75021f4dc3324292fc2",
+      "entrypoint": "beats",
+      "mechanism": "Plano canônico VR3 com hold visível de exatamente 1500ms.",
+      "use_when": "Planejar cada texto, inclusive CTA final.",
+      "limitations": "Tempos ilustrativos relativos a cena 0–2500ms; adaptar às fronteiras reais da cena.",
+      "integration": "Copiar beats para o elemento de texto relacionado ao vídeo; executar com videoTextSeek."
+    },
+    {
+      "id": "development-plan",
+      "source_id": "platform-original",
+      "file": "examples/development-plan.json",
+      "sha256": "6866cb2206122eb84db378d76356863ec290378f974fccf280df0bd620b68c11",
+      "entrypoint": "motion_plan",
+      "mechanism": "Cover → PIP com design video-design-v2, fundo e grafismo em layers; dissolve com plano full-bleed.",
+      "use_when": "Desenvolver material e convite soft com handoff real; copiar a presença de design em toda cena.",
+      "limitations": "Exemplo sintético, não aprovação de qualidade.",
+      "integration": "Runtime executa layers e EDL; implementar logo/textos. Nunca omita design."
+    },
+    {
+      "id": "svg-accent",
+      "source_id": "platform-original",
+      "file": "examples/svg-accent.js",
+      "sha256": "7f9fc03bc66a5ff524b9d6770361b325b3286bbaa372a13aac131e09ec649dc1",
+      "entrypoint": "videoSvgAccentSeek",
+      "mechanism": "Acento SVG declarado: forma do plano preenchida com cor do kit e beats de translate/scale/opacity.",
+      "use_when": "Barra, rounded ou ellipse sustentada como desenvolvimento editorial.",
+      "limitations": "Runtime cria o SVG; não invente paths nem identidade. Prova de mecanismo, não aceite artístico.",
+      "integration": "Adaptar tempos/estados aos beats do graphic; o runtime já monta o nó SVG do layer."
+    }
+  ],
+  "reference_images": [
+    {
+      "id": "editorial-handoff",
+      "file": "images/editorial-handoff.jpg",
+      "sha256": "543bc1380f8b5801114267640d0769d76d78738f8c38d260de2116789a757a30",
+      "source_id": "platform-original",
+      "role": "finish_reference_only",
+      "mechanism": "Passagem tipográfica/editorial com revelação — use o mecanismo, não a identidade.",
+      "times_ms": [
+        0,
+        700,
+        1000,
+        1233,
+        1500,
+        1800
+      ],
+      "limitations": "Sequência sintética de acabamento; não é mídia do cliente nem prova E2E."
+    },
+    {
+      "id": "layer-development",
+      "file": "images/layer-development.jpg",
+      "sha256": "e18e3bb387366d0a22d5b363df51b0526c58208f9e24914f88d854ef59b31402",
+      "source_id": "platform-original",
+      "role": "finish_reference_only",
+      "mechanism": "Desenvolvimento por camadas/profundidade entre planos visuais distintos.",
+      "times_ms": [
+        2300,
+        2500,
+        2800,
+        3100,
+        3300,
+        3967
+      ],
+      "limitations": "Sequência sintética de acabamento; não é mídia do cliente nem prova E2E."
+    }
+  ],
+  "reference_cards": [],
+  "sources": [
+    {
+      "id": "platform-original",
+      "origin": "Código próprio; referências analisadas em docs/evals/analise-41-referencias-motion-2026-11-12.md",
+      "version": "2026-11-24",
+      "permission": "Código original, sem conteúdo de terceiros."
+    }
+  ]
+}

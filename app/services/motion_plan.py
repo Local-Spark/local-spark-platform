@@ -154,7 +154,9 @@ def validate_motion_plan(
         validate_scene_direction(composition, context)
         return
     validate_scene_direction(composition, context)
-    if plan.duration_ms != duration_ms:
+    from app.services.motion_video_capabilities import enabled as video_capabilities_enabled
+
+    if plan.duration_ms != duration_ms and not (video_capabilities_enabled(context) and plan.duration_ms < duration_ms):
         raise AuthError("MOTION_PLAN_DURATION_CHANGED", 409)
     if plan.style_id is not None and plan.style_id not in {item["id"] for item in context.get("styles", [])}:
         raise AuthError("MOTION_PLAN_STYLE_UNAVAILABLE", 409)

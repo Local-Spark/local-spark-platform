@@ -22,6 +22,7 @@ const fail = code => { throw new RenderFault(code); };
 const VIDEO_GUARD_FAILURES = new Set([
   'MOTION_VIDEO_SCENE_SCOPE_INVALID',
         'MOTION_VIDEO_EDIT_NOT_EXECUTED',
+  'MOTION_VIDEO_LAYER_NOT_EXECUTED',
   'MOTION_VIDEO_DOM_ID_INVALID', 'MOTION_VIDEO_FULL_BLEED_REQUIRED',
   'MOTION_VIDEO_KIT_OVERLAY_REQUIRED', 'MOTION_VIDEO_TEXT_NOT_EXECUTED',
   'MOTION_VIDEO_READABLE_ACTION_OVERLAY_REQUIRED', 'MOTION_VIDEO_UNPLANNED_OVERLAY'
@@ -147,7 +148,7 @@ async function render() {
     if (!metadata.streams.some(stream => stream.codec_type === 'audio') || !Number.isFinite(availableMs) ||
         availableMs <= 0 || track.trim_start_ms >= availableMs) fail('MOTION_RENDER_AUDIO_INVALID');
     // New optional audio must cover the declared event; never silently stretch or truncate it.
-    if (cfg.audio.version === 'motion-audio-v2' && track.role !== 'original' &&
+    if (['motion-audio-v2','motion-audio-v3'].includes(cfg.audio.version) && track.role !== 'original' &&
         track.trim_end_ms > availableMs + 1) fail('MOTION_RENDER_AUDIO_INVALID');
     // Preserve the qualified mixer: atrim stops at EOF; no padding or synthetic speech is added.
     audioSourceSpans.push({ asset_id: track.asset_id, available_ms: availableMs,
@@ -296,7 +297,7 @@ async function render() {
       images.push(png);
     }
     const mp4 = read(output, MAX_VIDEO);
-    const audioMeasurement = cfg.audio.version === 'motion-audio-v2' ? audioMetrics(output) : null;
+    const audioMeasurement = ['motion-audio-v2','motion-audio-v3'].includes(cfg.audio.version) ? audioMetrics(output) : null;
     const musicTracks = cfg.audio.tracks.filter(track => track.role === 'music');
     let musicIntegrity = null;
     if (musicTracks.length) {

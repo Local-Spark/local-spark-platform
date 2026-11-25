@@ -60,9 +60,17 @@ def compile_soundtrack(
     return result
 
 
-def validate_original_branch(soundtrack: dict[str, Any], original: dict[str, Any]) -> None:
+def validate_original_branch(
+    soundtrack: dict[str, Any], original: dict[str, Any], *, edl: list[dict[str, Any]] | None = None
+) -> None:
     """Protect the original branch independently of model output and audio additions."""
     tracks = soundtrack.get("tracks")
+    if soundtrack.get("version") == "motion-audio-v3":
+        if edl is None or not isinstance(tracks, list) or [t for t in tracks if t.get("role") == "original"] != edl:
+            raise AuthError("MOTION_ORIGINAL_AUDIO_CHANGED", 409)
+        if any(t.get("asset_id") == "assets/source.mp4" and t.get("role") != "original" for t in tracks):
+            raise AuthError("MOTION_ORIGINAL_AUDIO_CHANGED", 409)
+        return
     if soundtrack.get("version") != "motion-audio-v2" or not isinstance(tracks, list):
         raise AuthError("MOTION_ORIGINAL_AUDIO_CHANGED", 409)
     source_tracks = [track for track in tracks if track.get("role") == "original"]

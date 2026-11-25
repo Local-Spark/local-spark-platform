@@ -35,7 +35,15 @@ class MusicCache:
         )
 
     async def select(
-        self, row: dict[str, Any], token: UUID, operation: UUID, key: str, reserve: int, *, restore: bool
+        self,
+        row: dict[str, Any],
+        token: UUID,
+        operation: UUID,
+        key: str,
+        reserve: int,
+        *,
+        restore: bool,
+        existing_only: bool = False,
     ) -> tuple[dict[str, Any] | None, bool]:
         requests = self.effects.requests
         params = {
@@ -74,6 +82,8 @@ class MusicCache:
               AND ready ORDER BY created_at,operation_id LIMIT 1"""),
                 params,
             )
+            if cached is None and existing_only:
+                cached = requests.context.seal({"status": "no_eligible_music"})
             if cached is None:
                 used = await session.scalar(
                     text("""SELECT coalesce(sum(reserved_usd_micros),0) FROM motion_music
@@ -83,11 +93,15 @@ class MusicCache:
                 )
                 if used + reserve > requests.settings.elevenlabs_music_monthly_budget_usd_micros:
                     return None, False
-            params.update(reserve=0 if cached else reserve, result=cached)
+            params.update(
+                reserve=0 if cached else reserve,
+                result=cached,
+                ready=bool(cached and requests.context.open(cached)["status"] == "ready"),
+            )
             await session.execute(
                 text("""INSERT INTO motion_music
               (tenant_id,business_id,actor_id,operation_id,cache_key,reserved_usd_micros,result_ciphertext,ready)
-              VALUES(:tenant,:business,:actor,:operation,:key,:reserve,:result,CAST(:result AS text) IS NOT NULL)"""),
+              VALUES(:tenant,:business,:actor,:operation,:key,:reserve,:result,:ready)"""),
                 params,
             )
             await self.event(session, row, operation, "ready" if cached else "reserved")

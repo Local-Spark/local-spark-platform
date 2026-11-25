@@ -13,7 +13,6 @@ from app.services.auth import AuthError
 from app.services.motion_context import capture_motion_guidance
 from app.services.motion_protocols import MotionModelResult
 from app.services.motion_video_edit import CONTRACT_V2 as EDIT_CONTRACT
-from app.services.motion_video_reel import VIDEO_REEL_CONTRACT
 from app.services.motion_video_scene_visibility import CONTRACT as SCENE_CONTRACT
 from app.tests.integration.test_motion_production import create, motion_case  # noqa: F401
 from app.tests.unit.test_motion_video_edit import case as edit_case
@@ -29,11 +28,13 @@ async def test_video_capture_is_immutable_and_idempotent(motion_case, admin):  #
     async with admin.connect() as conn:
         sealed = await conn.scalar(text("SELECT snapshot_ciphertext FROM motion_requests"))
         snapshot = c.requests.context.open(sealed)
-        assert snapshot["video_reel_contract"] == VIDEO_REEL_CONTRACT
+        assert snapshot["video_reel_contract"]["version"] == "motion-video-reel-v2"
         assert snapshot["video_scene_visibility_contract"] == SCENE_CONTRACT
-        assert snapshot["video_edit_contract"] == EDIT_CONTRACT
-        assert snapshot["skill"]["id"] == "instagram-reel-video-v21"
-        assert capture_motion_guidance(c.body, previous=snapshot)["video_reel_contract"] == VIDEO_REEL_CONTRACT
+        assert snapshot["video_edit_contract"]["version"] == "motion-video-edit-v3"
+        assert snapshot["skill"]["id"] == "instagram-reel-video-v24"
+        assert (
+            capture_motion_guidance(c.body, previous=snapshot)["video_reel_contract"] == snapshot["video_reel_contract"]
+        )
         assert await conn.scalar(text("SELECT count(*) FROM motion_requests")) == 1
         assert await conn.scalar(text("SELECT count(*) FROM outbox_events WHERE event_type='motion.requested'")) == 1
         assert await conn.scalar(text("SELECT count(*) FROM audit_events")) > 0
@@ -82,3 +83,35 @@ async def test_video_gate_precedes_render_and_pins_executed_bundle(motion_case, 
         c.renderer.render.assert_not_awaited()
         async with admin.connect() as conn:
             assert await conn.scalar(text("SELECT count(*) FROM motion_effects WHERE kind='render'")) == 0
+
+
+@pytest.mark.parametrize("valid", [True, False])
+async def test_c_development_gates_and_durable_runtime_identity(motion_case, admin, valid):  # noqa: F811
+    from app.tests.unit.test_motion_video_capabilities import CTX as C_CTX
+    from app.tests.unit.test_motion_video_capabilities import artifact as c_artifact
+    from app.tests.unit.test_motion_video_capabilities import case as c_case
+
+    c = motion_case
+    p = c.inputs.prepare.return_value
+    logo = b"synthetic logo"
+    p = replace(
+        p,
+        context={**p.context, **C_CTX, "video_scene_visibility_contract": SCENE_CONTRACT},
+        duration_ms=6000,
+        assets=(*p.assets, RenderAsset("assets/logo.png", "image/png", logo, hashlib.sha256(logo).hexdigest())),
+    )
+    d = c_case()
+    if not valid:
+        d["motion_plan"]["scenes"][1]["elements"][-1]["beats"][0]["end_state"] = '{"x":4,"y":0,"opacity":1}'
+    await create(c)
+    row, token = await c.requests.begin(c.tenant, c.business, c.actor, c.body.operation_id, UUID(c.event.event_id))
+    if valid:
+        await c.runner.render(row, token, p, 0, c_artifact(d))
+        code = c.renderer.render.await_args.args[0].scene_init
+        assert "installVideoCapabilitiesV1" in code and "installVideoReelV2" in code
+        async with admin.connect() as conn:
+            assert await conn.scalar(text("SELECT count(*) FROM motion_effects WHERE kind='render'")) == 1
+    else:
+        with pytest.raises(AuthError, match="EDITORIAL_DEVELOPMENT_REQUIRED"):
+            await c.runner.render(row, token, p, 0, c_artifact(d))
+        c.renderer.render.assert_not_awaited()

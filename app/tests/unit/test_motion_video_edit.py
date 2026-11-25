@@ -13,6 +13,7 @@ from app.schemas.motion_production import HTMLMotionComposition, MotionConstruct
 from app.services.auth import AuthError
 from app.services.motion_context import capture_motion_guidance
 from app.services.motion_repertoire import capture_repertoire, validate_repertoire_images
+from app.services.motion_video_capabilities import EDIT_CONTRACT_V5
 from app.services.motion_video_edit import (
     CONTRACT,
     CONTRACT_V2,
@@ -55,16 +56,17 @@ def test_canonical_plan_admission_and_execution_identity():
 
 def test_new_capture_and_old_replay_are_separate():
     new = capture_motion_guidance(natural_body(repertoire_id=None))
-    assert new["video_edit_contract"] == CONTRACT_V2
-    assert new["skill"]["id"] == "instagram-reel-video-v21"
-    assert new["repertoire"]["id"] == "business-video-reel-v4"
+    assert new["video_edit_contract"] == EDIT_CONTRACT_V5
+    assert new["skill"]["id"] == "instagram-reel-video-v24"
+    assert new["repertoire"]["id"] == "business-video-reel-v7"
     assert "Sem EDL" not in new["executor_contract"]["integration_policy"]
-    assert new["video_edit_contract"]["music"]["status"] == "unavailable"
-    assert capture_video_edit(video=True, previous=new) == {"video_edit_contract": CONTRACT_V2}
+    assert new["video_edit_contract"]["music"]["status"] == "supported"
+    assert capture_video_edit(video=True, previous=new) == {"video_edit_contract": EDIT_CONTRACT_V5}
     assert capture_video_edit(video=True, previous={}) == {}
     assert capture_video_edit(video=False, previous=None) == {}
     old = deepcopy(new)
     old.pop("video_edit_contract")
+    old["video_reel_contract"] = VIDEO_REEL_CONTRACT
     replay = capture_motion_guidance(natural_body(repertoire_id=None), previous=old)
     assert "video_edit_contract" not in replay
     assert replay["video_reel_contract"] == old["video_reel_contract"]
@@ -186,18 +188,19 @@ def test_b_still_rejects_a_kinetic_text_violation():
 
 
 def test_generation_contract_is_versioned_without_promoting_a():
-    from app.services.motion_generation import VIDEO_EDIT_GENERATION_CONTRACT, VIDEO_GENERATION_CONTRACT
+    from app.services.motion_generation import VIDEO_CAPABILITY_GENERATION_CONTRACT, VIDEO_GENERATION_CONTRACT
     from app.services.motion_video_requests import planned_video_request
 
     request = planned_video_request(
         natural_body(repertoire_id=None, review_checkpoints=False, storyboard=False, automatic_plan=True)
     )
     current = capture_motion_guidance(request)
-    assert current["generation_contract"] == VIDEO_EDIT_GENERATION_CONTRACT
+    assert current["generation_contract"] == VIDEO_CAPABILITY_GENERATION_CONTRACT
     assert "sem EDL" not in current["generation_contract"]["response_rules"]
     assert "sem EDL" in VIDEO_GENERATION_CONTRACT["response_rules"]
     previous = {**current, "generation_contract": VIDEO_GENERATION_CONTRACT}
     previous.pop("video_edit_contract")
+    previous["video_reel_contract"] = VIDEO_REEL_CONTRACT
     assert capture_motion_guidance(request, previous=previous) == previous
 
 
@@ -269,7 +272,7 @@ def test_padding_cannot_authorize_internal_gaps_unverified_ends_or_stretch(chang
 def test_v1_snapshot_replay_and_new_v2_pins():
     previous = {"video_edit_contract": CONTRACT}
     assert capture_video_edit(video=True, previous=previous) == previous
-    assert capture_video_edit(video=True, previous=None)["video_edit_contract"] == CONTRACT_V2
+    assert capture_video_edit(video=True, previous=None)["video_edit_contract"] == EDIT_CONTRACT_V5
     package = capture_repertoire("business-video-reel-v4")
     assert validate_repertoire_images({"repertoire": package}, ()) == []
     assert "source.duration_ms" in package["rules"]

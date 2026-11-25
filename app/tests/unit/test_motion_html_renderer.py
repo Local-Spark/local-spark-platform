@@ -495,6 +495,32 @@ async def test_video_guard_codes_cross_the_process_boundary_without_details(code
     assert str(error.value) == code
 
 
+@pytest.mark.parametrize(
+    "code",
+    [
+        "MOTION_RENDER_MUSIC_INVALID",
+        "MOTION_RENDER_LAYER_NOT_EXECUTED",
+        "MOTION_RENDER_FUTURE_GUARD_CODE",
+    ],
+)
+async def test_motion_render_codes_cross_the_process_boundary_without_details(code):
+    notice = {"event": "motion.render.failed", "code": code}
+    script = "import sys; sys.stderr.write(" + repr(json.dumps(notice)) + "); raise SystemExit(1)"
+    with pytest.raises(motion.MotionRenderError) as error:
+        await motion._command([sys.executable, "-c", script], env={"PATH": "/usr/bin:/bin"}, timeout=5, limit=10)
+    assert error.value.code == code
+    assert str(error.value) == code
+
+
+def test_renderer_package_ships_audio_v3_require_graph():
+    missing = sorted(name for name in motion.RENDERER_RUNTIME_MODULES if not (motion.RENDERER_PACKAGE / name).is_file())
+    assert missing == []
+    audio = (motion.RENDERER_PACKAGE / "audio.cjs").read_text()
+    assert "motion-audio-v3" in audio
+    assert "audio-video.cjs" in audio
+    assert "MOTION_RENDER_MUSIC_INVALID" in motion.RUNNER_FAILURES
+
+
 @pytest.mark.parametrize("changes", [{"frames_only": 1}, {"frames_only": True, "sample_times_ms": ()}])
 def test_storyboard_mode_requires_boolean_and_explicit_evidence_samples(tmp_path, changes):
     with pytest.raises(motion.MotionRenderError, match="MOTION_RENDER_INVALID_INPUT"):

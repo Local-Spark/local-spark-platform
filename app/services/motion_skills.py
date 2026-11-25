@@ -6,6 +6,9 @@ from pathlib import Path
 from app.services.auth import AuthError
 
 _SKILLS = {
+    "instagram-reel-video-v24": ("reel", "e61fcb2a77bcf0a08206fd54a2f143277fb1f1ac69d1a3c59dd5cde30b3c9f36"),
+    "instagram-reel-video-v23": ("reel", "065294e82fa3cf9b6408c0416584586b00ff23da02236eeea719022832efa4ed"),
+    "instagram-reel-video-v22": ("reel", "271cadda041917aac6e297a52b6f10cb86e01bc99bc6c1d5075996a218aa800a"),
     "instagram-reel-video-v21": ("reel", "db94aa9c5815be52208b08fe4145643e1d0a8c33b8bde193afe168c266e2fd43"),
     "instagram-reel-video-v20": ("reel", "cb90bb39cdf8bee28d4ebc1d71a5d91ef11011c9476f8a08e24464b8af08fb1b"),
     "instagram-reel-video-v19": ("reel", "4e0e215756d46ddea93092f0d7c3e15c68b0832e25404480045c8c2fd813e0d0"),
@@ -14,6 +17,9 @@ _SKILLS = {
     "instagram-reel-video-v16": ("reel", "0d0a2b9907693d98cfdd9152411fc2036301942c3b5d027858c8bcbb0bef06a4"),
     "instagram-reel-video-v15": ("reel", "5c350dd500788a3dee36bbec6f47d8bc07e3eed4974ec6627141047d19fc6cac"),
     "instagram-reel-video-v14": ("reel", "adb2b90b2e60883bd7fa0e1b59ddd92c3dcee47401710aa89447de1e80c8208f"),
+    "instagram-reel-photo-v23": ("reel", "ef261e3e88bb39fa064b7ed49c9d0daf8e7deb35ef8bdf5bd25536d928247e60"),
+    "instagram-reel-photo-v22": ("reel", "cd1e6bd12aaced95fdf4d284b370037b548f139c9ffe13ef430e3d010f3d4361"),
+    "instagram-reel-photo-v21": ("reel", "0b75c7256f0cb85d9c512b19943750177b1445140ccf9a31f42c4c1c267a1441"),
     "instagram-reel-photo-v20": ("reel", "0ef040bd03aee6e12a98f75ace84a862ac2ba265eaefc776485a5856203e68d5"),
     "instagram-reel-photo-v19": ("reel", "236712e50cc231e6980123b215e438a529d50b252353de6241e0f5cf66318ea1"),
     "instagram-reel-photo-v18": ("reel", "41ea47460314cfa6c68e2582d921e7a02c1e27d238d2293fbf9f05c2a6ca03b4"),
@@ -75,6 +81,6 @@ def resolve_html_motion_skill(format: str, *, photo: bool = False) -> tuple[str,
     """Resolve the version used by new HTML Reel captures, not legacy directions."""
     if format != "reel":
         raise AuthError("MOTION_SKILL_FORMAT_INVALID", 409)
-    skill_id = "instagram-reel-photo-v20" if photo else "instagram-reel-video-v21"
+    skill_id = "instagram-reel-photo-v23" if photo else "instagram-reel-video-v24"
     digest = _SKILLS[skill_id][1]
     return skill_id, digest, load_motion_skill(skill_id, digest, "reel")

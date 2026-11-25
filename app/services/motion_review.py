@@ -182,6 +182,16 @@ def decode_review(request: MotionModelRequest, raw: str) -> MotionReview:
 
 
 def validate_review(request: MotionModelRequest, review: MotionReview) -> None:
+    from app.services.motion_video_capabilities import enabled, quality_unlocked, validate_development
+
+    if enabled(request.context) and review.verdict == "adequate":
+        try:
+            validate_development(
+                request.composition.motion_plan if request.composition else None,
+                unlocked=quality_unlocked(request.context),
+            )
+        except AuthError as exc:
+            raise MotionReviewError(exc.code) from None
     compact = compact_review_enabled(request.context)
     if staging_enabled(request.context):
         for issue in review.issues:

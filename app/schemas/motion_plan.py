@@ -92,15 +92,44 @@ class VideoEdit(PlanModel):
     source_in_ms: Moment
     source_out_ms: Moment
     purpose: Literal["hook", "detail", "invitation"]
-    transition: Literal["cut"]
+    transition: Literal["cut", "dissolve", "fade"]
     intent: Description
     crop_from: VideoCrop
     crop_to: VideoCrop
 
 
+class VideoViewport(PlanModel):
+    x: float = Field(ge=0, le=1)
+    y: float = Field(ge=0, le=1)
+    width: float = Field(gt=0, le=1)
+    height: float = Field(gt=0, le=1)
+
+    @model_validator(mode="after")
+    def inside_canvas(self) -> Self:
+        if self.x + self.width > 1 or self.y + self.height > 1:
+            raise ValueError("Viewport must fit the canvas")
+        return self
+
+
+class VideoLayer(PlanModel):
+    element_id: Identifier
+    box: VideoViewport
+    z_index: int = Field(ge=0, le=18)
+    shape: Literal["rectangle", "ellipse", "rounded", "bar"]
+    color: str = Field(pattern=r"^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$")
+
+
+class VideoDesign(PlanModel):
+    version: Literal["video-design-v1", "video-design-v2"]
+    viewport: VideoViewport
+    layers: tuple[VideoLayer, ...] = Field(max_length=8)
+    transition_reason: Description
+
+
 class VideoLayout(PlanModel):
     edit: VideoEdit | None = Field(default=None, exclude_if=lambda value: value is None)
-    mode: Literal["cover"]
+    design: VideoDesign | None = Field(default=None, exclude_if=lambda value: value is None)
+    mode: Literal["cover", "pip"]
     video_element_id: Identifier
     brand_element_id: Identifier
     text_element_ids: tuple[Identifier, ...] = Field(min_length=1, max_length=8)

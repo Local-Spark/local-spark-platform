@@ -8,6 +8,7 @@ from typing import Any
 
 from app.schemas.motion_production import HTMLMotionComposition, MotionConstructionPlan
 from app.services.auth import AuthError
+from app.services.motion_video_capabilities import RULES, RULES_V4, RULES_V5, enabled
 from app.services.motion_video_edit import edit_rules, guarded_video_edit_init, validate_video_edit
 
 GUARD_PATH = Path(__file__).resolve().parents[1] / "assets/motion_video/video-reel-v1.js"
@@ -36,10 +37,35 @@ VIDEO_REEL_CONTRACT = {
 }
 
 
+VIDEO_REEL_CONTRACT_V2 = {
+    "version": "motion-video-reel-v2",
+    "dom_guard_sha256": "fbd4676a00dd35b20f212d6ef3b04bcd08d0065ad60e0e77d0e036c45c0558f7",
+    "runtime_sha256": "49e7efd8952667b2ab7ab4d34711b0c39a7b3bca4e798ad87d70eae9ca74b528",
+    "rules": RULES,
+}
+
+VIDEO_REEL_CONTRACT_V3 = {
+    "version": "motion-video-reel-v3",
+    "dom_guard_sha256": "67afb3bf5eb249801d5e59f935dd00eb0ff00e1d97a029a96f6b2b3b1b1aff5c",
+    "runtime_sha256": "696ba9a0b5b241e5248086534b36c80be4b79aa9ac931e6967901f3993ba66c6",
+    "rules": RULES_V4,
+}
+
+VIDEO_REEL_CONTRACT_V4 = {
+    "version": "motion-video-reel-v4",
+    "dom_guard_sha256": "124dc4e53fb1c7e5ea266aa7b546faf9f01b38aa662c56bbc612b04579a77570",
+    "runtime_sha256": "f992caa2b8614b0865b0e0b2e44cdda07d38064f6d3611265439750f1f7eee5f",
+    "rules": RULES_V5,
+}
+
 def video_reel_rules(context: dict[str, Any]) -> str:
     contract = context.get("video_reel_contract")
     if contract is None:
         return ""
+    if contract in (VIDEO_REEL_CONTRACT_V2, VIDEO_REEL_CONTRACT_V3, VIDEO_REEL_CONTRACT_V4):
+        if not enabled(context):
+            raise AuthError("MOTION_VIDEO_CONTRACT_CHANGED", 409)
+        return " " + str(contract["rules"])
     if contract != VIDEO_REEL_CONTRACT:
         raise AuthError("MOTION_VIDEO_CONTRACT_CHANGED", 409)
     rules = str(VIDEO_REEL_CONTRACT["rules"])
@@ -140,11 +166,35 @@ def validate_video_reel(
 def guarded_video_scene_init(composition: HTMLMotionComposition, context: dict[str, Any], original: str) -> str:
     if not video_reel_rules(context):
         return original
-    source = GUARD_PATH.read_bytes()
-    if hashlib.sha256(source).hexdigest() != VIDEO_REEL_CONTRACT["dom_guard_sha256"]:
+    contract = context.get("video_reel_contract")
+    current = contract in (VIDEO_REEL_CONTRACT_V2, VIDEO_REEL_CONTRACT_V3, VIDEO_REEL_CONTRACT_V4)
+    handoff = contract == VIDEO_REEL_CONTRACT_V4
+    unlocked = contract == VIDEO_REEL_CONTRACT_V3
+    active = contract if current else VIDEO_REEL_CONTRACT
+    assert isinstance(active, dict)
+    guard_name = (
+        "video-reel-v4.js"
+        if handoff
+        else "video-reel-v3.js"
+        if unlocked
+        else "video-reel-v2.js"
+        if current
+        else "video-reel-v1.js"
+    )
+    source = (GUARD_PATH if guard_name == "video-reel-v1.js" else GUARD_PATH.with_name(guard_name)).read_bytes()
+    if hashlib.sha256(source).hexdigest() != active["dom_guard_sha256"]:
         raise AuthError("MOTION_VIDEO_GUARD_CHANGED", 409)
     validate_video_reel(composition, context, asset_ids={"assets/source.mp4", "assets/logo.png"})
     assert composition.motion_plan is not None
+    from app.services.motion_video_continuity import maybe_normalize_video_scene_init
+
     payload = composition.motion_plan.model_dump(mode="json")
+    original = maybe_normalize_video_scene_init(original, payload, context)
+    if current:
+        runtime_name = "capabilities-v3.js" if handoff else "capabilities-v2.js" if unlocked else "capabilities-v1.js"
+        runtime = GUARD_PATH.with_name(runtime_name).read_bytes()
+        if hashlib.sha256(runtime).hexdigest() != active["runtime_sha256"]:
+            raise AuthError("MOTION_VIDEO_GUARD_CHANGED", 409)
+        original += "\n;(" + runtime.decode() + ")(" + json.dumps(payload, ensure_ascii=True) + ");"
     guarded = original + "\n;(" + source.decode() + ")(" + json.dumps(payload, ensure_ascii=True) + ");"
-    return guarded_video_edit_init(composition, context, guarded)
+    return guarded if current else guarded_video_edit_init(composition, context, guarded)

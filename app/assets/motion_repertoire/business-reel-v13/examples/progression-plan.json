@@ -1,0 +1,18 @@
+{
+  "mechanism": "estabelecimento → detalhe → convite",
+  "scenes": [
+    {
+      "role": "hook",
+      "idea": "ambiente/aconchego full-bleed com KB vivo"
+    },
+    {
+      "role": "detail",
+      "idea": "segundo material ou graphic declarado em movimento"
+    },
+    {
+      "role": "invitation",
+      "idea": "handoff + logo/CTA com energia até end"
+    }
+  ],
+  "anti_example": "(12) take contínuo + texto + crop mínimo rotulado adequate"
+}

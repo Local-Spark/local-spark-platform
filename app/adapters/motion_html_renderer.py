@@ -27,7 +27,20 @@ MAX_OUTPUT_BYTES = MAX_VIDEO_BYTES + MAX_EVIDENCE_BYTES + MAX_HEADER_BYTES
 ASSET_ID = re.compile(r"assets/[A-Za-z0-9_.-]{1,80}\Z")
 SHA256 = re.compile(r"[a-f0-9]{64}\Z")
 IMAGE = re.compile(r"(?:[a-zA-Z0-9./:_-]+@)?sha256:[a-f0-9]{64}\Z")
-SECCOMP = Path(__file__).resolve().parents[1] / "assets/motion_html_renderer/seccomp.json"
+RENDERER_PACKAGE = Path(__file__).resolve().parents[1] / "assets/motion_html_renderer"
+SECCOMP = RENDERER_PACKAGE / "seccomp.json"
+# Modules the pinned image must carry for motion-audio-v3 (audio.cjs requires audio-video).
+RENDERER_RUNTIME_MODULES = frozenset(
+    {
+        "runner.cjs",
+        "audio.cjs",
+        "audio-video.cjs",
+        "movement-v1.js",
+        "movement-v2.js",
+        "movement-v3.js",
+        "seccomp.json",
+    }
+)
 RUNNER_FAILURES = frozenset(
     {
         "MOTION_RENDER_OS_ISOLATION_FAILED",
@@ -48,9 +61,11 @@ RUNNER_FAILURES = frozenset(
         "MOTION_RENDER_EVIDENCE_LIMIT",
         "MOTION_RENDER_OUTPUT_INVALID",
         "MOTION_RENDER_TIMESTAMPS_INVALID",
+        "MOTION_RENDER_MUSIC_INVALID",
         "MOTION_VIDEO_DOM_ID_INVALID",
         "MOTION_VIDEO_SCENE_SCOPE_INVALID",
         "MOTION_VIDEO_EDIT_NOT_EXECUTED",
+        "MOTION_VIDEO_LAYER_NOT_EXECUTED",
         "MOTION_VIDEO_FULL_BLEED_REQUIRED",
         "MOTION_VIDEO_KIT_OVERLAY_REQUIRED",
         "MOTION_VIDEO_TEXT_NOT_EXECUTED",
@@ -131,7 +146,7 @@ def _integer(value: object, low: int, high: int) -> int:
 
 
 def _audio(plan: dict[str, object], assets: dict[str, RenderAsset], duration: int) -> dict[str, object]:
-    if plan.get("version") == "motion-audio-v2":
+    if plan.get("version") in ("motion-audio-v2", "motion-audio-v3"):
         return _audio_v2(plan, assets, duration)
     if set(plan) != {"mode", "tracks"} or not isinstance(plan["tracks"], list):
         raise MotionRenderError("MOTION_RENDER_INVALID_INPUT")
@@ -178,6 +193,9 @@ def _audio_v2(plan: dict[str, object], assets: dict[str, RenderAsset], duration:
     if not isinstance(tracks, list) or not 1 <= len(tracks) <= 16:
         raise MotionRenderError("MOTION_RENDER_INVALID_INPUT")
     plain = []
+    edited = plan.get("version") == "motion-audio-v3"
+    original_end = 0
+    seen_addition = False
     for track in tracks:
         if not isinstance(track, dict) or set(track) != {
             "asset_id",
@@ -201,26 +219,29 @@ def _audio_v2(plan: dict[str, object], assets: dict[str, RenderAsset], duration:
         if track["role"] == "original":
             if (
                 track["asset_id"] != "assets/source.mp4"
-                or track["offset_ms"] != 0
-                or start != 0
+                or track["offset_ms"] != (original_end if edited else 0)
+                or (not edited and start != 0)
+                or (edited and seen_addition)
                 or track["volume"] != 1
                 or fade_in
                 or fade_out
             ):
                 raise MotionRenderError("MOTION_RENDER_INVALID_INPUT")
+            original_end = track["offset_ms"] + end - start
         elif track["asset_id"] == "assets/source.mp4":
             raise MotionRenderError("MOTION_RENDER_INVALID_INPUT")
+        seen_addition = seen_addition or track["role"] != "original"
         plain.append({key: track[key] for key in ("asset_id", "offset_ms", "trim_start_ms", "trim_end_ms", "volume")})
     _audio({"mode": "mix", "tracks": plain}, assets, duration)
     originals = sum(track["role"] == "original" for track in tracks)
-    if originals > 1 or (originals == 1 and tracks[0]["role"] != "original"):
+    if (not edited and originals > 1) or (originals == 1 and tracks[0]["role"] != "original"):
         raise MotionRenderError("MOTION_RENDER_INVALID_INPUT")
     duck = plan["ducking"]
     if duck is not None:
         if (
             not isinstance(duck, dict)
             or set(duck) != {"threshold", "ratio", "attack_ms", "release_ms"}
-            or originals != 1
+            or (originals < 1 if edited else originals != 1)
             or not any(track["role"] == "music" for track in tracks)
         ):
             raise MotionRenderError("MOTION_RENDER_INVALID_INPUT")
@@ -382,7 +403,7 @@ def _decode(data: bytes, expected: RenderConfig) -> RenderedMotion:
             != ("browser_keyframes" if expected["version"] == 2 else "decoded_mp4")
         ):
             raise ValueError
-        if expected["version"] == 1 and expected["audio"].get("version") == "motion-audio-v2":
+        if expected["version"] == 1 and expected["audio"].get("version") in ("motion-audio-v2", "motion-audio-v3"):
             metrics = diagnostics.get("audio_measurements")
             if (
                 not isinstance(metrics, dict)
@@ -477,7 +498,10 @@ async def _command(args: list[str], *, env: dict[str, str], timeout: int, limit:
                     notice = None
                 if isinstance(notice, dict) and notice.get("event") == "motion.render.failed":
                     code = notice.get("code")
-                    if isinstance(code, str) and code in RUNNER_FAILURES:
+                    if isinstance(code, str) and (
+                        code in RUNNER_FAILURES
+                        or (code.isupper() and code.startswith(("MOTION_RENDER_", "MOTION_VIDEO_")) and len(code) <= 100)
+                    ):
                         raise MotionRenderError(code)
                 raise MotionRenderError("MOTION_RENDER_EXECUTION_FAILED")
             return output
